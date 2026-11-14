@@ -115,15 +115,21 @@ def demote(text):
 
 @unittest.skipUnless(CMAKE and all(FUNCTIONS.values()), "CMake and the target definitions are required")
 class PortableTargetsAreAcceptedAndNothingPrivateIsReachable(unittest.TestCase):
-    def configure(self, body, guards=None, weaken=None):
+    def configure(self, body, weaken=None):
+        """Configure the probe. `weaken` names a guard to demote to a status line, or "copy" to run
+        unchanged copies of the guards from the layout that a weakened run uses."""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            directory = guards or REPO / "cmake"
+            directory = REPO / "cmake"
             if weaken is not None:
-                directory = root / "guards"
+                # The adapter checks anchor the directory they protect at ../components of the
+                # guard's own directory. A copy elsewhere would look at a directory that does not
+                # exist and accept every escape, so the copy anchors at this repository instead.
+                directory = root / "cmake"
                 directory.mkdir()
                 for name, path in GUARDS.items():
-                    text = path.read_text()
+                    text = path.read_text().replace("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../",
+                                                    f"{REPO}/")
                     if name == weaken:
                         changed = demote(text)
                         self.assertNotEqual(changed, text, "the weakening changed nothing: " + name)
@@ -160,6 +166,14 @@ class PortableTargetsAreAcceptedAndNothingPrivateIsReachable(unittest.TestCase):
         for name, (body, message, _guard) in ESCAPES.items():
             with self.subTest(escape=name):
                 result, output = self.configure(body)
+                self.assertNotEqual(result.returncode, 0, output)
+                self.assertIn(message, output)
+
+    def test_an_unweakened_copy_of_the_guards_still_rejects_each_escape(self):
+        # The control for the weakened runs below: the copy is laid out as they are, and it checks.
+        for name, (body, message, _guard) in ESCAPES.items():
+            with self.subTest(escape=name):
+                result, output = self.configure(body, weaken="copy")
                 self.assertNotEqual(result.returncode, 0, output)
                 self.assertIn(message, output)
 
