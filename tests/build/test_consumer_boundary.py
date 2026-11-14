@@ -12,12 +12,12 @@ CMAKE = shutil.which("cmake")
 
 @unittest.skipUnless(CMAKE, "CMake is required")
 class ConsumerBoundaryTest(unittest.TestCase):
-    def configure(self, body):
+    def configure(self, body, guard=None):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "CMakeLists.txt").write_text(
                 'cmake_minimum_required(VERSION 3.28)\nproject(probe LANGUAGES C)\n'
-                f'include("{REPO}/cmake/CruxConsumerBoundary.cmake")\n' + body)
+                f'include("{guard or REPO / "cmake/CruxConsumerBoundary.cmake"}")\n' + body)
             return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
                                   capture_output=True, text=True)
 
@@ -507,3 +507,141 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'target_link_libraries(consumer PRIVATE crux::time other_backend)\n')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("INTERFACE_CRUX_TIME_BACKEND", result.stdout + result.stderr)
+
+
+WRAP_GUARD_FUNCTION = "_crux_refuse_crux_link_wrap"
+
+# Spellings of a link-time wrap of one symbol, as the build of a consumer can write them.
+WRAP_FORMS = {
+    "wl_equals": "-Wl,--wrap={symbol}",
+    "wl_comma": "-Wl,--wrap,{symbol}",
+    "wl_single_dash": "-Wl,-wrap={symbol}",
+    "wl_abbreviated": "-Wl,--wra={symbol}",
+    "wl_second_of_two": "-Wl,--wrap=sys_reboot,--wrap={symbol}",
+    "wl_after_other_option": "-Wl,-Map=probe.map,--wrap={symbol}",
+    "linker_equals": "LINKER:--wrap={symbol}",
+    "linker_comma": "LINKER:--wrap,{symbol}",
+    "shell_xlinker": "SHELL:-Xlinker --wrap -Xlinker {symbol}",
+    "shell_wl": "SHELL:-Wl,--wrap={symbol}",
+    "genex_build_interface": "$<BUILD_INTERFACE:-Wl,--wrap={symbol}>",
+    "genex_condition": "$<$<BOOL:1>:-Wl,--wrap={symbol}>",
+}
+
+
+@unittest.skipUnless(CMAKE, "CMake is required")
+class LinkTimeWrapTest(unittest.TestCase):
+    """ADR-0005 S6: the guard refuses a link-time wrap of a Crux symbol, by symbol identity."""
+
+    PROBE = ('file(WRITE "${CMAKE_BINARY_DIR}/probe.c" "int probe(void) { return 0; }")\n'
+             'add_library(consumer STATIC "${CMAKE_BINARY_DIR}/probe.c")\n')
+
+    def configure(self, body, guard=None):
+        # Reuse ConsumerBoundaryTest.configure, which includes the guard in a throwaway project.
+        return ConsumerBoundaryTest.configure(self, body, guard)
+
+    def project(self, route, option):
+        body = self.PROBE
+        if route == "private":
+            body += f'target_link_options(consumer PRIVATE "{option}")\n'
+            return body + 'crux_assert_portable_consumer(consumer)\n'
+        if route == "link_library":
+            body += f'target_link_libraries(consumer PRIVATE "{option}")\n'
+            return body + 'crux_assert_portable_consumer(consumer)\n'
+        if route == "interface":
+            body += ('add_library(wrapper INTERFACE)\n'
+                     f'target_link_options(wrapper INTERFACE "{option}")\n'
+                     'target_link_libraries(consumer PRIVATE wrapper)\n')
+            return body + 'crux_assert_portable_usage(wrapper)\n'
+        if route == "interface_consumer":
+            body += ('add_library(wrapper INTERFACE)\n'
+                     f'target_link_options(wrapper INTERFACE "{option}")\n'
+                     'target_link_libraries(consumer PRIVATE wrapper)\n')
+            return body + 'crux_assert_portable_consumer(consumer)\n'
+        raise ValueError(route)
+
+    ROUTES = ("private", "link_library", "interface", "interface_consumer")
+
+    def weakened_guard(self, directory):
+        # The real guard with the rule's function replaced by an empty one, defined last.
+        weak = Path(directory) / "weak.cmake"
+        weak.write_text((REPO / "cmake/CruxConsumerBoundary.cmake").read_text()
+                        + f"\nfunction({WRAP_GUARD_FUNCTION})\nendfunction()\n")
+        return weak
+
+    def assertRefusedWrap(self, route, option, symbol):
+        result = self.configure(self.project(route, option))
+        output = result.stdout + result.stderr
+        self.assertNotEqual(result.returncode, 0, output)
+        self.assertIn("native consumer requirement", output)
+        # CMake wraps long messages at 80 columns.
+        self.assertIn(f"link-time wrap of Crux symbol {symbol}", " ".join(output.split()))
+
+    def test_a_wrap_of_a_crux_symbol_is_refused_in_every_spelling(self):
+        for name, form in WRAP_FORMS.items():
+            with self.subTest(form=name):
+                self.assertRefusedWrap("private", form.format(symbol="crux_system_probe"),
+                                       "crux_system_probe")
+
+    def test_a_wrap_of_a_crux_symbol_is_refused_in_every_route(self):
+        for route in self.ROUTES:
+            with self.subTest(route=route):
+                self.assertRefusedWrap(route, "-Wl,--wrap=sys_reboot,--wrap=crux_system_probe",
+                                       "crux_system_probe")
+
+    def test_the_real_and_wrap_prefixed_names_of_a_crux_symbol_are_refused(self):
+        for symbol in ("__wrap_crux_system_probe", "__real_crux_system_probe"):
+            with self.subTest(symbol=symbol):
+                self.assertRefusedWrap("private", f"-Wl,--wrap={symbol}", symbol)
+
+    def test_the_two_system_seam_symbols_are_refused_as_wraps_of_crux_symbols(self):
+        # Refused today only by the token `zephyr` in their names; the rule now names them.
+        for symbol in ("crux_watchdog_zephyr_device", "crux_watchdog_zephyr_running"):
+            with self.subTest(symbol=symbol):
+                result = self.configure(self.project("private", f"-Wl,--wrap={symbol}"))
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(f"link-time wrap of Crux symbol {symbol}",
+                              " ".join((result.stdout + result.stderr).split()))
+
+    def test_a_wrap_of_a_product_or_zephyr_symbol_is_left_alone(self):
+        for symbol in ("sys_reboot", "z_impl_hwinfo_get_reset_cause", "clock_settime", "my_crux_helper",
+                       "cruxsym", "CRUX_UPPER"):
+            with self.subTest(symbol=symbol):
+                result = self.configure(self.project("private", f"-Wl,--wrap={symbol}"))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_wrap_of_a_product_symbol_is_left_alone_in_every_spelling_and_route(self):
+        for name, form in WRAP_FORMS.items():
+            if name == "wl_second_of_two" or name == "wl_after_other_option":
+                option = form.format(symbol="fs_read")
+            else:
+                option = form.format(symbol="sys_reboot")
+            for route in self.ROUTES:
+                with self.subTest(form=name, route=route):
+                    result = self.configure(self.project(route, option))
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_other_linker_options_naming_crux_are_left_alone(self):
+        for option in ("-Wl,-Map=crux_probe.map", "-Wl,--undefined=crux_system_probe",
+                       "LINKER:--wrap=sys_reboot", "-Wl,--gc-sections"):
+            with self.subTest(option=option):
+                result = self.configure(self.project("private", option))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_the_refusal_is_the_rule_and_not_vacuous(self):
+        # Against a guard with the rule removed, every refused probe configures cleanly.
+        probes = ("-Wl,--wrap=sys_reboot,--wrap=crux_system_probe", "LINKER:--wrap,crux_system_probe",
+                  "SHELL:-Xlinker --wrap -Xlinker crux_system_probe", "-Wl,--wrap=__wrap_crux_x")
+        with tempfile.TemporaryDirectory() as directory:
+            weak = self.weakened_guard(directory)
+            for option in probes:
+                for route in self.ROUTES:
+                    with self.subTest(option=option, route=route):
+                        result = self.configure(self.project(route, option), guard=weak)
+                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                        strong = self.configure(self.project(route, option))
+                        self.assertNotEqual(strong.returncode, 0, strong.stdout + strong.stderr)
+
+    def test_the_rule_is_in_the_guard_and_is_called_per_property(self):
+        text = (REPO / "cmake/CruxConsumerBoundary.cmake").read_text()
+        self.assertIn(f"function({WRAP_GUARD_FUNCTION}", text)
+        self.assertRegex(text, rf"(?m)^\s+{WRAP_GUARD_FUNCTION}\(")
