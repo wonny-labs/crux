@@ -10,10 +10,10 @@ include_guard(GLOBAL)
 # no route. This is the check that sees generated sources, such as the asset routes of #189, and any
 # project layout, so an image with ZEPHYR_RESOURCES must give it. See scripts/check-web-routes.py for the
 # list's form.
-# ZEPHYR_RESOURCES also generates the registered resources. The function gives the Zephyr port's header to that
-# generated file alone, so the target needs only Zephyr's headers, as `app` has, and the product must not add
-# components/web/ports/zephyr to its target. Likewise a route source of a Crux component, one under the
-# repository's components/ tree, gets its private directories per source: name it here and add no directory. FAKE_MANIFEST is for the Host's fake transport only.
+# ZEPHYR_RESOURCES also generates the registered resources. The function gives the Zephyr port's header to
+# that generated file alone, so the target needs only Zephyr's headers, as `app` has, and the product must not
+# add components/web/ports/zephyr to its target. Likewise a route source of a Crux component, one under the
+# repository's components/ tree, gets its private directories per source: name it here, add no directory. FAKE_MANIFEST is for the Host's fake transport only.
 function(crux_web_routes target)
     cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "REVIEWED" "SOURCES")
     if(NOT ARG_SOURCES OR ARG_UNPARSED_ARGUMENTS)
@@ -91,7 +91,7 @@ function(crux_web_routes target)
         elseif(source MATCHES "/components/web/")
             # Most likely the same repository under another spelling of its path (a symbolic link). The source
             # then compiles without its private directories, and a product sees a missing header.
-            message(WARNING "crux_web_routes: ${source} looks like a Crux route source but is not under "
+            message(WARNING "crux_web_routes: if ${source} is a Crux route source, it is not under "
                 "${crux_root}/components/, so it gets no private include directory. Name it by the same path "
                 "that loaded this file.")
         endif()
