@@ -104,7 +104,8 @@ class PrivateIncludesTest(unittest.TestCase):
             link.symlink_to(REPO)
             spelled = link / "components/web/session/web_session_routes.c"
             commands = self.configure(session=spelled)
-            self.assertIn("is a Crux route source, it is not under", self.stdout)
+            # CMake wraps a long warning at the terminal width, which differs between versions: compare the words.
+            self.assertIn("is a Crux route source, it is not under", " ".join(self.stdout.split()))
             self.assertEqual(components_dirs(commands["web_session_routes.c"]), [])
 
     def test_the_weakened_form_shows_the_difference(self):
