@@ -22,12 +22,8 @@ FROZEN = ("thread.h", "sync.h", "queue.h", "serial.h")
 # header -> (component, the Crux headers that it may pull in, the include roots of those)
 HEADERS = {
     "access.h": ("access", {"access.h"}, ["access/include"]),
-    "credential_store.h": ("credential", {"credential_store.h", "status.h"},
-                           ["credential/include", "base/include"]),
-    # Separate from credential_store.h, so that a reader of the state (the status service) does not
-    # need the File contract.
-    "credential_store_start.h": ("credential", {"credential_store_start.h", "file.h"},
-                                 ["credential/include", "file/include"]),
+    "credential_store.h": ("credential", {"credential_store.h", "status.h", "file.h"},
+                           ["credential/include", "base/include", "file/include"]),
     "security_event.h": ("security_event", {"security_event.h", "access.h", "status.h"},
                          ["security_event/include", "access/include", "base/include"]),
 }
@@ -97,17 +93,9 @@ class PublicHeaders(unittest.TestCase):
                     self.assertNotRegex(text, rf"#\s*include\s*[<\"]crux/{re.escape(frozen)}")
                 self.assertNotRegex(text, r"#\s*include\s*[<\"](zephyr|wolf|mbedtls|psa)/")
 
-    def test_the_state_header_needs_no_file_contract(self):
-        # The status service includes it without the File include root (the first CI run of the
-        # management module found that a File include in this header broke it).
-        result = compile_source("#include <crux/credential_store.h>\nint main(void) { return 0; }\n",
-                                [COMPONENTS / "credential/include", COMPONENTS / "base/include"])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("crux/file.h", public_path("credential_store.h").read_text())
-
     def test_the_credential_start_is_declared_in_the_public_header(self):
-        result = compile_source("#include <crux/credential_store_start.h>\n" + START_USES,
-                                roots_of("credential_store_start.h"))
+        result = compile_source("#include <crux/credential_store.h>\n" + START_USES,
+                                roots_of("credential_store.h"))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_the_private_header_declares_the_start_and_the_result_type_no_second_time(self):
@@ -115,7 +103,6 @@ class PublicHeaders(unittest.TestCase):
         self.assertNotRegex(text, r"crux_credential_result_t\s+crux_credential_start\s*\(")
         self.assertNotRegex(text, r"\}\s*crux_credential_result_t\s*;")
         self.assertRegex(text, r"#include\s+<crux/credential_store\.h>")
-        self.assertRegex(text, r"#include\s+<crux/credential_store_start\.h>")
 
     def test_the_private_header_still_compiles_with_the_public_one(self):
         source = ('#include "crux_credential_adapter.h"\n'
@@ -124,17 +111,15 @@ class PublicHeaders(unittest.TestCase):
                   "crux_credential_result_t (*start)(crux_file_root_t, crux_file_root_t)"
                   " = crux_credential_start;\n"
                   "int main(void) { return read && start ? 0 : 1; }\n")
-        result = compile_source(source, [COMPONENTS / "credential/adapter",
-                                         *roots_of("credential_store_start.h"), *roots_of("credential_store.h")])
+        result = compile_source(source, [COMPONENTS / "credential/adapter", *roots_of("credential_store.h")])
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_the_raw_credential_operations_are_not_published(self):
-        for header in ("credential_store.h", "credential_store_start.h"):
-            text = public_path(header).read_text()
-            for name in CREDENTIAL_PRIVATE:
-                self.assertNotIn(name, text, f"{header}: {name}")
-            self.assertNotIn("crux_credential_record_t", text)
-            self.assertNotIn("CRUX_CREDENTIAL_RECORD_", text)
+        text = public_path("credential_store.h").read_text()
+        for name in CREDENTIAL_PRIVATE:
+            self.assertNotIn(name, text, name)
+        self.assertNotIn("crux_credential_record_t", text)
+        self.assertNotIn("CRUX_CREDENTIAL_RECORD_", text)
 
     def test_first_account_provisioning_is_not_published(self):
         for name in HEADERS:
@@ -166,7 +151,7 @@ class PublicHeaders(unittest.TestCase):
             self.assertIn('extern "C" {', text, name)
 
     def test_the_start_documents_ownership_context_and_order(self):
-        text = " ".join(public_path("credential_store_start.h").read_text().replace("\n *", " ").split())
+        text = " ".join(public_path("credential_store.h").read_text().replace("\n *", " ").split())
         for phrase in ("crux_credential_start", "Thread context", "once", "before crux_access_init",
                        "File root", "CRUX_CREDENTIAL_ERR_UNUSABLE", "CRUX_CREDENTIAL_ERR_INVALID_ARGUMENT"):
             self.assertIn(phrase, text, phrase)
