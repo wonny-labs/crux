@@ -2,7 +2,7 @@
  * @file
  * @brief Application-owned scalar and bounded string configuration, with explicit persistence.
  *
- * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * Status: Experimental (ADR-0001 decision 4). Its Settings integration takes sources from tests/,
  * and a change is listed in the release notes.
  *
  * Thread context only. Callers serialise access. Changes to accepted values are

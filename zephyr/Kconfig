@@ -517,8 +517,8 @@ config CRUX_CONFIGURATION_CORE
     bool
     depends on CRUX_PILOT_MODULE
     help
-      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS,
-      selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
+      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE, CONFIG_CRUX_MGMT_STATUS and
+      CONFIG_CRUX_REBOOT, selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
       selection's copy that is linked, and this builds nothing. Either way the module defines the
       portable target crux::configuration for <crux/configuration.h>.
 
