@@ -18,7 +18,11 @@ void crux_ssh_access_port_event(const crux_ssh_access_event_t *event)
         return;
     }
     memset(&record, 0, sizeof(record));
-    /* No default case: the compiler refuses a report that this table does not map. */
+    /* A type that the table below does not map is recorded as a failure of unknown kind, and not as
+     * id 0 with the result OK, which would read as a success. */
+    record.id = CRUX_SECURITY_EVENT_ID_EVENT_UNKNOWN;
+    record.result = CRUX_SECURITY_EVENT_FAILED;
+    /* No default case: the compiler refuses a new type that this table does not map. */
     switch (event->type) {
     case CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT:
         record.id = CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT;

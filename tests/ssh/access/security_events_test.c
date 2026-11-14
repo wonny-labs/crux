@@ -56,6 +56,26 @@ static void test_host_key_missing_records_a_failure_with_no_source(void)
     }
 }
 
+static void test_an_unknown_report_type_records_a_failure_and_not_a_success(void)
+{
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+    crux_ssh_access_event_t report = {.type = (crux_ssh_access_event_type_t)99,
+                                      .channel = CRUX_SSH_ACCESS_EVENT_CHANNEL};
+    const crux_security_event_record_t *record;
+
+    boot();
+    crux_ssh_access_port_event(&report);
+    /* Not a silent id 0 with result OK: it is event.unknown, as a failure. */
+    SSH_CHECK(security_event_fake_count() == 1u);
+    record = security_event_fake_last(CRUX_SECURITY_EVENT_ID_EVENT_UNKNOWN);
+    SSH_CHECK(record != NULL);
+    if (record != NULL) {
+        SSH_CHECK(record->result == CRUX_SECURITY_EVENT_FAILED);
+    }
+    SSH_CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT) == 0u);
+    SSH_CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_SSH_HOST_KEY_MISSING) == 0u);
+}
+
 static void test_a_null_report_records_nothing(void)
 {
     boot();
@@ -81,6 +101,7 @@ int main(void)
 {
     test_auth_limit_records_the_channel_and_source_and_nobody_else();
     test_host_key_missing_records_a_failure_with_no_source();
+    test_an_unknown_report_type_records_a_failure_and_not_a_success();
     test_a_null_report_records_nothing();
     test_the_adapter_entry_point_reaches_the_record();
     printf("%u failures\n", ssh_check_failures);

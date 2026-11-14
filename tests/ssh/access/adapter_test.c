@@ -325,6 +325,7 @@ static void check_auth_limit_report(const crux_ssh_peer_t *from, const uint8_t *
 
     ssh_port_fake_reset();
     crux_ssh_access_auth_limit(NULL, from);
+    SSH_CHECK(!ssh_port_fake_overflowed());
     SSH_CHECK(ssh_port_fake_count() == 1u);
     report = ssh_port_fake_event(0);
     SSH_CHECK(report != NULL && report->type == CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT);
@@ -366,6 +367,7 @@ static void test_auth_limit_without_a_known_peer_still_reports(void)
     crux_ssh_access_auth_limit(NULL, NULL);
     crux_ssh_access_auth_limit(NULL, &none);
     crux_ssh_access_auth_limit(NULL, &odd);
+    SSH_CHECK(!ssh_port_fake_overflowed());
     SSH_CHECK(ssh_port_fake_count_of(CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT) == 3u);
     for (size_t i = 0; i < ssh_port_fake_count(); ++i) {
         report = ssh_port_fake_event(i);
@@ -387,6 +389,7 @@ static void test_the_other_entry_points_report_no_port_event(void)
               CRUX_SSH_AUTH_DENIED);
     crux_ssh_access_key_failed(NULL, &peer, USER);
     crux_ssh_access_connection_closed(NULL, login(&other_peer));
+    SSH_CHECK(!ssh_port_fake_overflowed());
     SSH_CHECK(ssh_port_fake_count() == 0u);
 }
 

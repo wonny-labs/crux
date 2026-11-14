@@ -13,6 +13,7 @@ static void check_reported_missing_once(void)
 {
     const crux_ssh_access_event_t *report = ssh_port_fake_event(0);
 
+    SSH_CHECK(!ssh_port_fake_overflowed());
     SSH_CHECK(ssh_port_fake_count() == 1u);
     SSH_CHECK(report != NULL && report->type == CRUX_SSH_ACCESS_EVENT_HOST_KEY_MISSING);
     if (report != NULL) {
@@ -46,6 +47,7 @@ static void test_first_use_generates_and_later_uses_do_not(void)
     SSH_CHECK(second.length == first.length);
     SSH_CHECK(memcmp(second.key, first.key, first.length) == 0);
     /* A key that was found, or generated, is not a missing one. */
+    SSH_CHECK(!ssh_port_fake_overflowed());
     SSH_CHECK(ssh_port_fake_count() == 0u);
 }
 

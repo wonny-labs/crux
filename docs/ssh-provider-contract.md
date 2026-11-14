@@ -179,7 +179,7 @@ flowchart LR
 | Why a callback and not a count in the adapter | The adapter sees only a peer and a name per attempt, with no connection to hang a count on. The provider is where a connection ends. |
 | Why optional | A table without `auth_limit` still works, and the connection ends all the same, so a test table and an image with no event core need nothing. The shared table always sets it. |
 | Which image gets which provider | `CONFIG_CRUX_SSH` selects `crux_ssh_security_events.c`, and it needs the event core, so a missing core fails at link time. A test image that sets the variables itself links `crux_ssh_access_events_none.c`. Neither is linked into the Host library, so a Host test links its own. |
-| Open | `scripts/check-composition-image.py` lists the ports that a management image must take from their real source, and it does not list this one, so an image that linked the dropping provider would not be caught. The script is a protected path, so a change to it needs the owner's approval. |
+| Open | Two gaps need the owner's words, because each is a change to a protected script. (1) `scripts/analyze-host.sh` does not list the new sources, so `clang-tidy` does not cover them in CI. (2) `scripts/check-composition-image.py` does not catch an SSH image that links the dropping provider. Adding the port to its `PORTS` table would be wrong, because `PORTS` is checked against every management image, including those with no SSH. The follow-up needs an SSH-only table, which is new behaviour in a protected script. |
 
 ### Which files a change touches
 

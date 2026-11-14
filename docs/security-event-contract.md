@@ -322,6 +322,13 @@ user, because the adapter knows only what a client claimed, and no subject.
 | `AUTH_LIMIT` | `ssh.auth_limit` | `LIMIT` | None | 3, and the peer as Access keys it: an IPv4 address or an IPv6 /64. No source if the address cannot be read. | None | Once, when a connection ends because it used `max_auth_attempts`, after the attempt that reached the limit. Not for a client that leaves, a login, the login timer or a stop. |
 | `HOST_KEY_MISSING` | `ssh.host_key_missing` | `FAILED` | None | 3, no source | None | `crux_ssh_host_key_load()` returned `CRUX_ERR_NOT_READY`: the store is not ready, or could not generate, save or parse the key. Not for a bad argument. |
 
+`ssh.host_key_missing` is a class-C record, so it is admitted when the ring is nearly full, and the adapter does not limit it:
+every failed call of `crux_ssh_host_key_load()` records one. The compositions in this repository call it once at start and give up
+when it fails (`crux_native_management_ssh_start()`, `crux_mgmt_rt1060_ssh_start()`, and the provider test image), so each boot
+records at most one. A composition that retried the load in a loop would repeat the record on every attempt and could use up the
+change-class reserve, so it should pause or cap its attempts. A report of a type that the provider does not know is recorded as
+`event.unknown` with the result `FAILED`.
+
 **Reserved: refusals before a first callback.** The provider refuses RSA, DSA, other curves, security keys, certificates, an
 empty, overlong or NUL-holding name, and a malformed key blob before any callback ([the SSH provider record](ssh-wolf-provider.md#decision-22-the-trade-off)).
 Each one stays unemitted, and no identifier is assigned, until the provider can report it. Two cases are visible meanwhile: such a
