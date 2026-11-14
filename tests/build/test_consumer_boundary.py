@@ -523,6 +523,10 @@ WRAP_FORMS = {
     "linker_comma": "LINKER:--wrap,{symbol}",
     "shell_xlinker": "SHELL:-Xlinker --wrap -Xlinker {symbol}",
     "shell_wl": "SHELL:-Wl,--wrap={symbol}",
+    "bare_equals": "--wrap={symbol}",
+    "split_linker": "LINKER:--wrap;LINKER:{symbol}",
+    "split_xlinker": "-Xlinker;--wrap;-Xlinker;{symbol}",
+    "split_wl": "-Wl,--wrap;-Wl,{symbol}",
     "genex_build_interface": "$<BUILD_INTERFACE:-Wl,--wrap={symbol}>",
     "genex_condition": "$<$<BOOL:1>:-Wl,--wrap={symbol}>",
 }
@@ -628,18 +632,40 @@ class LinkTimeWrapTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_the_refusal_is_the_rule_and_not_vacuous(self):
-        # Against a guard with the rule removed, every refused probe configures cleanly.
-        probes = ("-Wl,--wrap=sys_reboot,--wrap=crux_system_probe", "LINKER:--wrap,crux_system_probe",
-                  "SHELL:-Xlinker --wrap -Xlinker crux_system_probe", "-Wl,--wrap=__wrap_crux_x")
+        # Against a guard with the rule removed, every refused probe configures cleanly, and the real guard
+        # refuses the same probe: so each refusal above is the rule's. Every spelling and every prefixed name
+        # is a probe; the routes are covered by the loop over ROUTES below with one spelling.
+        probes = [form.format(symbol="crux_system_probe") for form in WRAP_FORMS.values()]
+        probes += [f"-Wl,--wrap={symbol}" for symbol in ("__wrap_crux_system_probe", "__real_crux_system_probe")]
         with tempfile.TemporaryDirectory() as directory:
             weak = self.weakened_guard(directory)
             for option in probes:
-                for route in self.ROUTES:
-                    with self.subTest(option=option, route=route):
-                        result = self.configure(self.project(route, option), guard=weak)
-                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                        strong = self.configure(self.project(route, option))
-                        self.assertNotEqual(strong.returncode, 0, strong.stdout + strong.stderr)
+                with self.subTest(option=option, route="private"):
+                    self.assertAcceptedByWeakAndRefusedByRule("private", option, weak)
+            for route in self.ROUTES:
+                with self.subTest(option="routes", route=route):
+                    self.assertAcceptedByWeakAndRefusedByRule(
+                        route, "-Wl,--wrap=sys_reboot,--wrap=crux_system_probe", weak)
+
+    def assertAcceptedByWeakAndRefusedByRule(self, route, option, weak):
+        accepted = self.configure(self.project(route, option), guard=weak)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        refused = self.configure(self.project(route, option))
+        self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
+        self.assertIn("link-time wrap of Crux symbol", " ".join((refused.stdout + refused.stderr).split()))
+
+    def test_the_two_system_seam_symbols_are_refused_by_name_even_without_the_rule(self):
+        # ADR-0005 T4: "refused today by the name". The token `zephyr` in these two names is refused by the
+        # older pattern, so a weakened rule does not accept them; the failure is then not the rule's message.
+        with tempfile.TemporaryDirectory() as directory:
+            weak = self.weakened_guard(directory)
+            for symbol in ("crux_watchdog_zephyr_device", "crux_watchdog_zephyr_running"):
+                with self.subTest(symbol=symbol):
+                    result = self.configure(self.project("private", f"-Wl,--wrap={symbol}"), guard=weak)
+                    output = " ".join((result.stdout + result.stderr).split())
+                    self.assertNotEqual(result.returncode, 0, output)
+                    self.assertIn("native consumer requirement", output)
+                    self.assertNotIn("link-time wrap of Crux symbol", output)
 
     def test_the_rule_is_in_the_guard_and_is_called_per_property(self):
         text = (REPO / "cmake/CruxConsumerBoundary.cmake").read_text()

@@ -211,9 +211,9 @@ link-time wrap (`--wrap`) of a symbol named `crux_*`, `__wrap_crux_*` or
 `-Wl,--wrap=S`, `-Wl,--wrap,S`, `LINKER:--wrap=S`, `-Xlinker --wrap -Xlinker S`
 and the single-dash and abbreviated forms of the linker. A wrap of any other
 symbol, such as a product's own wrap of a Zephyr function, is not refused by this
-rule. It does not see linker flags set outside target properties
-(`CMAKE_EXE_LINKER_FLAGS`), `@response` files or other linker options such as
-`--defsym`.
+rule. It does not see the legacy `LINK_FLAGS` properties, linker flags set outside
+target properties (`CMAKE_EXE_LINKER_FLAGS`), `@response` files or other linker
+options such as `--defsym`.
 
 Static providers retain PRIVATE native requirements at the composition boundary.
 Unqualified consumer/public requirements such as `Threads::Threads`, `pthread`
