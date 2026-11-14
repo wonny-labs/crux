@@ -450,9 +450,9 @@ config CRUX_ACCESS
       Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
       store port, PSA ports and device ID, and the security events with their drain thread and the
       provider of Access's event port, and registers the three with the Zephyr link. It starts
-      nothing, adds no crux:: target and no public header: the application writes the start
-      sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
-      own include path until the composition interfaces of ADR-0004 phase 1a exist.
+      nothing: the application writes the start sequence (docs/management-in-a-product.md). It links
+      the portable targets crux::access, crux::credential_store and crux::security_event for their
+      public headers (Experimental).
 
       The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
       locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
