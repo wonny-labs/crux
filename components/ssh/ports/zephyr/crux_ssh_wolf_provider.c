@@ -718,6 +718,23 @@ static bool open_sftp(connection_t *connection)
     return true;
 }
 
+/*
+ * wolfSSH ends a connection that used up max_auth_attempts with WS_USER_AUTH_E, in the login, after
+ * it has sent the disconnect (CountUserAuthFailure in wolfSSH v1.6.0). It gives no other signal.
+ * Nothing else in this build ends a login with that error: the callbacks above answer success or
+ * failure only, never the hard rejection that makes wolfSSH fail on its own, and password and
+ * public key are the only methods. A stop and the login timer end the handshake with other errors,
+ * or with none, so they are not reported. Runs on the worker, with no provider lock held, and only
+ * tells Crux.
+ */
+static void report_auth_limit(const connection_t *connection, int error)
+{
+    if (error == WS_USER_AUTH_E && connection->attachment == NULL && !is_stopping() &&
+        server.callbacks.auth_limit != NULL) {
+        server.callbacks.auth_limit(server.callbacks.context, &connection->peer);
+    }
+}
+
 /* Up to the end of wolfSSH_accept(): the login, the session request, and SFTP's opening exchange.
  */
 static bool run_handshake(connection_t *connection)
@@ -741,6 +758,7 @@ static bool run_handshake(connection_t *connection)
             return true;
         }
         if (error != WS_WANT_READ && error != WS_WANT_WRITE) {
+            report_auth_limit(connection, error);
             return false;
         }
         if (is_stopping()) {

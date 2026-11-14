@@ -131,6 +131,7 @@ The adapter defines `struct crux_ssh_attachment` to hold a `crux_access_session_
 | `key_failed` | `crux_access_report_key_failure` | Not applicable |
 | `session_alive` | `crux_access_session_user`, which does not refresh the idle timer | It returns `CRUX_ACCESS_OK` |
 | `connection_closed` | `crux_access_logout`, then the slot is freed | Not applicable |
+| `auth_limit` (optional) | The event port: `ssh.auth_limit`, with the peer as its source. It touches no session, delay entry or access event. | Not applicable |
 
 The origin uses `CRUX_ACCESS_CHANNEL_SSH`, with the peer address as its source. For IPv6 the adapter passes the /64 prefix,
 as the access contract says. Every access result other than success is a denial on the wire, including
@@ -144,6 +145,41 @@ that holds any session a test gives it. Linking both the table and the double fa
 crux_ssh_attachment_session`, so a CLI or SFTP test links the double and its own entry points, not the table.
 
 A session belongs to one SSH connection. `crux_access_touch` is the caller's job, so #193 and #194 call it on user activity.
+
+### Security events from the access adapter
+
+[Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) gives the SSH identifiers an emitter, on the owner's decision of
+2026-11-14: option A for `ssh.auth_limit` and `ssh.host_key_missing`, and option B for refusals before a first callback, which stay
+unemitted and **reserved**. The adapter does not name the Security event component. It reports to a port, `crux_ssh_access_port_event()`
+in [`crux_ssh_access_port.h`](../components/ssh/access/crux_ssh_access_port.h), and an image links one provider of it. The
+[event contract](security-event-contract.md#from-the-ssh-adapter-port) has the record of each report.
+
+```mermaid
+flowchart LR
+    subgraph provider["Provider, on the connection's worker"]
+        accept["wolfSSH_accept ends at max_auth_attempts<br/>(WS_USER_AUTH_E, no login, not stopping)"]
+    end
+    subgraph adapter["Access adapter, components/ssh/access/"]
+        limit["crux_ssh_access_auth_limit(peer)"]
+        key["crux_ssh_host_key_load()<br/>store gave no key"]
+        port["crux_ssh_access_port_event(report)"]
+    end
+    accept -->|"optional callback auth_limit"| limit
+    limit -->|"AUTH_LIMIT, peer as Access keys it"| port
+    key -->|"HOST_KEY_MISSING, no source"| port
+    port -->|"crux_ssh_security_events.c"| emit["crux_security_event_emit<br/>ssh.auth_limit, ssh.host_key_missing"]
+    port -.->|"crux_ssh_access_events_none.c, image with no event core"| drop["dropped"]
+```
+
+| Question | Answer |
+| --- | --- |
+| What is built | The `auth_limit` callback and its entry point, the port and its two providers, the report from the host key load, the fake provider's report of the limit with four deliberate defects, three conformance cases, and the wolfSSH provider's detection |
+| What is faked | The Host tests use a recording provider of the port (`tests/ssh/access/ssh_port_fake.c`) and, for the mapping, the recording fake of the event contract. The fake SSH provider decides when the limit is reached. |
+| What is untested | The wolfSSH provider's detection of the limit, which `native_sim` would show and no workflow runs ([decision 29](ssh-wolf-provider.md#decisions-for-review)). The records in a running image. Anything on a board. |
+| Why a callback and not a count in the adapter | The adapter sees only a peer and a name per attempt, with no connection to hang a count on. The provider is where a connection ends. |
+| Why optional | A table without `auth_limit` still works, and the connection ends all the same, so a test table and an image with no event core need nothing. The shared table always sets it. |
+| Which image gets which provider | `CONFIG_CRUX_SSH` selects `crux_ssh_security_events.c`, and it needs the event core, so a missing core fails at link time. A test image that sets the variables itself links `crux_ssh_access_events_none.c`. Neither is linked into the Host library, so a Host test links its own. |
+| Open | Two gaps need the owner's words, because each is a change to a protected script. (1) `scripts/analyze-host.sh` does not list the new sources, so `clang-tidy` does not cover them in CI. (2) `scripts/check-composition-image.py` does not catch an SSH image that links the dropping provider. Adding the port to its `PORTS` table would be wrong, because `PORTS` is checked against every management image, including those with no SSH. The follow-up needs an SSH-only table, which is new behaviour in a protected script. |
 
 ### Which files a change touches
 
@@ -278,13 +314,14 @@ Superseded by [the wolfSSH provider](ssh-wolf-provider.md): the heap and window 
 
 | Test | What it holds |
 | --- | --- |
-| `Ssh.ProviderConformance` | The cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider: 52 now, and 51 when #239 recorded its results below |
-| `Ssh.ConformanceCatchesDefects` | Each of the fake's deliberate defects must fail its named case: 61 now, 60 at #239 |
+| `Ssh.ProviderConformance` | The cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider: 55 now, and 51 when #239 recorded its results below |
+| `Ssh.ConformanceCatchesDefects` | Each of the fake's deliberate defects must fail its named case: 65 now, 60 at #239 |
 | `Ssh.FakeProvider` | What the fake promises to other tests: a buffer of at least 1 KiB, a failed `send` reported, and key blobs of real size |
 | `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double. A test links the double or the table, not both, because each brings a definition of it. |
 | `Ssh.CallbackTable` | Every member of the shared table is the named entry point, and a provider accepts it |
 | `Ssh.cli_stub`, `Ssh.sftp_stub` | The refusing entry points of an image with no command line or no SFTP fail closed |
-| `Ssh.access_adapter`, `Ssh.host_key` | The access mapping on the real `crux_access` core, and the host key's way from the credential store, with fake ports |
+| `Ssh.access_adapter`, `Ssh.host_key` | The access mapping on the real `crux_access` core, and the host key's way from the credential store, with fake ports. Both also read the reports that the adapter makes to its event port. |
+| `Ssh.security_events` | The real provider of the event port on the recording fake of the event contract |
 | `Ssh.ProviderTypes` | SSH library names stay in the provider and the file port |
 | `Ssh.Boundaries` | `scripts/check-ssh-boundaries.py` |
 
