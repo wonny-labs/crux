@@ -81,6 +81,10 @@ set(route_sources
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
+# The product links crux::web itself: crux_web_assets() and crux_web_routes() give Crux's own sources what they
+# need and add no usage target to your target.
+target_link_libraries(app PRIVATE crux::web)
+
 # Your built frontend folder, with index.html at its top. Call it before crux_web_routes().
 crux_web_assets(app FOLDER ${CMAKE_SOURCE_DIR}/frontend/dist STYLE strict)
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${CMAKE_SOURCE_DIR}/reviewed-routes.txt)

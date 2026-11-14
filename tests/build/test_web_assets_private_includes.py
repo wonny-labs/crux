@@ -86,6 +86,22 @@ class PrivateIncludesTest(unittest.TestCase):
                  "PROPERTY INCLUDE_DIRECTORIES /caller/own)")
         self.assertIn("-I/caller/own", self.configure(extra)["web_assets.c"])
 
+    def test_the_two_added_sources_compile_with_the_per_source_properties_alone(self):
+        # The only thing that shows the directories and the definition are enough: build the probe's target
+        # with the host compiler. Nothing links the adapter to it, and nothing else supplies a directory.
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root / "product.c").write_text("int product;\n")
+        (root / "site").mkdir()
+        (root / "site/index.html").write_text("<!doctype html><title>x</title><p>x</p>\n")
+        (root / "CMakeLists.txt").write_text(PROJECT.format(repo=REPO, extra=""))
+        configured = subprocess.run(["cmake", "-S", str(root), "-B", str(root / "build")], capture_output=True,
+                                    text=True)
+        self.assertEqual(configured.returncode, 0, configured.stdout + configured.stderr)
+        built = subprocess.run(["cmake", "--build", str(root / "build")], capture_output=True, text=True)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+
     def test_the_weakened_form_shows_the_difference(self):
         # What the function did before: it linked the adapter's target to the product's target. The probe
         # reproduces that by hand, and the product's own source then sees the adapter directory and the size.

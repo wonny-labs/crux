@@ -20,6 +20,10 @@ include_guard(GLOBAL)
 # DENY_STRINGS
 #            A file of strings, one per line, that must not appear in any file of the bundle.
 #
+# The two sources the function adds get their private directories and the body buffer size per source, and the
+# function links nothing to the target. The target must link crux::web itself, which also gives it the
+# toolchain flags that those sources compile with, as `app` has in Zephyr.
+#
 # Sets these target properties: CRUX_WEB_ASSETS_SOURCE, the generated source, and
 # CRUX_WEB_ASSETS_HASH_LIST, the JSON list of asset hashes for the product's SBOM.
 function(crux_web_assets target)
