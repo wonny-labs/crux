@@ -69,7 +69,28 @@ function(crux_web_routes target)
         VERBATIM)
     target_sources(${target} PRIVATE ${outputs})
     set_target_properties(${target} PROPERTIES CRUX_WEB_ROUTES_CONFIGURED TRUE)
+
+    # The private directories that Crux's own route sources and the generated resources need are attached to
+    # those files alone, as per-source properties of the target, and never to the target as a usage
+    # requirement. A product's own sources then see none of them, so a product can name the route sources of
+    # the Crux services here and still keep to the include rule of ADR-0004 section 5 (the product's sources
+    # see only components/<c>/include and components/<c>/ports/zephyr/include).
+    get_filename_component(crux_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
+    file(GLOB crux_public_roots "${crux_root}/components/*/include")
+    set(crux_route_directories "${crux_root}/components/web/adapter" "${crux_root}/components/web/src"
+        "${crux_root}/components/access/adapter" ${crux_public_roots})
+    foreach(source IN LISTS sources)
+        string(FIND "${source}" "${crux_root}/components/" owned)
+        if(owned EQUAL 0)
+            # A source of a Crux component also sees its own directory, for its private headers.
+            cmake_path(GET source PARENT_PATH own_directory)
+            set_source_files_properties("${source}" TARGET_DIRECTORY ${target}
+                PROPERTIES INCLUDE_DIRECTORIES "${own_directory};${crux_route_directories}")
+        endif()
+    endforeach()
     if(ARG_ZEPHYR_RESOURCES)
-        target_link_libraries(${target} PRIVATE crux_web_zephyr_resources)
+        # The generated resources include the Zephyr port's header. Only that file sees the port's directory.
+        set_source_files_properties("${directory}/crux_web_resources.c" TARGET_DIRECTORY ${target}
+            PROPERTIES INCLUDE_DIRECTORIES "${crux_root}/components/web/ports/zephyr")
     endif()
 endfunction()
