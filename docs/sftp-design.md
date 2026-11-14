@@ -179,7 +179,7 @@ On 2026-11-14 the owner accepted a direction in the working chat of the Crux sec
 | 12 | `SYMLINK`, `READLINK` and other requests with no handler | No event | No port call exists. The same separate decision |
 | 13 | A path of 256 bytes or more | No event | wolfSSH stops it before the port. The same separate decision |
 
-What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is met by this table once it is reviewed and merged; the criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
+What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is **not yet met**: the owner accepted the direction, not each row, so it needs the owner's decision on this table row by row, or a follow-up that records it. The criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
 
 ### Long paths
 
