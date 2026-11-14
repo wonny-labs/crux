@@ -35,7 +35,7 @@ class BuildGuardTest(unittest.TestCase):
         # CMake wraps its messages, so compare the words and not the line breaks.
         return result.returncode, ' '.join((result.stdout + result.stderr).split())
 
-    def test_the_defaults_configure_and_build(self):
+    def test_the_defaults_configure(self):
         returncode, output = self.configure()
         self.assertEqual(returncode, 0, output[-1500:])
 

@@ -10,9 +10,9 @@ config CRUX_FLASH_DISK
 	help
 	  Expose a disk_access disk as flash_read, flash_write and flash_erase, so that MCUboot's
 	  port can read and write image slots in the eMMC user area through the flash map. Off by
-	  default. A prototype: see docs/boot-emmc-backend-prototype.md. It is for an MMC disk only,
+	  default. A prototype: see docs/boot-emmc-backend-prototype.md. It needs the MMC disk driver,
 	  because the flush that makes a returned write durable is known to work only there, with
-	  CONFIG_CRUX_MMC_CACHE_FLUSH=y: without it a disk sync does not flush the eMMC cache and the
+	  CONFIG_CRUX_MMC_CACHE_FLUSH=y (nothing checks that disk-name names the MMC disk): without it a disk sync does not flush the eMMC cache and the
 	  order of the trailer writes is not kept.
 
 if CRUX_FLASH_DISK
@@ -20,9 +20,10 @@ if CRUX_FLASH_DISK
 config CRUX_FLASH_DISK_READ_ONLY
 	bool "Refuse write and erase"
 	help
-	  The device reads and refuses flash_write and flash_erase with -ENOTSUP. It is enough for
-	  MCUboot's RAM load without revert, which only reads the slots, and it needs no cache
-	  flush.
+	  The device reads and refuses flash_write and flash_erase with -ENOTSUP, and needs no cache
+	  flush. MCUboot's RAM load without revert is not read only at the pinned revision: it
+	  scrambles a slot with an invalid image through erases whose result it ignores, so on this
+	  device such a slot stays and is validated again on every boot.
 
 config CRUX_FLASH_DISK_FLUSH_CONTROL
 	bool "Test fixtures only: do not flush after write and erase"

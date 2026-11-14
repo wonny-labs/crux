@@ -7,6 +7,7 @@
  */
 #include <errno.h>
 #include <zephyr/drivers/flash.h>
+#include <zephyr/storage/disk_access.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/ztest.h>
 
@@ -17,6 +18,8 @@ ZTEST(emmc_flash_disk_init, test_a_partition_beyond_the_disk_makes_init_fail)
     const struct flash_area *fa;
     uint8_t byte;
 
+    /* The disk itself came up, so the refusal is the driver's, not a failed disk. */
+    zassert_equal(disk_access_status("MMC"), DISK_STATUS_OK);
     zassert_false(device_is_ready(FLASH_DEV));
     zassert_true(flash_area_open(PARTITION_ID(emmc_slot1), &fa) != 0);
     zassert_equal(flash_read(FLASH_DEV, 0, &byte, 1), -EINVAL, "the disk size stays zero");
