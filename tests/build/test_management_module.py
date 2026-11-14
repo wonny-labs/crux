@@ -352,11 +352,6 @@ class Slice3KconfigTest(unittest.TestCase):
         for symbol in SLICE3_VISIBLE:
             self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
 
-    def test_the_mutex_default_grows_with_the_management_services_and_not_without_them(self):
-        block = kconfig_blocks()["CRUX_SYNC_MUTEX_COUNT"]
-        defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", block)
-        self.assertEqual(defaults, [("24", "CRUX_ACCESS"), ("8", "")])
-
 
 class Slice3CMakeTest(unittest.TestCase):
     def test_each_directory_is_added_once_and_only_under_its_symbol(self):
@@ -476,6 +471,20 @@ class Slice4Test(unittest.TestCase):
         for symbol, grown, plain in (("CRUX_SYNC_MUTEX_COUNT", "24", "8"), ("CRUX_THREAD_COUNT", "8", "4")):
             defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", blocks[symbol])
             self.assertEqual(defaults, [(grown, "CRUX_ACCESS"), (plain, "")], symbol)
+
+    def test_the_login_worker_gets_the_stack_that_every_image_that_runs_it_sets(self):
+        defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", kconfig_blocks()["CRUX_THREAD_STACK_BYTES"])
+        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION"), ("4096", "")])
+
+    def test_the_management_library_links_what_provides_the_headers_it_includes(self):
+        # management_status.h includes <crux/system.h>, which only crux::system puts on the include path.
+        text = (REPO / "components/web/ports/zephyr/management/CMakeLists.txt").read_text()
+        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        links = re.search(r"target_link_libraries\(crux_web_management_zephyr PRIVATE([^)]*)\)", text).group(1)
+        for target in ("crux_web_api", "crux::base", "crux::sync", "crux::system", "crux::thread"):
+            self.assertIn(target, links.split(), target)
+        management_status = (REPO / "components/mgmt_status/include/crux/management_status.h").read_text()
+        self.assertIn("#include <crux/system.h>", management_status)
 
     def test_no_wolf_named_in_the_new_directories(self):
         for directory in ("session", "management"):

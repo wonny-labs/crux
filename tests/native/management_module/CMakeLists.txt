@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # ADR-0004 phase 0: an application that enables the management service cores with Kconfig and
-# ZEPHYR_EXTRA_MODULES, and compiles none of Crux's service sources into its own target. Compare
-# tests/native/management_composition, which lists them in `app`.
+# ZEPHYR_EXTRA_MODULES, and compiles none of the cores into its own target. Compare
+# tests/native/management_composition, which lists them in `app`. What it does compile into `app` are the
+# route sources that the application names to crux_web_routes() (the module builds none of them, since the route
+# table is per image).
 #
 # Build it with the Mbed profile, as scripts/test-management-module.sh does:
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
@@ -9,7 +11,11 @@
 # What this fixture still reaches by include path, because no public header carries it yet (the
 # composition interfaces of ADR-0004 phase 1a): the Access first-account call, the TLS certificate module's adapter
 # header and the credential
-# store's start. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
+# store's start, and, for the three route sources, the private directories of the web component:
+# components/web/session, components/web/management and components/web/src, and the private target
+# crux_web_adapter (components/web/adapter). A product outside the repository cannot do that and keep to the
+# include rule of ADR-0004 section 5, which is what crux_web_routes() and crux_web_assets() are being changed
+# for (PRs 425 and 427); the T3 fixture will use them. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
 # test glue, which a later phase decides how a product obtains.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)

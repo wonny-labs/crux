@@ -38,7 +38,9 @@ target_include_directories(crux_web_management_zephyr PRIVATE
   "${CRUX_COMPONENTS_DIR}/mgmt_status/include"
   "${CRUX_COMPONENTS_DIR}/network_settings/include")
 zephyr_append_cmake_library(crux_web_management_zephyr)
+# crux::system gives <crux/system.h>, which <crux/management_status.h> includes. CONFIG_CRUX_WEB_MANAGEMENT
+# needs CONFIG_CRUX_MGMT_STATUS, and the module refuses an image without crux::system.
 target_link_libraries(crux_web_management_zephyr PRIVATE zephyr_interface crux_web_api crux::base crux::sync
-  crux::thread crux_service_priority_placement)
+  crux::system crux::thread crux_service_priority_placement)
 add_dependencies(crux_web_management_zephyr zephyr_generated_headers)
 target_compile_options(crux_web_management_zephyr PRIVATE -Wall -Wextra -Werror)

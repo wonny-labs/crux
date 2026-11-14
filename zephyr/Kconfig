@@ -59,6 +59,10 @@ config CRUX_THREAD_COUNT
 
 config CRUX_THREAD_STACK_BYTES
 	int "Minimum usable bytes per worker stack"
+	# The web session's login worker derives a password with PBKDF2 on its stack, and every in-repo image that
+	# runs it sets 8192, so an image that enables it starts from 8192 and a product's configuration need not
+	# name this symbol (ADR-0004 C6). It is the stack of every Crux worker of that image.
+	default 8192 if CRUX_WEB_SESSION
 	default 4096
 	range 1024 65536
 
