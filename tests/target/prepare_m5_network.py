@@ -15,6 +15,7 @@ from m3_errno import verify_errno_map
 from m3_image import require
 from m5_image import check_image
 from prepare_m3_errno import prepare as prepare_errno
+import patched_zephyr
 import s2_image
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -34,6 +35,8 @@ PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'mo
 MANIFEST_PATH = 'crux-pilot'
 ROLES = {'binary', 'elf', 'config', 'map', 'dts', 'compilation', 'inputs', 'provenance', 'errno'}
 M5_NAME = 'm5-network-physical'
+# The frozen roles that only some profiles have (ImageProfile.extra_roles), and where the build leaves each file.
+EXTRA_ROLE_FILES = {'bench_manifest': 'bench-manifest.json', 'patched_zephyr': 'patched-zephyr/patched-zephyr.json'}
 
 
 def m5_profile():
@@ -56,15 +59,21 @@ S2_PINNED = {
 S2_PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6',
                    'hal_nxp': 'modules/hal/nxp'}
 # The S2 build finds its modules by west module discovery (zephyr.meta lists these four besides the dependencies
-# above), so each is part of the image and is pinned exactly.
+# above), so each is part of the image and is pinned exactly. crux-pilot is the module pin of the product's main
+# (crux-controller c36f00c1); the first measured build used db5adca2, see docs/board-image-profiles.md.
 S2_MODULES = {
-    'crux-pilot': 'db5adca28bd313caaf3899e959920fac4d508699',
+    'crux-pilot': '37c92b18b44b7dfb95c2109f036f23d00f05cb4c',
     'picolibc': '01254932e8e81085817ed61fd858648584ffe37c',
     'fatfs': 'f4ead3bf4a6dab3a07d7b5f5315795c073db568d',
     'littlefs': '8f5ca347843363882619d8f96c00d8dbd88a8e79',
 }
 S2_MODULE_PATHS = {'crux-pilot': 'crux-pilot', 'picolibc': 'modules/lib/picolibc', 'fatfs': 'modules/fs/fatfs',
                    'littlefs': 'modules/fs/littlefs'}
+
+
+# The window of the raw UART capture after the S2 start command. A proposal of the crux-controller plan (180 s: the
+# workload starts only after the network init wait of up to 30 s), bounded by MAX_CAPTURE_SECONDS; the owner decides it.
+S2_CAPTURE_SECONDS = 180
 
 
 def firmware_identity_of(image_sha256, config_bytes, target=s2_image.TARGET):
@@ -85,7 +94,8 @@ def s2_profile():
     """The crux-controller S2 image: no commit tag, no errno evidence, modules found by west module discovery."""
     return ImageProfile(name=S2_NAME, manifest_path=S2_MANIFEST_PATH, pinned=S2_PINNED, pinned_paths=S2_PINNED_PATHS,
                         check_image=s2_check_image, commit_tag=False, errno_suffix=None,
-                        tool_scripts=('record-build-provenance.py',), modules=S2_MODULES, module_paths=S2_MODULE_PATHS)
+                        tool_scripts=('record-build-provenance.py',), modules=S2_MODULES, module_paths=S2_MODULE_PATHS,
+                        capture='raw', capture_seconds=S2_CAPTURE_SECONDS)
 
 
 PROFILES = {M5_NAME: m5_profile, S2_NAME: s2_profile}
@@ -184,7 +194,9 @@ def prepare(build, inputs, output, repo, *, tool_paths=None, profile=None, tool_
     provenance = json.loads(files['provenance'].read_text())
     require(provenance['source'] == data['source'] and
             provenance['west_projects'] == data['west_projects'], 'Build provenance differs')
-    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    extra = {role: build / EXTRA_ROLE_FILES[role] for role in profile.extra_roles}
+    files.update(extra)
+    checked = profile.check_image(files['binary'], files['elf'], files['config'], **extra)
     require(not profile.commit_tag or data['source']['git_commit'][:12].encode() in files['binary'].read_bytes(),
             'Source tag absent from image')
     # A new directory prevents accidentally combining ABI evidence from another image.
@@ -206,6 +218,9 @@ def prepare(build, inputs, output, repo, *, tool_paths=None, profile=None, tool_
     tools = list(default_tools(tool_repo, profile) if tool_paths is None else tool_paths)
     require(tools, 'No frozen runner/tool identities')
     paths = list(files.values()) + (sorted(abi.iterdir()) if profile.errno_suffix else []) + tools + [Path(p) for p in provenance_files.values()]
+    if 'patched_zephyr' in extra:
+        # every file that the record names is frozen too, so that the generic re-hash of verify covers it
+        paths += [extra['patched_zephyr'].parent / relative for relative in patched_zephyr.named_files(extra['patched_zephyr'])]
     unique = sorted({p.resolve(strict=True) for p in paths})
     record = dict(schema=1, profile=profile.name, target='mimxrt1060_evk@B//qspi',
                   source=data['source'], west_projects=data['west_projects'], image=checked,
@@ -227,7 +242,7 @@ def verify(manifest, expected_sha256, profile=None):
     require(record['schema'] == 1 and record['profile'] == profile.name and
             record['target'] == 'mimxrt1060_evk@B//qspi', 'Unexpected image manifest')
     frozen_inputs(record, profile)
-    roles = ROLES if profile.errno_suffix else ROLES - {'errno'}
+    roles = (ROLES if profile.errno_suffix else ROLES - {'errno'}) | set(profile.extra_roles)
     require(set(record['files']) == roles, 'Incomplete image roles')
     paths = []
     for artifact in record['artifacts']:
@@ -238,6 +253,10 @@ def verify(manifest, expected_sha256, profile=None):
         paths.append(str(path))
     require(len(paths) == len(set(paths)), 'Duplicate evidence artifact')
     required = set(record['files'].values()) | set(record['tools']) | set(record['provenance_files'].values())
+    if 'patched_zephyr' in profile.extra_roles:
+        record_path = Path(record['files']['patched_zephyr'])
+        required |= {str(record_path.parent.resolve() / relative) for relative in patched_zephyr.named_files(record_path)}
+        require(required <= set(paths), 'A file named by the patched Zephyr record is not a frozen artifact')
     require(record['tools'] and len(record['tools']) == len(set(record['tools'])) and
             required <= set(paths), 'Missing/duplicate tool or image evidence')
     files = record['files']
@@ -259,7 +278,8 @@ def verify(manifest, expected_sha256, profile=None):
     require(provenance_paths == set(record['provenance_files']) and
             {files[k] for k in ('binary', 'elf', 'config', 'map', 'dts')} <=
             set(record['provenance_files'].values()), 'Incomplete build provenance artifacts')
-    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    checked = profile.check_image(files['binary'], files['elf'], files['config'],
+                                  **{role: files[role] for role in profile.extra_roles})
     require(checked == record['image'] and (not profile.commit_tag or record['source']['git_commit'][:12].encode() in
             Path(files['binary']).read_bytes()), 'Image geometry/source identity differs')
     image = dict(source=record['source'], binary=files['binary'], artifacts=record['artifacts'])
