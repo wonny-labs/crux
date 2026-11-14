@@ -6,7 +6,7 @@
 | Date | Builds and checks run on 8 November 2026, 06:50 to 07:50 UTC. |
 | Evidence class | **Cross-compilation and `native_sim` builds only (build-only).** This is not Host test, CI or physical-board evidence. No image was programmed, booted or run, and no probe, Flash, reset, fuse, HAB or key-generation operation took place. |
 | Labels | **Verified by build**: read from the output of a build that exited 0. **Verified by command**: read from the output of a non-build command that exited as stated (`west`, a configure, a test). **Inference**: derived from source or output, not run. **Not verified**: not checked, or needs a board. |
-| Approvals | The scope was approved by the owner on 7 November 2026 for Tasks 0, 1 (steps 1 and 2) and 6 (step 1), with MCUboot's published public test key for build-only signing. The manifest change of Task 1 step 3 and the files of Task 2 were approved by the owner on 8 November 2026. The pull request description quotes both. |
+| Approvals | The scope was approved by the owner on 7 November 2026 for Tasks 0, 1 (steps 1 and 2) and 6 (step 1), with MCUboot's published public test key for build-only signing. The manifest change of Task 1 step 3 (pull request #339) and the files of Task 2 (this record and the build page) were approved by the owner on 8 November 2026. The descriptions of the two pull requests quote both. |
 | Not committed | The build logs and the build directories. The commands below reproduce them. |
 
 ## 1. Inputs and pins
@@ -14,7 +14,7 @@
 | Item | Value |
 | --- | --- |
 | `crux-pilot` at the measurement | `1447750dd3f0dd0bc8a016be6bac8998ee2478c0` |
-| Relation to the pull request base | The base is a later `main`, `3ef758d`. `git diff --name-only 1447750 3ef758d` lists only files under `docs/`, `tests/build/` and `tests/target/` (Python tooling). Nothing under `components/`, `samples/`, `zephyr/`, `cmake/`, `scripts/` or in `west.yml` changed, so the firmware inputs are identical (**Inference**: the builds were not repeated at `3ef758d`). |
+| Relation to later `main` | When this record was written the pull request base was `3ef758d`. `git diff --name-only 1447750 3ef758d` listed only files under `docs/`, `tests/build/` and `tests/target/` (Python tooling), so the firmware inputs were identical to `1447750` there (**Inference**: the builds were not repeated at `3ef758d`). `main` has moved on since: `git diff --name-only 1447750 21e9d438` (checked on 14 November 2026) lists changes under `components/` (34 files), `samples/` (12), `zephyr/` (`CMakeLists.txt`, `Kconfig`), `cmake/`, `patches/zephyr/`, `scripts/` (14) and `CMakeLists.txt`. `west.yml` and `samples/controller/` are not in that list. **The builds and the M7 baseline below were not repeated at `21e9d438` or later.** They are measurements of `1447750` only. |
 | Zephyr | `dccb09599635bdff17633fa7e9dab014b91dce90` (v4.4.2), as `west.yml` pins. |
 | MCUboot | `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` (`v2.4.0`), the revision in Zephyr's `west.yml` at the Zephyr pin. The #141 trial used `ee39e2d` (`v2.4.0-rc1-3`). |
 | Other projects | cmsis `512cc7e`, cmsis_6 `30a859f4`, fatfs `f4ead3b`, hal_nxp `7554bc0f`, littlefs `8f5ca34`. |
@@ -93,7 +93,7 @@ Other points, not owner questions: snippets (mechanism 6) could replace the path
 
 ## 5. Task 1: `mcuboot` in a group `crux-boot` (scratch workspace)
 
-The manifest change was first tried in a scratch clone (the repository `west.yml` was untouched). The pull request makes the same change in the repository.
+The manifest change was first tried in a scratch clone (the repository `west.yml` was untouched). Pull request #339 makes the same change in the repository (this record's pull request does not change `west.yml`).
 
 | State | Result |
 | --- | --- |
@@ -129,7 +129,7 @@ Not built: the Twister suites and `test_driver.py` of `test-controller-integrati
 
 ## 7. Findings
 
-- **F1. `main` moved.** The revision named when the work started, `ce50bcf`, is older than `1447750`. Between them, among other files, `zephyr/CMakeLists.txt` (+20), `zephyr/Kconfig` (+80), `components/ssh/ports/zephyr/wolf_ssh_settings.cmake`, files of `samples/storage_reliance_sd/` and four scripts under `scripts/` (`test-file-emmc-compile.sh`, `test-native-composition.sh`, `test-ssh-integrated.sh`, `test-storage-emmc.sh`) changed (`git diff --name-only ce50bcf 1447750`), so the measurements use `1447750`. Between `1447750` and the pull request base `3ef758d` only files under `docs/`, `tests/build/` and `tests/target/` changed (**Inference**: the builds were not repeated, section 1). `west.yml` and `samples/controller/` did not change in either range.
+- **F1. `main` moved.** The revision named when the work started, `ce50bcf`, is older than `1447750`. Between them, among other files, `zephyr/CMakeLists.txt` (+20), `zephyr/Kconfig` (+80), `components/ssh/ports/zephyr/wolf_ssh_settings.cmake`, files of `samples/storage_reliance_sd/` and four scripts under `scripts/` (`test-file-emmc-compile.sh`, `test-native-composition.sh`, `test-ssh-integrated.sh`, `test-storage-emmc.sh`) changed (`git diff --name-only ce50bcf 1447750`), so the measurements use `1447750`. Between `1447750` and `3ef758d`, the base when this record was written, only files under `docs/`, `tests/build/` and `tests/target/` changed (**Inference**: the builds were not repeated, section 1). Between `1447750` and `21e9d438` (14 November 2026) firmware inputs changed as well (section 1, "Relation to later `main`"), and nothing was rebuilt there. `west.yml` and `samples/controller/` did not change in either range.
 - **F3. The public test key is the sysbuild default.** A configure needs no key argument and no key generation, and a build-only slice needs no generated key (section 3, row 7). A full signing build without the key argument was not run (**Inference**).
 - **F4. The build also writes a padded, confirmed image.** `zephyr.signed.confirmed.bin` is 3,145,728 B, the slot size, with MCUboot's trailer magic and the confirm flag at the end. It follows from a Zephyr change after v4.4.0 (section 3, row 8). It bears on the earlier note in Stage 5 section 9 that the default signed image would be erased by RAM load with revert, and on owner decision 13 about padded test images: the stock build now makes the padded variant itself. How MCUboot treats it is **Not verified**. The `docs/boot-update-investigation.md` rows on decision 13 and two others say that RAM load with revert does not imply a confirmed image. They describe v4.4.0 and need a follow-up (this record does not edit that file).
 - **F5. imgtool dependencies.** The Python of the bootstrapped Dev Container has no `cryptography` and no `cbor2`, which imgtool imports (**Inference**: no build was run there). A signing build needs a Python environment that has them. Changing the Dev Container is outside this pull request.
