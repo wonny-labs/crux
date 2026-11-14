@@ -65,6 +65,12 @@ config CRUX_THREAD_STACK_BYTES
 	default 8192 if CRUX_WEB_SESSION
 	default 4096
 	range 1024 65536
+	help
+	  The usable stack of each Crux worker thread. With CONFIG_CRUX_WEB_SESSION the default is 8192, the
+	  value that every tested image that runs the login worker sets. It is NOT a measured stack high-water
+	  mark: nobody has measured it on a target. The Crux Thread API has no stack measurement, so a product
+	  should measure its own with Zephyr's (CONFIG_THREAD_STACK_INFO and CONFIG_INIT_STACKS, which
+	  CONFIG_CRUX_SSH_STACK_REPORT uses for the SSH threads) under its own load, including a login.
 
 menu "Priorities of Crux service workers"
 
