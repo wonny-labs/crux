@@ -81,9 +81,12 @@ class PublicHeader(unittest.TestCase):
         text = START.read_text()
         for name in (*FUNCTIONS, *TYPES):
             self.assertRegex(text, rf"\b{name}\b", name)
-        declared = re.findall(r"^(?:crux_tls_certificate_result_t|void)\s+(crux_\w+)\(|^(crux_\w+)\(", text, re.M)
-        names = sorted({a or b for a, b in declared})
-        self.assertEqual(names, sorted(FUNCTIONS))
+        # Without comments and preprocessor lines, a declaration is a name, its parameters and a
+        # semicolon, over any number of lines. Typedefs and macros do not match.
+        code = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        code = re.sub(r"^#.*$", "", code, flags=re.M)
+        declared = re.findall(r"\b(crux_\w+)\s*\([^;{]*\)\s*;", code)
+        self.assertEqual(sorted(set(declared)), sorted(FUNCTIONS))
 
     def test_the_private_header_declares_nothing_a_second_time(self):
         text = ADAPTER.read_text()
@@ -154,6 +157,25 @@ class PublicTarget(unittest.TestCase):
         linked = {word for entry in re.findall(r"target_link_libraries\(\w+ INTERFACE ([^)]*)\)", text)
                   for word in entry.split()}
         self.assertEqual(linked, {"crux::access"})
+
+    def test_the_target_needs_crux_access_and_the_module_defines_it(self):
+        # The target links crux::access, which only the module's Access port defines, under
+        # CONFIG_CRUX_ACCESS, which CONFIG_CRUX_TLS_CERTIFICATE depends on. PR 1 added it, so this
+        # change builds on that one, and the port refuses a configuration without it by name.
+        access = (ROOT / "components/access/ports/zephyr/CMakeLists.txt").read_text()
+        self.assertIn("add_library(crux::access ALIAS", access)
+        self.assertRegex(self.body() or "", r"if\(NOT TARGET crux::access\)\s*message\(FATAL_ERROR")
+        kconfig = (ROOT / "zephyr/Kconfig").read_text()
+        block = re.search(r"config CRUX_TLS_CERTIFICATE\n(.*?)\nconfig ", kconfig, re.S).group(1)
+        self.assertRegex(block, r"depends on [^\n]*CRUX_ACCESS")
+
+    def test_the_texts_about_the_key_agree_with_the_header_that_hands_it_out(self):
+        start = " ".join(START.read_text().replace("\n *", " ").split())
+        self.assertNotIn("No public operation of the module", start)
+        self.assertIn("crux_tls_certificate_material_take() hands it only to the image's TLS registration", start)
+        doc = " ".join((ROOT / "docs/tls-certificate.md").read_text().split())
+        self.assertNotIn("No public operation returns it", doc)
+        self.assertIn("The one accepted exception is `crux_tls_certificate_material_take()`", doc)
 
     def test_the_provider_library_is_not_linked_by_the_target(self):
         self.assertIn("zephyr_append_cmake_library", self.text)

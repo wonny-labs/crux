@@ -26,6 +26,12 @@ include("${CRUX_COMPONENTS_DIR}/../cmake/CruxCredentialBoundary.cmake")
 # directories stay private to the library. tests/build/test_tls_certificate_boundary.py runs this
 # definition against the real guards.
 function(crux_tls_certificate_public_target)
+  # <crux/tls_certificate.h> includes <crux/access.h>, which crux::access carries. The module defines
+  # that target under CONFIG_CRUX_ACCESS, which this symbol depends on, and the module adds the
+  # Access directory first.
+  if(NOT TARGET crux::access)
+    message(FATAL_ERROR "crux::tls_certificate needs crux::access: set CONFIG_CRUX_ACCESS")
+  endif()
   add_library(crux_tls_certificate INTERFACE)
   add_library(crux::tls_certificate ALIAS crux_tls_certificate)
   target_include_directories(crux_tls_certificate INTERFACE "${CRUX_TLS_CERTIFICATE_COMPONENT_DIR}/include")

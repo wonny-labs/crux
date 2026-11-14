@@ -4,7 +4,7 @@ Status: merged in [PR #284](https://github.com/wonny-labs/crux-pilot/pull/284) f
 ports on TF-PSA-Crypto whose output OpenSSL checks. The module ran later on `native_sim` on both profiles, including wolfPSA, in [the services image](native-composition-242.md) of #242: see the rows below. The listener there still serves the declared test certificate. The design follows the
 [certificate model](plans/secure-management-web-design.md#certificate-model) of the web design.
 
-Owner: `components/tls_certificate`. Public headers `<crux/tls_certificate.h>` (the operations that take a session, which never return the key) and `<crux/tls_certificate_start.h>` (start, material, change callback and fingerprint, which carry the key to the application's TLS registration; ADR-0004 phase 1a, Experimental), usage target `crux::tls_certificate`.
+Owner: `components/tls_certificate`. Public headers `<crux/tls_certificate.h>` (get, copy, request, install and regenerate, none of which returns the key) and `<crux/tls_certificate_start.h>` (start, material, change callback and fingerprint, which carry the key to the application's TLS registration; ADR-0004 phase 1a, Experimental), usage target `crux::tls_certificate`.
 The adapter header `crux_tls_certificate_adapter.h` only forwards to the second, for the compositions of this repository, and the target `crux_tls_certificate_adapter` stays for a composition and its TLS
 provider only. Private ports in `components/tls_certificate/src/tls_certificate_port.h`, with the PSA provider in
 `components/tls_certificate/ports/psa` and the event provider `crux_tls_certificate_security_events`.
@@ -14,7 +14,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | # | Criterion | State | Evidence |
 | --- | --- | --- | --- |
 | 1 | Invalid, mismatched and malformed uploads are rejected and logged | **Met on Host.** Each refusal after the permission check keeps the previous certificate, writes nothing, and emits `web.certificate_rejected` with the user, the origin and the reason. | `install.c`, `store.c` on the real store, `events.c`, and the [mutations](#mutations) |
-| 2 | The private key is never exported | **Met on Host, as defined [below](#the-private-key).** No public operation returns it, no output or event holds it, and it reaches only the TLS stack in the same image, through `<crux/tls_certificate_start.h>` (the material calls), which no management route or command uses. | `test_private_key_in_no_output`, the credential boundary rule on the adapter |
+| 2 | The private key is never exported | **Met on Host, as defined [below](#the-private-key).** No operation of `<crux/tls_certificate.h>` returns it, no output or event holds it, and no management route or command reaches it. The one accepted exception is `crux_tls_certificate_material_take()` in `<crux/tls_certificate_start.h>`, which hands the PKCS #8 bytes to the image's TLS registration (ADR-0004 C4, A1), so product adapter code holds the key while it registers it. | `test_private_key_in_no_output`, the credential boundary rule on the adapter |
 | 3 | Results state that an uploaded certificate is checked for format and key match only | **Met.** Every description carries `CRUX_TLS_CERTIFICATE_CHECKS`, and the header says the same. | `test_checks_statement`, `test_accepted` |
 
 | Scope of #190 | State |
@@ -54,7 +54,7 @@ flowchart TB
     end
     subgraph component["components/tls_certificate"]
         public["crux/tls_certificate.h<br/>get, copy, request, install, regenerate"]
-        adapter["crux_tls_certificate_adapter.h<br/>start, material, on_change, fingerprint"]
+        adapter["crux/tls_certificate_start.h<br/>start, material, on_change, fingerprint"]
         core["tls_certificate.c<br/>state, two buffers, lock"]
         der["tls_x509.c<br/>bounded DER parse and build"]
         port["tls_certificate_port.h<br/>sha256, sign, random, event"]
@@ -85,7 +85,7 @@ the material to `tls_credential_add` for either profile.
 
 | Target | Who links it | What it exposes |
 | --- | --- | --- |
-| `crux::tls_certificate` | A web or command-line service, a project | The public header. It links the core, which needs the ports, so an image without providers does not link. |
+| `crux::tls_certificate` | A web or command-line service, a product | Both public headers. On Host it links the core, which needs the ports, so an image without providers does not link. In the Zephyr module (`CONFIG_CRUX_TLS_CERTIFICATE`) it is an INTERFACE target that adds the include root and links `crux::access`, and the module links the library itself. |
 | `crux_tls_certificate_adapter` | A composition and its TLS provider, always `PRIVATE` | The forwarding adapter header. It links `crux_credential_adapter` on purpose, so `cmake/CruxCredentialBoundary.cmake` refuses any public target or project that reaches it. |
 | `crux_tls_certificate_security_events` | A composition | Nothing. It implements the event port. |
 | `ports/psa/tls_certificate_psa.c` | A composition with a PSA provider | Nothing. It implements the hash, signature and random ports. |
@@ -268,12 +268,13 @@ certificate a user has accepted is **not tested**, because no browser ran. A com
 | Where | Form | Who can reach it |
 | --- | --- | --- |
 | Credential store, `TLS_KEY` record | 32-byte scalar, sealed with the image | The store's adapter, linked privately. On the pilot basis someone with the medium and the chip ID can read it, as the [store declares](credential-store.md#limits). |
-| This module's RAM | One PKCS #8 copy of 138 bytes, for the life of the program | The TLS stack, through the material, and the signature port. The copy read from the store is cleared at once. |
+| This module's RAM | One PKCS #8 copy of 138 bytes, for the life of the program | The TLS stack, through the material, which the product's registration code takes with `crux_tls_certificate_material_take()` (ADR-0004 C4, A1), and the signature port. The copy read from the store is cleared at once. |
 | Zephyr TLS credentials | A pointer to that copy | The socket backend, which parses it per connection |
 | Signature port | The scalar, for one signature | PSA imports it into a volatile key slot, signs and destroys the slot |
 
-"Exported" here means leaving the device, or reaching a public header, a management route, a command, a file area, an
-event or a log. The TLS stack in the same image is the key's user, and Zephyr's credential interface takes key bytes on
+"Exported" here means leaving the device, or reaching a management route, a command, a file area, an
+event or a log, or being returned by an operation that takes a session. The one accepted exception is the material
+call of `<crux/tls_certificate_start.h>` (ADR-0004 C4, A1). The TLS stack in the same image is the key's user, and Zephyr's credential interface takes key bytes on
 both profiles, so the material holds them. An opaque PSA key would keep the scalar out of the TLS stack on the Mbed
 profile, but Zephyr's TLS credentials at the pinned revision take no key handle, and wolfSSL does not use PSA.
 

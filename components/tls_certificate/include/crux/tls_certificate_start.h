@@ -5,7 +5,7 @@
  * Status: Experimental (ADR-0001 decision 4). The TLS certificate module has no Zephyr composition
  * outside tests/ yet, and a change is listed in the release notes. This is the interface that
  * ADR-0004 (decisions C2 and C4) publishes so that a product's adapter can register the material
- * with its TLS stack. <crux/tls_certificate.h> keeps the operations that take a session.
+ * with its TLS stack. <crux/tls_certificate.h> keeps get, copy, request, install and regenerate.
  *
  * A TLS provider registers the material below with its stack, such as Zephyr's TLS credentials
  * through tls_credential_add(), which both the Mbed TLS and the wolfSSL socket backends read.
@@ -14,8 +14,9 @@
  *
  * The private key leaves this module only as the material's PKCS #8 bytes, to the TLS stack in the
  * same image, and the product's code that takes it holds the key while it does. It must copy,
- * log or store none of it. No public operation of the module, and no management route, command or
- * file area returns the key.
+ * log or store none of it. No operation of <crux/tls_certificate.h> returns the key.
+ * crux_tls_certificate_material_take() hands it only to the image's TLS registration (ADR-0004 C4,
+ * A1), and no management route, command or file area calls it.
  *
  * Thread context only. crux_tls_certificate_start() must return before any other operation starts.
  */
