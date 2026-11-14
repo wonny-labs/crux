@@ -24,13 +24,13 @@ Nothing below is adopted. Each row is the author's recommendation for the owner.
 | --- | --- | --- | --- |
 | I1 | Adopt a narrow public image-state contract, header `crux/image_state.h`, with a Linux Host provider and a Zephyr provider. It starts as **Experimental**. | Adopt | Use the slot-aware stock call in each product adapter (Option 2 below). #297's acceptance criterion and the M9 exit evidence for Linux Host and Zephyr conformance cases are revised explicitly, and #191 is revised with them. Every product writes the same adapter and meets the same silent no-ops. |
 | I2 | The contract has three operations on state: query, request a **test** boot, confirm. It has no permanent request, no staging write or erase, no bootloader update and no events. | Accept | A permanent request skips the application's confirm and gives up the revert. Staging writes belong to the update agent, which needs its own proposal. |
-| I3 | "Reverted" is an **outcome**, not a slot state. It is derived from the boot record plus an attempt record that the update agent persists before it requests the test. The contract defines the attempt type and a pure classifier, and stores nothing. | Accept | The stock shared data and trailers cannot say that an update was attempted and undone (see [what the bootloader leaves behind](#what-the-bootloader-leaves-behind)). Without an attempt record the record can only say "running image, confirmed or not". |
+| I3 | "Reverted" is an **outcome**, not a slot state. It is derived from the boot record plus an attempt record (slot, version, and whether the request was made) that the update agent persists around the request. The contract defines the attempt type and a pure classifier, and stores nothing. | Accept | The stock shared data and trailers cannot say that an update was attempted and undone (see [what the bootloader leaves behind](#what-the-bootloader-leaves-behind)). Without an attempt record the record can only say "running image, confirmed or not". |
 | I4 | A test request is refused unless the image in the slot is **strictly newer** than the running image, compared on major, minor and revision. Equal and older are refused. | Accept | Owner decision 4 rejects older. With equal versions the slot number decides, and an equal image in slot 1 is never selected, so the request is a silent no-op (see [version rules](#version-rules)). Accepting equal keeps a no-op case in the update path. |
 | I5 | The version basis is major, minor, revision. The build number is ignored. A composition must not build MCUboot with the build-number comparison option. | Accept | If the bootloader compares the build number and the application does not, the two can disagree about which image is newer. |
 | I6 | The provider **fails closed**. If the shared boot data is absent, or the running slot or the running image's trailer is not in an expected state, `crux_image_start()` fails and `crux_image_confirm()` and `crux_image_request_test()` return `CRUX_IMAGE_ERR_NOT_READY`. It never guesses the running slot. | Accept | A guessed slot can confirm the wrong slot. The running image then stays unconfirmed and the next reset erases it. |
 | I7 | The contract is **Experimental** at adoption. It becomes Unstable only when the update agent and one more consumer use it and the M9 target evidence passes. If no second consumer exists by the end of M9, it is folded into the update agent as an internal interface. | Accept | Unstable at once would promise a one-release notice for a contract that has one provider and no consumer. |
 | I8 | Test strategy: Host conformance against a controllable provider, `native_sim` conformance with the real bootutil over a flash simulator plus a hand model of the bootloader's select and erase rules, and target evidence for what only a board shows. The Host provider is a test double, not a copy of MCUboot. | Accept | A Host copy of MCUboot's logic would test the copy. Running MCUboot's own simulator in CI was not assessed (Not verified). |
-| I9 | The bootloader version in the boot record is the version of the **bootloader build** (its own `VERSION`), with an explicit "not known" flag. M9's results declare it next to the single-copy, service-recovery level. | Accept | Reporting an upstream MCUboot release number would be wrong: the shared value is the product build's application version (see the shared-data table). |
+| I9 | The bootloader version in the boot record is the version that the **bootloader build** reports, with an explicit "not known" flag. M9's results declare it next to the single-copy, service-recovery level. A product that patches MCUboot sets its own version in the bootloader build. | Accept | The shared value is the build's application version. By default it comes from MCUboot's own `boot/zephyr/VERSION` (2.4.0.0 at the pin, Verified on pinned source; that the build takes its version from that file is Inference), so an unpatched build reports the upstream release number, and a patched one reports the same number unless it sets its own. A record that reads as a product identity would then be wrong. |
 
 ## The question and the short answer
 
@@ -86,7 +86,7 @@ RAM load with revert, in `M:boot/bootutil/src/loader.c`:
 | Version order | Major, then minor, then revision. The build number counts only with `MCUBOOT_VERSION_CMP_USE_BUILD_NUMBER`. | `M:bootutil_loader.c`:200-232 |
 | Select or erase | If the magic is not good, or `copy_done` is set and `image_ok` is not, the whole slot is erased and the next slot is tried. Otherwise `copy_done` is written (a failed write is logged and ignored). This runs **before** the image is loaded or validated. | 2169-2235, called at 2295 |
 | Load and validate | The image is copied to SRAM and validated there. A load failure removes the image from flash. A validation failure only marks the slot unavailable for this boot. | 2304-2329 |
-| Shared data | Written after a valid image is chosen, with the slot number of the chosen slot. | 2380-2455 |
+| Shared data | Written after a valid image is chosen, with the slot number of the chosen slot. | 2443, in `context_boot_go` (2392-2466) |
 
 Source for the same code in this mode: the macro set in `M:boot/zephyr/include/mcuboot_config/mcuboot_config.h`:108-110 and 113.
 
@@ -97,13 +97,14 @@ All rows are Inference from the table above unless stated.
 | Event | Trailer and slot afterwards |
 | --- | --- |
 | Test request written | Inactive slot: magic good, `copy_done` unset, `image_ok` unset |
+| Newer image staged, never requested, reset | The slot counts as available on its header alone and the bootloader selects the highest version. `boot_select_or_erase` then finds the magic not good and erases the **whole slot** (`M:loader.c`:2089-2090, 2115-2140, 2199-2211). The previous image runs. The staged image does not survive the reset, and the slot reads `EMPTY`. |
 | Reset, image selected | `copy_done` set before validation |
 | Validation fails | The slot is not erased in this boot. It keeps magic good, `copy_done` set, `image_ok` unset, and the previous image runs. The **next** reset finds `copy_done` set without `image_ok` and erases the slot. |
 | Booted, never confirmed, reset | The next reset erases the whole slot. The previous confirmed image runs. |
 | Confirmed | `image_ok` set on the running slot |
 | After an erase | The header and trailer are gone. A slot erased after a revert looks the same as a slot that never held an image. |
 
-**Consequence.** After a revert, nothing in flash says an update was attempted. "Reverted" cannot be read from the trailers or the shared data. It needs a record that the application wrote before it requested the test. That is I3.
+**Consequence.** After a revert, or after a power cut that leaves a newer image staged without a request, nothing in flash says an update was attempted, and the two cases look alike. "Reverted" cannot be read from the trailers or the shared data. It needs a record that the application wrote before it requested the test, and a marker for whether the request was made. That is I3.
 
 ### What the shared data carries
 
@@ -130,17 +131,17 @@ The retention backend, the retained region and the `zephyr,bootloader-info` node
 | Test request | State write calls `img_mgmt_set_next_boot_slot()`, which is slot-aware: `boot_set_next(fa, slot == active_slot, confirm)` | Verified on pinned source: `Z:subsys/mgmt/mcumgr/grp/img_mgmt/src/img_mgmt_state.c`:630-640, 677-763, 848 |
 | Older call path | `img_mgmt_write_pending()` accepts only slot 1 (or slot 3 with two images) and calls the `_multi` request on the secondary slot | `Z:.../zephyr_img_mgmt.c`:418-433 |
 | Active slot | `img_mgmt_active_slot()` queries the bootloader only under `CONFIG_MCUBOOT_BOOTLOADER_MODE_RAM_LOAD`. The `RAM_LOAD_WITH_REVERT` mode is not in that condition and falls to the default branch. | Verified on pinned source: `Z:.../img_mgmt.c`:236-266. How the default branch behaves for a RAM-loaded image was not read. |
-| Upload target | The unused slot is the opposite of the active slot | `Z:.../zephyr_img_mgmt.c`:332-343 |
-| Consequence | If the default branch reports slot 0, a client confirming the running slot 1 reaches `boot_set_next(fa(slot 1), false, true)`, which writes nothing for a good-magic slot. The confirm is lost and the next reset erases the image. | Inference. Not run. This is a conformance case for any product that links mcumgr image management in this mode. |
+| Upload target | For one image, the first of slots 0 and 1 whose `img_mgmt_slot_in_use()` is 0. In this mode that function returns "is the active slot", so the target is "not the active slot". | Verified on pinned source: `Z:.../zephyr_img_mgmt.c`:282-330, `Z:.../img_mgmt_state.c`:361-391 |
+| Consequence | If `img_mgmt_active_slot()` reports slot 0 while the image runs from slot 1: an **upload** is aimed at slot 1, which overwrites the running image's flash copy and the confirmed fallback (`img_mgmt_slot_in_use()` says slot 1 is free). A **confirm** of the running slot is refused by default (`Z:.../img_mgmt_state.c`:713-717, `IMG_MGMT_ERR_IMAGE_CONFIRMATION_DENIED`), or, without a hash, confirms slot 0 instead (`img_mgmt_state.c`:820-822). With `CONFIG_MCUMGR_GRP_IMG_ALLOW_CONFIRM_NON_ACTIVE_SLOT` it reaches `boot_set_next(fa(slot 1), false, true)`, which writes nothing for a good-magic slot. In each case the confirm is lost and the next reset erases the running image. | Inference. Not run. Conformance cases for any product that links mcumgr image management in this mode. |
 | Image state flags | Built from `mcuboot_swap_type_multi()`, the swap-table read above | Inference: no established meaning for RAM load |
 
 mcumgr is a protocol for an external client. A Crux update agent that runs in the application calls bootutil directly. mcumgr is not an alternative provider for the contract, and a product may leave it out.
 
 ### An existing neutral interface: PSA Firmware Update
 
-The Arm PSA Certified Firmware Update API is a bootloader-neutral interface with query, install, request-reboot, accept and reject operations on components. It has states such as staged, trial and rejected, which it defines as volatile. In TF-M's MCUboot-based implementation `psa_fwu_query()` fills the implementation information only for a component in the candidate state (Verified by public document: [PSA Firmware Update API 1.0, programming model](https://arm-software.github.io/psa-api/fwu/1.0/overview/programming-model.html), [TF-M firmware update service](https://trustedfirmware-m.readthedocs.io/en/latest/design_docs/services/tfm_fwu_service.html), read as search summaries only). Zephyr v4.4.0 mentions `psa_fwu_accept()` once, in a migration guide about TF-M, and has no API source for it in the tree searched (Verified on pinned source for `684c9e8`, v4.4.0, not v4.4.2).
+The Arm PSA Certified Firmware Update API is a bootloader-neutral interface with query, install, request-reboot, accept and reject operations on components, with states such as staged, trial and rejected. In TF-M's MCUboot-based implementation `psa_fwu_query()` fills the implementation information only for a component in the candidate state (Verified by public document: [PSA Firmware Update API 1.0, programming model](https://arm-software.github.io/psa-api/fwu/1.0/overview/programming-model.html), [TF-M firmware update service](https://trustedfirmware-m.readthedocs.io/en/latest/design_docs/services/tfm_fwu_service.html), read as search summaries only). Zephyr v4.4.0 mentions `psa_fwu_accept()` once, in a migration guide about TF-M, and has no API source for it in the tree searched (checked at `684c9e8`, v4.4.0, not at the v4.4.2 pin: Not verified for v4.4.2).
 
-Not adopted, for three reasons. It is built for a secure-partition service in TF-M, which the RT1060 plan does not use. Its trial and rejected states do not persist, so it has no way to report "reverted" after a power cycle. Its component model carries more than one image and one slot pair. It is used here as a check on the contract's state names, not as a dependency.
+Not adopted, for two reasons. It is built for a secure-partition service in TF-M, and the RT1060 plan does not use TF-M (Inference from the M8 composition, which composes stock MCUboot and Zephyr). Its component model carries more than one image and one slot pair, where the M9 case is one image and two slots. Whether it can report "reverted" after a power cycle was not established from the summaries read (Not verified). It is used here as a check on the contract's state names, not as a dependency.
 
 ## Options compared
 
@@ -184,7 +185,7 @@ typedef struct {
 
 typedef enum {
     CRUX_IMAGE_SLOT_EMPTY = 0,        /* no valid header */
-    CRUX_IMAGE_SLOT_STAGED = 1,       /* valid header, no trailer: written, not requested */
+    CRUX_IMAGE_SLOT_STAGED = 1,       /* valid header, no trailer: written, not requested; a newer one is erased at the next reset */
     CRUX_IMAGE_SLOT_PENDING_TEST = 2, /* requested; boots on the next reset if selected */
     CRUX_IMAGE_SLOT_PENDING_PERMANENT = 3, /* reported only; this contract never creates it */
     CRUX_IMAGE_SLOT_RUNNING_CONFIRMED = 4,
@@ -209,9 +210,10 @@ typedef struct {
     crux_image_slot_state_t slot_state_at_start[CRUX_IMAGE_SLOT_COUNT];
 } crux_image_boot_record_t;
 
-typedef struct { /* written by the update agent before a request, cleared by it after the outcome is handled */
+typedef struct { /* written by the update agent, cleared by it after the outcome is handled */
     crux_image_slot_t slot;
     crux_image_version_t version;
+    bool requested; /* false while staging; set true just before crux_image_request_test() */
 } crux_image_attempt_t;
 
 typedef enum {
@@ -276,7 +278,7 @@ The provider derives a slot's state from the header and the trailer. `R` is the 
 | `R` | Valid | Good | Unset | Set | `RUNNING_TESTING` |
 | `R` | Valid | Good | Unset | Unset | `RUNNING_TESTING` (the bootloader's `copy_done` write failed, which it only logs; treated as on trial) |
 | `R` | Valid | Unset or bad | | | Start fails with `ERR_BOOT_STATE`. Under revert the bootloader erases such a slot, so it cannot be the running one. |
-| Any | Valid | Bad, or a flag outside set and unset | | | `INVALID` |
+| Not `R` | Valid | Bad, or a flag outside set and unset | | | `INVALID` |
 
 All rows are Inference from `M:boot_select_or_erase` and `M:boot_set_next`, and the flag decoding in `M:bootutil_public.c`:155-163 and 243-284. The table is checked by conformance cases S1 to S12.
 
@@ -286,21 +288,23 @@ All rows are Inference from `M:boot_select_or_erase` and `M:boot_set_next`, and 
 
 `crux_image_outcome()` is a pure function. `A` is the attempt, `S` the state of `A.slot` at start.
 
-| Case | `A` | Result |
+| Case | `A` (first match wins, top to bottom) | Result |
 | --- | --- | --- |
 | 1 | NULL | `NONE` |
-| 2 | `A.slot` is the running slot and `A.version` equals the running version | `CONFIRMED` if `running_confirmed`, else `TESTING` |
+| 2 | `A.slot` is the running slot and `A.version` equals the running version on major, minor and revision | `CONFIRMED` if `running_confirmed`, else `TESTING` |
 | 3 | `A.slot` is the running slot and the versions differ | `NONE` (stale: the slot was reused) |
-| 4 | `A.slot` is not running and `S` is `PENDING_TEST`, `PENDING_PERMANENT` or `STAGED` | `NOT_BOOTED` |
-| 5 | `A.slot` is not running and `S` is `EMPTY`, `TRIED` or `INVALID` | `REVERTED` |
-| 6 | `A.slot` is not running and `S` is `STANDBY_CONFIRMED` | `NONE` (stale: the slot holds a confirmed image) |
+| 4 | `A.slot` is not running and `S` is `STANDBY_CONFIRMED` | `NONE` (stale: the slot holds a confirmed image) |
+| 5 | `A.slot` is not running and `A.requested` is false | `NOT_BOOTED` (the agent never asked for a boot. The slot may read `EMPTY`, because the bootloader erases a newer image that was staged and not requested.) |
+| 6 | `A.slot` is not running, `A.requested` is true and `S` is `PENDING_TEST`, `PENDING_PERMANENT` or `STAGED` | `NOT_BOOTED` (the request was not consumed. For `PENDING_*` this is reachable only after a failed `copy_done` write together with a failed validation, and for `STAGED` only if the request writes did not complete.) |
+| 7 | `A.slot` is not running, `A.requested` is true and `S` is `EMPTY`, `TRIED` or `INVALID` | `REVERTED` |
 
-`TRIED` and `EMPTY` both give `REVERTED` because the application cannot tell a refused image (validation failed, erased at the second reset) from an unconfirmed one (erased at the first). A caller that needs the difference reads `slot_state_at_start`. The attempt record is persisted by the update agent in its own storage before `crux_image_request_test()`. Where it lives, and how it survives a power cut between the write and the request, is part of the update agent's design, not this contract. The order is: write the attempt, then request. A power cut between them gives a stale attempt, which cases 3 and 6 or 4 resolve to `NONE` or `NOT_BOOTED`.
+`TRIED` and `EMPTY` both give `REVERTED` because the application cannot tell a refused image (validation failed, erased at the second reset) from an unconfirmed one (erased at the first). A caller that needs the difference reads `slot_state_at_start`. The attempt record is persisted by the update agent in its own storage. Where it lives is part of the update agent's design, not this contract. The order is: write the attempt with `requested` false when staging starts, set `requested` true just before `crux_image_request_test()`, and clear the record after the outcome is handled. A power cut during staging gives case 5 (`NOT_BOOTED`, accurate). A power cut after `requested` was set and before the request writes landed gives case 7: the newer image is erased at the next reset, and the record reports `REVERTED` for an image that never ran. That error is on the safe side (the agent retries) and the window is a few writes wide. It is a stated limit, not a fixed one.
 
 ### Behaviour
 
 - **Context.** Thread context only. `crux_image_request_test()` and `crux_image_confirm()` write storage and can block for the length of a medium write, so a control thread must not call them. `crux_image_boot_record_get()` copies the cached record and does not block after start. One internal lock serialises request and confirm. A second caller gets `ERR_BUSY` after a bounded wait.
 - **`crux_image_request_test(slot)`** requires, in this order: started; `slot` is valid and not the running slot (`ERR_ACTIVE_SLOT`); the running image is confirmed (`ERR_NOT_CONFIRMED`); the slot holds a valid header (`ERR_NO_IMAGE`); its version is strictly newer than the running version (`ERR_NOT_NEWER`); its state is `STAGED`, or `PENDING_TEST`, which returns `CRUX_IMAGE_OK` without writing (`ERR_SLOT_STATE` for any other state). It then calls the slot-aware bootutil request. It returns success only after the writes return success. It does not reset. A reset goes through the Reboot service, whose policy may refuse ([reboot service](../reboot-service.md)).
+- **Live and cached state.** `crux_image_boot_record_get()` returns the snapshot taken at start, which never changes. `crux_image_slot_get()` and the checks inside `crux_image_request_test()` and `crux_image_confirm()` read the live trailers. After a confirm in this boot, `crux_image_slot_get()` on the running slot reports `RUNNING_CONFIRMED` and a later request passes the not-confirmed check, while the record still says `running_confirmed` is false.
 - **`crux_image_confirm()`** writes `image_ok` on the running slot only. If the running image is already confirmed it returns `CRUX_IMAGE_OK` without writing. It never names a slot, so it cannot confirm the wrong one.
 - **Staging precondition.** The update agent erases the whole staging slot, trailer included, before it writes an image. A stale trailer with good magic and `image_ok` set makes an unvalidated-in-test image look confirmed to the bootloader (Inference from `boot_select_or_erase`). The contract turns that case into `ERR_SLOT_STATE`, because the slot is not `STAGED`.
 - **No authorisation.** The contract checks no permission. A management adapter checks access before it calls the update agent (owner decision 5). The caller is trusted code.
@@ -341,8 +345,8 @@ Three levels. The Host and `native_sim` cases are what M9 asks for as "Linux Hos
 | C3 | Confirm with a write failure returns `ERR_IO` and the state stays `RUNNING_TESTING` | Yes | Yes | |
 | V1 | Version compare: major, minor, revision order, equal, and the build number ignored (table of vectors) | Yes | Yes | |
 | V2 | The compare agrees with a hand model of `boot_compare_version` for the same vectors | | Yes | |
-| O1-O6 | Each row of the outcome table, with each slot state | Yes | | |
-| O7 | Stale attempt after a power cut between the attempt write and the request | Yes | | |
+| O1-O7 | Each row of the outcome table, with each slot state | Yes | | |
+| O8 | Power cut during staging (`requested` false) gives `NOT_BOOTED`, and after `requested` was set but before the request writes gives `REVERTED` (the stated limit). A newer staged slot reads `EMPTY` after a reset. | Yes | Yes | |
 | N1 | The `native_sim` provider runs the real bootutil functions over a flash simulator. A hand model of the bootloader's select and erase rules (the table above) runs between resets. A full update, a revert and a refused image play out end to end. | | Yes | |
 | T1 | Test, confirm, reboot: the new image stays | | | Yes |
 | T2 | Test, no confirm, reboot: the previous image runs, and the outcome is `REVERTED` | | | Yes |
@@ -359,7 +363,7 @@ What the first two levels cannot prove: that the real bootloader behaves like th
 - **NOR.** Slots are `fixed-partitions` of the FlexSPI device, and bootutil reads and writes them through `flash_area_*`. The writes to the inactive slot happen while the application runs from SDRAM, so they do not stall the running code. The bootloader's own writes (`copy_done`, the erase of a refused slot) happen during its XIP, and #165 covers closing that path (#141 owner decision 16).
 - **eMMC through a flash-API driver over the MMC disk.** The contract is slot-indexed and medium-neutral because bootutil reaches every slot through `flash_area_*`. MCUboot's port reads slots only through the flash API (`boot-emmc-investigation.md`, section 2). What changes is the trailer, and it is the driver's affair, not the contract's:
   - The trailer offsets depend on `BOOT_MAX_ALIGN`. A trailer flag write is padded to the larger of the flash write unit and the flag size, and it fails (an assertion and a return of -1) if that exceeds `BOOT_MAX_ALIGN` (`M:bootutil_public.c`:345-374). The alignment cap of 8 to 32 applies to swap modes (`M:bootutil_public.h`:79-90). Whether it applies to RAM load with a 512-byte write block was not read in full. **Not verified.**
-  - The three request writes (magic, then swap info, plus `image_ok` for a permanent request) land in separate write blocks on a medium with a 512-byte block. The magic write is the point at which the slot becomes a pending request (Inference from `boot_select_or_erase`). Their order must hold on the medium. A write cache that reorders them is a driver requirement. The eMMC record and #310 are where that is examined.
+  - The request writes (magic, then `image_ok` only for a permanent request, then swap info, in that order: `M:bootutil_public.c`:558-572) land in separate write blocks on a medium with a 512-byte block. The magic write is the point at which the slot becomes a pending request (Inference from `boot_select_or_erase`). Their order must hold on the medium. A write cache that reorders them is a driver requirement. The eMMC record and #310 are where that is examined.
   - Slot offsets must lie outside any file system on the same medium (`boot-emmc-investigation.md`, section 2).
 - **Same suite, two media.** Cases S, R, C, O and V do not depend on the medium. Case T7 repeats T1 to T3 on eMMC. Until a board exists, the eMMC simulator of #310 is the nearest software check, and it tests trailer sequences, not the contract.
 
@@ -377,7 +381,7 @@ What the first two levels cannot prove: that the real bootloader behaves like th
 
 - No board result exists for any claim about the bootloader's behaviour. Everything about `boot_select_or_erase` is what the code allows.
 - Which Kconfig options expose the bootutil headers to an application, and which options the provider needs beyond the shared-data and retention settings of #141, are composition details for #296. **Not verified.**
-- The default value of the bootloader version when the build has no `VERSION` file was not read.
+- The bootloader version of a build that overrides MCUboot's `VERSION` file, and the Zephyr default for a build with none, were not read. The upstream file at the pin says 2.4.0.
 - The MCUboot revision here (`6d3b3d2c`) is newer than the one that #141 used (`ee39e2d`). The rows of #141 that this proposal relies on (B14, B21, B60, B63, B63a, B64) were re-read at the new revision for the functions named above, and the others were not.
 - The PSA specification and TF-M pages were read as search summaries.
 - Multi-image setups and more than two slots are out of scope. mcumgr's source says multi-image does not support RAM load (`Z:.../img_mgmt.c`:236-266, comment at 240).
@@ -389,12 +393,20 @@ What the first two levels cannot prove: that the real bootloader behaves like th
 | --- | --- | --- |
 | Q1 | Equal versions: refuse (I4), or accept and document the slot-order case? | Refuse |
 | Q2 | Where does the attempt record live, and how does the update agent keep it consistent across a power cut? | In the update agent's design, with the File or Configuration service. Decide with its proposal. |
-| Q3 | Does a product link mcumgr image management in RAM load with revert mode? | Not in M9. If yes, run the two mcumgr cases first. |
+| Q3 | Does a product link mcumgr image management in RAM load with revert mode? | Not in M9. If yes, run the upload and confirm cases first: a misreported active slot can aim an upload at the running image's slot. |
 | Q4 | Is the retained shared data intact at start on the RT1060 board after the jump? | Target case T4, before any other use of the record |
 | Q5 | Does a 512-byte write unit work with the trailer alignment rules in RAM load, and what must the eMMC driver guarantee about ordering? | Answer in the eMMC driver work and #310, then restate as provider requirements |
 | Q6 | Which component and directory hold the Zephyr provider? | With the boot composition owner |
-| Q7 | A permanent request: needed later for factory images? | Not in this contract. Development images signed with `--pad` already do it (owner decision 13). |
+| Q7 | A permanent request: needed later for factory images? | Not in this contract. Images signed with `--pad --confirm`, or built with `MCUBOOT_GENERATE_CONFIRMED_IMAGE`, are permanent. `--pad` alone is a test request (owner decision 13). |
 | Q8 | Should the contract report the signature type and recovery key of the shared data, for the root-of-trust and recovery declarations of M9? | No. M9's results can read them through the native call. Add them only if a consumer needs them. |
+| Q9 | `BLINFO_MODE` reports RAM load for a bootloader built without revert too, so the start check cannot catch it, and test requests would never be reverted. | A build-time check in the M8 composition that both images are built for RAM load with revert, and target case T2 |
+
+## Consistency with the accepted decisions
+
+- **[ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0003](../decisions/0003-p9-result-services-keep-narrow-thread-sync.md).** The contract owns no thread and no priority setting, and its header includes neither `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` nor `<crux/serial.h>`. Product code reaches none of them through it. The one internal lock of the request and confirm path is an implementation detail: the Zephyr provider may use a Zephyr lock, which ADR-0001 allows in a Crux provider, and the Host provider uses the narrow internal Sync that ADR-0003 keeps inside Crux services. Which of the two is settled in the implementation change.
+- **[ADR-0004](../decisions/0004-product-composition-of-management-services.md).** A product reaches the contract through a public `crux::` target and the public header, never through a private header, and the bootutil headers stay private to the provider. `crux_image_start()` takes no Zephyr handle, so a composition interface under the [six rules](../composition-interfaces.md) is probably not needed (Inference). This proposal adds no composition route of its own. The Zephyr module's build integration follows the route ADR-0004 fixes for services.
+- **[ADR-0005](../decisions/0005-native-sim-test-watchdog-for-system-consumers.md).** The `native_sim` cases are software evidence only, as ADR-0005 says of its own case. They say nothing about the board.
+- **[ADR-0006](../decisions/0006-cryptographic-dependency-policy.md).** The contract adds no cryptographic dependency and selects no backend. It verifies no signature: the bootloader does, and so does the update agent before it writes (with PSA Crypto, under the pin policy of ADR-0006). The #141 trial built MCUboot with ECDSA P-256 on its own bundled tinycrypt, outside Crux's `mbedtls` pins ([boot and update investigation](../boot-update-investigation.md#mcuboot-against-the-adoption-criteria)). ADR-0006 names MCUboot as a candidate for a dependency review that it does not decide. The M8 composition's crypto backend should go through that review, and nothing here chooses it.
 
 ## Changes other documents would need if adopted
 
@@ -410,4 +422,4 @@ None are made here.
 - Search first: the PSA Firmware Update API is the one existing bootloader-neutral interface found. It is not adopted (see above). No package, tool or wrapper was installed.
 - Decision format: the table above follows the repository's decision tables, with the alternatives in [Options compared](#options-compared). No file was written under `docs/adr/`.
 - Upstream sources were fetched into a scratchpad outside the repository and read there. None is copied.
-- Independent review and CI results are recorded in the pull request.
+- Independent review (the `reviewer` agent, Opus): first round REVISE with four blocking findings (an erased staged image and the power-cut outcome, the mcumgr confirm and upload paths, and a wrong reading of owner decision 13), fixed in this revision. The re-check and the CI results are recorded in the pull request.
