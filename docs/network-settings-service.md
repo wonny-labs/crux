@@ -14,7 +14,7 @@ The routes are in `components/web/management/web_management_network.c` and are d
 | Part | State | Evidence |
 | --- | --- | --- |
 | The checks of the specification, the address text and the check key | **Built** | Host, with vectors shared with the TypeScript client, an oracle, and 250,000 random pairs of sets |
-| Boot: load, decide, apply through a private port, fall back | **Built** | Host, on the real Configuration mechanism and the fake provider |
+| Boot: load, decide, apply through the product's port, fall back | **Built** | Host, on the real Configuration mechanism and the fake provider |
 | The service: state, request, save in three phases, recovery, events | **Built** | Host, on the real Access core and the real Configuration service |
 | A save cut by a power loss between any two writes | **Built as a test**, with the fake provider | Host: 4 starting states, 6 cut points, 2 ways of cutting |
 | Another session's `config.save` landing in the middle of a set | **Built as a test** | Host, through a wrapped `try_update` |
@@ -44,15 +44,17 @@ flowchart TB
     service -->|"crux_access_check"| access["crux::access"]
     service -->|"try_read, try_update, save_local"| cfg["crux::config_service"]
     cfg --> mech["crux::configuration"] --> store["Provider, or the no-provider port"]
-    service -->|"private port"| port["apply, running: native code of the composition"]
+    service -->|"public port header"| port["apply, running: native code of the product"]
     service -->|"private port"| events["security events"]
     boot["Boot, before the services start"] --> service
     boot -->|"crux_config_load"| mech
     boot --> port
 ```
 
-`crux_netif` stays read-only and no native type reaches a public header. The apply port is
-`components/network_settings/src/network_settings_port.h`, which no consumer includes.
+`crux_netif` stays read-only and no native type reaches a public header. The apply port is the public
+`<crux/network_settings_apply_port.h>` (Experimental; ADR-0004 decision C3): two declarations,
+`crux_network_settings_port_apply` and `crux_network_settings_port_running`, that the product implements with its own
+native code. The event port stays private in `components/network_settings/src/network_settings_port.h`.
 
 ## The five parameters
 
