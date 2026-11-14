@@ -45,6 +45,10 @@ Use these rules for the next one, together with the steps in [Extending Crux](ar
 
 Before a new composition interface is proposed, check it against the table above, then add the same negative boundary test as `tests/build/test_file_zephyr_boundary.py` shows. A new public header, target or tier is a public interface decision, so it follows the escalation rules of [AGENTS.md](../AGENTS.md).
 
+## Ports that the product implements
+
+A **product-implemented port** is the inverse of a composition interface: Crux declares functions in a public header, and the product defines them in its own adapter code, with its own native calls. It binds no Crux provider to the OS, so the six rules above do not apply to it (ADR-0004 decision C3). It is still a public interface: it has a tier, a named header, documented ownership and thread context, no native type in the header, and a test that a product-style definition compiles against the header alone. The first one is `<crux/network_settings_apply_port.h>`, the network settings apply port.
+
 ## What this document does not do
 
 - It adds no composition interface, check or test, and changes no file under `components/`, `tests/` or a protected path.

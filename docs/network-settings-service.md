@@ -340,7 +340,7 @@ There is no Configuration provider on the target. A composition selects `crux_co
 | Item | Where |
 | --- | --- |
 | Boot order: Access, the Configuration provider, `crux_network_settings_boot()`, `crux_config_service_start()` on a table that holds `crux_network_settings_entries()`, `crux_network_settings_start()`, `crux_network_settings_start_worker()` | `crux/network_settings.h` |
-| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | `network_settings_port.h`, private |
+| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
 | A provider of the event port: `crux_network_settings_security_events` | The same |
 | `network.read` and `network.write` in the roles that may see and change the address, and no role with `network.private` | The product's policy |
 | `crux_cli_init()` with `crux_network_settings_cli_commands()`, on a serial console | `crux/network_settings_cli.h` |

@@ -63,8 +63,15 @@ class PublicHeader(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_product_can_define_both_functions_with_this_header_only(self):
-        result = compile_source(PRODUCT, ROOTS)
+        # -Wmissing-prototypes makes this fail if the header declares nothing: a definition with no
+        # prior declaration is refused.
+        result = compile_source(PRODUCT, ROOTS, ["-Wmissing-prototypes"])
         self.assertEqual(result.returncode, 0, result.stderr)
+        for function in FUNCTIONS:
+            only_one = PRODUCT.replace('#include <crux/network_settings_apply_port.h>',
+                                       '#include <crux/network_settings.h>')
+            self.assertNotEqual(compile_source(only_one, ROOTS, ["-Wmissing-prototypes"]).returncode, 0,
+                                function)
 
     def test_a_definition_with_another_signature_is_refused(self):
         wrong = PRODUCT.replace("bool crux_network_settings_port_apply(const crux_network_settings_t *settings)",
@@ -95,6 +102,8 @@ class PublicHeader(unittest.TestCase):
         code = comments_and_preprocessor_removed(PUBLIC.read_text())
         declared = re.findall(r"\b(crux_\w+)\s*\([^;{]*\)\s*;", code)
         self.assertEqual(sorted(declared), sorted(FUNCTIONS))
+        # C3: declarations the product defines, not a callback struct or a table of pointers.
+        self.assertNotRegex(code, r"\bstruct\b|\(\s*\*|\bextern\b(?!\s*\"C\")")
 
     def test_the_private_header_declares_the_event_port_only(self):
         text = PRIVATE.read_text()
@@ -121,10 +130,29 @@ class PublicHeader(unittest.TestCase):
 
     def test_the_documentation_says_who_implements_it_and_when_it_runs(self):
         text = " ".join(PUBLIC.read_text().replace("\n *", " ").split())
-        for phrase in ("The product implements", "once, at boot", "before any management channel starts",
-                       "Thread context", "returns false", "never both with CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY",
-                       "no running values"):
+        for phrase in ("The product implements both", "Only crux_network_settings_boot() calls it",
+                       "before any management channel starts", "Thread context",
+                       "In every other case (first boot, no provider, a store error or invalid saved values)",
+                       "called once with the defaults".replace("called", "calls it"),
+                       "reported in the boot report and not retried", "no running values",
+                       "crux_network_settings_no_apply target on Host"):
             self.assertIn(phrase, text, phrase)
+
+    def test_no_text_still_calls_the_apply_port_private(self):
+        # The public contract of the service and its docs said the port is private. It is not.
+        for path, needle in (("components/network_settings/include/crux/network_settings.h", "private port"),
+                             ("components/network_settings/ports/zephyr/CMakeLists.txt",
+                              "no public header"),
+                             ("components/network_settings/CMakeLists.txt", "which is private\n# native code")):
+            self.assertNotIn(needle, (ROOT / path).read_text(), path)
+        doc = (ROOT / "docs/network-settings-service.md").read_text()
+        self.assertNotIn("`network_settings_port.h`, private", doc)
+        self.assertIn("<crux/network_settings_apply_port.h>", doc)
+
+    def test_the_composition_interface_rules_say_what_a_product_implemented_port_is(self):
+        text = " ".join((ROOT / "docs/composition-interfaces.md").read_text().split())
+        self.assertIn("product-implemented port", text)
+        self.assertIn("`<crux/network_settings_apply_port.h>`", text)
 
     def test_the_header_names_its_tier(self):
         self.assertRegex(PUBLIC.read_text().split("*/", 1)[0], r"Status:\s+Experimental")
