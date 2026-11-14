@@ -76,7 +76,7 @@ class PrivateIncludesTest(unittest.TestCase):
 
     def test_the_function_links_nothing_of_crux_to_the_product(self):
         self.configure()
-        links = re.search(r"probe-links=\[(.*?)\] probe-interface=\[(.*?)\]", self.stdout)
+        links = re.search(r"probe-links=\[(.*?)\] probe-interface=\[(.*?)\]", " ".join(self.stdout.split()))
         self.assertIsNotNone(links, self.stdout)
         for value in links.groups():  # an unset property reads as <variable>-NOTFOUND
             self.assertTrue(value == "" or value.endswith("-NOTFOUND"), value)
