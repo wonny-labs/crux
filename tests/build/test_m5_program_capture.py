@@ -66,9 +66,9 @@ class FakeSpec:
 
 
 class Case(base.Case):
-    def preconditions(self, directory, label):
+    def preconditions(self, directory, label, seconds):
         self.events.append('check ' + label)
-        super().preconditions(directory, label)
+        super().preconditions(directory, label, seconds)
 
     def reverify(self):
         self.reverified.append(1)
@@ -147,8 +147,8 @@ class Refusals(Case):
     def test_a_failing_guard_or_ownership_check_at_the_load_step(self):
         spec = self.spec()
         original = self.preconditions
-        def guard(directory, label):
-            original(directory, label)
+        def guard(directory, label, limit):
+            original(directory, label, limit)
             if label.endswith('program-m5'):
                 raise HardwareStop('Current mount protection unverified')
         self.preconditions = guard
@@ -163,8 +163,8 @@ class Refusals(Case):
                 self.setUp()
                 spec = self.spec()
                 seconds = {'02-entry-image': 100, '03-program-m5': 0} if series == 200 else {'03-program-m5': 90}
-                def timed(directory, label, seconds=seconds):
-                    Case.preconditions(self, directory, label)
+                def timed(directory, label, limit, seconds=seconds):
+                    Case.preconditions(self, directory, label, limit)
                     self.now += seconds.get(label, 0)
                 self.preconditions = timed
                 with self.assertRaisesRegex(HardwareStop, pattern):
@@ -401,7 +401,8 @@ class Profiles(Case):
         # A new field is a new way for a profile to change behaviour: this list must change in the same reviewed change.
         self.assertEqual({f.name for f in fields(ImageProfile)},
                          {'name', 'manifest_path', 'pinned', 'pinned_paths', 'check_image', 'commit_tag', 'errno_suffix',
-                          'tool_scripts', 'modules', 'module_paths', 'capture', 'capture_seconds'})
+                          'tool_scripts', 'modules', 'module_paths', 'capture', 'capture_seconds', 'extra_roles',
+                          'watch_seconds'})                     # B4, option X: the read-only watch mode's window (decision 33)
         for gate in ('guard', 'skip_guard', 'owners', 'skip_owners', 'voltage', 'retry', 'entry_verify', 'restore', 'budget', 'unsafe'):
             with self.subTest(gate=gate), self.assertRaises(TypeError):
                 synthetic_profile(**{gate: True})
@@ -410,7 +411,8 @@ class Profiles(Case):
         self.assertEqual(set(inspect.signature(program.Driver.__init__).parameters),
                          {'self', 'plan', 'approval', 'mode', 'directory', 'probe', 'preconditions', 'acquire', 'images', 'reverify',
                           'clock', 'series_seconds', 'capture'})
-        self.assertEqual(set(inspect.signature(program.Driver.run).parameters), {'self', 'label', 'commands', 'images', 'before'})
+        self.assertEqual(set(inspect.signature(program.Driver.run).parameters), {'self', 'label', 'commands', 'images', 'before', 'seconds'})
+        self.assertEqual(inspect.signature(program.Driver.run).parameters['seconds'].default, program.COMMAND_SECONDS)
 
     def test_no_registered_or_extreme_profile_changes_a_single_gate(self):
         """The same fakes, the same flow: commands, checks, re-verifications and the one-start rule are identical."""

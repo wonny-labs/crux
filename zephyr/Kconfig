@@ -58,6 +58,59 @@ config CRUX_THREAD_STACK_BYTES
 	default 4096
 	range 1024 65536
 
+menu "Priorities of Crux service workers"
+
+comment "Each is a Zephyr preemptive priority, 0 to NUM_PREEMPT_PRIORITIES - 1"
+
+# ADR-0002 P3. Each default is today's number: the worker is a LOW-class Crux Thread, which the
+# Zephyr port maps to 6. Another value moves that one worker, and the classes keep 4, 5 and 6. A
+# value of NUM_PREEMPT_PRIORITIES, the idle priority, passes the range and fails the build in
+# components/service_priority. See docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SECURITY_EVENT_DRAIN_PRIORITY
+	int "Security event drain"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The thread that writes security event records to the log, started by
+	  crux_security_event_start().
+
+config CRUX_REBOOT_WORKER_PRIORITY
+	int "Reboot service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs reboot requests and the busy check, started by
+	  crux_reboot_start_worker().
+
+config CRUX_NETWORK_SETTINGS_WORKER_PRIORITY
+	int "Network settings service worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves and applies network settings, started by
+	  crux_network_settings_start_worker().
+
+config CRUX_WEB_SESSION_WORKER_PRIORITY
+	int "Web session login worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that runs web login attempts, started by
+	  crux_web_session_start_worker(). At the default it preempts the HTTP
+	  server thread, which runs at the lowest application priority: see
+	  docs/web-session.md.
+
+config CRUX_WEB_MANAGEMENT_WORKER_PRIORITY
+	int "Web management save worker"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The worker that saves configuration for the web management routes,
+	  started by crux_web_management_start_worker().
+
+endmenu
+
 endif # CRUX_THREAD
 
 config CRUX_SYNC
@@ -202,7 +255,14 @@ config CRUX_FILE_FATFS_RT1060
     help
       Link the File provider into an RT1060-EVKB image. Off by default. It mounts and
       formats nothing by itself; the project composition owns mount order and recovery.
-      No physical-board result exists for this selection.
+      Physical-board evidence is narrow: runs of earlier revisions (2 and 3 November 2026) on
+      one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
+      microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
+      reads. The replace-and-rename power-cut loop (microsd-replace-cut) called Zephyr
+      fs_rename directly, and the card-states-stack probe ran create, rename, stat, list and
+      remove through Zephyr fs_* directly (sample sd_probe.c), not crux_file. It qualifies neither the board, the card nor the
+      Settings File backend. The roots, stat, size, rename and listing operations that
+      crux_file gained later (#224) have no physical run.
 
 config CRUX_FILE_FATFS_RT1060_RAM_DISK
     bool "Crux File FatFs provider on a RAM disk of the RT1060-EVKB"
@@ -366,6 +426,96 @@ config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
 
 endif # CRUX_WEB
 
+# ADR-0004 phase 0. The management service cores, built by the module so that an application outside
+# this repository enables them with Kconfig and ZEPHYR_EXTRA_MODULES, and does not compile Crux's source
+# files into its own target. Access, the credential store and the security events are wired to each
+# other (Access calls the store and the event provider, the store calls the event provider, and the
+# events call Access), so one visible symbol builds the three. The service symbols select Thread, Sync
+# and Time themselves (ADR-0004 C6), so that a product's configuration names service symbols only.
+config CRUX_ACCESS
+    bool "Crux Access with its credential store and security events (Experimental)"
+    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    select CRUX_CREDENTIAL
+    select CRUX_SECURITY_EVENT
+    select CRUX_THREAD
+    select CRUX_SYNC
+    select CRUX_TIME
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
+      store port, PSA ports and device ID, and the security events with their drain thread and the
+      provider of Access's event port, and registers the three with the Zephyr link. It starts
+      nothing, adds no crux:: target and no public header: the application writes the start
+      sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
+      own include path until the composition interfaces of ADR-0004 phase 1a exist.
+
+      The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
+      locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
+      profile-psa.conf), a Crux File provider for the store's two roots, Crux Logging for the events,
+      and CONFIG_HWINFO for the device ID. The configuration refuses a missing profile, locks, File
+      provider, Logging or HWINFO by name; a missing algorithm is not checked and fails at run time. No SSH provider and
+      no other PSA profile is part of this symbol.
+
+config CRUX_CREDENTIAL
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The credential store of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
+      because the store cannot be linked without Access and the security events.
+
+config CRUX_SECURITY_EVENT
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The security events of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
+      because the events cannot be linked without Access and the credential store.
+
+# ADR-0004 phase 0, slice 2: the Configuration service and the status service. Each needs Access and so
+# selects nothing of it. Each selects the Crux symbols that it links itself (ADR-0004 C6): both use Sync,
+# and the status service also reads Time.
+config CRUX_CONFIG_SERVICE
+    bool "Crux Configuration service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_CONFIGURATION_CORE
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds the Configuration service core and the provider of its event port over the security
+      events, and the Configuration core beneath it. It starts nothing and adds no crux:: target and
+      no public header: the application lists its parameters and calls crux_config_service_start().
+      Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, a save returns
+      CRUX_CONFIG_SERVICE_ERR_STORE with CRUX_CONFIG_ERR_NOT_SUPPORTED in the report's failed_result
+      (the "no provider" port of components/configuration), and the service still reads and updates
+      parameters in memory.
+
+config CRUX_MGMT_STATUS
+    bool "Crux status service (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    select CRUX_CONFIGURATION_CORE
+    select CRUX_SYNC
+    select CRUX_TIME
+    help
+      Experimental tier (ADR-0001 Decision 4): may change in any release, and the release notes list
+      the change. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the status service core and the sources of its items: System, Time, the network
+      interface, the credential store and the security events. It needs Crux System and Crux Netif,
+      and the configuration refuses an image without them by name. It starts nothing and adds no
+      crux:: target and no public header: the application calls crux_mgmt_status_start().
+
+config CRUX_CONFIGURATION_CORE
+    bool
+    depends on CRUX_PILOT_MODULE
+    help
+      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS,
+      selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
+      selection's copy that is linked, and this builds nothing.
+
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
     depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
@@ -449,6 +599,24 @@ config CRUX_SSH_LISTENER_STACK_BYTES
     int "Stack of the listener thread"
     default 4096
     range 2048 32768
+
+config CRUX_SSH_WORKER_PRIORITY
+    int "Zephyr priority of every connection's worker thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      ADR-0002 P3. -1, the default, keeps today's K_LOWEST_APPLICATION_THREAD_PRIO, which is
+      NUM_PREEMPT_PRIORITIES - 1 and so follows that setting. Otherwise a preemptive priority, 0 to
+      NUM_PREEMPT_PRIORITIES - 1: the provider refuses the idle priority at compilation. The workers
+      share this priority and a time slice. Read by crux_ssh_wolf_settings(). See
+      docs/thread-sync.md#priority-map-of-crux-threads.
+
+config CRUX_SSH_LISTENER_PRIORITY
+    int "Zephyr priority of the listener thread, or -1 for the lowest application one"
+    default -1
+    range -1 NUM_PREEMPT_PRIORITIES
+    help
+      As CRUX_SSH_WORKER_PRIORITY, for the thread that accepts connections and starts their workers.
 
 config CRUX_SSH_STACK_REPORT
     bool "Name the SSH threads and keep the lowest unused stack of the workers that ended"

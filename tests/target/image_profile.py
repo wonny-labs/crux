@@ -1,7 +1,8 @@
 """What differs between two images that share the reviewed board path. Never touches hardware.
 
 A profile names only image facts, and whether the UART of the freshly started image is recorded raw and for how long
-(``capture``, ``capture_seconds``: a bounded window, never a switch of a gate). The safety gates of the programming and restore driver (guard check before
+(``capture``, ``capture_seconds``: a bounded window, never a switch of a gate), and the window of the read-only ``watch``
+mode (``watch_seconds``, likewise bounded). The safety gates of the programming and restore driver (guard check before
 every command, ownership inventory, voltage check, bounded commands, no retry, identity-only probe, entry-image
 verify, restore of the accepted normal image) are not part of a profile and cannot be changed through one.
 """
@@ -11,7 +12,11 @@ import re
 from typing import Callable, Mapping, Optional, Tuple
 
 CAPTURE_MODES = ('none', 'raw')
+KNOWN_EXTRA_ROLES = ('bench_manifest', 'patched_zephyr')      # frozen roles that only some profiles have, see ``extra_roles``
 MAX_CAPTURE_SECONDS = 300                       # the window after the start command; 300 s plus the 30 s Commander run at 115200 baud is at most about 3.8 MB
+# The window of the read-only ``watch`` mode, which runs no probe command (blocker B4, option X; owner decision 2026-11-12).
+# Its own cap, never a relaxation of MAX_CAPTURE_SECONDS: 3,600 s plus the close at 115200 baud is at most about 41.5 MB.
+MAX_WATCH_SECONDS = 3600
 
 
 @dataclass(frozen=True)
@@ -20,7 +25,7 @@ class ImageProfile:
     manifest_path: str                          # west path of the repository whose manifest the workspace was built from
     pinned: Mapping[str, str]                   # exact dependency revisions of this image
     pinned_paths: Mapping[str, str]             # where the build finds each pinned dependency
-    check_image: Callable                       # (binary, elf, config) -> dict of verified image facts; raises ValueError
+    check_image: Callable                       # (binary, elf, config, **extra roles) -> dict of verified image facts; raises ValueError
     commit_tag: bool                            # whether the first 12 characters of the source commit are embedded in the binary
     errno_suffix: Optional[str] = None          # source file for the errno map evidence; None keeps no errno evidence
     tool_scripts: Tuple[str, ...] = ()          # frozen scripts of the tool repository, besides tests/target/*.py
@@ -35,6 +40,15 @@ class ImageProfile:
     # after it. The window is a whole number of seconds from 1 to MAX_CAPTURE_SECONDS and part of the registered profile.
     capture: str = 'none'
     capture_seconds: int = 0
+    # Frozen roles beyond the common set, next to the profile-dependent ``errno`` role. Each names a file that the build leaves
+    # under its build directory (prepare_m5_network.EXTRA_ROLE_FILES), is frozen and re-hashed like any other, and is passed to
+    # ``check_image`` as a REQUIRED keyword argument of the same name: a missing artefact is a refusal and never a skipped group.
+    # ``patched_zephyr`` (the record of the patched Zephyr copy) needs ``bench_manifest`` (the block it is checked against).
+    extra_roles: Tuple[str, ...] = ()
+    # Window of the read-only ``watch`` mode, which reads the same owned port after ``program`` has finished and released it,
+    # and runs no probe command. 0 (the default) means the profile has no watch; otherwise 1 to MAX_WATCH_SECONDS whole seconds,
+    # and only for a profile whose ``program`` mode captures raw (the watch continues that record across a seam).
+    watch_seconds: int = 0
 
     def __post_init__(self):
         problems = []
@@ -53,6 +67,15 @@ class ImageProfile:
                 problems.append('capture none has no window')
         elif type(self.capture_seconds) is not int or not 1 <= self.capture_seconds <= MAX_CAPTURE_SECONDS:
             problems.append('capture raw needs a window of 1 to %d whole seconds' % MAX_CAPTURE_SECONDS)
+        if type(self.watch_seconds) is not int or not 0 <= self.watch_seconds <= MAX_WATCH_SECONDS:
+            problems.append('watch_seconds must be 0 (no watch) or 1 to %d whole seconds' % MAX_WATCH_SECONDS)
+        elif self.watch_seconds and self.capture != 'raw':
+            problems.append('a watch window needs the raw capture of the program mode')
+        if type(self.extra_roles) is not tuple or any(r not in KNOWN_EXTRA_ROLES for r in self.extra_roles) or \
+                len(set(self.extra_roles)) != len(self.extra_roles):
+            problems.append('extra_roles is not a tuple of distinct roles out of ' + ', '.join(KNOWN_EXTRA_ROLES))
+        elif 'patched_zephyr' in self.extra_roles and 'bench_manifest' not in self.extra_roles:
+            problems.append('the patched_zephyr role needs the bench_manifest role')
         places = [PurePosixPath(self.manifest_path)] + [PurePosixPath(p) for p in self.pinned_paths.values()] + \
                  [PurePosixPath(p) for p in self.module_paths.values()]
         if any(a == b or a in b.parents or b in a.parents for i, a in enumerate(places) for b in places[i + 1:]):

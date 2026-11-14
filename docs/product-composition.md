@@ -2,7 +2,7 @@
 
 **Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. A provisional schema and checker for the release bundle now exist in this repository, see [Release bundle](#release-bundle). They are not frozen, and no product release has been made with them. The baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
-Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
+Use it with the [product template](../templates/product/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
 ## Who owns what
 
@@ -43,7 +43,7 @@ flowchart TB
 
 The product uses west's T2 topology: the product repository is the manifest repository, and Crux and Zephyr are projects in its workspace.
 
-The active part of the [template manifest](../samples/product_template/west.yml), with the comments of its `crux-pilot` entry:
+The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux-pilot` entry:
 
 ```yaml
 manifest:
@@ -341,6 +341,22 @@ flowchart TD
 - **Maintenance branch.** A released product is maintained on a maintenance branch from its release tag.
 - **Support period.** Each product must set its own. This guide gives no number.
 
+### Crypto library pins
+
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+
+A product **can**:
+
+- Take Crux's pins as they are.
+- Move both pins to a later Zephyr-fork revision in its own manifest, and declare each with `crux-override`, with the advisory and the review as the reason. Crux's evidence does not cover that pin, so the product owns its own.
+
+A product **must**:
+
+- Keep `mbedtls` and `tf-psa-crypto` from the same line, as Zephyr pins them.
+- Review the advisories against its own configuration and code with the [guide](dependency-review.md). Crux's review covers Crux's components and Mbed profile, not a product's TLS client, PKCS #7, RSA or certificate validation.
+- Record which crypto line and version each released product carries.
+- Meet the licence terms of every group it enables. The wolf projects are GPL-3.0-or-later or commercial.
+
 ### Taking a Zephyr patch release
 
 A Zephyr patch release such as 4.4.3 trips both checks until Crux moves its baseline.
@@ -424,6 +440,7 @@ python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspa
 west spdx -d product-x/build/app
 ```
 
+- **West configuration.** The build record hashes `.west/config`. The first time that west runs an extension command in a workspace, such as `west crux-pins`, it adds `zephyr.base` to that file, whichever extension command runs first, `west build` included. A capture taken before that command and a record taken after it then differ, and the record stops with "Source or workspace inputs changed during verification". Run `west crux-pins` before the capture, as above. `west update` and `west list` leave the file unchanged. `west config zephyr.base zephyr` writes the same line when the project named `zephyr` has the path `zephyr`.
 - **Zephyr gate.** On its own the [baseline gate](#zephyr-baseline-gate) warns and the build continues. A release passes `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, so another Zephyr release or an unreadable version stops the build. A release that uses another Zephyr on purpose leaves the option out and records why.
 - **Mirror rewrites.** `url.<base>.insteadOf` rules belong in a separate Git configuration file that is used only for `west update`. If the rules are active at build time, modules are marked `-off` and the SBOM records the mirror location.
 - **Pinned workspace.** The build record resolves each project's revision in its checkout, so it fails on a workspace that follows `revision: main`. Run it on the frozen workspace.

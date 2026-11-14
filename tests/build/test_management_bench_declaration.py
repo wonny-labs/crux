@@ -18,6 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BENCH = ROOT / "tests/zephyr/management_rt1060_compile"
 DECLARATION = json.loads((BENCH / "bench_declaration.json").read_text())
+sys.path.insert(0, str(ROOT / "tests/target"))
+import patched_zephyr  # noqa: E402  (the freeze and the image check that read the block this declaration becomes)
+import zephyr_tree  # noqa: E402
 
 
 def settings(path):
@@ -48,13 +51,86 @@ class BenchDeclaration(unittest.TestCase):
     def test_patched_zephyr_matches_the_prepare_script_and_the_manifest(self):
         patched = DECLARATION["patched_zephyr"]
         script = (ROOT / "scripts/prepare-wolf-tls-zephyr.sh").read_text()
-        self.assertIn(f"patch_name={patched['patch_name']}", script)
-        self.assertIn(f"patch_sha256={patched['patch_sha256']}", script)
-        self.assertIn(f"result_sha256={patched['patched_file_sha256']}", script)
+        tls = patched["patches"][0]
+        tls_file = next(f for f in patched["patched_files"] if f["patches"] == [tls["name"]])
+        self.assertIn(f"patch_name={tls['name']}", script)
+        self.assertIn(f"patch_sha256={tls['sha256']}", script)
+        self.assertIn(f"result_sha256={tls_file['sha256']}", script)
         self.assertIn(patched["marker_file"], script)
-        self.assertIn(patched["patched_file"], script)
+        self.assertIn(tls_file["path"], script)
         west = (ROOT / "west.yml").read_text()
         self.assertIn(f"revision: {patched['zephyr_pin']}", west)
+
+    def test_the_fail_closed_initial_sequence_number_patch_matches_its_script_and_its_file(self):
+        """Row C11, D-c: the second patch of the build-local copy. The declaration, the script, the patch file and the
+        three guard levels name the same patch, hashes and setting."""
+        import hashlib
+        block = DECLARATION["patched_zephyr"]
+        isn, first = block["patches"][1], block["patches"][0]
+        script = (ROOT / "scripts/prepare-isn-fail-closed.py").read_text()
+        patch = ROOT / "patches/zephyr" / isn["name"]
+        entry = next(f for f in block["patched_files"] if f["patches"] == [isn["name"]])
+        self.assertEqual(isn["sha256"], hashlib.sha256(patch.read_bytes()).hexdigest())
+        self.assertIn(f'PATCH_SHA256 = "{isn["sha256"]}"', script)
+        self.assertIn(f'TLS_PATCH_SHA256 = "{first["sha256"]}"', script)
+        self.assertIn(f'BASE_SHA256 = "{block["stock_sha256"][entry["path"]]}"', script)
+        self.assertIn(f'PATCHED_SHA256 = "{entry["sha256"]}"', script)
+        self.assertIn(f'TLS_MARKER = "{block["marker_file"]}"', script)
+        self.assertIn(f'RELATIVE_SOURCE = Path("{entry["path"]}")', script)
+        self.assertEqual(entry["path"], "subsys/net/ip/tcp.c")
+        requirement = next(r for r in block["requires_settings"] if r["patch"] == isn["name"])
+        self.assertEqual((requirement["symbol"], requirement["row"], requirement["decision"]), ("NET_TCP_ISN_RFC6528", "C11", "D-c"))
+        # The patch changes this one file, and it is not the first patch's file. The parser of the freeze reads the same set.
+        self.assertEqual(re.findall(r"^\+\+\+ b/(.*)$", patch.read_text(), re.MULTILINE), [entry["path"]])
+        self.assertEqual(zephyr_tree.patch_touched_files(patch.read_bytes()), [(entry["path"], "modified")])
+        self.assertNotEqual(entry["path"], next(f["path"] for f in block["patched_files"] if f["patches"] == [first["name"]]))
+        # The three levels require the setting, and the image sets it.
+        self.assertIn(f"CONFIG_{requirement['symbol']}=y", (BENCH / "target.conf").read_text())
+        self.assertIn(f"depends on {requirement['symbol']}", (BENCH / "Kconfig.bench").read_text())
+        self.assertIn(f"CONFIG_{requirement['symbol']}", (BENCH / "src/bench_guard.h").read_text())
+        self.assertIn("BENCH_REQUIRED_SETTINGS", (BENCH / "bench_guard.cmake").read_text())
+
+    def test_the_patched_zephyr_declaration_is_a_schema_2_list_of_the_design(self):
+        """T11 of docs/rt1060-bench-freeze-and-capture-design.md. The block that bench_guard.cmake writes into the manifest
+        (the keys of BLOCK_KEYS) is checked by the freeze's own validator, with a stand-in for the one value that is not derived."""
+        block = DECLARATION["patched_zephyr"]
+        self.assertEqual(block["schema"], 2)
+        for old in patched_zephyr.OLD_KEYS + ("isn_fail_closed",):
+            self.assertNotIn(old, block)
+        self.assertEqual([p["name"] for p in block["patches"]], ["zephyr-tls-4.4.1.patch", "zephyr-isn-fail-closed.patch"])   # application order
+        # The declaration holds the keys of the manifest block (zephyr_pin is the block's pin) and the keys only the guard and the tests read.
+        declaration_only = {"zephyr_pin", "stock_sha256", "requires_settings", "open_items"}
+        self.assertEqual(set(block) - declaration_only, patched_zephyr.BLOCK_KEYS - {"pin"})
+        mirrored = {key: block[key] for key in patched_zephyr.BLOCK_KEYS - {"pin"}}
+        mirrored["pin"] = block["zephyr_pin"]
+        # The tree digest is not derived yet, on purpose: the validator refuses the block as it stands, and for that reason alone.
+        self.assertEqual(block["tree"], {"algorithm": zephyr_tree.ALGORITHM, "sha256": None, "file_count": None})
+        with self.assertRaisesRegex(ValueError, "tree must be"):
+            patched_zephyr.validate_block(mirrored)
+        mirrored["tree"] = dict(mirrored["tree"], sha256="a" * 64, file_count=1)
+        self.assertIs(patched_zephyr.validate_block(mirrored), mirrored)
+        # What is open is said in the declaration, and the image check cannot pass it by accident.
+        text = " ".join(block["open_items"])
+        self.assertIn("null on purpose", text)
+        self.assertIn("not in this repository", text)
+
+    def test_the_marker_of_the_declaration_is_the_one_marker_the_two_scripts_write(self):
+        block = DECLARATION["patched_zephyr"]
+        hashes = [p["sha256"] for p in block["patches"]]
+        self.assertEqual(zephyr_tree.marker_text(block["zephyr_pin"], hashes[:1]).rstrip("\n"), f"{block['zephyr_pin']} {hashes[0]}")   # the TLS script
+        self.assertEqual(zephyr_tree.marker_text(block["zephyr_pin"], hashes), f"{block['zephyr_pin']} {hashes[0]} {hashes[1]}\n")        # after this script
+        guard = (BENCH / "bench_guard.cmake").read_text()
+        self.assertIn("expected_marker", guard)
+
+    def test_every_patched_file_names_declared_patches_in_order_and_the_list_is_sorted(self):
+        block = DECLARATION["patched_zephyr"]
+        names = [p["name"] for p in block["patches"]]
+        paths = [f["path"] for f in block["patched_files"]]
+        self.assertEqual(paths, sorted(set(paths), key=lambda path: path.encode()))
+        for entry in block["patched_files"]:
+            self.assertTrue(entry["patches"] and all(n in names for n in entry["patches"]))
+            self.assertEqual(entry["patches"], [n for n in names if n in entry["patches"]])
+            self.assertNotEqual(entry["path"], block["marker_file"])
 
     def test_target_conf_carries_the_declaration(self):
         values = settings(BENCH / "target.conf")
@@ -160,7 +236,14 @@ class BenchDeclaration(unittest.TestCase):
         self.assertIn("set(CRUX_BENCH_RUN_REFUSED ON)", (BENCH / "CMakeLists.txt").read_text())
         main = (BENCH / "src/main.c").read_text()
         self.assertIn("if (run_refused)", main)
-        self.assertLess(main.index("if (run_refused)"), main.index("static_address_up()"))
+        # The refusal stops everything but the banner and the entropy line (row C10): no address, store, listener.
+        body = main[main.index("static int bench_main(void)"):]
+        refusal = body.index("if (run_refused)")
+        for later in ("static_address_up()", "crux_native_management_start()", "crux_bench_first_account()",
+                      "crux_native_management_services_start()", "crux_mgmt_rt1060_ssh_start()", "crux_bench_report_start()"):
+            self.assertLess(refusal, body.index(later), later)
+        refused = body[refusal:body.index("}", refusal)]
+        self.assertIn("return 1;", refused)
 
     def test_both_listeners_are_bound_by_the_product_code_only_when_asked(self):
         web = (ROOT / "components/web/ports/zephyr/web_http_server.c").read_text()
