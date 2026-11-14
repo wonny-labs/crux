@@ -1,17 +1,17 @@
 # Dependency review: the wolfSSL, wolfSSH and wolfPSA pins
 
-Status: **review record, the third use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `7e0a31a4`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), Q7: whether newer tagged stable releases or advisories matter to the wolf pins.
+Status: **review record, a use of the [dependency review guide](dependency-review.md)** after the [Mbed TLS record](dependency-review-mbed-tls-4.1.1.md) and the FatFs review (PR #420), 14 November 2026. Baseline: `origin/main` at `7e0a31a4`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), Q7: whether newer tagged stable releases or advisories matter to the wolf pins.
 
 This record is documentation only. It moves no pin and edits no `west.yml` and no protected path. It decides nothing about licences: the licence facts below are constraints taken from existing documents.
 
-**Labels.** **Verified** means I read it with `gh api` or `curl` and cite the source, or I read it at the baseline revision and cite `path:line`. **Reported** means a page says it, as read through a fetch agent on 14 November 2026, and I did not check it independently. **Inference** is my reading. **Not verified** means no read or run for it.
+**Labels.** **Verified** means I read it with `gh api` and cite the source, or I read it at the baseline revision and cite `path:line`. **Reported** means a page says it, as read through a fetch agent on 14 November 2026, and I did not check it independently. **Inference** is my reading. **Not verified** means no read or run for it.
 
 ## Result
 
 - **Verdict: no pin move. Nothing is newer to take.** On 14 November 2026 each pinned release is the newest stable tag of its repository: wolfSSL `v5.9.4-stable`, wolfSSH `v1.6.0-stable` and wolfPSA `v5.9.4`. Each pin equals its tag's commit.
-- **No published vulnerability entry is fixed after the pinned version.** The wolfSSL vulnerability page lists 11 entries fixed in 5.9.4 and 31 fixed in 5.9.2, and none fixed later. The wolfSSH release notes list five 2026 entries fixed in 1.6.0 and one under 1.5.0, none later. wolfPSA lists none. The pins hold every fix those pages list.
+- **No published vulnerability entry is fixed after the pinned version.** The wolfSSL vulnerability page lists 11 entries fixed in 5.9.4 and 31 fixed in 5.9.2, and none fixed later. The wolfSSH release notes list five 2026 entries fixed in 1.6.0 and one under 1.5.0, none later. wolfPSA lists none. **For wolfSSH and wolfPSA that means only that no later release exists**: their sources are release pages, which cannot list a fix later than the newest release, and the one source that could (the vendor page's wolfSSH table) was read only as a summary. **So the pins hold the fixes those pages list, as far as their fixed-in versions are right (Reported) and a release tag holds the fixes listed for it (Inference; one fix commit was tested).**
 - **Unreleased work exists and cannot be assessed.** `master` is 2328 commits ahead of the wolfSSL pin, 191 ahead of wolfSSH and 59 ahead of wolfPSA. wolfSSL's `ChangeLog.md` has an "unreleased" section whose bullets name no CVE. That is a watch item, not a finding.
-- **What this does not show:** whether any listed entry reaches Crux's wolf configuration. It does not need to for a pin move, because the pins already hold the fixes. It is not an assessment of Crux's use of the wolf stacks.
+- **What this does not show:** whether any listed entry reaches Crux's wolf configuration. It does not need to for a pin move, because no candidate revision exists (and, as far as the pages are right, the pins hold the listed fixes). It is not an assessment of Crux's use of the wolf stacks.
 - **Not established:** the complete text of the wolfSSL vulnerability page (part of it was read as a summary), the dates of its entries (the page has none), and the diffs of any fix.
 
 ## 1. Subject
@@ -20,7 +20,7 @@ This record is documentation only. It moves no pin and edits no `west.yml` and n
 | --- | --- | --- |
 | Pins | `wolfssl` `3c5eead44904df64e6a5a1f4ebdce377d35a849a` (`v5.9.4-stable`), `wolfssh` `8221e4ee48c93da6cea3325a91de2ecc00ae5f56` (`v1.6.0-stable`), `wolfpsa` `55ae0ec58cd2ef4c528f44e8466095550c16ca8a` (`v5.9.4`). All three are in the opt-in group `crux-secure-management` | Verified: `west.yml:40-58` |
 | Pin equals the tag commit | wolfSSL, wolfSSH and wolfPSA: yes, each | Verified: `gh api repos/wolfSSL/<repo>/git/ref/tags/<tag>` and `…/git/tags/<sha>` where the ref is an annotated tag, 14 November 2026 |
-| Newest releases | wolfSSL `v5.9.4-stable` (25 September 2026), wolfSSH `v1.6.0-stable` (6 October 2026), wolfPSA `v5.9.4` (1 October 2026). The 5.9 stable tags are 5.9.0, 5.9.1, 5.9.2 and 5.9.4. There is no tag for a later stable | Verified: `gh api repos/wolfSSL/<repo>/releases` and `…/git/matching-refs/tags/v5.9` |
+| Newest releases | wolfSSL `v5.9.4-stable`, wolfSSH `v1.6.0-stable`, wolfPSA `v5.9.4`. Dates: the release titles say 25 September, 6 October and 1 October 2026, and the GitHub `published_at` field says 27 September, 6 October and 1 October 2026 (wolfSSL's 5.9.2: title 23 June, `published_at` 25 June). ADR-0006 section 2.4 gives the `published_at` dates. Both are right for the field they read. The 5.9 stable tags are 5.9.0, 5.9.1, 5.9.2 and 5.9.4. There is no tag for a later stable | Verified: `gh api repos/wolfSSL/<repo>/releases` and `…/git/matching-refs/tags/v5.9` |
 | Default branches | `master`, ahead of the pins by 2328 (wolfSSL), 191 (wolfSSH) and 59 (wolfPSA) commits, `behind_by` 0. Last commits 14, 13 and 13 November 2026 | Verified: `gh api repos/wolfSSL/<repo>/compare/<pin>...master` and `…/commits?per_page=1` |
 | Sources read | <https://www.wolfssl.com/docs/security-vulnerabilities/>, <https://github.com/wolfSSL/wolfssh/releases>, <https://github.com/wolfSSL/wolfPSA/releases>, <https://raw.githubusercontent.com/wolfSSL/wolfssl/refs/heads/master/ChangeLog.md>, and the GitHub security advisory pages of the three repositories, all on 14 November 2026 | Reported: read through a fetch agent. No source archive or proof-of-concept code was fetched or run |
 
@@ -62,27 +62,37 @@ The GitHub security advisory pages of wolfSSL, wolfSSH and wolfPSA are empty ("T
 | Is there a newer stable release to move to? | No, for any of the three | Verified, section 1 |
 | Does a published entry name a fix that the pin lacks? | No. Every fixed-in version on the pages is at most the pinned version | Reported, with one fix commit **Verified** as an ancestor of the pin |
 | Do unreleased commits hold a published fix? | Not established. `master` is far ahead, and the pages list no entry for it | Not verified |
-| Would moving to `master` be a pin move under ADR-0006? | It would not be an allowed target of option B (a revision on a release branch within the line Crux builds): `master` is not a release | Inference, from ADR-0006 option B item 1 |
+| Would moving to `master` follow ADR-0006? | No. Q7, accepted, is "The wolf pins follow tagged stable releases through the same review, with no coupling to Zephyr", and `master` is not a tagged stable release. Option B item 1 (a revision that Zephyr pins on a release branch) is written for the Mbed TLS pair and does not cover the wolf pins | ADR-0006 `:14,110,236` (Verified by reading) |
 
 ## 4. Crux's use, for context only
 
-The wolf projects are in the opt-in group `crux-secure-management` and are fetched only in a workspace that enables it (`west.yml:3-7`). Crux's wolfSSH provider (`components/ssh/ports/zephyr/crux_ssh_wolf_provider.c`, `wolf-ssh.conf`) builds the pinned wolfSSH and wolfSSL, and the Wolf profile of the PSA qualification builds wolfPSA. The existing documents state the licence facts: wolfSSL and wolfPSA are **GPL-3.0-or-later** (wolfSSL's `LICENSING` adds an exception for other named software), they are used for test builds and no binary is published (`docs/upstream-reuse.md:43-44`, `docs/psa-crypto-qualification.md:281-282`), and `docs/product-composition.md` says the wolf projects are GPL-3.0-or-later or commercial. This record decides nothing about them.
+The wolf projects are in the opt-in group `crux-secure-management` and are fetched only in a workspace that enables it (`west.yml:3-7`). Crux's wolfSSH provider (`components/ssh/ports/zephyr/crux_ssh_wolf_provider.c`, `wolf-ssh.conf`) builds the pinned wolfSSH and wolfSSL, and the Wolf profile of the PSA qualification builds wolfPSA. The existing documents state the licence facts: wolfSSL and wolfPSA are **GPL-3.0-or-later** (wolfSSL's `LICENSING` adds an exception for other named software), they are used for test builds and no binary is published (`docs/upstream-reuse.md:43-44`, `docs/psa-crypto-qualification.md:281-282`), and `docs/product-composition.md:358` says the wolf projects are GPL-3.0-or-later or commercial. ADR-0006 section 4 (`:144`) says wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence and that wolfPSA's source states GPL-3.0-or-later only. The two statements differ for wolfPSA, and I decide nothing. This record decides nothing about them.
 
 I did not assess which listed entries would reach Crux's wolf configuration. It would be needed if a future pin were older than a fix, or if the Wolf profile moves and a product ships it.
 
 ## 5. Decision of this review
 
-- **No move. Defer nothing.** The pins are the newest stable releases, and the published entries are fixed in them.
+- **No move: nothing to take and nothing to defer, because no candidate revision exists.** The pins are the newest stable releases. The unassessed points (applicability of each entry, unreleased `master`) are watch items, not a "not applicable" verdict, and the guide's "cannot tell is a defer" applies to them only if a candidate appears.
 - **Watch items, with the event that restarts this review:**
   - the next wolfSSL stable tag (the `ChangeLog.md` already has an "unreleased" section), the next wolfSSH stable tag, or a new wolfPSA release;
   - a new row on the wolfSSL vulnerability page fixed in a version later than 5.9.4, or a wolfSSH or wolfPSA entry later than 1.6.0 or 5.9.4;
-  - a decision to ship the Wolf profile in a product, which makes the applicability of each entry to Crux's configuration worth assessing.
+  - a decision to ship the Wolf profile in a product, or a change of Crux's wolf configuration, which makes the applicability of each entry to Crux's configuration worth assessing;
+  - a consumer report;
+  - the GHSA identifiers that the wolfSSH release notes link becoming published, or a vulnerability-page row whose fixed-in field names `master` or a pull request and not a version.
 - **This record approves nothing.**
+
+## Guide fields not filled, and why
+
+| Field of the guide | Status in this record |
+| --- | --- |
+| Configuration read (`file:line`) | **Not read**, outside this review's question (section 4 names the files for context only) |
+| Per advisory: what it needs, applies, verdict | **Not assessed.** Each entry's applicability is "cannot tell". The decision does not depend on it, because no candidate revision exists |
+| Plan or evidence for a move | **None, because there is no move.** A future wolf pin move would need its own plan: the PSA Wolf profile on Host and `native_sim` (`scripts/test-psa-crypto.sh host` and `zephyr` with the wolf stacks), the wolfSSH provider and SFTP checks on `native_sim` (`docs/ssh-wolf-provider.md`), and ADR-0006 Q3's approval rule. ADR-0006 option B item 4 lists the Mbed-profile evidence and does not fit the wolf stacks as written. Neither the wolf checks nor a default workflow selects the GPL stacks today (`scripts/check-ssh-boundaries.py`), so the evidence would run locally in a workspace with the group enabled |
 
 ## What could not be established
 
-- **The whole wolfSSL vulnerability page as text.** Rows up to about character 79874 were read verbatim, and the rest as a model summary. The summary part covered older rows (fixed in 5.9.1 or earlier) and the wolfSSH table, and I did not rely on it for any claim above.
-- **The dates of the wolfSSL entries.** The page has none. The 5.9.2 and 5.9.4 release dates (23 June and 25 September 2026) come from the release pages.
+- **The whole wolfSSL vulnerability page as text.** Rows up to about character 79874 were read verbatim, and the rest as a model summary (one row's opening was cut in the first fetch, and its fixed-in version was not read again: CVE-2026-5479, which the tail shows fixed in 5.9.1). The summary part covered older rows (fixed in 5.9.1 or earlier) and the wolfSSH table, and I did not rely on it for any claim above.
+- **The dates of the wolfSSL entries.** The page has none. The release dates are the release titles and the `published_at` fields (section 1), which differ by up to two days for wolfSSL.
 - **A conflict on the page and in the changelog summary** for CVE-2026-6681 and CVE-2026-6679 (fixed in 5.9.1 or 5.9.2). It does not change the result, because the pin is later than both.
 - **The wolfSSH product page** says version 1.5.0 (17 April 2026), while the releases page lists 1.6.0 as the latest. I took the releases page and the tag.
 - **Whether `master` holds an unpublished security fix.** The pages say nothing, and I did not read commits.
