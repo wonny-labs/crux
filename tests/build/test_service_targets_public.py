@@ -218,6 +218,20 @@ class PublicTargets(unittest.TestCase):
                 for variable in used:
                     self.assertRegex(text, rf'get_filename_component\({variable} "\$\{{CMAKE_CURRENT_LIST_DIR\}}/\.\./\.\."')
 
+    def test_every_zephyr_library_that_includes_the_credential_header_can_reach_the_file_contract(self):
+        # <crux/credential_store.h> includes <crux/file.h>. The first CI run of the management module
+        # found mgmt_status adding the credential include root and no File root. Another library that
+        # adds that root must link crux::file too (the credential port's own libraries do).
+        found = []
+        for path in sorted(COMPONENTS.glob("*/ports/zephyr/CMakeLists.txt")):
+            text = path.read_text()
+            if "/credential/include" in text or "CRUX_CREDENTIAL_COMPONENT_DIR}/include" in text:
+                found.append(path.parent.parent.parent.name)
+                with self.subTest(component=path.parent.parent.parent.name):
+                    self.assertIn("crux::file", text)
+        self.assertIn("mgmt_status", found)
+        self.assertIn("credential", found)
+
     def test_the_providers_are_not_linked_by_the_public_targets(self):
         # The libraries are registered with the Zephyr link by zephyr_append_cmake_library.
         for component in self.CASES:
