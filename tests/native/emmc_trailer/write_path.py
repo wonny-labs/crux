@@ -28,7 +28,7 @@ Device behaviours, in generic words:
 A barrier orders writes without making them durable. Under "fifo-barrier" the prefix model
 already keeps order, and "unordered" has no barrier, so no policy here issues one.
 
-Erased content of the medium is 0x00, as the datasheets of the parts in question state. The
+Erased content of the medium is 0x00, as assumed for the modelled medium. The
 driver reports an erase value of 0xFF and emulates erase by writing 0xFF, so it needs explicit
 erase.
 
@@ -294,7 +294,7 @@ def run_scenario(path, config, policy, reliable=False, early_marks=False, padded
         raise ValueError(f'unknown path {path!r}')
     layout = config.layout
     baseline = baseline_medium(config)
-    trailers = [(base + layout.swap_info_off, base + config.slot_size)
+    trailers = [(base + layout.trailer_start, base + config.slot_size)
                 for base in config.offsets]
     rec = Recorder(baseline, policy, config.write_block, config.page_size, reliable, trailers)
     store = SlotStore(rec, config)

@@ -12,17 +12,18 @@ else. The two device behaviours are described only in generic words and are not 
 
 ## What ran
 
-- Base: `origin/main` at `21e9d438`. The tested tree is the head of the pull request that adds this record. The exact
-  head is in that pull request and in its review record.
+- Base: `origin/main` at `baeb1472`. The checks below were run on the tree of the pull request head, whose files
+  differ from the head only in later edits of this record. The exact head is in the pull request and in its review
+  record.
 - Pinned upstream, read outside this repository and never copied into it: MCUboot
   `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` (the revision in Zephyr v4.4.2's `west.yml`) and Zephyr v4.4.2
   (`dccb09599635bdff17633fa7e9dab014b91dce90`). The functions that each rule follows are named in the module
   docstring of [`trailer_model.py`](../../../../tests/native/emmc_trailer/trailer_model.py).
-- Environment: a macOS arm64 host with the system Python 3.9. No Docker, no `native_sim` build, no board, no J-Link.
+- Environment: a macOS arm64 host with the system Python 3.9. No Docker, no `native_sim` build, no board, no debug probe.
   The C simulator was **not** run in this record. It supplies the replay model (`tests/native/emmc_powercut/replay_model.py`,
   imported unchanged) and the trace format, and the write path of a driver is modelled in Python. A run of the same
   sequences through a driver and the C simulator on `native_sim` belongs to the backend prototype, not to this record.
-- Command, from the repository root. Exit 0, 568,710 cases in 68.7 s, 108 rows (54 scenarios on each of the 2 devices):
+- Command, from the repository root. Exit 0, 566,692 cases in 69.5 s, 108 rows (54 scenarios on each of the 2 devices):
 
   ```sh
   python3 tests/native/emmc_trailer/run_trailer_replay.py --seeds 8 \
@@ -37,10 +38,11 @@ else. The two device behaviours are described only in generic words and are not 
   python3 -m unittest discover -s tests/build -p test_emmc_trailer_replay.py -v
   ```
 
-  45 tests, OK, 84.8 s. They cover the trailer model, the write path, the device and torn models, and the matrix runner,
-  which exits non-zero if any outcome stated in this record does not hold, so the record cannot drift from the run.
+  46 tests, OK, 83.0 s. They cover the trailer model, the write path, the device and torn models, and the matrix runner,
+  which exits non-zero if an outcome that this record states in words does not hold. It checks those
+  qualitative outcomes, not the counts in the tables, which come from the committed JSON.
   The rest of `tests/build` was also run on the macOS host. It reported 59 failures and 6 errors. One failure was this
-  change's own runner test, run while the runner was being edited, and it passes now (the 45 tests above). The other
+  change's own runner test, run while the runner was being edited, and it passes now (the 46 tests above). The other
   58 failures and 6 errors come from that host (AppleClang configuration, a `strip` flag, a linked-worktree
   provenance check, a missing tool with exit 127) in files this change does not touch. The Linux CI run is the gate
   for them.
@@ -109,7 +111,7 @@ broken device.
 ## Result
 
 Failure counts per property over all cases of the group (both paths, padded and not, all models). Zero means the
-property held in every case. Rows of the same policy and device that differ only by layout differ only in P7 and in the number of cases.
+property held in every case.
 
 | Flush policy | Reliable write | Layout | Device | Cases | P1 | P2 | P3 | P4 | P5 | P6 | P7 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -125,14 +127,14 @@ property held in every case. Rows of the same policy and device that differ only
 | flush | yes | rmw | unordered | 2322 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | flush | yes | sector | fifo-barrier | 1464 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | flush | yes | sector | unordered | 2322 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| steps | no | native | fifo-barrier | 22644 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| steps | no | native | unordered | 23166 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| steps | no | native | fifo-barrier | 22168 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| steps | no | native | unordered | 23232 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | steps | no | rmw | fifo-barrier | 22232 | 0 | 0 | 0 | 0 | 0 | 0 | 160 |
 | steps | no | rmw | unordered | 20526 | 0 | 0 | 0 | 0 | 0 | 0 | 160 |
 | steps | no | sector | fifo-barrier | 22232 | 0 | 0 | 0 | 0 | 0 | 0 | 80 |
 | steps | no | sector | unordered | 20526 | 0 | 0 | 0 | 0 | 0 | 0 | 80 |
-| trailer | no | native | fifo-barrier | 25924 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| trailer | no | native | unordered | 22374 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| trailer | no | native | fifo-barrier | 24052 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| trailer | no | native | unordered | 22638 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | trailer | no | rmw | fifo-barrier | 31905 | 0 | 0 | 0 | 0 | 0 | 0 | 160 |
 | trailer | no | rmw | unordered | 19140 | 0 | 0 | 0 | 0 | 0 | 0 | 160 |
 | trailer | no | sector | fifo-barrier | 31905 | 0 | 0 | 0 | 0 | 0 | 0 | 80 |
@@ -144,7 +146,7 @@ property held in every case. Rows of the same policy and device that differ only
 | none | no | sector | fifo-barrier | 29246 | 0 | 0 | **53** | **341** | **88** | **5** | 80 |
 | none | no | sector | unordered | 18546 | 0 | 0 | **66** | 0 | **36** | 0 | 80 |
 
-The two safety properties held in all 568,710 cases, including every tear and every policy, with the slots aligned to
+The two safety properties held in all 566,692 cases, including every tear and every policy, with the slots aligned to
 the native unit. Only the acknowledgement properties and P7 move.
 
 ### Controls and mutation
@@ -177,15 +179,15 @@ or the tests fail:
 
 | # | Assumption | Result in the models |
 | --- | --- | --- |
-| A1 | Image activation works if the driver reports an erase value that differs from what the medium reads when erased | It works only if the slot is erased through the driver first. A request on a natively erased slot fails with `BOOT_EBADIMAGE`. A confirm on such a slot finds `image_ok` bad, writes nothing and still returns success, so the confirm is silently lost (unit test). With the erase step, every case holds. |
+| A1 | Image activation works if the driver reports an erase value that differs from what the medium reads when erased | It works only if the slot is erased through the driver first. A request on a natively erased slot fails with `BOOT_EBADIMAGE`, because the magic reads bad. If something other than MCUboot made the magic good over a medium that reads `0x00` (for example an image signed with an erased value of 0), a confirm finds `image_ok` bad, writes nothing and still returns success, so the confirm is silently lost (unit test). With the erase step, every case holds. |
 | A2 | Writes reach the medium in the order issued | Does not hold on the `unordered` device and holds on `fifo-barrier` between flushes. Safety (P1, P2) holds either way, because MCUboot validates the image and scrambles an invalid slot. |
 | A3 | A returned write is durable | Does not hold without a flush. With no flush, an acknowledged confirm or test request is lost (P3 and P5 fail on both devices) and a trial or revert can be repeated or lost (P4, P6). |
 | A4 | A flush after every call is enough | Yes: P1 to P6 hold on both devices, in both request paths, all three layouts. |
-| A5 | A flush after calls that touch a trailer is enough | On `fifo-barrier`: yes. On `unordered`: no. The scramble erases the header page first, and when it is not flushed before the trailer page is erased, the trailer erase can persist while the header erase is dropped. The slot then keeps a valid header and a good magic with `copy_done` erased, and the unconfirmed image is tried a second time (P4: 4 cases over both request paths with 8 draws per cut, found again by the 4096-draw control). Flushing after every erase call as well (`steps`) holds on both devices. |
-| A6 | A write block of 512 works for MCUboot's trailer | Only with `BOOT_MAX_ALIGN` of at least 512. With a smaller maximum, one flag write exceeds it and `boot_write_trailer` refuses (source). The static assert for swap modes (`8 <= MCUBOOT_BOOT_MAX_ALIGN <= 32`, `bootutil_public.h`) then excludes every swap mode, including swap using offset. Swap sequences were not replayed. They would need the `rmw` layout, which is the least isolated. |
+| A5 | A flush after calls that touch a trailer is enough | On `fifo-barrier`: yes. On `unordered`: no. The scramble erases the header page first, and when it is not flushed before the trailer page is erased, the trailer erase can persist while the header erase is dropped. The slot then keeps a valid header and a good magic with `copy_done` erased, and the unconfirmed image is tried a second time. In the models it appears only under a tear on top of an unordered subset (`torn-sector` and `torn-sector-wide`, one case each on the revert path, both request paths, seed 5), so it is rare, and 8 draws per cut find it only because the draws are fixed. Flushing after every erase call as well (`steps`) holds on both devices. |
+| A6 | A write block of 512 works for MCUboot's trailer | Only with `BOOT_MAX_ALIGN` of at least 512. With a smaller maximum, one flag write exceeds it and `boot_write_trailer` refuses (source). The static assert for swap modes (`8 <= MCUBOOT_BOOT_MAX_ALIGN <= 32`, `bootutil_public.h`) then excludes every swap mode, including swap using offset. Swap sequences were not replayed. They would need the `rmw` layout, which is the least isolated. The trailer is `4 * BOOT_MAX_ALIGN` plus the aligned magic (`boot_trailer_info_sz`, with the swap_size field that RAM load reserves and never writes): 48 bytes at 8, 2560 at 512 and 20480 at 4096. |
 | A7 | One write damages only the field being written | Not without reliable write. Under `torn-native` a write can change other trailer fields in both the `sector` and `rmw` layouts (P7), and under `torn-sector-wide` in `rmw`. In every such case P1 to P6 still hold: the damage cancels an unacknowledged step (a lost update), and it never makes an image unbootable or touches slot A. With `BOOT_MAX_ALIGN` of 4096 (`native`, no swap mode) each field has a native unit of its own and P7 holds under every model. With reliable write modelled as no tear, P7 holds in every layout. |
 | A8 | The two slots do not share a native unit | If a slot starts inside one, a torn write can destroy the neighbour. Both slots become unbootable (P1, P2). Slots starting and ending on 8 MiB multiples satisfy native units of 4 KiB, erase groups of 512 KiB and 4 MiB, write-protect groups of 4 and 8 MiB, and a file-system volume elsewhere. 4 MiB slots fail the 8 MiB write-protect groups, and 512 KiB slots fail every group larger than themselves. This row is arithmetic on the layout, not a device model. |
-| A9 | A padded image (`--pad`) is a safe request | Yes in the models. The trailer magic is the last bytes of an ascending write, so a cut before it leaves a slot without a good magic, which the next boot scrambles. A cut after it leaves a complete image. Under no flush the magic can persist without earlier chunks, and validation then rejects the image (P1 holds). The padded path shows the same P3 to P6 pattern as the request path. |
+| A9 | A padded image (`--pad`) is a safe request | Yes in the models. The trailer magic is the last bytes of an ascending write, so a cut before it leaves a slot without a good magic, which the next boot scrambles. A cut after it leaves a complete image. Under no flush the magic can persist without earlier chunks, and validation then rejects the image (P1 holds). The padded path shows the same P3 to P6 pattern as the request path. **The pinned `imgtool` cannot make that image for the `sector` and `native` layouts**: it limits `--align` to 1 to 32 and `--max-align` to 8, 16 or 32 (`scripts/imgtool/main.py`) and refuses a write size above 32 for a trailer that is not overwrite-only (`image.py`). The padded rows for `BOOT_MAX_ALIGN` above 32 therefore assume a signing step that this record did not find, with the trailer bytes of `boot_write_magic` (an assumption of `padded_image`). Whether Zephyr's signing of a RAM-load-with-revert image uses the overwrite-only form was not read. |
 
 ## What a flash-API driver must do, as these results show
 
@@ -202,9 +204,9 @@ Each item is a result for the models and is not a statement about any device.
    before the flush completes acknowledges too early (control). On a device with in-order drain, flushing only after
    trailer calls held, but it gives up the margin the unordered case shows.
 4. **Report a write block and `BOOT_MAX_ALIGN` consistently**: a write block of 512 needs `BOOT_MAX_ALIGN` of at least 512,
-   which means a 2 KiB trailer on each slot and no swap mode. A write block of 8 with sector read-modify-write works
+   which means a 2560-byte trailer on each slot and no swap mode, and a padded image that the pinned `imgtool` cannot sign (A9). A write block of 8 with sector read-modify-write works
    for safety and exposes every field to one sector tear. A `BOOT_MAX_ALIGN` of 4096 isolates each field in its own
-   native unit and costs a 16 KiB trailer and a 4 KiB buffer for the magic write (source). Reliable write would remove
+   native unit and costs a 20480-byte trailer and, on the stack of the bootloader, three 4 KiB buffers (`boot_write_magic`, `boot_write_trailer`, `boot_scramble_region`, source), and the same signing problem. Reliable write would remove
    the tear but is not in the pinned Zephyr stack (#298, P16), and its model here is an assumption.
 5. **Place slots on native-unit boundaries**, and on 8 MiB multiples if one plan is to satisfy every erase and
    write-protect group seen, outside any file-system volume (A8).
@@ -217,9 +219,10 @@ Each item is a result for the models and is not a statement about any device.
   model and the source would not be seen here. Each rule names its upstream function so that a reviewer can compare.
 - It does not use the C simulator, `native_sim` or the Zephyr MMC stack. The write path is Python, and what a driver does
   in C (the flush, the error paths, the alignment checks) is the subject of the backend prototype.
-- Swap modes were not replayed. Only RAM load with revert was, in the test path and the `--pad` path.
+- Swap modes were not replayed. Only RAM load with revert was, in the test path and the `--pad` path, and only the update of slot B while slot A runs. An update of slot A while B runs is not replayed.
 - Random models are drawn 8 times per cut. A failure that needs one draw in thousands is found only where a control
-  searches for it. The absence of a failure in the table is not a proof for every subset of a cache.
+  searches for it, and the runner's one sampled requirement (a P4 failure under trailer-only flushes on the `sector`
+  layout) holds for these fixed seeds and would need a look if the trace or the random generator changed. The absence of a failure in the table is not a proof for every subset of a cache.
 - The tears are three simple models. A real part can damage sectors that no write touched, lose a whole erase group or
   reorder across a flush, and none of that is modelled. The erase groups and write-protect groups appear only as
   placement arithmetic.

@@ -45,7 +45,7 @@ class RecorderTest(unittest.TestCase):
         self.assertNotIn('flush', [e.kind for e in rec.events])
         rec.write(6144, bytes(512))     # inside
         self.assertEqual(rec.events[-1].kind, 'flush')
-        rec.write(7680, bytes(1024) if False else bytes(512))
+        rec.write(7680, bytes(512))
         self.assertEqual([e.kind for e in rec.events].count('flush'), 2)
         rec.erase(4096, 4096)           # pages overlapping the range
         self.assertEqual(rec.events[-1].kind, 'flush')

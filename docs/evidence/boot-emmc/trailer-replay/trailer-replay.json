@@ -1,5 +1,5 @@
 {
- "cases": 568710,
+ "cases": 566692,
  "controls": {
   "alignment": {
    "4MiB": {
@@ -29,22 +29,22 @@
    "wb32/align32": {
     "flag_write": 32,
     "swap_modes_allowed": true,
-    "trailer_from_end": 128
+    "trailer_size": 160
    },
    "wb512/align32": {
     "flag_write": null,
     "swap_modes_allowed": true,
-    "trailer_from_end": 128
+    "trailer_size": 160
    },
    "wb512/align512": {
     "flag_write": 512,
     "swap_modes_allowed": false,
-    "trailer_from_end": 2048
+    "trailer_size": 2560
    },
    "wb8/align8": {
     "flag_write": 8,
     "swap_modes_allowed": true,
-    "trailer_from_end": 40
+    "trailer_size": 48
    }
   },
   "misaligned_slots": {
@@ -8749,7 +8749,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1523
+     "cases": 1260
     },
     "lost": {
      "P1": 0,
@@ -8759,7 +8759,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 165
+     "cases": 166
     },
     "torn-native": {
      "P1": 0,
@@ -8769,7 +8769,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     },
     "torn-sector": {
      "P1": 0,
@@ -8779,7 +8779,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -8789,7 +8789,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     }
    },
    "device": "fifo-barrier",
@@ -8800,8 +8800,8 @@
    "policy": "steps",
    "reliable": false,
    "trace": {
-    "events": 164,
-    "flushes": 14,
+    "events": 165,
+    "flushes": 15,
     "marks": [
      "erased",
      "image",
@@ -8810,7 +8810,7 @@
      "confirmed"
     ],
     "sector_writes": 144,
-    "sha256": "f91c0203046031bf12babc55abaf5c33cea146aeafcac2e9005965bbb9a10b7e"
+    "sha256": "a9223c1629586eb2d5a4fce1f9e417feb437f89b39f5e2bb8852b55d7150b579"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -8830,7 +8830,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 165
+     "cases": 166
     },
     "reordered": {
      "P1": 0,
@@ -8840,7 +8840,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     },
     "torn-native": {
      "P1": 0,
@@ -8850,7 +8850,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     },
     "torn-sector": {
      "P1": 0,
@@ -8860,7 +8860,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -8870,7 +8870,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1320
+     "cases": 1328
     }
    },
    "device": "unordered",
@@ -8881,8 +8881,8 @@
    "policy": "steps",
    "reliable": false,
    "trace": {
-    "events": 164,
-    "flushes": 14,
+    "events": 165,
+    "flushes": 15,
     "marks": [
      "erased",
      "image",
@@ -8891,7 +8891,7 @@
      "confirmed"
     ],
     "sector_writes": 144,
-    "sha256": "f91c0203046031bf12babc55abaf5c33cea146aeafcac2e9005965bbb9a10b7e"
+    "sha256": "a9223c1629586eb2d5a4fce1f9e417feb437f89b39f5e2bb8852b55d7150b579"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -8911,7 +8911,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1838
+     "cases": 1575
     },
     "lost": {
      "P1": 0,
@@ -8921,7 +8921,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 228
+     "cases": 229
     },
     "torn-native": {
      "P1": 0,
@@ -8931,7 +8931,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     },
     "torn-sector": {
      "P1": 0,
@@ -8941,7 +8941,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -8951,7 +8951,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     }
    },
    "device": "fifo-barrier",
@@ -8962,8 +8962,8 @@
    "policy": "steps",
    "reliable": false,
    "trace": {
-    "events": 227,
-    "flushes": 21,
+    "events": 228,
+    "flushes": 22,
     "marks": [
      "erased",
      "image",
@@ -8972,7 +8972,7 @@
      "reverted"
     ],
     "sector_writes": 200,
-    "sha256": "e4bb4725ac10c5f82e09fe822fc1c7df6a8486b68ff4145c9740b165bd29f6d5"
+    "sha256": "a375bf797c7024d8fea6d6fe9df8ed8bde3c3bf2fdd9b73f5bc54f6d3512212b"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -8992,7 +8992,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 228
+     "cases": 229
     },
     "reordered": {
      "P1": 0,
@@ -9002,7 +9002,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     },
     "torn-native": {
      "P1": 0,
@@ -9012,7 +9012,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     },
     "torn-sector": {
      "P1": 0,
@@ -9022,7 +9022,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9032,7 +9032,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1824
+     "cases": 1832
     }
    },
    "device": "unordered",
@@ -9043,8 +9043,8 @@
    "policy": "steps",
    "reliable": false,
    "trace": {
-    "events": 227,
-    "flushes": 21,
+    "events": 228,
+    "flushes": 22,
     "marks": [
      "erased",
      "image",
@@ -9053,7 +9053,7 @@
      "reverted"
     ],
     "sector_writes": 200,
-    "sha256": "e4bb4725ac10c5f82e09fe822fc1c7df6a8486b68ff4145c9740b165bd29f6d5"
+    "sha256": "a375bf797c7024d8fea6d6fe9df8ed8bde3c3bf2fdd9b73f5bc54f6d3512212b"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -9073,7 +9073,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1345
+     "cases": 1090
     },
     "lost": {
      "P1": 0,
@@ -9083,7 +9083,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 119
+     "cases": 120
     },
     "torn-native": {
      "P1": 0,
@@ -9093,7 +9093,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     },
     "torn-sector": {
      "P1": 0,
@@ -9103,7 +9103,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9113,7 +9113,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     }
    },
    "device": "fifo-barrier",
@@ -9124,8 +9124,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 118,
-    "flushes": 8,
+    "events": 119,
+    "flushes": 9,
     "marks": [
      "erased",
      "image",
@@ -9134,7 +9134,7 @@
      "confirmed"
     ],
     "sector_writes": 104,
-    "sha256": "277971d3dface463090cd5f86c0c1250933cd4307e3cc204c5ace758b5ff4c87"
+    "sha256": "fbbecd83442b9d19a48d32d32202bf8940eaf52a01d17af36e85a52c2659fd64"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -9154,7 +9154,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 119
+     "cases": 120
     },
     "reordered": {
      "P1": 0,
@@ -9164,7 +9164,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     },
     "torn-native": {
      "P1": 0,
@@ -9174,7 +9174,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     },
     "torn-sector": {
      "P1": 0,
@@ -9184,7 +9184,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9194,7 +9194,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 952
+     "cases": 960
     }
    },
    "device": "unordered",
@@ -9205,8 +9205,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 118,
-    "flushes": 8,
+    "events": 119,
+    "flushes": 9,
     "marks": [
      "erased",
      "image",
@@ -9215,7 +9215,7 @@
      "confirmed"
     ],
     "sector_writes": 104,
-    "sha256": "277971d3dface463090cd5f86c0c1250933cd4307e3cc204c5ace758b5ff4c87"
+    "sha256": "fbbecd83442b9d19a48d32d32202bf8940eaf52a01d17af36e85a52c2659fd64"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -9235,7 +9235,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 2328
+     "cases": 1810
     },
     "lost": {
      "P1": 0,
@@ -9245,7 +9245,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 178
+     "cases": 180
     },
     "torn-native": {
      "P1": 0,
@@ -9255,7 +9255,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     },
     "torn-sector": {
      "P1": 0,
@@ -9265,7 +9265,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9275,7 +9275,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     }
    },
    "device": "fifo-barrier",
@@ -9286,8 +9286,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 177,
-    "flushes": 11,
+    "events": 179,
+    "flushes": 13,
     "marks": [
      "erased",
      "image",
@@ -9296,7 +9296,7 @@
      "reverted"
     ],
     "sector_writes": 160,
-    "sha256": "3b2c239e4e37a0b0db940b250c5f14fbc7c8bce23c6e231273793046d7f4811d"
+    "sha256": "ee030114d9eab54699f03e5af3b9dc6a7cf11e358272da9b0532d8cbf7dd1b85"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -9316,7 +9316,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 178
+     "cases": 180
     },
     "reordered": {
      "P1": 0,
@@ -9326,7 +9326,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     },
     "torn-native": {
      "P1": 0,
@@ -9336,7 +9336,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     },
     "torn-sector": {
      "P1": 0,
@@ -9346,7 +9346,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9356,7 +9356,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1424
+     "cases": 1440
     }
    },
    "device": "unordered",
@@ -9367,8 +9367,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 177,
-    "flushes": 11,
+    "events": 179,
+    "flushes": 13,
     "marks": [
      "erased",
      "image",
@@ -9377,7 +9377,7 @@
      "reverted"
     ],
     "sector_writes": 160,
-    "sha256": "3b2c239e4e37a0b0db940b250c5f14fbc7c8bce23c6e231273793046d7f4811d"
+    "sha256": "ee030114d9eab54699f03e5af3b9dc6a7cf11e358272da9b0532d8cbf7dd1b85"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -9397,7 +9397,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 2159
+     "cases": 1641
     },
     "lost": {
      "P1": 0,
@@ -9407,7 +9407,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 161
+     "cases": 163
     },
     "torn-native": {
      "P1": 0,
@@ -9417,7 +9417,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     },
     "torn-sector": {
      "P1": 0,
@@ -9427,7 +9427,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9437,7 +9437,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     }
    },
    "device": "fifo-barrier",
@@ -9448,8 +9448,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 160,
-    "flushes": 10,
+    "events": 162,
+    "flushes": 12,
     "marks": [
      "erased",
      "image",
@@ -9458,7 +9458,7 @@
      "confirmed"
     ],
     "sector_writes": 144,
-    "sha256": "6d7ee2d4276d8f2f4e1507e6b428e37f0b557f39273e6275a5fd23b5913f4990"
+    "sha256": "7b94d42639286cd450db1a4447d5eb246f32de080892d448a00be5c6239abdc6"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -9478,7 +9478,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 161
+     "cases": 163
     },
     "reordered": {
      "P1": 0,
@@ -9488,7 +9488,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     },
     "torn-native": {
      "P1": 0,
@@ -9498,7 +9498,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     },
     "torn-sector": {
      "P1": 0,
@@ -9508,7 +9508,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9518,7 +9518,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1288
+     "cases": 1304
     }
    },
    "device": "unordered",
@@ -9529,8 +9529,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 160,
-    "flushes": 10,
+    "events": 162,
+    "flushes": 12,
     "marks": [
      "erased",
      "image",
@@ -9539,7 +9539,7 @@
      "confirmed"
     ],
     "sector_writes": 144,
-    "sha256": "6d7ee2d4276d8f2f4e1507e6b428e37f0b557f39273e6275a5fd23b5913f4990"
+    "sha256": "7b94d42639286cd450db1a4447d5eb246f32de080892d448a00be5c6239abdc6"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -9559,7 +9559,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 3142
+     "cases": 2361
     },
     "lost": {
      "P1": 0,
@@ -9569,7 +9569,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 220
+     "cases": 223
     },
     "torn-native": {
      "P1": 0,
@@ -9579,7 +9579,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     },
     "torn-sector": {
      "P1": 0,
@@ -9589,7 +9589,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9599,7 +9599,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     }
    },
    "device": "fifo-barrier",
@@ -9610,8 +9610,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 219,
-    "flushes": 13,
+    "events": 222,
+    "flushes": 16,
     "marks": [
      "erased",
      "image",
@@ -9620,7 +9620,7 @@
      "reverted"
     ],
     "sector_writes": 200,
-    "sha256": "5a7dee3a59fe691a4cbd73a1228b2d5c651d5b31faca3f4d0baac9b0a09cce33"
+    "sha256": "443ce52ddc3e0a11464dba5f2e899a2f5561922edc8f1d9672c0173f36478fa8"
    },
    "trial_cancelled_in_flight": {
     "fifo": 37,
@@ -9640,7 +9640,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 220
+     "cases": 223
     },
     "reordered": {
      "P1": 0,
@@ -9650,7 +9650,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     },
     "torn-native": {
      "P1": 0,
@@ -9660,7 +9660,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     },
     "torn-sector": {
      "P1": 0,
@@ -9670,7 +9670,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     },
     "torn-sector-wide": {
      "P1": 0,
@@ -9680,7 +9680,7 @@
      "P5": 0,
      "P6": 0,
      "P7": 0,
-     "cases": 1760
+     "cases": 1784
     }
    },
    "device": "unordered",
@@ -9691,8 +9691,8 @@
    "policy": "trailer",
    "reliable": false,
    "trace": {
-    "events": 219,
-    "flushes": 13,
+    "events": 222,
+    "flushes": 16,
     "marks": [
      "erased",
      "image",
@@ -9701,7 +9701,7 @@
      "reverted"
     ],
     "sector_writes": 200,
-    "sha256": "5a7dee3a59fe691a4cbd73a1228b2d5c651d5b31faca3f4d0baac9b0a09cce33"
+    "sha256": "443ce52ddc3e0a11464dba5f2e899a2f5561922edc8f1d9672c0173f36478fa8"
    },
    "trial_cancelled_in_flight": {
     "lost": 1,
@@ -10708,6 +10708,6 @@
    }
   }
  ],
- "seconds": 68.7,
+ "seconds": 69.5,
  "seeds": 8
 }

@@ -167,7 +167,7 @@ def controls(seeds):
             flag = None
         layouts[f'wb{write_block}/align{max_align}'] = {
             'flag_write': flag, 'swap_modes_allowed': layout.allowed_for_swap_modes,
-            'trailer_from_end': layout.slot_size - layout.swap_info_off}
+            'trailer_size': layout.trailer_size}
     out['layouts'] = layouts
 
     geometries = [Geometry(e, w) for e in (512 * KiB, 4 * MiB) for w in (4 * MiB, 8 * MiB)]

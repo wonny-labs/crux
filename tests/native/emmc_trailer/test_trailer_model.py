@@ -36,6 +36,17 @@ class LayoutTest(unittest.TestCase):
         self.assertEqual(layout.swap_info_off, SLOT - 2048)
         self.assertEqual(layout.flag_write_size, 512)
 
+    def test_trailer_size_counts_the_swap_size_field_as_boot_trailer_info_sz_does(self):
+        # BOOT_MAX_ALIGN * 4 (swap_info, copy_done, image_ok, swap_size) plus the magic, aligned.
+        self.assertEqual(Layout(SLOT, 8, 8).trailer_size, 8 * 4 + 16)
+        self.assertEqual(Layout(SLOT, 32, 32).trailer_size, 32 * 4 + 32)
+        self.assertEqual(Layout(SLOT, 512, 512).trailer_size, 512 * 4 + 512)
+        self.assertEqual(Layout(SLOT, 4096, 4096).trailer_size, 4096 * 4 + 4096)
+        layout = Layout(SLOT, 512, 512)
+        self.assertEqual(layout.trailer_start, SLOT - 2560)
+        self.assertEqual(layout.trailer_start, layout.swap_info_off - 512,
+                         'the swap_size field sits just below swap_info')
+
     def test_magic_bytes_depend_on_the_alignment(self):
         self.assertEqual(Layout(SLOT, 8, 8).magic[:4], bytes([0x77, 0xc2, 0x95, 0xf3]))
         # Above 8 the first two bytes carry the alignment, little-endian.
@@ -197,13 +208,16 @@ class BootOnceTest(unittest.TestCase):
     def test_image_reaching_the_trailer_is_unavailable(self):
         old = programmed(self.layout, 1, True, copy_done=True)
         new = programmed(self.layout, 2, False)
-        big = ModelImage(2, self.layout.swap_info_off).encode()
+        big = ModelImage(2, self.layout.trailer_start).encode()
         new[:ModelImage.HEADER_SIZE] = big[:ModelImage.HEADER_SIZE]
         result, store = self.boot(old, new)
         self.assertEqual(result, Slot(0, 1))
         self.assertEqual(store.writes, [])
         self.assertTrue(ModelImage(2, 3000).fits(self.layout))
-        self.assertFalse(ModelImage(2, self.layout.swap_info_off).fits(self.layout))
+        self.assertFalse(ModelImage(2, self.layout.trailer_start).fits(self.layout))
+        edge = self.layout.trailer_start - ModelImage.HEADER_SIZE - ModelImage.DIGEST_SIZE
+        self.assertTrue(ModelImage(2, edge).fits(self.layout))
+        self.assertFalse(ModelImage(2, edge + 1).fits(self.layout))
 
 if __name__ == '__main__':
     unittest.main()

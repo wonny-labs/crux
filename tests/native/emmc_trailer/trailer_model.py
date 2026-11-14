@@ -90,6 +90,18 @@ class Layout:
         return self.copy_done_off - self.max_align
 
     @property
+    def trailer_size(self):
+        """boot_trailer_info_sz() for RAM load: swap_info, copy_done, image_ok and swap_size are
+        one BOOT_MAX_ALIGN each, then the aligned magic. The swap_size field is reserved although
+        RAM load never writes it."""
+        magic = _align_up(MAGIC_SIZE, self.max_align) if self.max_align > 8 else MAGIC_SIZE
+        return 4 * self.max_align + magic
+
+    @property
+    def trailer_start(self):
+        return self.slot_size - self.trailer_size
+
+    @property
     def flag_write_size(self):
         size = _align_up(1, self.write_block)
         if size > self.max_align:
@@ -124,7 +136,7 @@ class ModelImage:
         return header + body + hashlib.sha256(header + body).digest()
 
     def fits(self, layout):
-        return self.HEADER_SIZE + self.body_size + self.DIGEST_SIZE <= layout.swap_info_off
+        return self.HEADER_SIZE + self.body_size + self.DIGEST_SIZE <= layout.trailer_start
 
 
 def header_version(layout, medium):
@@ -132,7 +144,7 @@ def header_version(layout, medium):
     magic, _, hdr_size, _, body_size, _, major, _, _, _, _ = ModelImage._HEADER.unpack_from(medium)
     if magic != ModelImage.IMAGE_MAGIC or hdr_size != ModelImage.HEADER_SIZE:
         return None
-    if hdr_size + body_size + ModelImage.DIGEST_SIZE > layout.swap_info_off:
+    if hdr_size + body_size + ModelImage.DIGEST_SIZE > layout.trailer_start:
         return None
     return major
 
