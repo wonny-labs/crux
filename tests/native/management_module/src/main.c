@@ -8,6 +8,9 @@
  */
 #include "crux_tf_psa_threading.h"
 
+#include "crux_web_management.h"
+#include "crux_web_session.h"
+
 #include <crux/access.h>
 #include <crux/config_service.h>
 #include <crux/configuration.h>
@@ -201,6 +204,13 @@ static void *start_services(void)
     static const crux_reboot_config_t reboot = {.policy_kind = CRUX_REBOOT_POLICY_ALWAYS_ALLOW};
     zassert_equal(crux_reboot_start(&reboot), CRUX_REBOOT_OK);
     zassert_equal(crux_reboot_start_worker(), CRUX_REBOOT_OK);
+
+    /* The web cores, after the services they sit on. HTTPS only: the fixture serves nothing. */
+    static const crux_web_session_config_t sessions = {"https", NULL, 0u};
+    zassert_equal(crux_web_session_init(&sessions), CRUX_WEB_OK);
+    zassert_equal(crux_web_session_start_worker(), CRUX_WEB_OK);
+    zassert_equal(crux_web_management_init(), CRUX_WEB_OK);
+    zassert_equal(crux_web_management_start_worker(), CRUX_WEB_OK);
     return NULL;
 }
 
@@ -310,4 +320,13 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     crux_reboot_state_t reboot_state;
     zassert_equal(crux_reboot_get(admin, &reboot_state), CRUX_REBOOT_OK);
     zassert_equal(reboot_state.state, CRUX_REBOOT_STATE_NONE);
+
+    /* The web cores started, and have taken no request. */
+    crux_web_session_stats_t session_stats;
+    crux_web_management_stats_t management_stats;
+    crux_web_session_stats_get(&session_stats);
+    crux_web_management_stats_get(&management_stats);
+    zassert_equal(session_stats.attempts, 0u);
+    zassert_equal(management_stats.saves_queued, 0u);
+    zassert_false(crux_web_management_save_pending());
 }

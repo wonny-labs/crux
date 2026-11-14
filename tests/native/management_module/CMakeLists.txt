@@ -30,8 +30,9 @@ if(NOT CONFIG_CRUX_THREAD OR NOT CONFIG_CRUX_SYNC OR NOT CONFIG_CRUX_TIME)
 endif()
 
 if(NOT CONFIG_CRUX_CONFIG_SERVICE OR NOT CONFIG_CRUX_MGMT_STATUS OR NOT CONFIG_CRUX_NETWORK_SETTINGS OR
-   NOT CONFIG_CRUX_TLS_CERTIFICATE OR NOT CONFIG_CRUX_FILE_SERVICE OR NOT CONFIG_CRUX_REBOOT)
-    message(FATAL_ERROR "The fixture needs the symbols of slices 2 and 3")
+   NOT CONFIG_CRUX_TLS_CERTIFICATE OR NOT CONFIG_CRUX_FILE_SERVICE OR NOT CONFIG_CRUX_REBOOT OR
+   NOT CONFIG_CRUX_WEB OR NOT CONFIG_CRUX_WEB_SESSION OR NOT CONFIG_CRUX_WEB_MANAGEMENT)
+    message(FATAL_ERROR "The fixture needs the symbols of slices 2, 3 and 4")
 endif()
 
 set(glue "${CRUX_ROOT}/tests/native/management_composition/composition/tf_psa_threading")
@@ -45,5 +46,18 @@ target_include_directories(app PRIVATE
     "${CRUX_ROOT}/components/mgmt_status/include" "${CRUX_ROOT}/components/network_settings/include"
     "${CRUX_ROOT}/components/tls_certificate/include" "${CRUX_ROOT}/components/tls_certificate/adapter"
     "${CRUX_ROOT}/components/file_service/include" "${CRUX_ROOT}/components/reboot/include")
-target_link_libraries(app PRIVATE crux::file_zephyr crux::system crux::time)
+target_link_libraries(app PRIVATE crux::file_zephyr crux::system crux::time crux_web_adapter
+    crux_service_priority_placement)
+
+# The route sources are the application's: it names the ones it wants, and only those are in the table. The
+# module builds the session and management cores, not these (ADR-0004 phase 0, slice 4).
+include("${CRUX_ROOT}/components/web/session/sources.cmake")
+include("${CRUX_ROOT}/components/web/management/sources.cmake")
+include("${CRUX_ROOT}/cmake/CruxWebRoutes.cmake")
+set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
+    ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES})
+target_sources(app PRIVATE ${route_sources})
+target_include_directories(app PRIVATE "${CRUX_WEB_SESSION_DIR}" "${CRUX_WEB_MANAGEMENT_DIR}"
+    "${CRUX_ROOT}/components/web/src")
+crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED reviewed-routes.txt)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

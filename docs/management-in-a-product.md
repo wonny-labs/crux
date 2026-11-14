@@ -153,6 +153,8 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). | Module |
 | `CRUX_FILE_SERVICE` | off | **Experimental** (slice 3). Builds the file service core. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. | Module |
 | `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. | Module |
+| `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). | Module |
+| `CRUX_WEB_MANAGEMENT` | off | **Experimental** (slice 4). Builds the JSON of the status and configuration routes and the save worker, and with `CRUX_NETWORK_SETTINGS` the JSON of the network routes. Needs `CRUX_WEB_SESSION`, `CRUX_CONFIG_SERVICE` and `CRUX_MGMT_STATUS`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The routes are the application's to name (`CRUX_WEB_MANAGEMENT_*_ROUTES`). | Module |
 | `CRUX_SSH` | off | The wolfSSH provider and the access adapter. Needs wolfSSH, IPv4 and sockets, and **refuses the Mbed profile**. A dependency that is not met only warns in Zephyr, so the symbol silently becomes `n`: check it in your CMake. | Module |
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |
@@ -164,7 +166,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_SSH_IO_TIMEOUT_MS` | 200 | Longest that one read or write of a session waits | Composition |
 | `CRUX_SSH_WORKER_STACK_BYTES`, `_LISTENER_STACK_BYTES`, `_WINDOW_BYTES` | 16384, 4096, 16384 | Provider sizes. The worker stack is **not measured on a target**. | Module |
 
-With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 16 instead of 8, because the management services take one or more mutexes each, and a product's configuration then need not name it (ADR-0004 C6). An image that leaves `CRUX_ACCESS` off keeps 8.
+With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 24 instead of 8 and `CRUX_THREAD_COUNT` to 8 instead of 4, the values of the `native_sim` services image, because the management services take one or more mutexes and a worker thread each (the event drain, network settings, reboot, web session and web management are five of the eight threads), and a product's configuration then need not name them (ADR-0004 C6). An image that leaves `CRUX_ACCESS` off keeps 8 and 4. Each thread slot has a stack of `CRUX_THREAD_STACK_BYTES`.
 
 Sizes of the Access table are compile-time constants, not Kconfig: `CRUX_ACCESS_SESSION_MAX` 8 and `CRUX_ACCESS_SESSIONS_PER_ACCOUNT` 3 in `components/access/src/access_port.h`.
 

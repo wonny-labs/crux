@@ -50,6 +50,10 @@ if CRUX_THREAD
 
 config CRUX_THREAD_COUNT
 	int "Thread worker slots"
+	# The management services start a worker each (the event drain, network settings, reboot, web session and
+	# web management), so an image that enables them starts from the 8 that the native_sim services image
+	# uses, and a product's configuration need not name this symbol (ADR-0004 C6).
+	default 8 if CRUX_ACCESS
 	default 4
 	range 1 64
 
@@ -124,9 +128,9 @@ if CRUX_SYNC
 
 config CRUX_SYNC_MUTEX_COUNT
 	int "Sync mutex slots"
-	# The management services take one or more each, so an image that enables them starts from the 16 that the
-	# native_sim management composition uses, and a product's configuration need not name this symbol (C6).
-	default 16 if CRUX_ACCESS
+	# The management services take one or more each, so an image that enables them starts from the 24 that the
+	# native_sim services image uses, and a product's configuration need not name this symbol (C6).
+	default 24 if CRUX_ACCESS
 	default 8
 	range 1 64
 
@@ -593,6 +597,39 @@ config CRUX_REBOOT
       refuses an image without it by name. The restart policy is the application's: crux_reboot_start()
       refuses a configuration that states none. It starts nothing and adds no crux:: target and no
       public header.
+
+# ADR-0004 phase 0, slice 4: the web session and web management cores. The routes stay the application's:
+# it names the route sources it wants to crux_web_routes(), as before. Each selects the Crux symbols that it
+# links (ADR-0004 C6).
+config CRUX_WEB_SESSION
+    bool "Crux web sessions (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds login, sessions and request forgery protection, with the password verification port over
+      PSA Crypto. The login and logout routes are not built here: the application names
+      CRUX_WEB_SESSION_ROUTES of components/web/session/sources.cmake to crux_web_routes(), so a route
+      that is not named is not in the table. It starts nothing and adds no crux:: target and no public
+      header: the application calls crux_web_session_init() and starts the worker.
+
+config CRUX_WEB_MANAGEMENT
+    bool "Crux web management (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): may change in any release, and the release notes list the
+      change. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the JSON of the status and configuration routes and the save worker, and, with
+      CONFIG_CRUX_NETWORK_SETTINGS, the JSON of the network routes. The routes are not built here: the
+      application names the CRUX_WEB_MANAGEMENT_*_ROUTES sources that it wants to crux_web_routes(). It
+      starts nothing and adds no crux:: target and no public header.
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
