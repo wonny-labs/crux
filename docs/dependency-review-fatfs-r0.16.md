@@ -1,0 +1,113 @@
+# Dependency review: FatFs R0.16 and the 2026 runZero advisories
+
+Status: **review record, the second use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `21e9d438`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), whose Q5 puts FatFs first among the dependencies after the crypto pair.
+
+This record is documentation only. It moves no pin, edits no `west.yml` and no protected path, and approves nothing. The pin move it recommends needs the owner's approval, and so does the target rule it asks about (section 6).
+
+**Labels.** **Verified** means I read it at the baseline revision and cite `path:line`, or I read it from a public source with `gh api` or `curl` on 14 November 2026 and cite the URL. **Reported** means a source says it and I did not check it independently. **Inference** is my reading. **Not verified** means I did no run or read for it.
+
+## Result
+
+- **Verdict: take, as a small security pin, not an emergency, and the owner decides the target rule first.** Of the seven runZero FatFs identifiers of July 2026, one is rejected by its CVE Numbering Authority, one is reached by Crux's configuration (CVE-2026-6682), and five are not reached.
+- **CVE-2026-6685, the one named in [`docs/credential-store.md`](credential-store.md), is not applicable, and the record there was wrong.** Its CVE record is **rejected** ("the vulnerability determination was made in error", rejected 16 July 2026), and Zephyr's FatFs fork and the FatFs author both call the unsigned wrap benign. The wording "the pinned FatFs lacks a range check" is not supported. The pinned `ff.c` has the range expressions at `f_read()` and `f_write()`.
+- **CVE-2026-6682 is reached**, because Crux mounts FAT volumes (`fat_fs.c:451`) and the pinned `mount_volume()` multiplies without the cap that FatFs patch-2 adds. It needs a crafted card, which is a physical attack, and the memory-corruption route that runZero describes needs a caller that reads `finfo.fsize` bytes into a smaller buffer, which Crux's File provider does not do (**Inference**, section 4).
+- **The fix is not on `v4.4-branch`.** Crux's `fatfs` pin `f4ead3bf` is what Zephyr `v4.4.2` and `v4.4-branch` pin. The fixes are in Zephyr's `fatfs` fork at `4f60a12c`, which Zephyr `v4.5.0` and `v4.5-branch` pin. ADR-0006's path allows "a revision that Zephyr itself pins on a release branch, and within the line Crux builds". `4f60a12c` is pinned on `v4.5-branch`, not on the baseline's `v4.4-branch`, and the ADR's rule is written for the crypto pair. So the owner decides whether it covers FatFs and a later release branch (section 6).
+- **Not established:** the runZero advisory text of CVE-2026-6685 (its page returns 404), the diffs of patch-2 and of the Zephyr commits (I read their messages and README only), a resolved `.config` of a FatFs image, and any physical card behaviour.
+
+## 1. Subject
+
+| Item | Value | Status |
+| --- | --- | --- |
+| Current pin | `fatfs` `f4ead3bf4a6dab3a07d7b5f5315795c073db568d`. Crux's `west.yml` has no `fatfs` entry. It takes the one in Zephyr's `west.yml` through `import: name-allowlist` | Verified: `west.yml:16-26`, and `gh api repos/zephyrproject-rtos/zephyr/contents/west.yml?ref=v4.4.2` shows `fatfs` at `f4ead3bf`. Also `tests/target/bench_image.py:40` |
+| Upstream FatFs | ChaN's R0.16, 22 July 2025, still the latest release on 14 November 2026. A patch page lists patch-1 (13 September 2025) and patch-2 (10 July 2026) | Reported: <http://elm-chan.org/fsw/ff/>, `updates.html` and `patches.html`, read through a fetch agent on 14 November 2026 |
+| Zephyr's fork | The fork is R0.16 plus patch-1, patch-2 and local commits. Its README at `4f60a12c` says so | Verified: <https://github.com/zephyrproject-rtos/fatfs> (`README`) |
+| Candidate | `fatfs` `4f60a12c58c3de4246857ad87c40239ecd93349b`: 6 commits after the pin, `behind_by` 0, 22 July to 28 August 2026. It is the fork's `master` head, and Zephyr `v4.5.0` (28 October 2026) and `v4.5-branch` pin it. `v4.4-branch` still pins `f4ead3bf` | Verified: `gh api repos/zephyrproject-rtos/fatfs/compare/f4ead3bf...master` and `…/zephyr/contents/west.yml?ref=` for `v4.5.0`, `v4.5-branch`, `v4.4-branch`, `v4.4.2` |
+| The 6 commits | `e3e878bb` patch-1 · `1df06d03` patch-2 for CVE-2026-6682, -6683, -6687 · `c770e631` explicit range check for CVE-2026-6685 · `a55a7a8e` zero the region of `f_lseek` for CVE-2026-6686 · `42c2d6ee` README · `4f60a12c` a CPE reference. They change `ff.c` (+89 −12), `README` and `zephyr/module.yml` only | Verified: same compare call, `.files[]` |
+| Advisories read | Six runZero pages (CVE-2026-6682, -6683, -6684, -6686, -6687, -6688) at <https://runzero.com/advisories/>, dated 30 June 2026 on the index and 1 July 2026 in their timelines, and the CVE-2026-6685 record. runZero's page for CVE-2026-6685 returns 404 | Reported: read through a fetch agent, 14 November 2026. The CVE record: Verified with `curl https://cveawg.mitre.org/api/cve/CVE-2026-6685` |
+| Not read | PoC code (not fetched and not run), patch-2's diff, the diffs of the Zephyr commits | Not verified |
+
+## 2. How this was done
+
+For each identifier: read the advisory for its condition, affected configuration and fix status. Read Crux's configuration and call sites, and Zephyr's FatFs glue at `v4.4.2`. Check that each fix commit is in the candidate and not in the pin, by `compare` with the commit list. Zephyr's README and commit messages are the fork's own statement of what each commit does. They are **Reported**, and where a claim could be tested against the pinned `ff.c` I did.
+
+## 3. What Crux builds
+
+| Fact | Evidence | Status |
+| --- | --- | --- |
+| Crux uses FatFs through Zephyr's VFS (`fs_*`) and Zephyr's `fat_fs.c`. The only Crux file that calls `fs_open`, `fs_seek`, `fs_truncate`, `fs_readdir` and the rest in `components/` is the File provider | `components/file/ports/zephyr/file_native.c:275-478`. Outside that file the calls appear only in `samples/`, and the one `fs_seek` there uses offset 0 (`samples/storage_sd_probe/sd_probe.c:39`) | Verified |
+| The selected build requires long names (`FS_FATFS_LFN`), at least 127 characters, reentrancy and no auto-format. No File build selects exFAT, 64-bit LBA or multiple partitions: **none of `FS_FATFS_EXFAT`, `FS_FATFS_LBA64`, `FS_FATFS_MULTI_PARTITION` appears in any file of the repository outside `docs/`** | `components/file/ports/zephyr/file_native.c:63-70`, `components/file/ports/zephyr/CMakeLists.txt:25-37`. The grep: `git grep -E 'FS_FATFS_(EXFAT|LBA64|MULTI_PARTITION)' -- . ':!docs'` returns no line | Verified for the repository. **Not verified** against a resolved `.config` or for `select` lines inside Zephyr |
+| `FS_FATFS_EXFAT` is a plain `bool` with no default (so off). `FS_FATFS_LBA64` `depends on FS_FATFS_EXFAT`. `FF_FS_EXFAT` and `FF_LBA64` follow them | Zephyr `v4.4.2` `subsys/fs/Kconfig.fatfs` (`config FS_FATFS_EXFAT`, `config FS_FATFS_LBA64`), `modules/fatfs/zephyr_fatfs_config.h` (`#if defined(CONFIG_FS_FATFS_EXFAT)`, `#define FF_LBA64 CONFIG_FS_FATFS_LBA64`) | Verified, read with `gh api` at `v4.4.2` |
+| `fatfs_mount` calls `f_mount(..., 1)` and `fatfs_readdir`/`fatfs_stat` copy `fno.fname` with `strcpy` into `entry->name`, which holds `MAX_FILE_NAME + 1` characters. Without an override `MAX_FILE_NAME` is `CONFIG_FS_FATFS_MAX_LFN` (127) when long names are on | Zephyr `v4.4.2` `subsys/fs/fat_fs.c:374,407,451`, `include/zephyr/fs/fs_interface.h:16-40` | Verified |
+| `CONFIG_FILE_SYSTEM_MAX_FILE_NAME=63` is set only in six Reliance Edge configurations, and none of them enables `FAT_FILESYSTEM_ELM` | `samples/storage_emmc/prj.conf:3`, `samples/storage_reliance_sd/prj.conf:3`, `tests/native/configuration_settings_reliance/prj.conf:7`, `tests/native/emmc_powercut/reliance.conf:7`, `tests/native/file_emmc_composition/prj.conf:9`, `tests/native/file_reliance/prj.conf:7` | Verified |
+| `crux_file_impl_seek` refuses an offset past the end of the file, and Zephyr's `fatfs_seek` does the same (`-EINVAL`). `crux_file_impl_truncate` calls `fs_truncate(..., 0)`, so it never extends | `components/file/ports/zephyr/file_native.c:289-291,326-352`, `fat_fs.c:257-261` | Verified |
+| The pinned `ff.c` has the sector-cache range expressions that CVE-2026-6685 names, at `f_read()` (`fs->winsect - sect < cc`, `fp->sect - sect < cc`) and `f_write()`. The variable names differ from the ones in Zephyr's README (`cached_sect`), the expression is the same | `ff.c` at `f4ead3bf`, lines 4051, 4055, 4166, 4171 | Verified, read with `gh api` |
+| The pinned `mount_volume()` multiplies `fasize *= fs->n_fats` with no cap on `BPB_FATSz32` | `ff.c` at `f4ead3bf`, line 3597 | Verified |
+
+## 4. The seven identifiers
+
+"Applies" asks whether Crux's configuration compiles the affected code and Crux reaches it.
+
+| # | Identifier (runZero, 30 June / 1 July 2026) | What it needs | What the Crux evidence shows | Applies | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **CVE-2026-6682**, FAT32 integer overflow in `mount_volume()`, 7.6 High estimated by runZero, physical access (`https://runzero.com/advisories/fatfs-fat32-int-of-mnt-cve-2026-6682/`) | A crafted FAT32 BPB (`BPB_FATSz32` 0x80000001, two FATs) on a volume that is mounted. runZero says the data region then points into the FAT, so a forged `finfo.fsize` is possible, and memory corruption follows only if the caller reads `finfo.fsize` bytes into a smaller buffer | `mount_volume()` runs at every mount (`fat_fs.c:451`) and the pinned code has no cap (`ff.c:3597`). The File provider reads with the caller's own length (`file_native.c:294-304`, `l` is bounded by the caller's buffer) and never sizes a read from `fsize`. So the RAM corruption route is not present in Crux's code, and what a crafted card can do is make FatFs read and write the wrong sectors of that card (**Inference**) | **Yes, on a crafted card** | **Take** the fix (patch-2). Low practical risk, as a card swap is physical |
+| 2 | **CVE-2026-6683**, exFAT divide-by-zero in the sync path (`…/fatfs-exfat-divide-by-zero-cve-2026-6683/`) | exFAT, a volume with `BPB_NumClusEx` 0 | exFAT is not compiled (section 3) | No | Not applicable. Becomes false if `CONFIG_FS_FATFS_EXFAT` is set |
+| 3 | **CVE-2026-6684**, GPT partition-scan loop, only before R0.16 and with `FF_LBA64 = 1` (`…/fatfs-gpt-scan-loop-dos-cve-2026-6684/`) | `FF_LBA64`, which needs exFAT | Not compiled. R0.16 adds `test_gpt_header()` (`ff.c:3315,3427`) | No | Not applicable. Zephyr's README also says R0.16 already bounds it |
+| 4 | **CVE-2026-6685**, unsigned subtraction in the dirty-sector cache check of `f_read()`/`f_write()` | (the runZero page is not readable) | The CVE record is **rejected** by its CNA, runZero: state `REJECTED`, `dateRejected` 2026-07-16T20:11:12Z, reason "the vulnerability determination was made in error… the CNA confirmed the erroneous finding", with no description or affected versions. FatFs's patches page says "Wraparound in these expressions is intentional and not harmful". Zephyr's fork says the wrap is real but benign, because a sector before the run wraps to a value that is not less than `cc`, and it only spells the bound out (`c770e631`) | No | Not applicable. The `credential-store.md` row is corrected by this change |
+| 5 | **CVE-2026-6686**, `f_lseek()` past EOF exposes stale data (`…/fatfs-uninit-cluster-exposure-cve-2026-6686/`), 4.6 Medium | A write-mode seek beyond the end of the file, then a read | Crux refuses such a seek (`file_native.c:349-350`) and `fatfs_seek` does too (`fat_fs.c:257-259`). `fs_truncate` is only called with 0 (`file_native.c:291`). Nothing else in `components/` seeks | No | Not applicable. FatFs documents the behaviour as undefined and takes no fix, and Zephyr's fork carries a local zero-fill (`a55a7a8e`) |
+| 6 | **CVE-2026-6687**, exFAT label length overflow in `f_getlabel()` (`…/fatfs-exfat-label-len-of-cve-2026-6687/`), 7.6 High | exFAT, a crafted label length, a caller that calls `f_getlabel()` | exFAT is not compiled, and `f_getlabel` is not called by `fat_fs.c` or by Crux | No | Not applicable. Becomes false if exFAT is enabled |
+| 7 | **CVE-2026-6688**, long-filename overflow in **downstream callers**, a pattern and not a FatFs defect (`…/fatfs-long-fn-of-downstream-cve-2026-6688/`) | A caller that copies a long name into a short buffer | Zephyr's `strcpy(entry->name, fno.fname)` (`fat_fs.c:374,407`) is safe while `MAX_FILE_NAME` is at least the long-name limit: the default is `CONFIG_FS_FATFS_MAX_LFN`, and no FAT build in the repository overrides it. Crux's own `dir_read` hands the entry to `decode_leaf` with a capacity (`file_native.c:468-484`) | No, as configured | Not applicable. **False** if an image enables FatFs and sets `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` below `CONFIG_FS_FATFS_MAX_LFN` (Zephyr: "may result in memory access violations"). No such image exists today, and a `BUILD_ASSERT` would keep it so (a follow-up, not made here) |
+
+The advisory facts in rows 1, 2, 3, 5, 6 and 7 are **Reported** from the runZero pages as read through a fetch agent. Their CVSS values are runZero's estimates.
+
+## 5. Fix inclusion
+
+| Fix | Commit in Zephyr's `fatfs` | In the candidate `4f60a12c` | In the current pin `f4ead3bf` | Status |
+| --- | --- | --- | --- | --- |
+| CVE-2026-6682, -6683, -6687 (patch-2, 10 July 2026) | `1df06d03` | Yes | No | Verified: the commit is in `compare f4ead3bf...master` (`ahead_by` 6, `behind_by` 0), and `master` equals `4f60a12c` |
+| CVE-2026-6686 (local zero-fill) | `a55a7a8e` | Yes | No | Verified, same call |
+| CVE-2026-6685 (readability only) | `c770e631` | Yes | No | Verified, same call. No behaviour change, per its message |
+| CVE-2026-6684 and -6688 | none, by the README | n/a | n/a | Reported |
+
+This shows the commits are present, not that the fixes work in Crux's build, and I did not read their diffs.
+
+## 6. Decision of this review
+
+- **Take** the move of `fatfs` to `4f60a12c`. It brings the one upstream fix that reaches Crux (CVE-2026-6682), changes only `ff.c`, and Zephyr `v4.5.0` ships it.
+- **Not an emergency.** The only reached identifier needs a crafted card and, for the worst impact, a caller pattern Crux does not have. The exposure on a change of configuration (exFAT on) is real: five of the seven would then apply.
+- **The owner must decide the target rule before a pin move.** ADR-0006 option B item 1 allows "a revision that Zephyr itself pins on a release branch, and within the line Crux builds", and says that when Zephyr has no such revision the move goes to the owner. `4f60a12c` is pinned on `v4.5-branch` and `v4.5.0`, not on `v4.4-branch`, and the ADR is about the crypto pair. The recommendation is to allow it for this move: it is the same FatFs release (R0.16), a Zephyr release pins it, and the diff is `ff.c` only. If the owner declines, the alternative is to defer until Crux's Zephyr baseline moves to 4.5.
+- **No FatFs entry in `west.yml` yet.** A move adds a `fatfs` project that overrides the one Zephyr's manifest imports. `west crux-pins` takes Crux's explicit entries over Zephyr's (`scripts/west_commands/crux_pins.py:68-75`), so products then see the new revision as the contract. **Not verified** by a run.
+- **This record approves nothing.**
+
+## What could not be established
+
+- **The runZero advisory of CVE-2026-6685.** Its page returns 404 and the index does not list it. The verdict rests on the CVE record (rejected), the FatFs author's note, Zephyr's analysis and my own reading of the expressions in the pinned `ff.c`. I did not construct a failing case, and the Zephyr commit message says they could not either.
+- **Whether `FS_FATFS_EXFAT` is set anywhere through a `select`** inside Zephyr, and the resolved `.config` of a FatFs image. My "not applicable" verdicts for rows 2, 3 and 6 rest on the Kconfig defaults and on the repository containing no such setting.
+- **The diffs of patch-2 and of the three Zephyr commits.** Their effect is **Reported** from the commit messages and the README.
+- **Physical behaviour.** A real card, a crafted card, and the File provider's behaviour after a mount that fails. No board was used.
+- **Whether a product's own FatFs use** (a different caller, exFAT, a different `MAX_FILE_NAME`) is affected. Section 4 lists what would change each verdict.
+- **Other FatFs issues** outside the runZero batch. I searched only for the seven identifiers.
+
+## Plan for the pin move evidence
+
+Nothing below was run. It is the plan for the pin-move PR, after the owner's decision in section 6.
+
+| Step | What | Where it runs |
+| --- | --- | --- |
+| 1 | Add a `fatfs` project entry to `west.yml` at `4f60a12c58c3de4246857ad87c40239ecd93349b`, with a comment naming Zephyr's `v4.5.0` and this record. Keep the `fatfs` name in the `import` allowlist | the PR |
+| 2 | Update the other places that hold the revision: `tests/target/bench_image.py:40` and `docs/rt1060-bench-image-plan.md` (the pinned-projects table). Leave the evidence under `docs/evidence/` as recorded | the PR |
+| 3 | `west crux-pins` on a workspace with the new entry, to see that products read it as the contract | a local workspace |
+| 4 | The File and credential FatFs tests on `native_sim`, and the File RT1060 FatFs/SDHC compile check | CI `zephyr` workflow, shard `storage` (`.github/workflows/zephyr.yml:125-133`), and `host.yml` for `tests/build` |
+| 5 | A Host or `native_sim` test that mounts a volume with the CVE-2026-6682 BPB, and shows `FR_NO_FILESYSTEM` or a refusal instead of a mount. It would need the crafted image built by the test, not fetched from the advisory | optional, a new test |
+| 6 | A physical microSD run of the File provider | **not covered**, needs the board and a task approval |
+
+## What was run
+
+On native macOS, in the worktree at `21e9d438`: `gh api` and `curl` against public GitHub, the Zephyr and FatFs repositories and the CVE record service; `git grep` of the repository; reads of Zephyr `v4.4.2` and the pinned `ff.c` through `gh api`. A fetch agent (`web-fetch`) read the runZero, elm-chan.org, NVD and cve.org pages, because I have no direct page-fetch tool. It could not read the CVE-2026-6685 runZero page, nor the NVD and cve.org bodies. No PoC code was fetched or run. No build, no Docker, no hardware. ECC skills: none.
+
+## Record
+
+| Item | Value |
+| --- | --- |
+| Author | Claude Code, `claude-sonnet-5-5` (desktop app) |
+| Independent review | pending, `reviewer` agent (`claude-opus-5-5`) |
+| Approvals | none |
