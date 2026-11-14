@@ -26,7 +26,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
 | Status, configuration, account routes | `GET /api/v1/status`, the configuration list, read, update and save. | Real over HTTPS on `native_sim`. A configuration save has no provider, so none succeeds. | [Management APIs](web-management-apis.md) |
 | Network settings routes | `GET` and `PUT /api/v1/network`. | Real over HTTPS on `native_sim` with a no-op apply port. Nothing is applied to an interface, and nothing can be saved. | [Network settings](network-settings-service.md) |
-| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only. No image composes it**, and nothing calls a real reset. | [Reboot service](reboot-service.md) |
+| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: no image composes them.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
 | Packaged web assets | A built frontend folder, compressed, hashed and served as public `GET` routes, with a content policy and a size budget. | Real on `native_sim`. Chrome loaded both examples over HTTPS. | [Web assets](web-assets.md) |
 | TLS certificate model | A P-256 key and a self-signed certificate made at first boot, requests, and checked uploads. | Real on `native_sim` on both PSA providers. **The listener of every `native_sim` composition still serves the declared test certificate**, whose key is public. The RT1060 bench image registers a generated one in code that is compile-only: the image refuses to start and has not run on a board. | [TLS certificate](tls-certificate.md) |
 | Command line, serial | Registry, login, first-account setup `!setup`. | Host. The serial console is **composed in no image**. LPUART3 wiring compiles for RT1060-EVKB. | [Command line contract](cli-contract.md) |
@@ -252,7 +252,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | `config.*`, `network.*` | updated, rejected, saved, save failed; network changed, save failed, saved ignored | Services | Real on `native_sim` |
 | `file.*`, `cli.*` | file created, removed, renamed, refused; `cli.line_rejected`, `cli.console_error` | File service, command line | Real on `native_sim` |
 | `web.certificate_*` | replaced, rejected, unusable | TLS certificate model | Real on `native_sim` |
-| `system.reboot_*` | requested, refused, failed | Reboot service | **Host only** |
+| `system.reboot_*` | requested, refused, failed | Reboot service | **Host, and a `native_sim` fixture that starts it and makes no request** |
 | **`web.tls_failed`, `web.csrf_rejected`** | Defined | **Nothing emits them.** A refused CSRF token or `Origin` leaves no event: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319). | Missing |
 | **`ssh.auth_limit`, `ssh.host_key_missing`** | Defined | **Nothing emits them**: [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317). A refusal before a callback leaves no event. | Missing |
 | File operations refused with no identifier | | | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) |

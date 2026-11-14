@@ -288,6 +288,8 @@ class Slice3KconfigTest(unittest.TestCase):
         blocks = kconfig_blocks()
         for symbol, (needs, selects) in SLICE3_VISIBLE.items():
             self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
+            if needs != "CRUX_NETWORK_SETTINGS":  # that symbol reaches the module through its dependency
+                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_PILOT_MODULE\b", symbol)
             for chosen in selects:
                 self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
 
@@ -300,7 +302,6 @@ class Slice3KconfigTest(unittest.TestCase):
         blocks = kconfig_blocks()
         for symbol in SLICE3_VISIBLE:
             self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
-
 
     def test_the_mutex_default_grows_with_the_management_services_and_not_without_them(self):
         block = kconfig_blocks()["CRUX_SYNC_MUTEX_COUNT"]
@@ -328,13 +329,15 @@ class Slice3CMakeTest(unittest.TestCase):
         text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
         head, _, tail = text.partition("if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY)")
         self.assertTrue(tail, "no if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY) block")
+        guarded, _, after = tail.partition("\nendif()")
         self.assertNotIn("network_settings_no_apply.c", head)
-        self.assertIn("network_settings_no_apply.c", tail)
+        self.assertIn("network_settings_no_apply.c", guarded)
+        self.assertNotIn("network_settings_no_apply.c", after)
 
     def test_reboot_is_refused_without_system(self):
         text = MODULE_CMAKE.read_text()
         guarded = re.search(r"if\(CONFIG_CRUX_REBOOT\)(.*?)\nendif\(\)", text, re.DOTALL).group(1)
-        self.assertIn("crux::system", guarded)
+        self.assertRegex(guarded, r"if\(NOT TARGET crux::system\)\s*message\(FATAL_ERROR")
 
     def test_no_new_directory_names_a_wolf_target_or_a_crux_alias(self):
         for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():

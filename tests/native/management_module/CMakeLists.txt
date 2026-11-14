@@ -7,7 +7,8 @@
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
 #
 # What this fixture still reaches by include path, because no public header carries it yet (the
-# composition interfaces of ADR-0004 phase 1a): the Access first-account call and the credential
+# composition interfaces of ADR-0004 phase 1a): the Access first-account call, the TLS certificate module's adapter
+# header and the credential
 # store's start. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
 # test glue, which a later phase decides how a product obtains.
 cmake_minimum_required(VERSION 3.20.0)
