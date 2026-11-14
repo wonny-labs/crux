@@ -1149,9 +1149,10 @@ class ManifestTest(unittest.TestCase):
         self.assertIn("-crux-reliance", self.crux["group-filter"])
 
     def test_mcuboot_stays_in_its_optional_group(self):
-        # A name-allowlist entry would fetch MCUboot in every workspace, because an imported
-        # project cannot be given a group. A plain project in an optional group fetches nothing
-        # by default, and west crux-pins sees its pin, which -DEXTRA_ZEPHYR_MODULES would hide,
+        # Zephyr puts mcuboot in its own bootloader group, which its group-filter keeps active,
+        # so a name-allowlist entry would fetch it unless Crux also filtered that group. A plain
+        # project in Crux's own optional group fetches nothing by default, and west crux-pins
+        # sees its pin, which -DEXTRA_ZEPHYR_MODULES would hide,
         # and reports a workspace whose checkout differs from it. For an explicit Crux entry
         # the contract is Crux's own west.yml, so crux-pins does not compare the revision with
         # Zephyr's manifest. The literal below is the revision in Zephyr's west.yml at the

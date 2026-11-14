@@ -27,8 +27,9 @@ manifest:
           - littlefs
           - fatfs
     # MCUboot follows the revision in Zephyr's own west.yml at the tag above.
-    # A name-allowlist entry would fetch it in every workspace, so it is a plain
-    # project in an optional group instead.
+    # Zephyr puts mcuboot in its own bootloader group, which its group-filter keeps
+    # active, so a name-allowlist entry would fetch it unless Crux also filtered that
+    # group. It is a plain project in Crux's own optional group instead.
     - name: mcuboot
       remote: zephyrproject-rtos
       revision: 6d3b3d2c38ab20c242e5b9abb04d050086383eb2
