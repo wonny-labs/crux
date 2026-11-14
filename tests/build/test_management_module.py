@@ -391,6 +391,10 @@ class Slice3CMakeTest(unittest.TestCase):
     def test_no_new_directory_names_a_wolf_target_or_a_crux_alias(self):
         for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():
             text = (REPO / "components" / component / "ports/zephyr/CMakeLists.txt").read_text()
+            if symbol == "CRUX_TLS_CERTIFICATE":
+                # Phase 1a (ADR-0004) publishes this one target here, and no other alias.
+                # tests/build/test_tls_certificate_public.py holds its definition.
+                text = text.replace("add_library(crux::tls_certificate ALIAS crux_tls_certificate)", "")
             self.assertNotRegex(text.upper(), r"WOLF", symbol)
             self.assertNotRegex(text, r"add_library\(crux::", symbol)
 

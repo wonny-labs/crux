@@ -561,8 +561,9 @@ config CRUX_TLS_CERTIFICATE
       event port. It keeps the certificate and the device key in the credential store of CONFIG_CRUX_ACCESS.
       It registers nothing with Zephyr's TLS credentials: the application takes the material and calls
       tls_credential_add itself (ADR-0004 C4), so the key's bytes pass through application code. It
-      starts nothing and adds no crux:: target and no public header: the header that carries the key is
-      private, on purpose.
+      starts nothing: the application starts the module. It links the portable target
+      crux::tls_certificate for <crux/tls_certificate.h> and <crux/tls_certificate_start.h>, the
+      header that carries the key (Experimental).
 
 config CRUX_FILE_SERVICE
     bool "Crux file service (Experimental)"

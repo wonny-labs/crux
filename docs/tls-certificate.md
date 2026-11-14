@@ -4,8 +4,8 @@ Status: merged in [PR #284](https://github.com/wonny-labs/crux-pilot/pull/284) f
 ports on TF-PSA-Crypto whose output OpenSSL checks. The module ran later on `native_sim` on both profiles, including wolfPSA, in [the services image](native-composition-242.md) of #242: see the rows below. The listener there still serves the declared test certificate. The design follows the
 [certificate model](plans/secure-management-web-design.md#certificate-model) of the web design.
 
-Owner: `components/tls_certificate`. Public header `<crux/tls_certificate.h>`, usage target `crux::tls_certificate`.
-Adapter header `crux_tls_certificate_adapter.h`, target `crux_tls_certificate_adapter`, for a composition and its TLS
+Owner: `components/tls_certificate`. Public headers `<crux/tls_certificate.h>` (the operations that take a session, which never return the key) and `<crux/tls_certificate_start.h>` (start, material, change callback and fingerprint, which carry the key to the application's TLS registration; ADR-0004 phase 1a, Experimental), usage target `crux::tls_certificate`.
+The adapter header `crux_tls_certificate_adapter.h` only forwards to the second, for the compositions of this repository, and the target `crux_tls_certificate_adapter` stays for a composition and its TLS
 provider only. Private ports in `components/tls_certificate/src/tls_certificate_port.h`, with the PSA provider in
 `components/tls_certificate/ports/psa` and the event provider `crux_tls_certificate_security_events`.
 
@@ -14,7 +14,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | # | Criterion | State | Evidence |
 | --- | --- | --- | --- |
 | 1 | Invalid, mismatched and malformed uploads are rejected and logged | **Met on Host.** Each refusal after the permission check keeps the previous certificate, writes nothing, and emits `web.certificate_rejected` with the user, the origin and the reason. | `install.c`, `store.c` on the real store, `events.c`, and the [mutations](#mutations) |
-| 2 | The private key is never exported | **Met on Host, as defined [below](#the-private-key).** No public operation returns it, no output or event holds it, and it reaches only the TLS stack in the same image through the composition-only adapter. | `test_private_key_in_no_output`, the credential boundary rule on the adapter |
+| 2 | The private key is never exported | **Met on Host, as defined [below](#the-private-key).** No public operation returns it, no output or event holds it, and it reaches only the TLS stack in the same image, through `<crux/tls_certificate_start.h>` (the material calls), which no management route or command uses. | `test_private_key_in_no_output`, the credential boundary rule on the adapter |
 | 3 | Results state that an uploaded certificate is checked for format and key match only | **Met.** Every description carries `CRUX_TLS_CERTIFICATE_CHECKS`, and the header says the same. | `test_checks_statement`, `test_accepted` |
 
 | Scope of #190 | State |
@@ -86,7 +86,7 @@ the material to `tls_credential_add` for either profile.
 | Target | Who links it | What it exposes |
 | --- | --- | --- |
 | `crux::tls_certificate` | A web or command-line service, a project | The public header. It links the core, which needs the ports, so an image without providers does not link. |
-| `crux_tls_certificate_adapter` | A composition and its TLS provider, always `PRIVATE` | The adapter header. It links `crux_credential_adapter` on purpose, so `cmake/CruxCredentialBoundary.cmake` refuses any public target or project that reaches it. |
+| `crux_tls_certificate_adapter` | A composition and its TLS provider, always `PRIVATE` | The forwarding adapter header. It links `crux_credential_adapter` on purpose, so `cmake/CruxCredentialBoundary.cmake` refuses any public target or project that reaches it. |
 | `crux_tls_certificate_security_events` | A composition | Nothing. It implements the event port. |
 | `ports/psa/tls_certificate_psa.c` | A composition with a PSA provider | Nothing. It implements the hash, signature and random ports. |
 
@@ -170,6 +170,8 @@ operation that finds another running returns `BUSY` and does not wait.
 | `ERR_BUSY` | Another operation runs, or both buffers are held by the TLS side. Nothing was checked or logged. |
 
 ### Composition adapter
+
+These calls are declared in the public `<crux/tls_certificate_start.h>`, which `crux::tls_certificate` carries, so a product needs no adapter directory (ADR-0004 C2). The credential boundary rule is unchanged: the public target never reaches the credential adapter, and `crux_tls_certificate_adapter` is still refused.
 
 | Function | Does |
 | --- | --- |
