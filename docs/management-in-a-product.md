@@ -247,7 +247,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | `web.certificate_*` | replaced, rejected, unusable | TLS certificate model | Real on `native_sim` |
 | `system.reboot_*` | requested, refused, failed | Reboot service | **Host only** |
 | **`web.tls_failed`, `web.csrf_rejected`** | Defined | **Nothing emits them.** A refused CSRF token or `Origin` leaves no event: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319). | Missing |
-| **`ssh.auth_limit`, `ssh.host_key_missing`** | Defined | **Nothing emits them**: [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317). A refusal before a callback leaves no event. | Missing |
+| `ssh.auth_limit`, `ssh.host_key_missing` | A connection ended at `max_auth_attempts`; the credential store could not supply the host key | SSH access adapter ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [contract](security-event-contract.md#from-the-ssh-adapter-port)) | **Host only**. An image that selects `CONFIG_CRUX_SSH` links the provider, and no image run shows the records. A refusal before a callback is **reserved**: it leaves no event. |
 | File operations refused with no identifier | | | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) |
 
 The authority is the [identifier table](security-event-contract.md#what-exists).
@@ -299,7 +299,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 | TLS 1.3 only. | Declared, an owner decision (A2) | [HTTPS composition](https-composition.md) |
 | A listener accepts on its interface. Which interface is the product's. | Not built | [Integrated image](ssh-integrated-image.md) |
 | Trickled headers and silent clients hold server resources: a bound, not a defence. | Declared | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268), [Web contract](web-contract.md) |
-| SSH emits no `ssh.*` event, and a refused CSRF token or `Origin` emits none. | Missing | See the events table |
+| A refused CSRF token or `Origin` emits no event, and a refusal by the SSH provider before a callback emits none. The SSH limit and a missing host key do emit. | Missing for the first two, reserved for the SSH refusal | See the events table |
 
 ## What CI covers
 
@@ -331,7 +331,7 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | A server deadline for trickled headers | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) | Open |
 | Certificate validity, the private key as PKCS #8 in RAM, `psa_sign_hash` outside the qualified subset, event identifiers | [TLS certificate](tls-certificate.md#owner-decisions-needed-before-adoption), decisions A to D | Open |
 | Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Open |
-| Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Open |
+| Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317): decided 2026-11-14, option A for the two identifiers and option B (reserved) for refusals before a callback | Built on the Host, pending review |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Open |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Open |
 | Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Open |

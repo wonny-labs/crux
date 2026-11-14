@@ -298,7 +298,7 @@ connection, and the web ones are per HTTP request.
 | --- | --- | --- | --- |
 | Delay after refused attempts | The core's delay, by source, IPv4 address or IPv6 /64 | The same core's delay, by source | Yes: one table, one policy |
 | A second verification on the channel while one runs | Refused as `BUSY` by the core, a denial on the wire that counts | `503 busy` with `Retry-After`, from the web's own queue in front of the core | Partly: SSH relies on the core's rule per channel, and the web also queues |
-| Attempts per connection | `max_auth_attempts`, then the connection ends | Not applicable: one attempt per request | No |
+| Attempts per connection | `max_auth_attempts`, then the connection ends, with an `ssh.auth_limit` event ([#317](ssh-provider-contract.md#security-events-from-the-access-adapter)) | Not applicable: one attempt per request | No |
 | Time to log in | `auth_timeout_ms` from accept | The attempt expires after 20 s | No |
 | Sessions | One per connection, `CRUX_SSH_ACCESS_ATTACHMENT_MAX` attachments | `CRUX_WEB_SESSION_MAX` | The core's session table holds both |
 | Password copies | Wiped in wolfSSH's input buffer after the callback | Cleared in the server's buffers | Each channel's own |
@@ -406,6 +406,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 26 | That image formats a blank disk only when the test passes `format` | So a test can show the store refusing, and no key generated, on a disk that does not mount. A product composition sets its own medium policy. | Always format, as the management composition does |
 | 27 | `Ssh.wire_mutations` uses the build's compiler, and GCC where that compiler lacks the sanitizer runtimes, and fails if neither has them | One mutant reads past a buffer without changing a result, so only a sanitizer kills it. The Dev Container's Clang 18 lacks the runtimes, and its GCC 13 has them. | Drop that mutant, or skip the test |
 | 28 | `scripts/analyze-host.sh` gains the two new Host sources, add-only | So `clang-tidy` covers them in CI, as it covers the rest of `components/ssh` | They go unanalysed in CI |
+| 29 | **The provider reports the limit** through a new optional callback, `auth_limit(context, peer)`, which runs once on the worker when `wolfSSH_accept()` fails with `WS_USER_AUTH_E` before a login and the provider is not stopping (#317) | wolfSSH ends a connection at the limit inside `accept`, in `CountUserAuthFailure` of v1.6.0, and offers no hook. This provider's callbacks never return the hard rejection, and offers no other method, so that error at that point is the limit. The callback is optional so that a table without it, and every test table, is unchanged. | The provider counts refusals itself, which would have to match wolfSSH's own count. **Not run:** this path is read from the wolfSSH source and not shown on `native_sim`, which no workflow runs for SSH. It would report a false limit if keyboard-interactive or `WOLFSSH_ALLOW_USERAUTH_NONE` were ever enabled and a callback returned the hard rejection, so a change to those settings must revisit it. The conformance cases `auth_limit_*` hold the contract on the fake, and run on this provider with `scripts/test-ssh-provider.sh` when someone runs it. |
 
 ### Decision 22: the trade-off
 
@@ -416,13 +417,15 @@ For the owner to judge. Each line was checked against the source at this revisio
 | Question | Answer |
 | --- | --- |
 | Who loses an event? | Only a crafted client. OpenSSH sends the blob of a key it holds, which is always well formed, so it never reaches this refusal. |
-| Is the audit gap new? | The class is new, the gap is not. Since #265 the provider refuses RSA, DSA, other curves, security keys, certificates, and an empty, overlong or NUL-holding name before any callback and with no event. At `max_auth_attempts`, the refused attempt that reaches the limit gets its callback and event as usual; the end of the connection, and any attempt after the limit, get none. This change adds malformed blobs of the accepted types to that list. |
+| Is the audit gap new? | The class is new, the gap is not. Since #265 the provider refuses RSA, DSA, other curves, security keys, certificates, and an empty, overlong or NUL-holding name before any callback and with no event. At `max_auth_attempts`, the refused attempt that reaches the limit gets its callback and event as usual. The end of the connection now gets `ssh.auth_limit` (#317), also when the attempt that reached the limit was one of these refusals, and any attempt after the limit gets none. This change adds malformed blobs of the accepted types to that list. |
 | Does it open a guessing channel? | No. A malformed blob can never match a stored key, and `max_auth_attempts`, `auth_timeout_ms` and `max_connections` still bound the attempts of one client. What it loses is the shared delay entry, which counts across connections. |
 | Does it open an enumeration or timing channel? | No. The refusal comes before any account lookup, whatever the name. |
 | How does the web compare? | Its login answers a malformed body with `400 bad_request` and no event. It turns a name that does not fit or holds a NUL into the empty name, which `crux_access` refuses with `LOGIN_FAILURE`, where SSH refuses such a name at the wire with no event. That asymmetry predates this change. |
 
-**Follow-up proposed, not opened:** a counter or event for refusals before a callback, covering every class in the second row,
-so that a crafted client's attempts are visible on both channels. The text is in the pull request.
+**Decided, not built:** a counter or event for refusals before a callback stays unemitted, and the
+[event contract](security-event-contract.md#from-the-ssh-adapter-port) marks the case as reserved until the provider can report it. This is the owner's
+decision of 2026-11-14 on [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), option B. Until then the only trace of a crafted client is
+`ssh.auth_limit`, when its refusals reach the limit.
 
 ## Findings
 

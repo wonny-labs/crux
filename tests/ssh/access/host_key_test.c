@@ -6,9 +6,24 @@
 #include "crux_ssh_access.h"
 #include "fake_file.h"
 #include "ssh_check.h"
+#include "ssh_port_fake.h"
+
+/* One ssh.host_key_missing report, for the SSH channel, with no connection behind it. */
+static void check_reported_missing_once(void)
+{
+    const crux_ssh_access_event_t *report = ssh_port_fake_event(0);
+
+    SSH_CHECK(ssh_port_fake_count() == 1u);
+    SSH_CHECK(report != NULL && report->type == CRUX_SSH_ACCESS_EVENT_HOST_KEY_MISSING);
+    if (report != NULL) {
+        SSH_CHECK(report->channel == CRUX_SSH_ACCESS_EVENT_CHANNEL);
+        SSH_CHECK(report->source_length == 0u);
+    }
+}
 
 static void start_blank_store(void)
 {
+    ssh_port_fake_reset();
     crux_credential_test_reset();
     credential_fake_reset();
     credential_medium_blank();
@@ -30,6 +45,8 @@ static void test_first_use_generates_and_later_uses_do_not(void)
     SSH_CHECK(credential_fake_keygen_count() == 1u);
     SSH_CHECK(second.length == first.length);
     SSH_CHECK(memcmp(second.key, first.key, first.length) == 0);
+    /* A key that was found, or generated, is not a missing one. */
+    SSH_CHECK(ssh_port_fake_count() == 0u);
 }
 
 static void test_private_part_comes_first(void)
@@ -70,16 +87,19 @@ static void test_unavailable_store_gives_no_key(void)
     crux_credential_test_reset();
     credential_fake_reset();
     credential_medium_blank();
+    ssh_port_fake_reset();
     memset(&key, 0x5a, sizeof(key));
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_ERR_NOT_READY);
     SSH_CHECK(key.length == 0u);
     SSH_CHECK(key.key[0] == 0u);
     SSH_CHECK(credential_fake_keygen_count() == 0u);
+    check_reported_missing_once();
 
     /* Generation fails. */
     start_blank_store();
     credential_fake_keygen_fail(true);
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_ERR_NOT_READY);
+    check_reported_missing_once();
 }
 
 static void test_failed_ensure_is_not_saved_by_a_good_read(void)
@@ -100,9 +120,11 @@ static void test_failed_ensure_is_not_saved_by_a_good_read(void)
                                    &length) == CRUX_CREDENTIAL_OK);
     crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0u, CRUX_FILE_ERR_IO);
     memset(&key, 0x5a, sizeof(key));
+    ssh_port_fake_reset();
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_ERR_NOT_READY);
     SSH_CHECK(key.length == 0u && key.key[0] == 0u);
     SSH_CHECK(credential_fake_keygen_count() == 1u);
+    check_reported_missing_once();
 }
 
 static void test_arguments_and_clear(void)
@@ -113,6 +135,8 @@ static void test_arguments_and_clear(void)
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     SSH_CHECK(crux_ssh_host_key_load((crux_ssh_key_type_t)99, &key) == CRUX_ERR_INVALID_ARGUMENT);
+    /* A caller's mistake is not a missing key, so nothing is reported. */
+    SSH_CHECK(ssh_port_fake_count() == 0u);
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_OK);
     crux_ssh_host_key_clear(&key);
     SSH_CHECK(key.length == 0u && key.key[0] == 0u && key.key[63] == 0u);

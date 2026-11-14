@@ -26,7 +26,8 @@ typedef enum {
     EVENT_SFTP_OPEN,
     EVENT_SFTP_CLOSE,
     EVENT_SESSION_ALIVE,
-    EVENT_CONNECTION_CLOSED
+    EVENT_CONNECTION_CLOSED,
+    EVENT_AUTH_LIMIT
 } event_kind_t;
 
 typedef struct {
@@ -284,6 +285,16 @@ static void on_connection_closed(void *context, crux_ssh_attachment_t *attachmen
     record(EVENT_CONNECTION_CLOSED, attachment);
 }
 
+static void on_auth_limit(void *context, const crux_ssh_peer_t *peer)
+{
+    event_t *event = record(EVENT_AUTH_LIMIT, NULL);
+
+    (void)context;
+    if (event != NULL && peer != NULL) {
+        event->peer = *peer;
+    }
+}
+
 static crux_ssh_callbacks_t all_callbacks(void)
 {
     crux_ssh_callbacks_t callbacks = {
@@ -298,6 +309,7 @@ static crux_ssh_callbacks_t all_callbacks(void)
         .sftp_close = on_sftp_close,
         .session_alive = on_session_alive,
         .connection_closed = on_connection_closed,
+        .auth_limit = on_auth_limit,
     };
 
     return callbacks;
@@ -621,6 +633,125 @@ static void case_attempts_are_bounded(const crux_ssh_test_client_t *client)
     CHECK(!client->is_connected(connection));
 
     /* The slot is free again, and the count is per connection. */
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(client->is_connected(connection));
+}
+
+/* ---- The limit is reported ---- */
+
+static bool last_event_is(event_kind_t kind)
+{
+    return state.event_count > 0 && state.events[state.event_count - 1].kind == kind;
+}
+
+/*
+ * The connection that reaches max_auth_attempts is reported once, with its own peer and after the
+ * attempt that reached it. The other connection stays open, so a provider that reports another
+ * connection's address is caught.
+ */
+static void case_auth_limit_is_reported_at_the_limit(const crux_ssh_test_client_t *client)
+{
+    int first;
+    int second;
+
+    start(client);
+    state.password_result = CRUX_SSH_AUTH_DENIED;
+    first = connect_ok(client, &client->peer_a);
+    second = connect_ok(client, &client->peer_b);
+
+    /* Two refusals are under the limit of three. */
+    CHECK(!client->password(first, "operator", 8, "wrong"));
+    CHECK(!client->password(first, "operator", 8, "wrong"));
+    CHECK(client->is_connected(first));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+    /* The third ends the connection, and the report follows the callback of that attempt. */
+    CHECK(!client->password(first, "operator", 8, "wrong"));
+    CHECK(!client->is_connected(first));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 1);
+    CHECK(last_event_is(EVENT_AUTH_LIMIT));
+    CHECK(same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_a));
+    /* Nobody logged in, so there is no attachment to close. */
+    CHECK(count_events(EVENT_CONNECTION_CLOSED) == 0);
+    CHECK(client->is_connected(second));
+
+    /* The other connection reaches its own limit, and is named by its own address. */
+    for (int i = 0; i < 3; ++i) {
+        CHECK(!client->password(second, "operator", 8, "wrong"));
+    }
+    CHECK(!client->is_connected(second));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 2);
+    CHECK(same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_b));
+    CHECK(!same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_a));
+
+    /* An attempt that the provider refuses before any callback counts, so it can reach the limit.
+     */
+    state.event_count = 0;
+    first = connect_ok(client, &client->peer_a);
+    for (int i = 0; i < 3; ++i) {
+        CHECK(!client->key_probe(first, "operator", "ssh-rsa", ED25519_KEY(client)));
+    }
+    CHECK(!client->is_connected(first));
+    CHECK(count_events(EVENT_KEY_CHECK) == 0);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 1);
+    CHECK(same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_a));
+}
+
+/* Nothing but the limit is reported: not a client that leaves, a login, a timeout or a stop. */
+static void case_auth_limit_is_not_reported_for_other_ends(const crux_ssh_test_client_t *client)
+{
+    int connection;
+
+    start(client);
+    state.password_result = CRUX_SSH_AUTH_DENIED;
+
+    /* A client that leaves after one refusal. */
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(!client->password(connection, "operator", 8, "wrong"));
+    client->disconnect(connection);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+
+    /* The time to log in passes. */
+    connection = connect_ok(client, &client->peer_a);
+    client->pass_auth_time(connection);
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+
+    /* Two refusals and then a login stay under the limit, and the login ends in the usual way. */
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(!client->password(connection, "operator", 8, "wrong"));
+    CHECK(!client->password(connection, "operator", 8, "wrong"));
+    state.password_result = CRUX_SSH_AUTH_ACCEPTED;
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(client->is_connected(connection));
+    client->disconnect(connection);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+    CHECK(count_events(EVENT_CONNECTION_CLOSED) == 1);
+
+    /* A stop ends a connection that has not logged in. */
+    state.password_result = CRUX_SSH_AUTH_DENIED;
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(!client->password(connection, "operator", 8, "wrong"));
+    CHECK(client->provider->stop() == CRUX_OK);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+}
+
+/* The report is a notice, so a table without it works, and the connection ends all the same. */
+static void case_auth_limit_callback_is_optional(const crux_ssh_test_client_t *client)
+{
+    crux_ssh_config_t config = valid_config(client);
+    crux_ssh_callbacks_t callbacks = all_callbacks();
+    int connection;
+
+    callbacks.auth_limit = NULL;
+    state.client = client;
+    CHECK(client->provider->start(&config, &callbacks) == CRUX_OK);
+    state.password_result = CRUX_SSH_AUTH_DENIED;
+    connection = connect_ok(client, &client->peer_a);
+    for (int i = 0; i < 3; ++i) {
+        CHECK(!client->password(connection, "operator", 8, "wrong"));
+    }
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
     connection = connect_ok(client, &client->peer_a);
     CHECK(client->is_connected(connection));
 }
@@ -1774,6 +1905,9 @@ const crux_ssh_conformance_case_t crux_ssh_conformance_cases[] = {
     CASE(changing_the_user_ends_the_connection),
     CASE(attempts_are_bounded),
     CASE(each_refusal_counts),
+    CASE(auth_limit_is_reported_at_the_limit),
+    CASE(auth_limit_is_not_reported_for_other_ends),
+    CASE(auth_limit_callback_is_optional),
     CASE(opening_none_does_not_count),
     CASE(request_after_login_ends_the_connection),
     CASE(callbacks_get_their_own_peer),
