@@ -1,0 +1,5 @@
+# The public and session-only routes of the consumer composition. The route sources of the Crux services
+# are not named yet (see the README, "What is missing"), so the product's own route and the packaged folder
+# are the whole table. A product route that needs a session carries a permission as its access class and
+# so is not listed here.
+public GET @assets

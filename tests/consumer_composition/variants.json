@@ -1,0 +1,50 @@
+[
+  {
+    "name": "private_include_directory",
+    "file": "app/CMakeLists.txt",
+    "old": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\n",
+    "new": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\ntarget_include_directories(app PRIVATE ${CRUX_DIR}/components/web/adapter)\n",
+    "expect": "include:",
+    "because": "a private header directory of Crux on the product's include path"
+  },
+  {
+    "name": "target_without_a_crux_name",
+    "file": "app/CMakeLists.txt",
+    "old": "crux::file_zephyr crux::time crux::system)",
+    "new": "crux::file_zephyr crux::time crux::system crux_web_adapter)",
+    "expect": "link: crux_web_adapter",
+    "because": "a target that has no crux:: name"
+  },
+  {
+    "name": "frozen_header_in_the_shell",
+    "file": "app/src/main.c",
+    "old": "#include <crux/time.h>\n",
+    "new": "#include <crux/time.h>\n#include <crux/thread.h>\n",
+    "expect": "headers:",
+    "because": "a frozen header in a product source"
+  },
+  {
+    "name": "composition_interface_in_the_domain",
+    "file": "domain/product_policy.h",
+    "old": "#include <crux/access.h>\n",
+    "new": "#include <crux/access.h>\n#include <crux/file_zephyr.h>\n",
+    "expect": "headers:",
+    "because": "a composition interface in the domain"
+  },
+  {
+    "name": "credential_adapter_directory",
+    "file": "app/CMakeLists.txt",
+    "old": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\n",
+    "new": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\ntarget_include_directories(app PRIVATE ${CRUX_DIR}/components/credential/adapter)\n",
+    "expect": "include:",
+    "because": "the credential adapter directory, which the credential boundary rule protects"
+  },
+  {
+    "name": "frozen_symbol_in_prj_conf",
+    "file": "app/prj.conf",
+    "old": "CONFIG_CRUX_ACCESS=y\n",
+    "new": "CONFIG_CRUX_ACCESS=y\nCONFIG_CRUX_THREAD=y\n",
+    "expect": "symbol in prj.conf: CRUX_THREAD",
+    "because": "a Thread symbol that the service symbols select"
+  }
+]
