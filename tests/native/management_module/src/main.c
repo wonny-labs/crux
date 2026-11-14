@@ -209,7 +209,8 @@ ZTEST_SUITE(management_module, NULL, start_services, NULL, NULL, NULL);
 ZTEST(management_module, test_01_the_store_started_on_the_module_s_core)
 {
     zassert_not_equal(state_at_start, CRUX_CREDENTIAL_STATE_UNUSABLE);
-    zassert_equal(crux_credential_state(), state_at_start);
+    /* The TLS certificate module generated the device key at its start, which makes a fresh store valid. */
+    zassert_equal(crux_credential_state(), CRUX_CREDENTIAL_STATE_VALID);
 }
 
 ZTEST(management_module, test_02_first_account_login_and_refusals)
