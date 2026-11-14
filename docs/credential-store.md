@@ -4,8 +4,7 @@ Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) f
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
-Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
-state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
+Owner: `components/credential`. Public headers `<crux/credential_store.h>` (the store's state) and `<crux/credential_store_start.h>` (`crux_credential_start` and the result type), both Experimental, usage target `crux::credential_store`. Neither declares anything that reads or writes a record (ADR-0004, phase 1a). Adapter
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
 `components/credential/src/credential_port.h`.
 
@@ -77,7 +76,7 @@ flowchart TB
 
 | Step | Call | Notes |
 | --- | --- | --- |
-| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store. Public: `<crux/credential_store.h>` |
+| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store. Public: `<crux/credential_store_start.h>` |
 | 2 | `crux_access_init(policy)` | Loads accounts through the bridge. Its `EMPTY` is the absence of the account record. |
 | 3 | `crux_credential_key_ensure(record, type)` | Private, and a product does not call it. `crux_tls_certificate_start` ensures the TLS key (`components/tls_certificate/src/tls_certificate.c`), and `crux_ssh_host_key_load` in the SSH composition code (`components/ssh/access/crux_ssh_host_key.c`, phase 3) ensures the SSH host key before the provider starts. A failure stops that listener |
 | 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot. Private: a product that composes the file service passes the two roots that it gave to `crux_credential_start` |

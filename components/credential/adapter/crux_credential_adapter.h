@@ -21,6 +21,7 @@
 #define CRUX_CREDENTIAL_ADAPTER_H
 
 #include <crux/credential_store.h>
+#include <crux/credential_store_start.h>
 #include <crux/file.h>
 #include <stddef.h>
 #include <stdint.h>

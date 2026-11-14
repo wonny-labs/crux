@@ -8,7 +8,7 @@ set(CRUX_CREDENTIAL_SOURCES "${CRUX_CREDENTIAL_SOURCES}" CACHE INTERNAL
 
 add_library(crux_credential_api INTERFACE)
 target_include_directories(crux_credential_api INTERFACE include)
-# The public header includes <crux/file.h> for the roots of crux_credential_start().
+# <crux/credential_store_start.h> includes <crux/file.h> for the roots of crux_credential_start().
 target_link_libraries(crux_credential_api INTERFACE crux::base crux_file_api)
 
 # Internal to the Access store port, TLS and SSH providers and a composition. Link it PRIVATE, so that
