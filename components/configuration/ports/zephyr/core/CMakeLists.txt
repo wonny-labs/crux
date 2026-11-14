@@ -7,10 +7,22 @@
 # configuration.c and configuration_text.c itself, beside its own port. With that selection on, this directory
 # builds nothing, so that no symbol is defined twice and no no-provider port competes with the real one.
 #
-# No crux:: target and no public header: see components/access/ports/zephyr/CMakeLists.txt. The sources are
+# Publishes the portable target crux::configuration. The sources are
 # the ones the Host build lists in components/configuration/CMakeLists.txt, and
 # tests/build/test_management_module.py holds the two lists together.
 get_filename_component(CRUX_CONFIGURATION_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CRUX_CONFIGURATION_COMPONENT_DIR}/../../cmake/CruxAccessBoundary.cmake")
+
+# A portable usage target, like the Host build's (ADR-0004 phase 1a, Experimental, held for the owner's
+# approval of the new target names): the public include root and the contracts that the header includes,
+# and nothing private. The library below is registered with the Zephyr link by zephyr_append_cmake_library,
+# so the target does not link it. tests/build/test_service_usage_targets.py runs this definition against
+# the real guards.
+function(crux_configuration_public_target)
+  add_library(crux_configuration INTERFACE)
+  add_library(crux::configuration ALIAS crux_configuration)
+  target_include_directories(crux_configuration INTERFACE "${CRUX_CONFIGURATION_COMPONENT_DIR}/include")
+endfunction()
 
 if(NOT CONFIG_CRUX_CONFIGURATION_CORE)
   message(FATAL_ERROR "This directory is the Configuration core selection of the module: set CONFIG_CRUX_CONFIGURATION_CORE")
@@ -31,3 +43,7 @@ zephyr_append_cmake_library(crux_configuration_core_zephyr)
 target_link_libraries(crux_configuration_core_zephyr PRIVATE zephyr_interface crux::base)
 add_dependencies(crux_configuration_core_zephyr zephyr_generated_headers)
 target_compile_options(crux_configuration_core_zephyr PRIVATE -Wall -Wextra -Werror)
+
+crux_configuration_public_target()
+cmake_language(DEFER CALL crux_assert_portable_usage crux::configuration)
+cmake_language(DEFER CALL crux_assert_access_adapter_unreachable crux::configuration)
