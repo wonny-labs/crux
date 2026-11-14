@@ -151,12 +151,27 @@ static void notify_closed(connection_t *connection)
     }
 }
 
+/* The report of a connection that ended at the limit. The callback is optional. */
+static void report_auth_limit(const connection_t *connection)
+{
+    if (callbacks()->auth_limit != NULL) {
+        ++fake.callback_depth;
+        callbacks()->auth_limit(callbacks()->context,
+                                peer_for(connection, CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_WRONG_PEER));
+        --fake.callback_depth;
+    }
+}
+
 static void end_connection(connection_t *connection)
 {
     if (!connection->connected) {
         return;
     }
     connection->connected = false;
+    /* A defect: any end of a connection that has not logged in is reported as the limit. */
+    if (has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_ANY_END) && !connection->authenticated) {
+        report_auth_limit(connection);
+    }
     if (has_fault(CRUX_SSH_FAKE_FAULT_CLOSED_BEFORE_SFTP_CLOSE)) {
         notify_closed(connection);
         end_sftp_session(connection);
@@ -174,6 +189,13 @@ static void count_failure(connection_t *connection)
     ++connection->attempts;
     if (connection->attempts >= fake.config.max_auth_attempts &&
         !has_fault(CRUX_SSH_FAKE_FAULT_NO_ATTEMPT_LIMIT)) {
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_NOT_REPORTED) &&
+            !has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_ANY_END)) {
+            report_auth_limit(connection);
+            if (has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_REPORTED_TWICE)) {
+                report_auth_limit(connection);
+            }
+        }
         end_connection(connection);
     }
 }
