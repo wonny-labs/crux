@@ -36,6 +36,9 @@ target_include_directories(crux_web_zephyr_resources INTERFACE {repo}/components
 add_library(app STATIC product.c product_routes.c {session})
 {extra}
 crux_web_routes(app SOURCES product_routes.c {session} ZEPHYR_RESOURCES REVIEWED ${{CMAKE_CURRENT_LIST_DIR}}/reviewed.txt)
+get_target_property(probe_links app LINK_LIBRARIES)
+get_target_property(probe_interface app INTERFACE_LINK_LIBRARIES)
+message(STATUS "probe-links=[${{probe_links}}] probe-interface=[${{probe_interface}}]")
 """
 
 
@@ -45,7 +48,7 @@ def components_dirs(command):
 
 @unittest.skipUnless(shutil.which("cmake") and shutil.which("python3"), "needs cmake and Python 3")
 class PrivateIncludesTest(unittest.TestCase):
-    def configure(self, extra=""):
+    def configure(self, extra="", session=None):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
@@ -53,10 +56,12 @@ class PrivateIncludesTest(unittest.TestCase):
         (root / "product.c").write_text("int product;\n")
         (root / "product_routes.c").write_text(PRODUCT_ROUTE)
         (root / "reviewed.txt").write_text(REVIEWED)
-        (root / "CMakeLists.txt").write_text(PROJECT.format(repo=REPO, session=SESSION_ROUTES, extra=extra))
+        (root / "CMakeLists.txt").write_text(PROJECT.format(repo=REPO, session=session or SESSION_ROUTES,
+                                                           extra=extra))
         result = subprocess.run(["cmake", "-S", str(root), "-B", str(root / "build")], capture_output=True,
                                 text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.stdout = result.stdout + result.stderr
         commands = json.loads((root / "build/compile_commands.json").read_text())
         return {Path(entry["file"]).name: entry["command"] for entry in commands}
 
@@ -78,11 +83,29 @@ class PrivateIncludesTest(unittest.TestCase):
         for name in ("product.c", "product_routes.c", "web_session_routes.c", "crux_web_routes.c"):
             self.assertNotIn("components/web/ports/zephyr", " ".join(components_dirs(commands[name])), name)
 
-    def test_the_function_links_no_usage_target_to_the_product(self):
-        text = (REPO / "cmake/CruxWebRoutes.cmake").read_text()
-        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
-        self.assertNotIn("crux_web_zephyr_resources", re.sub(r"INCLUDE_DIRECTORIES[^\n]*", "", text).replace(
-            "components/web/ports/zephyr", ""))
+    def test_the_function_links_nothing_of_crux_to_the_product(self):
+        self.configure()
+        links = re.search(r"probe-links=\[(.*?)\] probe-interface=\[(.*?)\]", self.stdout)
+        self.assertIsNotNone(links, self.stdout)
+        # The product's own target links nothing at all here: the function adds no usage target to it.
+        for value in links.groups():  # an unset property reads as <variable>-NOTFOUND
+            self.assertTrue(value == "" or value.endswith("-NOTFOUND"), value)
+
+    def test_a_property_the_caller_set_on_a_crux_route_source_is_kept(self):
+        extra = f'set_property(SOURCE {SESSION_ROUTES} PROPERTY INCLUDE_DIRECTORIES /caller/own)'
+        commands = self.configure(extra)
+        seen = commands["web_session_routes.c"]
+        self.assertIn("-I/caller/own", seen)
+        self.assertIn("components/web/session", seen)
+
+    def test_a_crux_route_source_under_another_spelling_of_the_repository_is_warned_about(self):
+        with tempfile.TemporaryDirectory() as alias:
+            link = Path(alias) / "alias"
+            link.symlink_to(REPO)
+            spelled = link / "components/web/session/web_session_routes.c"
+            commands = self.configure(session=spelled)
+            self.assertIn("looks like a Crux route source", self.stdout)
+            self.assertEqual(components_dirs(commands["web_session_routes.c"]), [])
 
     def test_the_weakened_form_shows_the_difference(self):
         # What the function did before: it linked the interface target to the product's target. The probe
