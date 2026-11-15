@@ -69,6 +69,44 @@ A `swap_info` that disagrees with `image_ok` (a test request with `image_ok` set
 - It does not tell you what MCUboot would decide at boot. It decodes bytes by the repository's trailer model and the author's reading of the image format.
 - It does not read a swap trailer. The records cover RAM load with revert, where the trailer holds the magic, `image_ok`, `copy_done` and `swap_info`.
 
+## Check of the CI-built images
+
+> **Status:** Prepared, **NOT wired** into any workflow, and it has **never run on a real build**. Its host tests ([`tests/build/test_check_boot_images.py`](../tests/build/test_check_boot_images.py)) run it only against a fake build tree of synthetic images and a fake `imgtool`. Whether it passes on the real images is **Not verified**.
+
+`tests/target/check_boot_images.sh [build-dir]` sits in `tests/target/` beside the inspector, so that no protected path (`scripts/`) holds it. It uses the images that the [boot composition](boot-composition.md) check builds as the ground truth for this inspector. It builds nothing, programs nothing and generates no key; it reads the build directory of `scripts/test-boot-composition.sh` (`build/zephyr/boot-composition` by default) and writes only into one temporary directory below it, `check_boot_images.tmp`, which it removes again (also after a failure). That directory holds the changed copies of the signed image, the inspector's JSON outputs and a few helper files. `CRUX_PYTHON` and `CRUX_WORKSPACE` work as in the composition script. It exits 0 when every check passed, 2 when something it needs cannot be used, and 1 when a check fails.
+
+| Exit | Cases |
+| --- | --- |
+| 2 | The build directory, `zephyr.signed.bin`, the MCUboot image, `imgtool.py` or the key file is missing; Python is not available (`CRUX_PYTHON`); the inspector cannot be started (shell status 126 or 127); `imgtool` ends in a traceback on `--help`, which means its requirements are not installed. The message says to run `scripts/test-boot-composition.sh` first or to install the requirements of `bootloader/mcuboot/scripts/requirements.txt`. |
+| 1 | A check fails: any value or size above, a disagreement between the inspector and `imgtool verify`, `imgtool` crashing while it verifies a file, a missing `zephyr.signed.confirmed.bin` (the Zephyr v4.4.2 erratum of the [boot and update investigation](boot-update-investigation.md)), or an image name that matches more than one file. |
+| 0 | Everything passed. If the public key could not be derived, the key hash row reads `info`, not `ok`, and the last line says `key hash NOT compared with the key`. |
+
+It finds the application's images only in the sysbuild directory `$build/zephyr/zephyr` (the first `zephyr` is the base name of `samples/controller/zephyr`, the second is sysbuild's output directory) with `find -maxdepth 1` for `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, so a stray copy deeper in the tree is not taken, and a name that matches more than one file fails, and the bootloader's image at `$build/mcuboot/zephyr/zephyr.bin`. It then checks:
+
+| Image | Checks |
+| --- | --- |
+| `zephyr.signed.bin` | The inspector parses it and reads `digest ok`; header size `0x400`, load address `0x80000000`; file size is header plus image plus the TLV areas that the inspector reports, with no padding; `KEYHASH`, `SHA256` and `ECDSA_SIG` TLVs are present; the key hash is 32 bytes and equals the SHA-256 of the public key's DER `SubjectPublicKeyInfo` (or of its uncompressed point), derived from `root-ec-p256.pem` with `imgtool getpub -e pem` or, failing that, `openssl`. If neither can derive the key the check says so, compares only the length, and does not count the key hash as checked. `imgtool verify` must agree with the inspector, and both must accept: `digest ok` and a verified signature. A disagreement, or both refusing, fails (exit 1) and shows both outputs. If the public key could not be derived, the key hash row is `info` and the script says so on its last line. |
+| `zephyr.signed.confirmed.bin` | File size is the slot size 3,145,728 B; the inspector reads `digest ok`; the file ends with a trailer magic; with `--slot-size 3145728` the trailer decodes for at least one alignment of 1, 8, 16 and 32 to `RUNNING_CONFIRMED` with `--running` and to `PENDING_PERMANENT` without it, with `image_ok` set and `copy_done` unset. These two names are the rows of the proposal's [slot state table](plans/image-state-contract-proposal.md#slot-states) for a good magic, `image_ok` set and `copy_done` unset. `imgtool verify` on this padded file is printed as information only, because how it treats padding is not established here. |
+| `mcuboot/zephyr/zephyr.bin` | `image --header-only` reports `no image` and the full `image` command exits 1: MCUboot's own binary carries no image header. |
+| Changed bytes | A copy of the signed image with the byte at `0x300` (header padding) or `0x500` (payload) changed reads `digest MISMATCH` (exit 1) in the inspector, and `imgtool verify` refuses it too. |
+
+The script prints a summary table and, for the confirmed image, a **survey of the alignment unit**: for each of `--align 1`, `8`, `16` and `32` the state of the magic, of `image_ok` and `copy_done`, and the slot state, with the unit that decodes consistently named. The survey is evidence for the open question above (the relation between `N` and the `--align 1` of the build's `imgtool` arguments), not a pass criterion: only a decode that reads `RUNNING_CONFIRMED` for at least one alignment is.
+
+**What it will settle, once it has run on a real build:** whether the inspector's reading of the TLV layout (the magics `0x6908` and `0x6907`, the entry layout, the hashed range) agrees with an image that MCUboot's tool signed and verifies, which is the check that the synthetic tests cannot give; whether the key hash is of the `SubjectPublicKeyInfo` or of the point; and which alignment unit the trailer of the build's confirmed image carries. It does not verify a signature itself, does not boot anything, and a pass says nothing about MCUboot's behaviour at boot.
+
+### Proposed workflow step (needs the owner's approval)
+
+The script itself touches no protected path. Running it in CI still means editing `.github/workflows/zephyr.yml`, a protected file (`AGENTS.md`, protected paths). That change has **not** been approved and stays a proposal that needs the owner's approval, so the workflow is untouched. The proposal is one step directly after the composition step in the `runtime` shard, where the build directory, the MCUboot checkout and imgtool's requirements already exist:
+
+```yaml
+      - name: Check the RAM load composition images against the boot image inspector (software-only)
+        if: matrix.shard == 'runtime'
+        working-directory: crux-pilot
+        run: tests/target/check_boot_images.sh
+```
+
+Until the step is wired and has run, the inspector remains unchecked against a real image.
+
 ## Limits
 
 - The image header fields come from the repository's model of the image (`ModelImage`, which has no TLVs). The TLV area magics (`0x6908`, `0x6907`), the TLV entry layout and the statement of what MCUboot hashes (header up to `hdr_size`, payload, protected TLV area) are the author's reading of MCUboot's image format. The repository records only that the bootloader's image copy covers header, payload, protected TLVs and TLVs.
