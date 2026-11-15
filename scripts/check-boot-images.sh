@@ -6,7 +6,8 @@
 #
 # This script builds nothing, programs nothing, boots nothing and generates no key. It reads the build
 # directory of the RT1060 composition check ($repo/build/zephyr/boot-composition unless an argument names
-# another one) and writes only temporary copies below that directory, which it removes again.
+# another one) and writes only below $build/check-boot-images.tmp (changed copies of the signed image, the
+# inspector's JSON outputs and small helper files), which it removes again, also after a failure.
 # It is NOT wired into any workflow: a step in .github/workflows/zephyr.yml is a protected-file change
 # that needs the project owner's approval (proposal: docs/boot-image-inspection.md, "Check of the
 # CI-built images"). It has never run on a real build; the host tests in
@@ -15,7 +16,10 @@
 # Usage: scripts/check-boot-images.sh [build-dir]
 # Environment: CRUX_PYTHON (python3 by default), CRUX_WORKSPACE (the parent of the repository by default,
 # where bootloader/mcuboot is checked out, as in scripts/test-boot-composition.sh).
-# Exit status: 0 every check passed, 1 a check failed, 2 the build or the tools are missing.
+# Exit status: 0 every check passed (a key hash that could not be compared is said so on the last line),
+# 1 a check failed (including a disagreement between the inspector and imgtool, a missing confirmed image
+# and an image name that is not exactly one file), 2 the build or a tool cannot be used: a missing build
+# directory, image, Python, imgtool or key, or imgtool without its requirements (a traceback on --help).
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -41,22 +45,52 @@ missing() {
     exit 2
 }
 
+command -v "$python" >/dev/null 2>&1 || missing "Python is not available as $python (set CRUX_PYTHON)"
 [[ -d "$build" ]] || missing "the build directory $build does not exist"
 [[ -d "$build/$image" ]] || missing "the build directory has no application directory $build/$image"
 [[ -f "$mcuboot/scripts/imgtool.py" ]] || missing "imgtool is not in the MCUboot checkout: $mcuboot/scripts/imgtool.py"
 [[ -f "$key" ]] || missing "the MCUboot test key is not in the checkout: $key"
 [[ -f "$repo/tests/target/inspect_boot_image.py" ]] || missing "the inspector tests/target/inspect_boot_image.py is missing"
-signed="$(find "$build/$image" -name zephyr.signed.bin -print -quit)"
-[[ -n "$signed" && -f "$signed" ]] || missing "no zephyr.signed.bin below $build/$image"
+# imgtool imports packages that the Zephyr requirements do not list. Without them it ends in a traceback,
+# which is a missing tool and not a verdict on an image.
+if ! imgtool_help="$("${imgtool[@]}" --help 2>&1)" || grep -q Traceback <<<"$imgtool_help"; then
+    missing "imgtool does not run (install the requirements of $mcuboot/scripts/requirements.txt): $(grep -v '^$' <<<"$imgtool_help" | tail -n 1)"
+fi
+
+# The images sit in the sysbuild directory $build/<image>/zephyr. Only that directory is searched, so a
+# stray file deeper in the tree is not taken, and the match must be exactly one file.
+app_dir="$build/$image/zephyr"
+located=""
+locate() {
+    local name="$1" line
+    local count=0 list=""
+    located=""
+    if [[ -d "$app_dir" ]]; then
+        while IFS= read -r line; do
+            [[ -n "$line" ]] || continue
+            count=$((count + 1))
+            list="${list:+$list, }$line"
+            located="$line"
+        done < <(find "$app_dir" -maxdepth 1 -name "$name" -print)
+    fi
+    if [[ "$count" -gt 1 ]]; then
+        fail "$name is not exactly one file in $app_dir: $list"
+    fi
+    [[ "$count" -eq 1 ]] || located=""
+}
+locate zephyr.signed.bin
+signed="$located"
+[[ -n "$signed" && -f "$signed" ]] || missing "no zephyr.signed.bin in $app_dir"
 mcuboot_bin="$build/mcuboot/zephyr/zephyr.bin"
 [[ -f "$mcuboot_bin" ]] || missing "no MCUboot image at $mcuboot_bin"
 
 # At Zephyr v4.4.2 RAM load with revert implies MCUBOOT_GENERATE_CONFIRMED_IMAGE, so the build writes a
 # padded, confirmed image next to the signed one (erratum of docs/boot-update-investigation.md). A build
 # without it is not the build that the composition page describes.
-confirmed="$(find "$build/$image" -name zephyr.signed.confirmed.bin -print -quit)"
+locate zephyr.signed.confirmed.bin
+confirmed="$located"
 [[ -n "$confirmed" && -f "$confirmed" ]] ||
-    fail "the build produced no zephyr.signed.confirmed.bin below $build/$image; at Zephyr v4.4.2 RAM load with revert implies it (erratum of docs/boot-update-investigation.md), so this is not the build of docs/boot-composition.md"
+    fail "the build produced no zephyr.signed.confirmed.bin in $app_dir; at Zephyr v4.4.2 RAM load with revert implies it (erratum of docs/boot-update-investigation.md), so this is not the build of docs/boot-composition.md"
 
 work="$build/check-boot-images.tmp"
 rm -rf "$work"
@@ -76,6 +110,9 @@ run_inspector() {
     shift
     inspector_status=0
     "${inspector[@]}" "$@" >"$work/$base.json" 2>"$work/$base.err" || inspector_status=$?
+    if [[ "$inspector_status" -eq 126 || "$inspector_status" -eq 127 ]]; then
+        missing "the inspector could not be run (exit $inspector_status): $python $repo/tests/target/inspect_boot_image.py"
+    fi
     if [[ "$inspector_status" -gt 1 ]]; then
         fail "the inspector exited $inspector_status for: $* ($(head -n 1 "$work/$base.err"))"
     fi
@@ -205,7 +242,7 @@ key_hash = report["key_hash"]
 if len(key_hash) != 64:
     bad(f"the key hash is {len(key_hash) // 2} bytes, expected 32")
 if spki == "-":
-    match = "key hash is 32 bytes, NOT compared with the key (no public key could be derived)"
+    match = "key hash is 32 bytes, NOT compared with the key (imgtool getpub and openssl could not derive the public key)"
 elif key_hash == spki:
     match = f"key hash = SHA-256 of the SubjectPublicKeyInfo ({source})"
 elif key_hash == point:
@@ -213,11 +250,18 @@ elif key_hash == point:
 else:
     bad(f"the key hash {key_hash} equals neither the hash of the public key's SubjectPublicKeyInfo "
         f"{spki} nor that of its point {point}")
-print(f"hdr 0x400, load 0x80000000, img_size {header['img_size']}, TLVs {tlv_bytes} B, {match}")
+print(f"hdr 0x400, load 0x80000000, img_size {header['img_size']}, TLVs {tlv_bytes} B")
+print(match)
 PY
 signed_detail="$("$python" "$work/check_signed.py" "$work/signed.json" "$signed_size" "$spki_hash" "$point_hash" "$derived_source")" ||
     fail "signed image: $signed_detail"
-record 'signed image: TLV layout' ok "$signed_detail"
+record 'signed image: TLV layout' ok "${signed_detail%%$'\n'*}"
+key_detail="${signed_detail#*$'\n'}"
+if [[ "$spki_hash" == "-" ]]; then
+    record 'signed image: key hash' info "$key_detail"
+else
+    record 'signed image: key hash' ok "$key_detail"
+fi
 record 'signed image: inspector vs imgtool' ok 'digest ok and verify ok agree'
 
 # ---- (b) the padded, confirmed image ------------------------------------------------------------
@@ -330,3 +374,6 @@ printf '  %s\n' "${summary[@]}"
 printf 'Alignment survey of the confirmed image (the open --align question of docs/boot-image-inspection.md; evidence only, not a pass criterion):\n'
 cat "$work/survey.txt"
 printf '%s\n' "Boot image check passed. The result is about the inspector's reading of these images; imgtool verify stays authoritative."
+if [[ "$spki_hash" == "-" ]]; then
+    printf 'key hash NOT compared with the key\n'
+fi

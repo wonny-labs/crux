@@ -59,6 +59,8 @@ FAKE_IMGTOOL = '''#!/usr/bin/env python3
 verify -k KEY FILE   exits as fake-mode.txt says: honest (0 only for a file whose SHA-256 is listed in
                      fake-good-sha256.txt), accept-all (0), refuse-all (1), crash (traceback)
 getpub -k KEY [-e E] prints fake-public.pem, or exits 1 when that file is absent
+--help               exits 0, as the real tool does when its requirements are installed
+mode no-requirements raises ModuleNotFoundError for every command, as the real tool does without them
 """
 import hashlib
 from pathlib import Path
@@ -67,6 +69,11 @@ import sys
 here = Path(__file__).resolve().parent
 mode = (here / "fake-mode.txt").read_text().strip()
 command = sys.argv[1]
+if mode == "no-requirements":
+    raise ModuleNotFoundError("No module named 'cryptography' (FAKE imgtool)")
+if command == "--help":
+    print("FAKE imgtool help")
+    sys.exit(0)
 if command == "verify":
     data = Path(sys.argv[-1]).read_bytes()
     good = (here / "fake-good-sha256.txt").read_text().split()
@@ -123,8 +130,12 @@ class ScriptShape(unittest.TestCase):
 
     def test_the_script_finds_the_images_the_way_the_composition_check_does(self):
         self.assertIn('image="$(basename "$app")"', self.code)
-        self.assertIn('find "$build/$image" -name zephyr.signed.bin', self.code)
-        self.assertIn('find "$build/$image" -name zephyr.signed.confirmed.bin', self.code)
+        # The sysbuild layout: the images sit in $build/<image>/zephyr, not anywhere below it.
+        self.assertIn('app_dir="$build/$image/zephyr"', self.code)
+        self.assertIn('find "$app_dir" -maxdepth 1 -name "$name" -print', self.code)
+        self.assertIn("locate zephyr.signed.bin", self.code)
+        self.assertIn("locate zephyr.signed.confirmed.bin", self.code)
+        self.assertNotIn("-print -quit", self.code)
         self.assertIn('mcuboot_bin="$build/mcuboot/zephyr/zephyr.bin"', self.code)
         self.assertIn('build="${1:-$repo/build/zephyr/boot-composition}"', self.code)
         self.assertIn('python="${CRUX_PYTHON:-python3}"', self.code)
@@ -160,6 +171,16 @@ class ScriptShape(unittest.TestCase):
         self.assertIn("scripts/check-boot-images.sh", page)
         self.assertRegex(page, r"NOT wired")
         self.assertRegex(page, r"never run on a real build")
+
+
+    def test_the_page_states_the_exit_codes_the_script_uses(self):
+        page = PAGE.read_text(encoding="utf-8")
+        self.assertIn("both refusing, fails (exit 1)", page)
+        self.assertIn("key hash NOT compared with the key", page)
+        self.assertIn("check-boot-images.tmp", page)
+        self.assertIn("requirements", page)
+        header = "\n".join(l for l in SCRIPT.read_text(encoding="utf-8").splitlines() if l.startswith("#"))
+        self.assertIn("2 the build or a tool cannot be used", header)
 
 
 class BehaviourTest(unittest.TestCase):
@@ -207,12 +228,12 @@ class BehaviourTest(unittest.TestCase):
         else:
             pem.write_text(pem_of(public))
 
-    def run_script(self, build=None, expect=None):
+    def run_script(self, build=None, expect=None, python=None):
         done = subprocess.run(
             ["bash", str(SCRIPT), str(build if build is not None else self.build)],
             capture_output=True, text=True,
             env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "CRUX_WORKSPACE": str(self.workspace),
-                 "CRUX_PYTHON": sys.executable})
+                 "CRUX_PYTHON": python or sys.executable})
         if expect is not None:
             self.assertEqual(expect, done.returncode, f"stdout:\n{done.stdout}\nstderr:\n{done.stderr}")
         # Temporary copies are removed after a pass and after a failure.
@@ -226,8 +247,10 @@ class BehaviourTest(unittest.TestCase):
         for text in ("Boot image check passed", "signed image: TLV layout", "confirmed image: digest, trailer",
                      "MCUboot zephyr.bin: no image", "changed byte at 0x300", "changed byte at 0x500",
                      "RUNNING_CONFIRMED", "at --align 8", "alignment  1:", "alignment  8:",
-                     "alignment 16:", "alignment 32:", "SubjectPublicKeyInfo"):
+                     "alignment 16:", "alignment 32:", "SubjectPublicKeyInfo", "signed image: key hash"):
             self.assertIn(text, done.stdout)
+        self.assertRegex(done.stdout, r"signed image: key hash +ok ")
+        self.assertNotIn("NOT compared", done.stdout)
 
     def test_a_confirmed_image_with_the_trailer_of_alignment_1_passes_and_names_it(self):
         self.set_images(self.image, self.confirmed1)
@@ -245,7 +268,12 @@ class BehaviourTest(unittest.TestCase):
         # No fake public key, and the key file is not a key, so openssl cannot derive one either.
         self.set_fake("honest", good=[self.image], public=None)
         done = self.run_script(expect=0)
-        self.assertIn("NOT compared with the key", done.stdout)
+        # The row is info, not ok, so that an uncompared key hash does not look like a pass, and the
+        # last line says it again.
+        self.assertRegex(done.stdout, r"signed image: key hash +info .*NOT compared with the key")
+        self.assertNotRegex(done.stdout, r"signed image: key hash +ok ")
+        self.assertEqual("key hash NOT compared with the key", done.stdout.strip().splitlines()[-1])
+        self.assertRegex(done.stdout, r"signed image: TLV layout +ok ")
 
     # ---- failing loudly ----
 
@@ -341,6 +369,7 @@ class BehaviourTest(unittest.TestCase):
     def test_a_missing_build_directory_exits_2_and_says_to_run_the_composition_check(self):
         done = self.run_script(build=self._dir.name + "/no-such-build", expect=2)
         self.assertIn("scripts/test-boot-composition.sh", done.stderr)
+        self.assertIn("no-such-build", done.stderr)
 
     def test_a_missing_signed_image_exits_2(self):
         (self.app / "zephyr.signed.bin").unlink()
@@ -356,10 +385,48 @@ class BehaviourTest(unittest.TestCase):
         done = self.run_script(expect=2)
         self.assertIn("imgtool", done.stderr)
 
-    def test_the_script_does_not_build_when_the_directory_is_missing(self):
+    def test_a_missing_python_exits_2(self):
+        done = self.run_script(python="/no/such/python", expect=2)
+        self.assertIn("python", done.stderr)
+        self.assertIn("scripts/test-boot-composition.sh", done.stderr)
+
+    def test_imgtool_without_its_requirements_exits_2_and_names_them(self):
+        self.set_fake("no-requirements", public=FAKE_SPKI)
+        done = self.run_script(expect=2)
+        self.assertIn("requirements", done.stderr)
+        self.assertIn("scripts/test-boot-composition.sh", done.stderr)
+
+    def test_a_missing_build_directory_creates_nothing_and_does_not_crash(self):
+        # Sharpens the exit 2 case above: the script only reads, so a missing directory stays missing,
+        # and the message is the script's, not a traceback.
         done = self.run_script(build=self._dir.name + "/no-such-build", expect=2)
         self.assertFalse((Path(self._dir.name) / "no-such-build").exists())
         self.assertNotIn("Traceback", done.stderr)
+
+    # ---- where the images are looked for ----
+
+    def test_a_stray_signed_image_deeper_in_the_tree_is_not_picked_up(self):
+        # A changed copy in a subdirectory would fail if the script took it; the file of the sysbuild
+        # layout is the one that counts.
+        deeper = self.app / "deeper"
+        deeper.mkdir()
+        changed = bytearray(self.image)
+        changed[0x500] ^= 0xFF
+        (deeper / "zephyr.signed.bin").write_bytes(bytes(changed))
+        (deeper / "zephyr.signed.confirmed.bin").write_bytes(b"not an image")
+        self.run_script(expect=0)
+
+    def test_a_signed_image_only_deeper_in_the_tree_counts_as_missing(self):
+        (self.app / "deeper").mkdir()
+        (self.app / "zephyr.signed.bin").replace(self.app / "deeper/zephyr.signed.bin")
+        done = self.run_script(expect=2)
+        self.assertIn("no zephyr.signed.bin", done.stderr)
+
+    def test_a_confirmed_image_only_deeper_in_the_tree_counts_as_missing(self):
+        (self.app / "deeper").mkdir()
+        (self.app / "zephyr.signed.confirmed.bin").replace(self.app / "deeper/zephyr.signed.confirmed.bin")
+        done = self.run_script(expect=1)
+        self.assertIn("v4.4.2", done.stderr)
 
 
 if __name__ == "__main__":
