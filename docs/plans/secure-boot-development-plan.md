@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Proposed.** A plan for the owner. It adopts nothing beyond the decisions it cites. Statements the cited records do not support carry the label Inference or Not verified. |
+| Status | **Proposed.** A plan for the owner. It adopts nothing beyond the decisions it cites. Statements the cited records do not support carry the label Inference or Not verified. State on 15 November 2026: work package WP1a of Phase 1 is merged (#339, #340, #437) and is build-only; no boot experiment has been run on a board. |
 | Date | 14 November 2026 |
 | Milestones | M8 "Boot platform foundation and verified boot" ([#296](https://github.com/wonny-labs/crux-pilot/issues/296)) and M9 "Secure firmware update and recovery" ([#297](https://github.com/wonny-labs/crux-pilot/issues/297)); the eMMC medium work cross-references M14 "Transactional storage on eMMC". No new milestone is proposed (section 5). |
-| Records it builds on | [Boot and update investigation](../boot-update-investigation.md) (#141), [eMMC boot and update feasibility](../boot-emmc-investigation.md) (#298), [Updating or recovering a deployed bootloader](../boot-bootloader-update-investigation.md) (#299), the boot composition page of Draft PR [#340](https://github.com/wonny-labs/crux-pilot/pull/340) (WP1a, not merged), [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) to [ADR-0004](../decisions/0004-product-composition-of-management-services.md) and [ADR-0006](../decisions/0006-cryptographic-dependency-policy.md) |
+| Records it builds on | [Boot and update investigation](../boot-update-investigation.md) (#141), [eMMC boot and update feasibility](../boot-emmc-investigation.md) (#298), [Updating or recovering a deployed bootloader](../boot-bootloader-update-investigation.md) (#299), the [boot composition page](../boot-composition.md) (WP1a, merged in [#340](https://github.com/wonny-labs/crux-pilot/pull/340) and [#437](https://github.com/wonny-labs/crux-pilot/pull/437)), [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) to [ADR-0004](../decisions/0004-product-composition-of-management-services.md) and [ADR-0006](../decisions/0006-cryptographic-dependency-policy.md) |
 
 Labels follow the boot records: Verified on pinned source, Verified by build, Verified by public vendor
 document, Inference, Not verified. A statement without a label is a proposal of this plan or a
@@ -44,7 +44,7 @@ recovery is accepted for M8 and M9, #299), and product-specific runtime integrat
 | BEE stays out of M8 | #141 owner decision 10 (7 November 2026) |
 | A later HAB event read in open configuration, without fuse writes, is allowed only as a separately approved hardware task, which may share a session with the ROM serial downloader check (#309) | #141 owner decision 8 (7 November 2026) |
 | Service recovery through the boot ROM serial downloader for M8 and M9: a single bootloader copy that is not field-updatable. M9 declares the bootloader's update and recovery level and carries the bootloader version in the boot-result record | #297 and #299, owner decision of 7 November 2026 |
-| Composition files live in the Crux module (PR #340 proposes the folder `zephyr/boot/boards/<board>/`, not merged) | Owner decision of 9 November 2026, option B, as recorded in the description of PR #340 (the page is not merged) |
+| Composition files live in the Crux module, in the folder `zephyr/boot/boards/<board>/` | Owner decision of 9 November 2026, option B, as recorded in the description of PR #340. The RT1060-EVK Rev B files are in place since PR #437 |
 | The microSD staging path (variant a) is deferred | #141 owner decision 6 (7 November 2026) |
 | `storage` stays declared with no owner and no writer in M8; slots stay 3 MiB until a whole-slot erase has been timed; boundaries stay 64 KiB aligned | #141 owner decision 17 (2 November 2026) |
 | "No eMMC backend work starts. It waits for a target and a scope decision." "eMMC adds no M8 or M9 exit criterion." The software-only replay of MCUboot trailer sequences is #310, low priority and without a milestone. No eMMC-bearing RT1060 or RT1062 target exists yet | Owner decisions of 7 November 2026, as recorded in the closing comment of #298 and in #310 |
@@ -110,7 +110,7 @@ Boot ROM ──HAB──▶ First stage: MCUboot ──ECDSA P-256──▶ Appl
 | Phase | Work | Where | State on 14 November 2026 |
 | --- | --- | --- | --- |
 | 0 | Investigations #141, #298, #299 | records above | Done (desk and build-only) |
-| 1 | M8 on RT1060-EVKB NOR: MCUboot in the manifest (PR #339), composition recipe (PR #340), board composition files and a build check, development-key signing, a non-destructive recovery path proved before any physical boot experiment (#296; the ROM serial downloader check #309 is planned, and the recovery steps it documents can be reused for this path), board evidence that signed images boot and unsigned, wrong-key and modified images do not, RT1170 build-only evidence | M8 #296 | PRs #339 and #340 open as of this writing; later work packages not started |
+| 1 | M8 on RT1060-EVKB NOR: MCUboot in the manifest (PR #339), composition recipe (PR #340), board composition files and a build check, development-key signing, a non-destructive recovery path proved before any physical boot experiment (#296; the ROM serial downloader check #309 is planned, and the recovery steps it documents can be reused for this path), board evidence that signed images boot and unsigned, wrong-key and modified images do not, RT1170 build-only evidence | M8 #296 | MCUboot in the manifest (#339), the composition page (#340), the four RT1060-EVK Rev B board files and a CI build check, signed with the public test key and build-only (#437) are merged. RT1170 build-only evidence, the recovery path and all board evidence are not started |
 | 2 | M9 update path: image-state contract decision (#297 proposes deciding whether to adopt a public contract at the start of this work), update agent with an explicit state machine, application-side version policy, boot-result record (running slot, confirmed or reverted, bootloader version), declared recovery and power-interruption cases (power fixture and separate approval) | M9 #297 | Not started |
 | 3 | eMMC media path. Started now: trailer replay on the eMMC simulator (#310, low priority, no milestone) and a read/write flash-API driver over the MMC disk in the Crux module as a Draft prototype tested on the simulator, not merged (owner choice of 14 November 2026, section 2). Everything beyond these waits for a validation target (D3) and the adoption decision (D2): eMMC first-stage image (separate boot image, IVT offset 0x400, size budget against the boot partition of the chosen part), eMMC provisioning profile as a decision record, validation target decision | proposed issues A to E (section 5), cross-referenced to M14 | #310 open, no driver exists, issues A to E not created |
 | 4 | HAB in open configuration: offline HAB signing and structure check of the first stage for NOR and eMMC layouts; HAB event read on the EVKB as a separately approved hardware task | M8 #296 (NOR layout, which already names a HAB-signed bootloader build path); eMMC layout proposed as issue C | Not started |
@@ -169,7 +169,7 @@ or run for this plan. Each row still needs a hands-on check before it is relied 
 
 | Purpose | Tool | Licence and CI use |
 | --- | --- | --- |
-| Application image signing (M8, M9) | MCUboot `imgtool` through Zephyr sysbuild | Apache-2.0. Used in the #141 trial builds and in the WP1a build of PR #340 |
+| Application image signing (M8, M9) | MCUboot `imgtool` through Zephyr sysbuild | Apache-2.0. Used in the #141 trial builds and in the WP1a builds and CI check (#340, #437) |
 | HAB image build, signing and offline structure check | NXP SPSDK `nxpimage hab` (`export`, `parse`), described as the successor of the legacy elftosb and CST tools (#141 Stage 3 B6) | BSD-3-Clause on PyPI (3.12.0 at the time of reading); binary dependency licences not checked. A CI use with a pinned version and throw-away test keys is a proposal. The SPSDK download was approved under #141 A2 and has not been used. Whether SPSDK accepts a Zephyr image that already has an FCB and IVT, and whether it fully replaces CST for RT1060 HAB, are Not verified (#141 Stage 3 B6) |
 | ROM serial download and flash/eMMC programming | SPSDK `sdphost` and `blhost` with NXP's flashloader | SPSDK BSD-3-Clause. Where the flashloader binary comes from and under what licence is Not verified (#299 evidence, item 7), so it stays outside the repository and CI until that is read |
 | Fuse programming (production only) | An NXP fuse tool; tool names are Not verified in the repository records | Never on development boards without an owner decision |
@@ -193,7 +193,7 @@ an explicit human approval.
 - [ADR-0002](../decisions/0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0003](../decisions/0003-p9-result-services-keep-narrow-thread-sync.md): product code uses Zephyr-native APIs in product adapters, and Thread, Sync, Queue and Serial are frozen for new product code (ADR-0002 P2, kept by ADR-0003). Whether the update agent and image-state code count as product code is Inference; if they do, they follow this.
 - [ADR-0004](../decisions/0004-product-composition-of-management-services.md): the HTTPS and SFTP update routes (#191 in M11, #196 in M12) would follow the management composition (Inference; the ADR concerns how a product composes the management services).
 - [ADR-0006](../decisions/0006-cryptographic-dependency-policy.md): the crypto policy covers Crux's own crypto pins. this plan proposes that MCUboot's crypto backend stays consistent with it (D9); the ADR does not require this.
-- Boot composition files live in the Crux module (owner decision of 9 November 2026, option B); PR #340 proposes `zephyr/boot/boards/<board>/` (not merged). Where the boot code's Kconfig and CMake hooks go is Not decided here.
+- Boot composition files live in the Crux module (owner decision of 9 November 2026, option B); the folder is `zephyr/boot/boards/<board>/` (PR #340, files in PR #437). Where the boot code's Kconfig and CMake hooks go is Not decided here.
 - Reliance Edge stays in its own opt-in group (GPLv2, `crux-reliance`, ADR-0006 and the M14 design); the bootloader is not planned to contain a file system.
 - Any bench image follows the [freeze and capture design](../rt1060-bench-freeze-and-capture-design.md). No board or hardware step runs without the owner's task-specific approval (`AGENTS.md`), and the eMMC physical gate of M14 ([procedure](../emmc-reliance-physical-gate.md)) needs its own approval.
 
@@ -207,9 +207,9 @@ an explicit human approval.
 - Closed-configuration behaviour is shown only on boards that may be locked. The EVKB stays open.
 - Power-interruption tests need a controllable power fixture and their own approval (#297).
 - The signed `--pad` images of owner decision 13 and the confirmed image that the v4.4.2 build also
-  writes need a follow-up: PR #340 reports that the #141 rows saying RAM load with revert does not
-  imply a confirmed image describe v4.4.0, and how MCUboot treats the v4.4.2 confirmed image is Not
-  verified.
+  writes need a follow-up: the #141 rows saying RAM load with revert does not imply a confirmed image
+  describe v4.4.0 (the boot composition page says so), and how MCUboot treats the v4.4.2 confirmed
+  image is Not verified.
 
 ## 10. Confidentiality boundary
 
