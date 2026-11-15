@@ -11,7 +11,7 @@
 
 ## 1. Question
 
-Plan decision D9: MCUboot's ECDSA P-256 verification can use MCUboot's bundled tinycrypt, Zephyr's Mbed TLS or PSA Crypto. Which should the composition use? The plan asks for a size and boot-time build comparison first. This record gives the size comparison and states what it cannot show. It does not choose.
+Plan decision D9: MCUboot's ECDSA P-256 verification can use MCUboot's bundled tinycrypt, Zephyr's Mbed TLS or PSA Crypto. Which should the composition use? The plan asks for a size and boot-time build comparison first. The approach the project owner approved on 15 November 2026 (recorded in the plan's D9 row) is to decide only after a size and boot-time comparison build, and no backend is chosen. This record is the size half. The boot-time half needs a board and is **Not measured**, so D9 is not yet decidable on the approved terms unless the owner decides otherwise (option C in section 6). It does not choose.
 
 ## 2. Method
 
