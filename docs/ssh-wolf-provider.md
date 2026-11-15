@@ -202,6 +202,8 @@ flowchart LR
 | `crux_ssh_wire_host_key_form` | 64 bytes for Ed25519, 97 bytes for P-256 with the public part starting `0x04` | Another length or type, or a P-256 public part that is not an uncompressed point | Length only. The point's prefix was caught later, when the parts did not agree. |
 | `crux_ssh_wire_host_key_blob`, `crux_ssh_wire_fingerprint_text` | The public part alone, as OpenSSH shows it | A buffer too small | The same, inline, with SHA-256 still in the provider |
 
+**Access takes the same two types.** Since Issue #316 `crux_access_account_add_key` refuses a P-384 or P-521 blob as `INVALID_ARGUMENT`, so an account cannot hold a user key that this list never offers. The [Access contract](access-contract.md#user-key-types-issue-316) has the profile table and what an old store holding one does.
+
 **What the change narrows.** A malformed blob of an accepted type now counts as a refused attempt with no callback, as an RSA
 key does, where before it reached `key_check` and `crux_access` refused it as an unlisted key. A *signed* request with such a
 blob therefore no longer writes a delay entry or an access event: [decision 22](#decisions-for-review) lists which event it
