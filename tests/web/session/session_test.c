@@ -24,6 +24,40 @@ uint64_t crux_web_port_now_ms(void)
     return web_clock_ms;
 }
 
+/* The fake event port. Reports come from the server thread, so a suite that sends from several
+ * threads must not read them while it sends. */
+#define SESSION_EVENTS_MAX 64u
+static crux_web_session_event_t reported[SESSION_EVENTS_MAX];
+static size_t reported_count;
+
+void crux_web_session_port_event(const crux_web_session_event_t *event)
+{
+    if (reported_count < SESSION_EVENTS_MAX) {
+        reported[reported_count] = *event;
+    }
+    ++reported_count;
+}
+
+size_t session_events_count(void)
+{
+    return reported_count;
+}
+
+const crux_web_session_event_t *session_events_at(size_t index)
+{
+    return index < reported_count && index < SESSION_EVENTS_MAX ? &reported[index] : NULL;
+}
+
+size_t session_events_count_of(crux_web_session_event_type_t type)
+{
+    size_t found = 0;
+
+    for (size_t index = 0; index < reported_count && index < SESSION_EVENTS_MAX; ++index) {
+        found += reported[index].type == type ? 1u : 0u;
+    }
+    return found;
+}
+
 void session_clock_advance(uint64_t delta_ms)
 {
     web_clock_ms += delta_ms;
@@ -99,6 +133,7 @@ void session_test_setup_web(void)
     static const crux_web_session_config_t session_config = {"https", NULL, 0u};
 
     web_clock_ms = 1000u;
+    reported_count = 0u;
     session_test_route_session.value = 0u;
     session_test_route_calls = 0u;
     random_fail = false;

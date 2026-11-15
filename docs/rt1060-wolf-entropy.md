@@ -83,7 +83,7 @@ CRUX-ENTROPY first-read=failed source=crux-test-entropy compatible=crux,test-ent
 
 ## Where it runs in the bench image
 
-The bench image still refuses to start (C1). **Since row C10 the check runs before that refusal**, so the refused image prints the banner and the `CRUX-ENTROPY` line and then refuses. The owner decided this on 2026-11-09 (quote: "1-8까지 너의 추천대로 진행해줘"), which supersedes the placement that C5 recommended ([decision 5](#decisions-for-review), D-a of [the image plan](rt1060-bench-image-plan.md)). `tests/build/test_wolf_entropy_boot.py` pins the order.
+The bench image still refuses to start (C1). **Since row C10 the check runs before that refusal**, so the refused image prints the banner and the `CRUX-ENTROPY` line and then refuses. The owner decided this on 2026-11-09 (as recommended), which supersedes the placement that C5 recommended ([decision 5](#decisions-for-review), D-a of [the image plan](rt1060-bench-image-plan.md)). `tests/build/test_wolf_entropy_boot.py` pins the order.
 
 | Step in `main()` | |
 | --- | --- |
@@ -154,7 +154,7 @@ It uses the real `access_psa.c`, `credential_psa.c`, `tls_certificate_psa.c` and
 
 | Item | Why it is not in C5 |
 | --- | --- |
-| `tcp_init_isn` ignores a failed `sys_csrand_get` and keeps a zero key. After a read that fails **after** the boot check passed, TCP initial sequence numbers of the bench image would be predictable. A Zephyr change or a check in the composition would close it. | **Closed in row C11.** It is Zephyr's code and not a Crux key, so C5 left it, and it needed an owner decision. The owner decided on 2026-11-09 ("1-8까지 너의 추천대로 진행해줘" (the recommendation was: patch)) to patch the build-local Zephyr copy: [`rt1060-isn-fail-closed.md`](rt1060-isn-fail-closed.md). The work also found that the pinned `tcp_init_isn` never used its key at all (it hashes into a 16-byte buffer, which PSA refuses for SHA-256), so the zero key was latent: both are fixed by the one patch. A board run is still the only way to see whether a TRNG read fails after a successful start. |
+| `tcp_init_isn` ignores a failed `sys_csrand_get` and keeps a zero key. After a read that fails **after** the boot check passed, TCP initial sequence numbers of the bench image would be predictable. A Zephyr change or a check in the composition would close it. | **Closed in row C11.** It is Zephyr's code and not a Crux key, so C5 left it, and it needed an owner decision. The owner decided on 2026-11-09, as recommended (the recommendation was: patch), to patch the build-local Zephyr copy: [`rt1060-isn-fail-closed.md`](rt1060-isn-fail-closed.md). The work also found that the pinned `tcp_init_isn` never used its key at all (it hashes into a 16-byte buffer, which PSA refuses for SHA-256), so the zero key was latent: both are fixed by the one patch. A board run is still the only way to see whether a TRNG read fails after a successful start. |
 
 ## Decisions for review
 
@@ -164,7 +164,7 @@ It uses the real `access_psa.c`, `credential_psa.c`, `tls_certificate_psa.c` and
 | 2 | The check is a build refusal, not a patch: `entropy_boot.c` does not compile where wolfCrypt would use `sys_rand_get()` | It is the one state where a failed read does not fail, and a refusal is the least invasive mechanism |
 | 3 | The source named in the line is the chosen `zephyr,entropy` node | It is the only device wolfCrypt reads |
 | 4 | The check lives in `tests/zephyr/entropy_boot/` and is not a component | No public interface is adopted, and the bench image is under `tests/` |
-| 5 | The check runs **before** the bench image's refusal (**changed in row C10**, owner decision of 2026-11-09, "1-8까지 너의 추천대로 진행해줘"; row C5 had placed it after) | The refused image now prints the line, so that a host can read the entropy source from the image that is built and refused, and a failed first read stops the image before the refusal. Nothing that makes a key or opens a listener moved. |
+| 5 | The check runs **before** the bench image's refusal (**changed in row C10**, owner decision of 2026-11-09, as recommended; row C5 had placed it after) | The refused image now prints the line, so that a host can read the entropy source from the image that is built and refused, and a failed first read stops the image before the refusal. Nothing that makes a key or opens a listener moved. |
 | 6 | `scripts/test-wolf-entropy.sh` is a **new** file in a protected directory, and no existing protected file is changed | A new check script may be added within a task. It stays out of default CI like the other wolfSSL tests. |
 
 ## Reproduce

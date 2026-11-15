@@ -1,6 +1,6 @@
 # Portable Configuration implementation plan
 
-> **For agentic workers:** Use superpowers:executing-plans with TDD. Root coordinates independent Reviewer and Challenger gates.
+> **Execution:** test-driven development, with independent review and adversarial review gates.
 
 **Goal:** Implement Issue #16's approved portable scalar behaviour and software evidence.
 **Architecture:** Caller-owned BOOL/U32 parameter state and application descriptors,

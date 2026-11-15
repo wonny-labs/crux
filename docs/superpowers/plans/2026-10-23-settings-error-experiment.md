@@ -1,6 +1,6 @@
 # Settings error-propagation experiment plan
 
-> **For agentic workers:** Execute inline with systematic debugging and TDD; independent Reviewer and Challenger assess the final experiment.
+> **Execution:** inline, with systematic debugging and test-driven development; independent Reviewer and Challenger assess the final experiment.
 
 **Goal:** Reproduce and propose minimal corrections for the approved Settings/NVS failure paths using controlled pinned-source copies.
 **Architecture:** Compile exact pinned store/NVS backend sources against explicit Host dependency shims. Apply reviewable patches only to temporary copies; compare unchanged and candidate behavior with deterministic inputs. No native adapter or production backend is installed.

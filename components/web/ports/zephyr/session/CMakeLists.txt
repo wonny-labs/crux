@@ -9,7 +9,8 @@
 # CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY, through crux_service_priority_placement.
 #
 # No crux:: target and no public header: see components/access/ports/zephyr/CMakeLists.txt. The sources are
-# the ones components/web/session/sources.cmake lists, plus its PSA port, and
+# the ones components/web/session/sources.cmake lists, plus its PSA port and the provider of its event
+# port over the security events, which CONFIG_CRUX_ACCESS builds, and
 # tests/build/test_management_module.py holds the lists together.
 get_filename_component(CRUX_WEB_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 get_filename_component(CRUX_COMPONENTS_DIR "${CRUX_WEB_COMPONENT_DIR}/.." ABSOLUTE)
@@ -22,13 +23,15 @@ add_library(crux_web_session_zephyr STATIC
   ../../../session/web_session.c
   ../../../session/web_session_attempt.c
   ../../../session/web_session_json.c
+  ../../../session/web_session_security_events.c
   ../../psa/web_session_psa.c
 )
 target_include_directories(crux_web_session_zephyr PRIVATE
   "${CRUX_WEB_COMPONENT_DIR}/session"
   "${CRUX_WEB_COMPONENT_DIR}/adapter"
   "${CRUX_WEB_COMPONENT_DIR}/src"
-  "${CRUX_COMPONENTS_DIR}/access/adapter")
+  "${CRUX_COMPONENTS_DIR}/access/adapter"
+  "${CRUX_COMPONENTS_DIR}/security_event/include")
 zephyr_append_cmake_library(crux_web_session_zephyr)
 target_link_libraries(crux_web_session_zephyr PRIVATE zephyr_interface crux_web_api crux::base crux::sync
   crux::thread crux_service_priority_placement)

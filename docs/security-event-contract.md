@@ -19,7 +19,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed` and `web.csrf_rejected` (a refused CSRF token or `Origin`: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)). The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), tested on the Host only: the same code is compiled into images that select `CONFIG_CRUX_SSH`, and no run of one has shown a record. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`. The web session module emits `web.csrf_rejected` and `web.origin_rejected` for a refused CSRF token or `Origin`, rate-limited ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [below](#from-the-web-session-port)), tested on the Host only. The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), tested on the Host only: the same code is compiled into images that select `CONFIG_CRUX_SSH`, and no run of one has shown a record. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
 | Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
@@ -259,10 +259,11 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0500 | `cli.line_rejected` | R | CLI, #181 |
 | 0x0501 | `cli.console_error` | R | CLI |
 | 0x0600 | `web.tls_failed` | R | M11 |
-| 0x0601 | `web.csrf_rejected` | R | M11 |
+| 0x0601 | `web.csrf_rejected` | R | Web session module, #319: a request with a session refused for its CSRF token |
 | 0x0602 | `web.certificate_replaced` | C | M11, the [TLS certificate](tls-certificate.md), #190 |
 | 0x0603 | `web.certificate_rejected` | R | The [TLS certificate](tls-certificate.md), #190 |
 | 0x0604 | `web.certificate_unusable` | C | The [TLS certificate](tls-certificate.md), #190: the stored certificate refused at start, so nothing is served |
+| 0x0605 | `web.origin_rejected` | R | Web session module, #319: a request with a session, or a login, refused for its `Origin`. Added on the owner's decision of 2026-11-14. |
 | 0x0700 | `ssh.auth_limit` | R | SSH access adapter, #317: a connection ended at `max_auth_attempts` |
 | 0x0701 | `ssh.host_key_missing` | C | SSH access adapter, #317: the credential store could not supply the host key |
 | 0x0800 | `network.changed` | C | Network settings service |
@@ -344,6 +345,19 @@ meanwhile: such a refusal counts as an attempt, so when one of them is the attem
 the connection is reported as `ssh.auth_limit`. The conformance case `auth_limit_is_reported_at_the_limit` shows this on the
 fake provider only, with an `ssh-rsa` key. On wolfSSH it holds only if wolfSSH counts such a refusal as an attempt, which nothing
 has shown. A provider's refusal of a connection past `max_connections` reaches no callback and leaves no event at all.
+
+### From the web session port
+
+Added by #319, on the owner's decision of 2026-11-14 (option A, with rate limiting). The provider is `components/web/session/web_session_security_events.c`, a thin translation as for the ports above. `web.origin_rejected` is new, class R and, with the rest of this component, Experimental (ADR-0001 decision 4). `web.csrf_rejected` was defined before and is now emitted.
+
+| Report | Identifier | Result | `user` | `channel`, `source` | `subject` | When |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CSRF_REJECTED` | `web.csrf_rejected` | `DENIED` | The session's account | 2, and the peer: an IPv4 address or an IPv6 /64. No source if the adapter could not tell. | None | A request with a session and an accepted `Origin`, on any method but `GET`, whose `X-XSRF-TOKEN` is missing or wrong |
+| `ORIGIN_REJECTED` | `web.origin_rejected` | `DENIED` | The session's account, and none for a login | The same | None | A request with a session, on any method but `GET`, whose `Origin` is missing or not accepted, and a login whose `Origin` is not accepted |
+
+Neither record has a subject, and none carries a header, a token or any text from the request. A request with no session, which answers `401`, and a poll without `X-Crux-Request` are not reported.
+
+**The bound.** Class R admission alone lets a flood of refused requests hold the ring at its 24 pending records for as long as it lasts, and so drop every other routine record. The module therefore reports at most `CRUX_WEB_SESSION_FORGERY_EVENTS` (3) refusals of each kind in a fixed window of `CRUX_WEB_SESSION_FORGERY_WINDOW_MS` (60 s), and counts the rest in `crux_web_session_stats_t.forgery_suppressed`. That is 6 records in a window, 12 across the edge of two, against the 24 that the default ring admits as routine. The window is the web module's, not a rule of this contract, and a product with a smaller ring sets the macros lower. The details and the other decisions are in [web session](web-session.md#security-events-for-a-refused-csrf-token-or-origin).
 
 ## Decisions for review
 

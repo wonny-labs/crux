@@ -2,6 +2,8 @@
 
 Status: a guide for a product team that uses Crux as a west module and wants HTTPS web management, the SSH command line and SFTP, without reading the code. It adds no behaviour and no decision. Each statement cites a document or a file, and says whether it is **real**, **faked** or **untested**. It was written against `origin/main` at `e1023e7`. **Stale since 159 commits:** `origin/main` was 159 commits ahead of that revision when this line was written (`git rev-list --count e1023e7..40a99210`), and the page was not re-verified. The authoritative state is the code and the CI at the revision you use.
 
+To review the security model, read the [secure management review guide](secure-management-review.md); to check a board on your own bench, the [bench test procedure](secure-management-board-test-procedure.md), which has not yet been run.
+
 **Nothing in this guide has run on a board.** Every result is Host, `native_sim` or a compile for RT1060-EVKB. `native_sim` uses the host's TCP stack and a test entropy source, so a result there shows that protocols and algorithms run, and not that anything is fast, small or safe on a device. See [what "real" means on `native_sim`](psa-crypto-design.md#what-real-means-on-native_sim).
 
 The terms are in [the glossary](management-glossary.md). How to read the tables:
@@ -236,7 +238,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | Malformed request, header dropped by the capture, `Transfer-Encoding: chunked`, a body on `GET` | `400 bad_request`, connection closed | No | [Web contract](web-contract.md#answering-early) |
 | Field errors on an update | `400 invalid_field` with a field and a reason | No | [Management APIs](web-management-apis.md) |
 | No valid session | `401 unauthorized` | Log in | [Web session](web-session.md) |
-| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No | [Web session](web-session.md) |
+| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No. A refused token or `Origin` with a session, or a login with a refused `Origin`, leaves a rate-limited `web.csrf_rejected` or `web.origin_rejected` event. | [Web session](web-session.md) |
 | Unknown or hidden item | `404 not_found` | No | [Web contract](web-contract.md) |
 | Body over the route's limit | `413 payload_too_large`, closed | No | [Web contract](web-contract.md#answering-early) |
 | Login attempt inside a delay window | `429 retry_later` on the poll, with `Retry-After` | After `Retry-After`, with a new attempt | [Web session](web-session.md) |
@@ -259,7 +261,8 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | `file.*`, `cli.*` | file created, removed, renamed, refused; `cli.line_rejected`, `cli.console_error` | File service, command line | Real on `native_sim` |
 | `web.certificate_*` | replaced, rejected, unusable | TLS certificate model | Real on `native_sim` |
 | `system.reboot_*` | requested, refused, failed | Reboot service | **Host, and a `native_sim` fixture that starts it and makes no request** |
-| **`web.tls_failed`, `web.csrf_rejected`** | Defined | **Nothing emits them.** A refused CSRF token or `Origin` leaves no event: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319). | Missing |
+| `web.csrf_rejected`, `web.origin_rejected` | A request with a session, refused for its CSRF token or its `Origin`, and a login refused for its `Origin` | Web session module, at most 3 of each kind in 60 s ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [Web session](web-session.md#security-events-for-a-refused-csrf-token-or-origin)). A request with no session (`401`) and a poll without `X-Crux-Request` leave no event. | **Tested on the Host only**. An image links `web_session_security_events.c` with the session sources. |
+| **`web.tls_failed`** | Defined | **Nothing emits it.** | Missing |
 | `ssh.auth_limit`, `ssh.host_key_missing` | A connection ended at `max_auth_attempts`; the credential store could not supply the host key | SSH access adapter ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [contract](security-event-contract.md#from-the-ssh-adapter-port)) | **Tested on the Host only**. An image that selects `CONFIG_CRUX_SSH` compiles and links the same provider, and no image run shows the records. A refusal before a callback is **reserved**: it leaves no event. |
 | File operations refused with no identifier | | | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) |
 
