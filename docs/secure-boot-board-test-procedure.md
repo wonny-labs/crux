@@ -38,7 +38,7 @@ This procedure tests, on a real RT1060-EVK Rev B, what the [boot composition](bo
 - **Stop conditions.** Stop, power down only if a step says so, record the state and ask the maintainers when: the probe cannot connect and a retry at 100 kHz fails; a read-back differs from its backup or image; `Verify successful` is missing after a load; the board shows no console output after a restore and R2 below also fails; the console shows a fault or a restart loop; a command runs longer than its stated limit; a probe write or read would go above `0x60600000`; any step would need a fuse, an erase command, or a probe other than the approved one; **you cannot create the private key directory of section 4 outside every repository** (decision 18); the header of slot 1 carries the image magic (section 7, T1, step 1).
 - **Power rules.** Power the board through J1 USB, as the repository's physical gates do. Never unplug or switch off during a load, verify or erase. Start every J-Link Commander script with `exec DisableAutoUpdateFW`, because Commander V9.86a has updated probe firmware on its own twice in the repository's records. First, during a `ShowEmuList USB` probe-list command; it ended with `New firmware booted successfully` ([baseline](baseline.md), M4 notes). Second, in a later preflight of the M3 work, an automatic update was attempted and the probe then failed to reconnect until a person reconnected it ([M3 validation](m3-validation.md), "Resumption and renewed preflight stop"). For T6 the board is powered only through J1 (the J48 supply removed) and the cut is proven first (section 7, T6).
 - **ESD.** The repository's pages give no handling rules; follow the board vendor's.
-- **After the session.** Delete the signed test images from the bench machine unless the maintainers want them kept as evidence, and say where they are.
+- **After the campaign.** The signed test images stay on the bench machine only and are deleted after the campaign unless the maintainers decide to keep them as evidence; say where they are.
 
 ## 3. Prerequisites
 
@@ -65,7 +65,7 @@ This procedure tests, on a real RT1060-EVK Rev B, what the [boot composition](bo
 | `<hwbuild>` | `<crux>/build/zephyr/boot-hardware`: the build signed with the development key |
 | `<keydir>` | The private key directory |
 | `<mcuboot>` | `<workspace>/bootloader/mcuboot` |
-| `<app-out>` | The directory that holds `zephyr.signed.bin` (step 2 of section 4 prints it) |
+| `<app-out>` | The directory that holds `zephyr.signed.bin` (step 4 of section 4 prints it) |
 | `<bench>` | `<crux>/build/bench`, git-ignored (`/build/` is in `.gitignore`) |
 | `<jlink>` | The `JLinkExe` of the approved installation (`/usr/local/bin/JLinkExe` on the recorded macOS host) |
 | `<serial>` | The probe's USB serial number (`ShowEmuList USB` prints it) |
@@ -86,7 +86,7 @@ cd <crux> && scripts/test-boot-composition.sh
 
    Expected: `Boot composition: MCUboot 51668 bytes, signed application 33051 bytes (build only, not booted).` The sizes can differ by a few bytes at another revision. **Verified by build** (CI run named in the composition page).
 
-2. **Generate the private development key** (decision 18) in `<keydir>`, in the Linux environment that builds. If you cannot make a directory outside every repository that is not shared, stop (section 2).
+2. **Generate the private development key** (decision 18) in `<keydir>`, in the Linux environment that builds. If you cannot make a directory outside every repository that is not shared, stop (section 2). Whether the development public key is committed is not part of this procedure: accepted decision 18 of the [boot and update investigation](boot-update-investigation.md) says: "Commit only the public key, at that point." Committing it is a separate change; the plan's target for it is `docs/evidence/boot-update/dev-public-key.pem` ([pre-M8 investigation plan](plans/pre-m8-investigation-plan.md)), under `docs/evidence/`, a protected path, so it needs a human approval ([`AGENTS.md`](../AGENTS.md)).
 
 ```bash
 mkdir -m 700 <keydir>
@@ -227,7 +227,7 @@ python3 -c "import sys; d=bytearray(open(sys.argv[1],'rb').read()); d[int(sys.ar
 python3 -c "open('<bench>/handoff/blank-slot0.bin','wb').write(b'\xff'*3145728)"
 ```
 
-7. Record the SHA-256 of every artefact and keep the output (it goes into the evidence, section 8). Also record `python3 <mcuboot>/scripts/imgtool.py dumpinfo <file>` for each image: it prints header, TLVs and trailer. When the campaign ends, destroy `<keydir>` or keep it private; the signed images stay on the bench machine only.
+7. Record the SHA-256 of every artefact and keep the output (it goes into the evidence, section 8). Also record `python3 <mcuboot>/scripts/imgtool.py dumpinfo <file>` for each image: it prints header, TLVs and trailer. When the campaign ends, destroy `<keydir>` or keep it private; the signed images stay on the bench machine only and are deleted after the campaign unless the maintainers decide to keep them.
 
 ```bash
 shasum -a 256 <bench>/handoff/*.bin
@@ -372,8 +372,8 @@ Common to all: record the approval reference of every hardware step; keep the co
 **Steps.**
 1. Section 6, "Before any test", steps 1 to 4 (identify, backup twice and compare, program and verify R1, read the slot 1 header).
 2. Procedure R with the T0 profile.
-**Expected result.** Read-only identification as in section 6 step 1 (**Verified in repository**, recorded observation). `Verify successful` after the load (**Verified in repository**: the M4 records). The console shows `CRUX_TIME_READY composition=zephyr` within 10 s of the reset (**Verified in repository**, recorded observation).
-**Pass/fail.** Pass: identification as above, equal backup hashes, `Verify successful`, the marker seen, a slot 1 header without the image magic. Fail: any of them differs. Do not go on to T1; use section 6.
+**Expected result.** Read-only identification as in section 6, "Before any test", step 1 (**Verified in repository**, recorded observation). `Verify successful` after the load (**Verified in repository**: the M4 records). The console shows `CRUX_TIME_READY composition=zephyr` within 10 s of the reset (**Verified in repository**, recorded observation).
+**Pass/fail.** Pass: identification as above, equal backup hashes, `Verify successful`, the marker seen, a slot 1 header without the image magic. Fail: any of them differs. Do not go on to T1. If the slot 1 header carries the image magic, stop and ask (section 6, "Before any test", step 4); section 6 otherwise covers a board that does not boot.
 **Evidence.** Photo of SW4 and the board marking, `identify` log, both backup hashes, R1 hash, load and verify logs, `rx.bin` or `console.log`, `result.json`.
 
 ### T1 Flash the bootloader and the signed application, boot
@@ -381,7 +381,7 @@ Common to all: record the approval reference of every hardware step; keep the co
 **Purpose.** First boot of the composition: MCUboot starts from NOR, validates slot 0, loads it to SDRAM and jumps; the application runs.
 **Preconditions.** T0 passed in this session; the approval for bootloader NOR writes of section 2; the images of section 4 exist and are listed in the manifest; the private key directory exists (section 4, step 2).
 **Steps.**
-1. Read the slot 1 header again with `slot1-head.jlink` and check it as in section 6, step 4 (erased, or no `3d b8 f3 96`). Otherwise stop and ask.
+1. Read the slot 1 header again with `slot1-head.jlink` and check it as in section 6, "Before any test", step 4 (erased, or no `3d b8 f3 96`). Otherwise stop and ask.
 2. Procedure P with `app.signed.confirmed.bin` at `0x60020000`. Slot 0 first, so MCUboot never runs against a half-programmed slot.
 3. Procedure P with `mcuboot.zephyr.bin` at `0x60000000`.
 4. Procedure R, boot 1 (profile marker `CONTROLLER_COMPLETE cycles=20`, timeout 30 s).
