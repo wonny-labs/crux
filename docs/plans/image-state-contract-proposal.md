@@ -36,14 +36,14 @@ On 15 November 2026 the owner approved rows I1, I4 and I7 as recommended, and la
 
 **Rows I1, I4 and I7.** The owner approved these in chat with the secure boot session on 15 November 2026 at about 17:25 UTC. The question asked was whether to approve that session's list of four recommendations as recommended, and the answer was "추천대로 승인" (approved as recommended). The secure boot session relayed this to the session that edited this record. The same answer covers rows D2 and D9 of the [secure boot development plan](secure-boot-development-plan.md#6-decisions-the-owner-needs-to-make).
 
-**Rows I2, I3, I5 and I6.** The owner approved these in chat with the secure boot session on 15 November 2026, after about 20:00 UTC (after the change that recorded D9 was merged), as recommended. The answer, as the secure boot session quoted it, was "I2, I3, I5, I6도 추천대로 승인" (I2, I3, I5 and I6 also approved as recommended). The secure boot session relayed this to the session that edited this record. As the table words them, the approved rows say:
+**Rows I2, I3, I5 and I6.** The owner approved these in chat with the secure boot session on 15 November 2026, after about 20:00 UTC (after the change that recorded D9 was merged), as recommended. The answer, as the secure boot session quoted it, was "I2, I3, I5, I6도 추천대로 승인" (I2, I3, I5 and I6 also approved as recommended). The secure boot session relayed this to the session that edited this record. The approved rows, with the open questions and cases of this record that bear on them, say:
 
-- **I2.** The contract has three operations on state: query, request a test boot, confirm. It has no permanent request. One is added only when a consumer needs it. Factory images are permanent through `--pad --confirm` (Q7).
+- **I2.** The contract has three operations on state: query, request a test boot, confirm. It has no permanent request. The secure boot session's relayed recommendation is to add one only when a consumer needs it. Factory images are permanent through `--pad --confirm` (Q7).
 - **I3.** "Reverted" is an outcome derived from the boot record plus an attempt record. The contract defines the attempt type and a pure classifier and stores nothing. Where the attempt record lives stays with the update agent's design (Q2, still open). The known limit stays: a power cut after `requested` was set and before the request writes land reports `REVERTED` for an image that never ran (case O8 of the [conformance cases](#conformance-cases)).
-- **I5.** The version basis is major, minor, revision, and the build number is ignored. The composition must not enable `MCUBOOT_VERSION_CMP_USE_BUILD_NUMBER`. How that is enforced is **Not verified** and stays open.
+- **I5.** The version basis is major, minor, revision, and the build number is ignored. The composition must not enable the build-number comparison option (the Kconfig option `CONFIG_BOOT_VERSION_CMP_USE_BUILD_NUMBER`, and the macro `MCUBOOT_VERSION_CMP_USE_BUILD_NUMBER` that it sets). How that is enforced is **Not verified** and stays open. No check at this head names the option (Verified in repository).
 - **I6.** The provider fails closed (`CRUX_IMAGE_ERR_NOT_READY`) as the row words it. The board case T4 (is the retained shared data intact after the jump, Q4) must run before any other use of the record.
 
-**What the approvals cover.** Each answer covers only the rows marked Approved, as the table words them. Together they approve rows I1 to I7. They do not approve I8 or I9, which stay open (proposed), and they do not approve any implementation, a change to #297's acceptance criteria or a change to a protected path. Implementing `crux/image_state.h` and its providers needs its own work package and scope approval. No hardware operation is approved. The Draft host prototype (#462) stays as it is. The approval is of the decisions as the table words them, not of the exact signatures, which stay illustrative in this record.
+**What the approvals cover.** Each answer covers only the rows marked Approved, as the table words them. Together they approve rows I1 to I7. They do not approve I8 or I9, which stay open (proposed), and they do not approve any implementation, a change to #297's acceptance criteria or a change to a protected path. Implementing `crux/image_state.h` and its providers needs its own work package and scope approval. No hardware operation is approved. The Draft host prototype (#462) stays as it is. This record reads the approval as covering the decisions, not the exact signatures in [Proposed contract](#proposed-contract), which stay illustrative. The owner's words do not address signatures.
 
 ## The question and the short answer
 
@@ -176,7 +176,7 @@ An option that writes the trailer bytes in Crux, bypassing bootutil, is rejected
 
 ## Proposed contract
 
-The decisions I1 to I7 are adopted. Rows I8 and I9 are still open. This section describes the contract as proposed, and the signatures stay illustrative: the owner approved the decisions as the table words them, not the exact signatures, and no implementation is approved.
+The decisions I1 to I7 are adopted. Rows I8 and I9 are still open. This section describes the contract as proposed, and the signatures stay illustrative (this record reads the approval as covering the decisions, not the exact signatures, and no implementation is approved).
 
 ### Component and header
 
