@@ -1,0 +1,366 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Check scripts/check-boot-images.sh, the check of the CI-built boot images, on the host.
+
+The script reads the images that scripts/test-boot-composition.sh builds. This file cannot build them:
+the real Zephyr build, the real imgtool and the real images are exercised only where the composition
+check runs (the Linux Dev Container and CI), and the script has not run there yet. Here the script runs
+end to end against
+
+* a FAKE build tree that the test writes into a temporary directory, holding synthetic images built with
+  the helpers of tests/build/test_boot_image_inspect.py, and
+* a FAKE imgtool.py (clearly named inside, and not MCUboot's tool) in a fake MCUboot checkout at the path
+  that the script derives from CRUX_WORKSPACE. Its `verify` answers as the test chooses and its `getpub`
+  prints a PEM public key that the test chooses.
+
+So these tests show that the script's logic does what it says (it passes, fails loudly, exits 2) when
+the inspector and "imgtool" behave as the test lets them. They say nothing about whether the inspector's
+reading of a real image agrees with MCUboot: that is what the script will settle when it runs on a real
+build. The synthetic images share the inspector's own reading of the layouts.
+The tests use the standard library only.
+"""
+import hashlib
+import base64
+import importlib.util
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+REPO = Path(__file__).resolve().parents[2]
+SCRIPT = REPO / "scripts/check-boot-images.sh"
+PAGE = REPO / "docs/boot-image-inspection.md"
+PROPOSAL = REPO / "docs/plans/image-state-contract-proposal.md"
+SLOT_SIZE = 3145728
+
+
+def load_module(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# The builders of the inspector's own host tests: header, TLVs, digest, and trailer fields at the
+# offsets of the repository's trailer model.
+helpers = load_module(REPO / "tests/build/test_boot_image_inspect.py", "boot_image_inspect_helpers")
+
+# 91 bytes, the length of a P-256 SubjectPublicKeyInfo. Not a key.
+FAKE_SPKI = bytes(range(91))
+OTHER_SPKI = bytes(range(1, 92))
+
+FAKE_IMGTOOL = '''#!/usr/bin/env python3
+"""FAKE imgtool for tests/build/test_check_boot_images.py. This is NOT MCUboot's imgtool.
+
+verify -k KEY FILE   exits as fake-mode.txt says: honest (0 only for a file whose SHA-256 is listed in
+                     fake-good-sha256.txt), accept-all (0), refuse-all (1), crash (traceback)
+getpub -k KEY [-e E] prints fake-public.pem, or exits 1 when that file is absent
+"""
+import hashlib
+from pathlib import Path
+import sys
+
+here = Path(__file__).resolve().parent
+mode = (here / "fake-mode.txt").read_text().strip()
+command = sys.argv[1]
+if command == "verify":
+    data = Path(sys.argv[-1]).read_bytes()
+    good = (here / "fake-good-sha256.txt").read_text().split()
+    if mode == "crash":
+        raise RuntimeError("FAKE imgtool crash")
+    accepted = mode == "accept-all" or (mode == "honest" and hashlib.sha256(data).hexdigest() in good)
+    print("FAKE imgtool verify: " + ("Image was correctly validated" if accepted else "Image is not valid"))
+    sys.exit(0 if accepted else 1)
+if command == "getpub":
+    pem = here / "fake-public.pem"
+    if not pem.is_file():
+        print("FAKE imgtool getpub: no key", file=sys.stderr)
+        sys.exit(1)
+    sys.stdout.write(pem.read_text())
+    sys.exit(0)
+sys.exit(2)
+'''
+
+
+def pem_of(der):
+    body = base64.b64encode(der).decode()
+    lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+    return "-----BEGIN PUBLIC KEY-----\n" + "\n".join(lines) + "\n-----END PUBLIC KEY-----\n"
+
+
+def confirmed_of(image, align, **trailer):
+    """The padded image of the slot size: the image, then the trailer of the repository's model."""
+    return image + helpers.trailer_bytes(SLOT_SIZE, align, **trailer)[len(image):]
+
+
+class ScriptShape(unittest.TestCase):
+    def setUp(self):
+        self.script = SCRIPT.read_text(encoding="utf-8")
+        # Comments may name what the script avoids, so the rules that forbid a word read code only.
+        self.code = "\n".join(l for l in self.script.splitlines() if not l.lstrip().startswith("#"))
+
+    def test_the_script_exists_and_is_executable(self):
+        self.assertTrue(SCRIPT.is_file(), f"{SCRIPT} is missing")
+        self.assertTrue(SCRIPT.stat().st_mode & 0o111, "the script is not executable")
+        self.assertTrue(self.script.startswith("#!/usr/bin/env bash\n"))
+
+    def test_the_script_uses_strict_mode(self):
+        self.assertIn("set -euo pipefail", self.code.splitlines())
+
+    def test_the_script_builds_nothing_and_installs_nothing(self):
+        for word in ("west", "ninja", "cmake", "make", "ccache", "docker", "curl", "wget", "git"):
+            self.assertIsNone(re.search(rf"\b{word}\b", self.code), f"the code uses {word}")
+        for text in ("-m pip", "pip install", "pip3"):
+            self.assertNotIn(text, self.code)
+
+    def test_the_script_never_generates_a_key_or_touches_a_board(self):
+        for forbidden in ("keygen", "flash", "debug", "openocd", "pyocd", "JLink", "probe", "reset"):
+            self.assertNotIn(forbidden, self.code, forbidden)
+
+    def test_the_script_finds_the_images_the_way_the_composition_check_does(self):
+        self.assertIn('image="$(basename "$app")"', self.code)
+        self.assertIn('find "$build/$image" -name zephyr.signed.bin', self.code)
+        self.assertIn('find "$build/$image" -name zephyr.signed.confirmed.bin', self.code)
+        self.assertIn('mcuboot_bin="$build/mcuboot/zephyr/zephyr.bin"', self.code)
+        self.assertIn('build="${1:-$repo/build/zephyr/boot-composition}"', self.code)
+        self.assertIn('python="${CRUX_PYTHON:-python3}"', self.code)
+        self.assertIn('workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"', self.code)
+
+    def test_the_script_has_an_exit_2_path_that_names_the_build_script(self):
+        self.assertIn("exit 2", self.code)
+        self.assertIn("scripts/test-boot-composition.sh", self.code)
+
+    def test_the_script_says_that_it_is_not_wired_and_has_not_run_on_a_real_build(self):
+        header = "\n".join(l for l in self.script.splitlines() if l.startswith("#"))
+        self.assertRegex(header, r"NOT wired")
+        self.assertRegex(header, r"never run on a real build")
+
+    def test_the_script_names_the_v442_erratum_for_a_missing_confirmed_image(self):
+        self.assertIn("v4.4.2", self.code)
+        self.assertIn("docs/boot-update-investigation.md", self.code)
+
+    def test_the_expected_states_are_in_the_proposal_table(self):
+        # The states for "good magic, image_ok set, copy_done unset" come from the proposal's table, not
+        # from a guess: the running slot is RUNNING_CONFIRMED, a slot that is not running is
+        # PENDING_PERMANENT.
+        proposal = PROPOSAL.read_text(encoding="utf-8")
+        self.assertRegex(proposal, r"\| `R` \| Valid \| Good \| Set \| any \| `RUNNING_CONFIRMED` \|")
+        self.assertRegex(proposal, r"\| Not `R` \| Valid \| Good \| Set \| Unset \| `PENDING_PERMANENT` \|")
+        self.assertIn('EXPECTED_RUNNING = "RUNNING_CONFIRMED"', self.script)
+        self.assertIn('EXPECTED_IDLE = "PENDING_PERMANENT"', self.script)
+        self.assertIn("image-state-contract-proposal.md", self.script)
+
+    def test_the_page_describes_the_check_and_its_limits(self):
+        page = PAGE.read_text(encoding="utf-8")
+        self.assertIn("Check of the CI-built images", page)
+        self.assertIn("scripts/check-boot-images.sh", page)
+        self.assertRegex(page, r"NOT wired")
+        self.assertRegex(page, r"never run on a real build")
+
+
+class BehaviourTest(unittest.TestCase):
+    """Run the script against a fake build tree and a fake imgtool."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.image = helpers.build_image(key=FAKE_SPKI)
+        cls.confirmed8 = confirmed_of(cls.image, 8, image_ok=1)
+        cls.confirmed1 = confirmed_of(cls.image, 1, image_ok=1)
+        cls.mcuboot_bin = bytes(range(256)) * 8
+
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        root = Path(self._dir.name)
+        self.workspace = root / "workspace"
+        self.tool_dir = self.workspace / "bootloader/mcuboot/scripts"
+        self.tool_dir.mkdir(parents=True)
+        (self.workspace / "bootloader/mcuboot/root-ec-p256.pem").write_text("FAKE KEY FILE\n")
+        (self.tool_dir / "imgtool.py").write_text(FAKE_IMGTOOL)
+        self.build = root / "build"
+        self.app = self.build / "zephyr/zephyr"
+        self.app.mkdir(parents=True)
+        (self.build / "mcuboot/zephyr").mkdir(parents=True)
+        self.set_images(self.image, self.confirmed8)
+        self.set_fake("honest", good=[self.image], public=FAKE_SPKI)
+        (self.build / "mcuboot/zephyr/zephyr.bin").write_bytes(self.mcuboot_bin)
+
+    def set_images(self, signed, confirmed):
+        (self.app / "zephyr.signed.bin").write_bytes(signed)
+        confirmed_path = self.app / "zephyr.signed.confirmed.bin"
+        if confirmed is None:
+            confirmed_path.unlink(missing_ok=True)
+        else:
+            confirmed_path.write_bytes(confirmed)
+
+    def set_fake(self, mode, good=(), public=None):
+        (self.tool_dir / "fake-mode.txt").write_text(mode)
+        (self.tool_dir / "fake-good-sha256.txt").write_text(
+            "\n".join(hashlib.sha256(g).hexdigest() for g in good) + "\n")
+        pem = self.tool_dir / "fake-public.pem"
+        if public is None:
+            pem.unlink(missing_ok=True)
+        else:
+            pem.write_text(pem_of(public))
+
+    def run_script(self, build=None, expect=None):
+        done = subprocess.run(
+            ["bash", str(SCRIPT), str(build if build is not None else self.build)],
+            capture_output=True, text=True,
+            env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "CRUX_WORKSPACE": str(self.workspace),
+                 "CRUX_PYTHON": sys.executable})
+        if expect is not None:
+            self.assertEqual(expect, done.returncode, f"stdout:\n{done.stdout}\nstderr:\n{done.stderr}")
+        # Temporary copies are removed after a pass and after a failure.
+        self.assertFalse((self.build / "check-boot-images.tmp").exists())
+        return done
+
+    # ---- passing ----
+
+    def test_a_consistent_build_passes_and_prints_the_summary_and_the_alignment_survey(self):
+        done = self.run_script(expect=0)
+        for text in ("Boot image check passed", "signed image: TLV layout", "confirmed image: digest, trailer",
+                     "MCUboot zephyr.bin: no image", "changed byte at 0x300", "changed byte at 0x500",
+                     "RUNNING_CONFIRMED", "at --align 8", "alignment  1:", "alignment  8:",
+                     "alignment 16:", "alignment 32:", "SubjectPublicKeyInfo"):
+            self.assertIn(text, done.stdout)
+
+    def test_a_confirmed_image_with_the_trailer_of_alignment_1_passes_and_names_it(self):
+        self.set_images(self.image, self.confirmed1)
+        done = self.run_script(expect=0)
+        self.assertIn("at --align 1", done.stdout)
+
+    def test_the_key_hash_of_the_uncompressed_point_is_also_accepted_and_named(self):
+        image = helpers.build_image(key=FAKE_SPKI[-65:])
+        self.set_images(image, confirmed_of(image, 8, image_ok=1))
+        self.set_fake("honest", good=[image], public=FAKE_SPKI)
+        done = self.run_script(expect=0)
+        self.assertIn("uncompressed point", done.stdout)
+
+    def test_without_a_derivable_public_key_the_check_passes_and_says_what_it_did_not_compare(self):
+        # No fake public key, and the key file is not a key, so openssl cannot derive one either.
+        self.set_fake("honest", good=[self.image], public=None)
+        done = self.run_script(expect=0)
+        self.assertIn("NOT compared with the key", done.stdout)
+
+    # ---- failing loudly ----
+
+    def test_a_key_hash_that_is_not_the_hash_of_the_public_key_fails(self):
+        self.set_fake("honest", good=[self.image], public=OTHER_SPKI)
+        done = self.run_script(expect=1)
+        self.assertIn("boot image check failed", done.stderr)
+        self.assertIn("equals neither", done.stderr)
+
+    def test_a_changed_signed_image_fails_because_neither_tool_accepts_it(self):
+        changed = bytearray(self.image)
+        changed[0x500] ^= 0xFF
+        self.set_images(bytes(changed), self.confirmed8)
+        done = self.run_script(expect=1)
+        self.assertIn("neither the inspector nor imgtool accepts", done.stderr)
+        self.assertIn("digest MISMATCH", done.stderr)
+        self.assertIn("FAKE imgtool verify: Image is not valid", done.stderr)
+
+    def test_an_inspector_that_reads_ok_where_imgtool_refuses_is_a_loud_disagreement(self):
+        self.set_fake("refuse-all", public=FAKE_SPKI)
+        done = self.run_script(expect=1)
+        self.assertIn("the inspector and imgtool disagree", done.stderr)
+        self.assertIn("--- inspector (exit 0) ---", done.stderr)
+        self.assertIn("--- imgtool verify (exit 1) ---", done.stderr)
+        self.assertIn("FAKE imgtool verify: Image is not valid", done.stderr)
+        self.assertIn('"result": "digest ok"', done.stderr)
+
+    def test_imgtool_accepting_what_the_inspector_rejects_is_a_loud_disagreement(self):
+        changed = bytearray(self.image)
+        changed[0x500] ^= 0xFF
+        self.set_images(bytes(changed), self.confirmed8)
+        self.set_fake("accept-all", public=FAKE_SPKI)
+        done = self.run_script(expect=1)
+        self.assertIn("the inspector and imgtool disagree", done.stderr)
+        self.assertIn("--- imgtool verify (exit 0) ---", done.stderr)
+
+    def test_imgtool_accepting_a_changed_copy_is_a_loud_disagreement_for_that_offset(self):
+        # A tool that accepts every file passes the first check on the real signed image, and shows
+        # itself at the changed copy, which the inspector reads as a digest mismatch.
+        self.set_fake("accept-all", public=FAKE_SPKI)
+        done = self.run_script(expect=1)
+        self.assertIn("changed at 0x300", done.stderr)
+        self.assertIn("imgtool", done.stderr)
+
+    def test_a_crash_of_imgtool_is_not_a_refusal(self):
+        self.set_fake("crash", public=FAKE_SPKI)
+        done = self.run_script(expect=1)
+        self.assertIn("imgtool crashed", done.stderr)
+
+    def test_a_missing_confirmed_image_names_the_erratum(self):
+        self.set_images(self.image, None)
+        done = self.run_script(expect=1)
+        self.assertIn("zephyr.signed.confirmed.bin", done.stderr)
+        self.assertIn("v4.4.2", done.stderr)
+        self.assertIn("docs/boot-update-investigation.md", done.stderr)
+
+    def test_a_confirmed_image_that_is_not_the_slot_size_fails(self):
+        self.set_images(self.image, self.confirmed8[:-4096])
+        done = self.run_script(expect=1)
+        self.assertIn("expected the slot size 3145728", done.stderr)
+
+    def test_a_padded_image_without_the_trailer_magic_fails(self):
+        self.set_images(self.image, self.image + b"\xff" * (SLOT_SIZE - len(self.image)))
+        done = self.run_script(expect=1)
+        self.assertIn("known trailer magic", done.stderr)
+
+    def test_a_confirmed_image_with_a_changed_payload_fails(self):
+        changed = bytearray(self.confirmed8)
+        changed[0x500] ^= 0xFF
+        self.set_images(self.image, bytes(changed))
+        done = self.run_script(expect=1)
+        self.assertIn("confirmed image", done.stderr)
+        self.assertIn("digest", done.stderr)
+
+    def test_flags_at_the_offsets_of_another_alignment_fail_with_the_survey(self):
+        # The magic of alignment 8, but image_ok one byte-aligned slot below it (the offset an alignment
+        # of 1 would use): no alignment gives a consistent decode that reads RUNNING_CONFIRMED.
+        data = bytearray(self.confirmed8)
+        data[SLOT_SIZE - 17] = 1
+        self.set_images(self.image, bytes(data))
+        done = self.run_script(expect=1)
+        self.assertIn("RUNNING_CONFIRMED", done.stderr)
+        self.assertIn("Alignment survey of the confirmed image", done.stderr)
+        self.assertIn("alignment  1:", done.stderr)
+
+    def test_an_mcuboot_image_that_starts_with_an_image_magic_fails(self):
+        (self.build / "mcuboot/zephyr/zephyr.bin").write_bytes(self.image)
+        done = self.run_script(expect=1)
+        self.assertIn("image magic at the start of the MCUboot image", done.stderr)
+
+    # ---- missing inputs ----
+
+    def test_a_missing_build_directory_exits_2_and_says_to_run_the_composition_check(self):
+        done = self.run_script(build=self._dir.name + "/no-such-build", expect=2)
+        self.assertIn("scripts/test-boot-composition.sh", done.stderr)
+
+    def test_a_missing_signed_image_exits_2(self):
+        (self.app / "zephyr.signed.bin").unlink()
+        done = self.run_script(expect=2)
+        self.assertIn("scripts/test-boot-composition.sh", done.stderr)
+
+    def test_a_missing_mcuboot_image_exits_2(self):
+        (self.build / "mcuboot/zephyr/zephyr.bin").unlink()
+        self.run_script(expect=2)
+
+    def test_a_missing_imgtool_exits_2(self):
+        (self.tool_dir / "imgtool.py").unlink()
+        done = self.run_script(expect=2)
+        self.assertIn("imgtool", done.stderr)
+
+    def test_the_script_does_not_build_when_the_directory_is_missing(self):
+        done = self.run_script(build=self._dir.name + "/no-such-build", expect=2)
+        self.assertFalse((Path(self._dir.name) / "no-such-build").exists())
+        self.assertNotIn("Traceback", done.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
