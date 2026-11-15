@@ -95,6 +95,7 @@ sequenceDiagram
 ## What a project writes
 
 ```cmake
+target_link_libraries(app PRIVATE crux::web)   # the product's own routes and the packaged sources use <crux/web.h>
 crux_web_assets(app FOLDER ${CMAKE_SOURCE_DIR}/web/dist)      # strict content policy, the default
 crux_web_routes(app SOURCES src/routes.c ZEPHYR_RESOURCES REVIEWED reviewed-routes.txt)
 ```

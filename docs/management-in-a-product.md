@@ -81,6 +81,10 @@ set(route_sources
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
+# The product links crux::web itself: crux_web_assets() and crux_web_routes() give Crux's own sources what they
+# need and add no usage target to your target.
+target_link_libraries(app PRIVATE crux::web)
+
 # Your built frontend folder, with index.html at its top. Call it before crux_web_routes().
 crux_web_assets(app FOLDER ${CMAKE_SOURCE_DIR}/frontend/dist STYLE strict)
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${CMAKE_SOURCE_DIR}/reviewed-routes.txt)
@@ -146,13 +150,15 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_ACCESS` | off | **Experimental** ([ADR-0004](decisions/0004-product-composition-of-management-services.md), phase 0). Builds Access, the credential store and the security events, which are wired to each other, and registers them with the Zephyr link. **Selects** `CRUX_CREDENTIAL`, `CRUX_SECURITY_EVENT`, `CRUX_THREAD`, `CRUX_SYNC` and `CRUX_TIME`, so a product's `prj.conf` names this one symbol (ADR-0004 C6). Starts nothing. Defines the portable targets `crux::access`, `crux::credential_store` and `crux::security_event` (ADR-0004 phase 1a). The configuration is refused unless it has the Mbed profile of PSA Crypto with its locks, a Crux File provider, `CRUX_LOGGING` and `HWINFO`. | Module |
 | `CRUX_CREDENTIAL`, `CRUX_SECURITY_EVENT` | off | **Experimental.** Selected by `CRUX_ACCESS` and with no prompt: the three cannot be linked apart. | Module |
 | `CRUX_CONFIG_SERVICE` | off | **Experimental** (ADR-0004 phase 0, slice 2). Builds the Configuration service and the Configuration core. Needs `CRUX_ACCESS`. **Selects** `CRUX_CONFIGURATION_CORE` and `CRUX_SYNC` (Access already brings Thread and Time). Starts nothing. Defines the portable target `crux::config_service`. Without the Settings File selection there is no save provider: a save returns `CRUX_CONFIG_SERVICE_ERR_STORE` with `CRUX_CONFIG_ERR_NOT_SUPPORTED` in the report's `failed_result`. | Module |
-| `CRUX_MGMT_STATUS` | off | **Experimental** (slice 2). Builds the status service and its System, Time, network, credential and event sources. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM` or `CRUX_NETIF`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_SYNC` and `CRUX_TIME`. Defines the portable target `crux::mgmt_status` (phase 1a, held for the owner's approval of the new target names). | Module |
+| `CRUX_MGMT_STATUS` | off | **Experimental** (slice 2). Builds the status service and its System, Time, network, credential and event sources. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM` or `CRUX_NETIF`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_SYNC` and `CRUX_TIME`. Defines the portable target `crux::mgmt_status` (ADR-0004 phase 1a). | Module |
 | `CRUX_CONFIGURATION_CORE` | off | **Experimental.** No prompt. With `CRUX_CONFIGURATION_SETTINGS_FILE` on it builds nothing. Defines the portable target `crux::configuration` when the Settings File selection is off (that selection already defines the same name). Selected by `CRUX_CONFIG_SERVICE`, `CRUX_MGMT_STATUS` and `CRUX_REBOOT`. | Module |
-| `CRUX_NETWORK_SETTINGS` | off | **Experimental** (ADR-0004 phase 0, slice 3). Builds the network settings service and its check. Needs `CRUX_ACCESS` and `CRUX_CONFIG_SERVICE`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The apply port is the application's (ADR-0004 C3), declared in `<crux/network_settings_apply_port.h>`: an image without one does not link, unless the next symbol is set. Builds no serial command. Defines the portable target `crux::network_settings` (phase 1a, held for the owner's approval of the new target names). | Module |
+| `CRUX_NETWORK_SETTINGS` | off | **Experimental** (ADR-0004 phase 0, slice 3). Builds the network settings service and its check. Needs `CRUX_ACCESS` and `CRUX_CONFIG_SERVICE`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The apply port is the application's (ADR-0004 C3), declared in `<crux/network_settings_apply_port.h>`: an image without one does not link, unless the next symbol is set. Builds no serial command. Defines the portable target `crux::network_settings` (ADR-0004 phase 1a). | Module |
 | `CRUX_NETWORK_SETTINGS_NO_APPLY` | off | **Experimental.** The apply port that applies nothing and reports no running values, for `native_sim` and for an image whose application applies nothing. Do not set it where the application implements the port. | Module |
-| `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). | Module |
-| `CRUX_FILE_SERVICE` | off | **Experimental** (slice 3). Builds the file service core. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Defines the portable target `crux::file_service` (phase 1a, held for the owner's approval of the new target names). | Module |
-| `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. Defines the portable target `crux::reboot` (phase 1a, held for the owner's approval of the new target names). | Module |
+| `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). Starts nothing. Defines the portable target `crux::tls_certificate` for `<crux/tls_certificate.h>` and `<crux/tls_certificate_start.h>`, the header that carries the key (phase 1a). | Module |
+| `CRUX_FILE_SERVICE` | off | **Experimental** (slice 3). Builds the file service core. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Defines the portable target `crux::file_service` (ADR-0004 phase 1a). | Module |
+| `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. Defines the portable target `crux::reboot` (ADR-0004 phase 1a). | Module |
+| `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). | Module |
+| `CRUX_WEB_MANAGEMENT` | off | **Experimental** (slice 4). Builds the JSON of the status and configuration routes and the save worker, and with `CRUX_NETWORK_SETTINGS` the JSON of the network routes. Needs `CRUX_WEB_SESSION`, `CRUX_CONFIG_SERVICE` and `CRUX_MGMT_STATUS`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The routes are the application's to name (`CRUX_WEB_MANAGEMENT_*_ROUTES`). | Module |
 | `CRUX_SSH` | off | The wolfSSH provider and the access adapter. Needs wolfSSH, IPv4 and sockets, and **refuses the Mbed profile**. A dependency that is not met only warns in Zephyr, so the symbol silently becomes `n`: check it in your CMake. | Module |
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |
@@ -164,7 +170,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_SSH_IO_TIMEOUT_MS` | 200 | Longest that one read or write of a session waits | Composition |
 | `CRUX_SSH_WORKER_STACK_BYTES`, `_LISTENER_STACK_BYTES`, `_WINDOW_BYTES` | 16384, 4096, 16384 | Provider sizes. The worker stack is **not measured on a target**. | Module |
 
-With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 16 instead of 8, because the management services take one or more mutexes each, and a product's configuration then need not name it (ADR-0004 C6). An image that leaves `CRUX_ACCESS` off keeps 8.
+With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 24 instead of 8 and `CRUX_THREAD_COUNT` to 8 instead of 4, the values of the `native_sim` services image: the management services take one or more mutexes and a worker thread each (the event drain, network settings, reboot, web session and web management are five of the eight threads), and a product's configuration then need not name them (ADR-0004 C6). With `CRUX_WEB_SESSION` set, `CRUX_THREAD_STACK_BYTES` defaults to 8192 instead of 4096, because the login worker derives a password on its stack and every in-repo image that runs it sets 8192; it is the stack of every Crux worker of that image. **8192 equals the tested images and is not a measured stack high-water mark: nobody has measured it on a target.** The Crux Thread API has no stack measurement, so a product should measure its own with Zephyr's (`CONFIG_THREAD_STACK_INFO` and `CONFIG_INIT_STACKS`) under its own load, including a login. `CRUX_SYNC_SEMAPHORE_COUNT` stays at 8, and all the services together use 7 of them. An image that leaves `CRUX_ACCESS` off keeps 8, 4 and 4096, as before.
 
 Sizes of the Access table are compile-time constants, not Kconfig: `CRUX_ACCESS_SESSION_MAX` 8 and `CRUX_ACCESS_SESSIONS_PER_ACCOUNT` 3 in `components/access/src/access_port.h`.
 
@@ -285,7 +291,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 ### Registering a user key
 
-On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. The only code that calls `crux_access_account_add_key` outside Access and its tests is the test composition, which is test-only.
+On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. Only test code calls `crux_access_account_add_key` today; no product or image code does. The test composition's call is the example below.
 
 | Question | Answer, from `components/access/include/crux/access.h`, `components/access/src/access_accounts.c` and the test composition |
 | --- | --- |
@@ -342,9 +348,9 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Firefox and Chromium header capture, WinSCP | | By hand |
 | RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
 
-## Open owner decisions
+## Owner decisions
 
-Decisions that need the owner, with where each is recorded. Nothing here is decided by this guide.
+Decisions that need the owner and decisions the owner has already taken, with where each is recorded and its state. Nothing here is decided by this guide: a decided row records the owner's decision, and the issue holds the quote.
 
 | Decision | Recorded in | State |
 | --- | --- | --- |
@@ -358,7 +364,7 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Decided 2026-11-14: emit `ssh.auth_limit` and `ssh.host_key_missing` (option A), refusals before the first callback stay reserved (option B); built on the Host, pending review |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Decided 2026-11-14, option A with rate limiting; not implemented yet |
-| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table is a proposal in review, see [SFTP design](sftp-design.md#each-refusal-and-its-event) |
+| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table in the [SFTP design](sftp-design.md#each-refusal-and-its-event) was independently reviewed and merged as a proposal (#411); no event is implemented yet |
 | Passing the terminal flag to the SSH `exec` callback | [Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269) | Open |
 | Replacing the host key and printing its fingerprint | [wolfSSH provider](ssh-wolf-provider.md#decisions-for-review), decision 24 | Not built |
 | Safari: no issue tracks running firmware in it | [Web contract](web-contract.md#header-capture) | No issue yet |

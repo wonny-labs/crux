@@ -81,6 +81,36 @@ function(_crux_selected_standard_sysroot output property value)
     endif()
 endfunction()
 
+# A link-time wrap of a Crux symbol replaces Crux behaviour inside the final image, so a
+# consumer that links public Crux targets must not carry one (ADR-0005 section 1.2, S6).
+# The rule is by symbol identity: --wrap of a symbol named crux_*, __wrap_crux_* or
+# __real_crux_* is refused, in the spellings that a target's link options and link libraries
+# can carry (-Wl,--wrap=S, -Wl,--wrap,S, LINKER:--wrap=S, -Xlinker --wrap -Xlinker S, the same
+# split over two list items, and the single-dash and abbreviated forms of the linker). A wrap
+# of any other symbol, such as a product's own wrap of a Zephyr function, is not this rule's
+# business. Not seen here: the legacy LINK_FLAGS properties, linker flags set outside target
+# properties (CMAKE_EXE_LINKER_FLAGS), @response files and other linker options such as
+# --defsym.
+function(_crux_refuse_crux_link_wrap target property values)
+    string(REPLACE ";" " " joined "${values}")
+    string(REGEX MATCHALL "(^|[^A-Za-z0-9_])--?wra?p?[= ,]+(-Xlinker[ ,]+)?(-Wl,)?[^ ,]+" wraps "${joined}")
+    foreach(wrap IN LISTS wraps)
+        string(REGEX REPLACE "^.*[= ,]([^ ,]+)$" "\\1" symbol "${wrap}")
+        # The symbol may arrive as its own list item, which CMake expands to -Wl,S or LINKER:S.
+        # Each strip is a match with a required prefix: CMake 3.28 rejects a REGEX REPLACE whose
+        # regex can match the empty string, and a symbol with no prefix is the common case.
+        if(symbol MATCHES "^(LINKER:|SHELL:)(.*)$")
+            set(symbol "${CMAKE_MATCH_2}")
+        endif()
+        if(symbol MATCHES "^-Wl,(.*)$")
+            set(symbol "${CMAKE_MATCH_1}")
+        endif()
+        if(symbol MATCHES "^(__wrap_|__real_)?crux_")
+            message(FATAL_ERROR "native consumer requirement: ${target} ${property}: link-time wrap of Crux symbol ${symbol}")
+        endif()
+    endforeach()
+endfunction()
+
 function(_crux_check_consumer_target target visited)
     # Native composition identities stay forbidden even if their public usage is empty.
     get_target_property(real_target "${target}" ALIASED_TARGET)
@@ -108,6 +138,7 @@ function(_crux_check_consumer_target target visited)
             continue()
         endif()
         _crux_consumer_values(values "${requirements}")
+        _crux_refuse_crux_link_wrap("${target}" "${property}" "${values}")
         foreach(value IN LISTS values)
             _crux_selected_standard_sysroot(standard_sysroot "${property}" "${value}")
             if(standard_sysroot)

@@ -1,8 +1,8 @@
 """Portable usage targets of the Configuration core, Configuration service, network settings, status
 service, file service and reboot service in the Zephyr module (ADR-0004, T1 and T2, PR 3b).
 
-HELD for the owner's approval of the new public target names: ADR-0004 section 2 lists none of these
-six targets. The checks are the same as for crux::access and the other first targets, and they run on
+ADR-0004 section 2 lists none of these six targets; the owner approved the names on 2026-11-15 (see
+the pull request). The checks are the same as for crux::access and the other first targets, and they run on
 the host without a Zephyr SDK:
 
 T2: each public header compiles alone, pulls in only the capability's own Crux headers and the

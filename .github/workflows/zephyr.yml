@@ -281,6 +281,15 @@ jobs:
           CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
           scripts/test-file-emmc-compile.sh
 
+      # MCUboot is the optional west group crux-boot, and bootstrap-zephyr.sh runs a plain west
+      # update, so the script enables the group itself. It is the last runtime check, so that no
+      # earlier check runs with the group enabled. Build only: the images are signed with MCUboot's
+      # published public test key and nothing is programmed or booted. No output is uploaded.
+      - name: Build, sign and check the MCUboot RAM load composition (software-only)
+        if: matrix.shard == 'runtime'
+        working-directory: crux-pilot
+        run: scripts/test-boot-composition.sh
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence
         if: always()

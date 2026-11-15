@@ -23,6 +23,11 @@ import patched_zephyr  # noqa: E402  (the freeze and the image check that read t
 import zephyr_tree  # noqa: E402
 
 
+# The tree digest of the first derivation on a real copy (macOS, interim), declared after two independent derivations agreed (docs/evidence/rt1060-patched-zephyr-first-freeze-20261114/).
+TREE_SHA256 = "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63"
+TREE_FILE_COUNT = 37620
+
+
 def settings(path):
     values = {}
     for line in path.read_text().splitlines():
@@ -52,7 +57,9 @@ class BenchDeclaration(unittest.TestCase):
         patched = DECLARATION["patched_zephyr"]
         script = (ROOT / "scripts/prepare-wolf-tls-zephyr.sh").read_text()
         tls = patched["patches"][0]
-        tls_file = next(f for f in patched["patched_files"] if f["patches"] == [tls["name"]])
+        # The TLS patch touches several files since the first derivation on a real copy (2026-11-14); the script checks this one by hash.
+        tls_file = next(f for f in patched["patched_files"] if f["path"] == "subsys/net/lib/sockets/sockets_tls.c")
+        self.assertEqual(tls_file["patches"], [tls["name"]])
         self.assertIn(f"patch_name={tls['name']}", script)
         self.assertIn(f"patch_sha256={tls['sha256']}", script)
         self.assertIn(f"result_sha256={tls_file['sha256']}", script)
@@ -92,7 +99,8 @@ class BenchDeclaration(unittest.TestCase):
 
     def test_the_patched_zephyr_declaration_is_a_schema_2_list_of_the_design(self):
         """T11 of docs/rt1060-bench-freeze-and-capture-design.md. The block that bench_guard.cmake writes into the manifest
-        (the keys of BLOCK_KEYS) is checked by the freeze's own validator, with a stand-in for the one value that is not derived."""
+        (the keys of BLOCK_KEYS) is checked by the freeze's own validator. Since the first derivation on a real copy (order of work 4, interim,
+        2026-11-14) the tree digest is declared, so the validator accepts the block as it stands."""
         block = DECLARATION["patched_zephyr"]
         self.assertEqual(block["schema"], 2)
         for old in patched_zephyr.OLD_KEYS + ("isn_fail_closed",):
@@ -103,16 +111,75 @@ class BenchDeclaration(unittest.TestCase):
         self.assertEqual(set(block) - declaration_only, patched_zephyr.BLOCK_KEYS - {"pin"})
         mirrored = {key: block[key] for key in patched_zephyr.BLOCK_KEYS - {"pin"}}
         mirrored["pin"] = block["zephyr_pin"]
-        # The tree digest is not derived yet, on purpose: the validator refuses the block as it stands, and for that reason alone.
-        self.assertEqual(block["tree"], {"algorithm": zephyr_tree.ALGORITHM, "sha256": None, "file_count": None})
-        with self.assertRaisesRegex(ValueError, "tree must be"):
-            patched_zephyr.validate_block(mirrored)
-        mirrored["tree"] = dict(mirrored["tree"], sha256="a" * 64, file_count=1)
+        self.assertEqual(block["tree"], {"algorithm": zephyr_tree.ALGORITHM, "sha256": TREE_SHA256, "file_count": TREE_FILE_COUNT})
         self.assertIs(patched_zephyr.validate_block(mirrored), mirrored)
-        # What is open is said in the declaration, and the image check cannot pass it by accident.
+        # A block without the digest is still refused, and so is one with a wrong shape of it: the check did not get weaker.
+        for tree in ({"algorithm": zephyr_tree.ALGORITHM, "sha256": None, "file_count": None},
+                     dict(block["tree"], sha256=None), dict(block["tree"], file_count=None), dict(block["tree"], file_count=0),
+                     dict(block["tree"], sha256="a" * 63)):
+            with self.assertRaisesRegex(ValueError, "tree must be"):
+                patched_zephyr.validate_block(dict(mirrored, tree=tree))
+        # What is still open is said in the declaration.
         text = " ".join(block["open_items"])
-        self.assertIn("null on purpose", text)
         self.assertIn("not in this repository", text)
+        self.assertIn("two independent derivations", text)
+        self.assertNotIn("null on purpose", text)
+
+    def test_the_declared_patched_files_are_the_real_file_set_of_the_two_patches(self):
+        """The first derivation on a real copy (2026-11-14) parsed the real TLS patch: nine files, seven modified and two added, no rename,
+        mode change or binary hunk. tcp.c is the second patch's only file."""
+        block = DECLARATION["patched_zephyr"]
+        tls, isn = (p["name"] for p in block["patches"])
+        listed = {f["path"]: (f["change"], f["patches"]) for f in block["patched_files"]}
+        self.assertEqual(listed, {
+            "include/zephyr/net/net_compat.h": ("modified", [tls]),
+            "include/zephyr/net/socket.h": ("modified", [tls]),
+            "include/zephyr/net/tls_verify.h": ("added", [tls]),
+            "subsys/net/ip/tcp.c": ("modified", [isn]),
+            "subsys/net/lib/sockets/CMakeLists.txt": ("modified", [tls]),
+            "subsys/net/lib/sockets/Kconfig": ("modified", [tls]),
+            "subsys/net/lib/sockets/sockets_tls.c": ("modified", [tls]),
+            "subsys/random/CMakeLists.txt": ("modified", [tls]),
+            "subsys/random/Kconfig": ("modified", [tls]),
+            "subsys/random/random_wolfssl.c": ("added", [tls]),
+        })
+        for item in block["patched_files"]:
+            self.assertRegex(item["sha256"], r"\A[0-9a-f]{64}\Z")
+        # The stock hash of tcp.c is the pinned file's, and every other file of the list was not touched by the second patch.
+        self.assertEqual(list(block["stock_sha256"]), ["subsys/net/ip/tcp.c"])
+
+    def test_the_first_freeze_record_agrees_with_the_declaration_and_holds_no_patch_text(self):
+        """docs/evidence/rt1060-patched-zephyr-first-freeze-20261114/ holds facts only: the revisions, the hashes, the paths and
+        the counts. The wolfSSL patch is neither in this repository nor in that record."""
+        import hashlib
+        block = DECLARATION["patched_zephyr"]
+        folder = ROOT / "docs/evidence/rt1060-patched-zephyr-first-freeze-20261114"
+        record = json.loads((folder / "derivation.json").read_text())
+        self.assertEqual(record["zephyr_pin"], block["zephyr_pin"])
+        self.assertEqual(record["tree"], dict(block["tree"], symlink_count=0))
+        self.assertEqual([{"name": p["name"], "sha256": p["sha256"]} for p in record["patches"]], block["patches"])
+        self.assertEqual([{k: f[k] for k in ("path", "change", "sha256", "patches")} for f in record["patched_files"]],
+                         block["patched_files"])
+        self.assertEqual(record["marker"]["text"], zephyr_tree.marker_text(block["zephyr_pin"], [p["sha256"] for p in block["patches"]]))
+        self.assertEqual(record["marker"]["sha256"], hashlib.sha256(record["marker"]["text"].encode()).hexdigest())
+        stock = block["stock_sha256"]
+        for item in record["patched_files"]:
+            self.assertEqual(item["stock_sha256"], stock.get(item["path"], item["stock_sha256"]))
+            self.assertEqual(item["stock_sha256"] is None, item["change"] == "added")
+        # Two independent derivations at least, and every one of them names the declared digest and count.
+        derivations = record["derivations"]
+        self.assertGreaterEqual(len(derivations), 2)
+        self.assertGreaterEqual(len({d["method"] for d in derivations}), 2)
+        for derivation in derivations:
+            self.assertEqual((derivation["sha256"], derivation["file_count"]), (block["tree"]["sha256"], block["tree"]["file_count"]),
+                             derivation["method"])
+        # The patch of the wolfSSL osp repository is not in the repository, and nothing like a patch is in the record.
+        self.assertEqual(sorted(path.name for path in (ROOT / "patches/zephyr").glob("zephyr-tls*")), [])
+        for path in folder.rglob("*"):
+            self.assertNotIn(path.suffix, (".patch", ".diff", ".orig", ".rej"), path.name)
+            if path.is_file():
+                text = path.read_text()
+                self.assertNotRegex(text, r"(?m)^(diff --git |@@ -\d|--- a/|\+\+\+ b/)", path.name)
 
     def test_the_marker_of_the_declaration_is_the_one_marker_the_two_scripts_write(self):
         block = DECLARATION["patched_zephyr"]

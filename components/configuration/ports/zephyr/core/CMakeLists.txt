@@ -13,8 +13,8 @@
 get_filename_component(CRUX_CONFIGURATION_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 include("${CRUX_CONFIGURATION_COMPONENT_DIR}/../../cmake/CruxAccessBoundary.cmake")
 
-# A portable usage target, like the Host build's (ADR-0004 phase 1a, Experimental, held for the owner's
-# approval of the new target names): the public include root and the contracts that the header includes,
+# A portable usage target, like the Host build's (ADR-0004 phase 1a, Experimental; the owner approved the
+# names on 2026-11-15): the public include root and the contracts that the header includes,
 # and nothing private. The library below is registered with the Zephyr link by zephyr_append_cmake_library,
 # so the target does not link it. tests/build/test_service_usage_targets.py runs this definition against
 # the real guards.
