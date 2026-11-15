@@ -83,24 +83,41 @@ signed="$(find "$build/$image" -name zephyr.signed.bin -print -quit)"
 "$python" "$mcuboot/scripts/imgtool.py" verify -k "$public_key" "$signed" ||
     fail 'the signed image does not verify with the public test key'
 
-# The tool is discriminating. A key of another type and an image changed after signing are
-# refused. This is a check of the signing tool on the build output, not a boot result.
+# The tool is discriminating. A key of another type and images changed after signing are
+# refused. A refusal must be a plain verification failure, not a crash of the tool, so a
+# traceback does not count. This checks the signing tool on the build output, not a boot result.
+imgtool=("$python" "$mcuboot/scripts/imgtool.py")
+expect_refused() {
+    local output
+    if output="$("${imgtool[@]}" verify -k "$1" "$2" 2>&1)"; then
+        fail "$3"
+    fi
+    if grep -q Traceback <<<"$output"; then
+        fail "imgtool crashed instead of refusing: $3"
+    fi
+}
 other_key="$mcuboot/root-rsa-2048.pem"
-if [[ -f "$other_key" ]] &&
-    "$python" "$mcuboot/scripts/imgtool.py" verify -k "$other_key" "$signed" >/dev/null 2>&1; then
-    fail 'the signed image verified with a key of another type'
-fi
-modified="$build/zephyr.signed.modified.bin"
-"$python" - "$signed" "$modified" <<'PY'
+[[ -f "$other_key" ]] || fail "the other test key is not in the MCUboot checkout: $other_key"
+expect_refused "$other_key" "$signed" 'the signed image verified with a key of another type'
+# 0x300 is in the header padding, 0x400 + 0x100 is in the payload.
+for offset in 0x300 0x500; do
+    modified="$build/zephyr.signed.modified.bin"
+    "$python" - "$signed" "$modified" "$offset" <<'PY'
 import sys
 data = bytearray(open(sys.argv[1], "rb").read())
-data[0x300] ^= 0xFF
+data[int(sys.argv[3], 16)] ^= 0xFF
 open(sys.argv[2], "wb").write(data)
 PY
-if "$python" "$mcuboot/scripts/imgtool.py" verify -k "$public_key" "$modified" >/dev/null 2>&1; then
-    fail 'an image changed after signing still verified'
-fi
-rm -f "$modified"
+    expect_refused "$public_key" "$modified" "an image changed after signing at $offset still verified"
+    rm -f "$modified"
+done
+
+# The application's own files reached its configuration, not only the bootloader's.
+app_config="$(find "$build/$image" -name .config -path '*/zephyr/.config' -print -quit)"
+[[ -n "$app_config" && -f "$app_config" ]] || fail 'no application configuration under the build'
+grep -qx CONFIG_RETENTION_BOOTLOADER_INFO_TYPE_MCUBOOT=y "$app_config" ||
+    fail 'the application configuration lacks the bootloader information type'
+[[ -s "$build/mcuboot/zephyr/zephyr.bin" ]] || fail 'the MCUboot image is empty'
 
 printf 'Boot composition: MCUboot %s bytes, signed application %s bytes (build only, not booted).\n' \
     "$(stat -c %s "$build/mcuboot/zephyr/zephyr.bin")" "$(stat -c %s "$signed")"

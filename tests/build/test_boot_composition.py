@@ -98,7 +98,7 @@ class BuildCheckTest(unittest.TestCase):
             "_EXTRA_CONF_FILE=",
             "_EXTRA_DTC_OVERLAY_FILE=",
         ):
-            self.assertIn(argument, self.script)
+            self.assertIn(argument, self.code)
 
     def test_the_script_keeps_to_the_public_test_key_and_the_group(self):
         # The page publishes the argument set without a key argument and without
@@ -112,8 +112,9 @@ class BuildCheckTest(unittest.TestCase):
             self.assertNotIn(forbidden, self.code)
 
     def test_the_script_signs_and_verifies_with_the_public_test_key(self):
-        self.assertIn("root-ec-p256.pem", self.script)
-        self.assertIn("verify", self.script)
+        self.assertIn("root-ec-p256.pem", self.code)
+        self.assertIn("verify", self.code)
+        self.assertIn("Traceback", self.code)
 
     def test_the_runtime_shard_runs_the_script(self):
         text = read(ZEPHYR_WORKFLOW)
