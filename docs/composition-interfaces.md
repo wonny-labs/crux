@@ -4,7 +4,7 @@ Status: **adopted** by the owner's acceptance of [ADR-0001](decisions/0001-appli
 
 ## What a composition interface is
 
-A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first and so far only Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>`, described in [File root binding](file-composition-interface.md). The only Linux Host composition target is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
+A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>` and the second is `crux::web_zephyr` with `<crux/web_zephyr.h>` (see [The web start](#the-web-start)). The File one is described in [File root binding](file-composition-interface.md). The only Linux Host composition target is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
 
 A product has two routes to Zephyr, and neither is an exception to the [three layers](architecture.md#three-layers-for-a-product-adr-0001):
 

@@ -91,6 +91,18 @@ class PublicHeader(unittest.TestCase):
         self.assertNotRegex(ADAPTER.read_text(), r"\}\s*crux_web_config_t\s*;")
         self.assertNotRegex(HEADER.read_text(), r"\}\s*crux_web_config_t\s*;")
 
+    def test_web_h_keeps_the_include_set_that_scripts_check_web_boundary_allows(self):
+        # scripts/check-web-boundary.py (Host CI) allows these three includes in <crux/web.h> and no
+        # other, so uint32_t must come through <crux/access.h>, which includes <stdint.h>.
+        includes = set(re.findall(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', WEB_H.read_text(), re.M))
+        self.assertEqual(includes - {"stdbool.h", "stddef.h", "crux/access.h"}, set())
+        self.assertIn("<stdint.h>", (ROOT / "components/access/include/crux/access.h").read_text())
+
+    def test_the_header_states_what_ok_does_not_mean(self):
+        text = " ".join(HEADER.read_text().replace("\n *", " ").split())
+        self.assertIn("does not mean that a client can connect", text)
+        self.assertIn("steps 8 to 10", text)
+
     def test_the_private_adapter_header_declares_the_same_prototype(self):
         # Existing compositions include only the adapter header and call crux_web_start(), so the adapter
         # keeps its declaration. The two must not drift: C allows the repeat only when they agree.

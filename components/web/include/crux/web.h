@@ -16,7 +16,6 @@
 #include <crux/access.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,7 +81,7 @@ typedef crux_web_auth_t (*crux_web_authenticate_t)(const crux_web_request_head_t
 
 /**
  * The web server's fixed settings, which an image passes to the start call of its transport. The
- * Zephyr one is crux_web_start() of <crux/web_zephyr.h>.
+ * Zephyr one is crux_web_start() of <crux/web_zephyr.h>. Status: Experimental, like that header.
  */
 typedef struct {
     crux_web_authenticate_t authenticate; /**< NULL answers every non-public route with 503. */

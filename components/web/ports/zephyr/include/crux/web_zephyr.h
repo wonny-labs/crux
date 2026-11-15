@@ -20,10 +20,12 @@
  * and crux::web. The provider, the STATIC library that Kconfig selects with CONFIG_CRUX_WEB, is not
  * linked by this target. The route table is the product's, built by crux_web_routes().
  *
- * Order, for a product's start code (ADR-0004 section 3): the services have started, then
- * crux_web_session_init() and crux_web_management_init() with their workers, then the TLS material
- * is registered under the security tag, then crux_web_start(), all on one thread. A listener
- * started without a certificate under the tag does not listen.
+ * Order, for a product's start code (ADR-0004 section 3, steps 8 to 10): the services have started,
+ * the TLS material is registered under the security tag, then crux_web_session_init() and
+ * crux_web_management_init() with their workers, then crux_web_start(), all on one thread.
+ * crux_web_start() does not wait for the listener: Zephyr opens it on its own thread, and a
+ * listener with no certificate under the tag does not listen, so CRUX_WEB_OK does not mean that a
+ * client can connect.
  */
 
 #include <crux/web.h>
@@ -38,11 +40,12 @@ extern "C" {
  * @param config The settings. The core copies the structure, so it need not outlive the call, but
  *        the pointer crux_web_config_t.authenticate_context holds is borrowed for the program's
  *        life.
- * @retval CRUX_WEB_OK Started.
+ * @retval CRUX_WEB_OK Zephyr's server was told to start. The listener may not be open yet.
  * @retval CRUX_WEB_ERR_INVALID_ARGUMENT @p config is NULL.
  * @retval CRUX_WEB_ERR_FAILED The route table is malformed or changed by a macro between the
  *         build's scan and the compiler, the C library's fnmatch() does not behave as the server
- *         needs, or the Zephyr HTTP server did not start.
+ *         needs, or http_server_start() of Zephyr returned an error, for example because the server
+ *         is already running.
  */
 crux_web_result_t crux_web_start(const crux_web_config_t *config);
 
