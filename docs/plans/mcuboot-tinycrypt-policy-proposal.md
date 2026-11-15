@@ -91,7 +91,7 @@ Each decision has a recommendation, a reason, one alternative and a status. All 
 - the start of a board session for the bootloader,
 - a consumer report.
 
-Between events, the owner may subscribe to the repository's security advisories on GitHub. That is an action of the owner, and nothing here assumes it. The first three events are triggers in the sense of the guide, so a recorded dependency review follows each within 14 days if the read finds a new advisory for the pin or the backend; the fourth (a board session) is only an occasion to read the list. The 14 days are a Crux target and not a promise to consumers (ADR-0006 Q4, the guide).
+Between events, the owner may subscribe to the repository's security advisories on GitHub. That is an action of the owner, and nothing here assumes it. A pin change, a baseline move and a consumer report are triggers in the sense of the guide, so a recorded dependency review follows each within 14 days if the read finds a new advisory for the pin or the backend. The start of a board session is only an occasion to read the list. The 14 days are a Crux target and not a promise to consumers (ADR-0006 Q4, the guide).
 
 *Triggers to revisit D9.* D9 stays as decided until one of these happens, and then the owner is asked, with a review record attached:
 
