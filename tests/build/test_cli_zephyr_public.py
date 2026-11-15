@@ -265,6 +265,14 @@ class Documents(unittest.TestCase):
         self.assertNotIn("one of the five worker sources", text)
         self.assertIn("no Zephyr image starts the reboot worker or the serial console thread", text)
 
+    def test_every_text_about_the_default_stack_names_the_console_symbol(self):
+        for doc in ("docs/thread-sync.md", "docs/management-in-a-product.md"):
+            text = " ".join((ROOT / doc).read_text().split())
+            self.assertNotIn("4096 without it", text, doc)
+            self.assertNotIn("With `CRUX_WEB_SESSION` set, `CRUX_THREAD_STACK_BYTES`", text, doc)
+        self.assertIn("`CONFIG_CRUX_WEB_SESSION` or `CONFIG_CRUX_CLI_CONSOLE` and 4096 otherwise",
+                      " ".join((ROOT / "docs/thread-sync.md").read_text().split()))
+
     def test_the_cli_contract_says_where_a_product_starts_the_console(self):
         text = " ".join((ROOT / "docs/cli-contract.md").read_text().split())
         self.assertIn("<crux/cli_zephyr.h>", text)
