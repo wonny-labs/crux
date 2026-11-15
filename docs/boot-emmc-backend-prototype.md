@@ -1,8 +1,12 @@
 # eMMC backend prototype: a flash-API driver over the MMC disk
 
+> **Status:** Draft prototype, not adopted and not for merge without an owner decision; the owner decides D1 to D9 below, each with a recommendation.
+> **Verified:** By `native_sim` run against the eMMC simulator (a model): the driver cases in four profiles, the build guard tests, and the power-cut replay over the driver's real write trace (P1 to P6); commands and results are in this page.
+> **Not verified:** Any eMMC device or board; MCUboot running on top of the driver; the size and RAM of an RT1060 bootloader with the driver (no cross-build was made); the device's timeouts; the five prepared mutants (not run); nothing runs in CI, because nothing is wired into `scripts/` or the workflows.
+> **Read this first / then:** [boot overview](boot-overview.md), then the [eMMC boot and update feasibility](boot-emmc-investigation.md) record and the [trailer replay record](evidence/boot-emmc/trailer-replay/README.md), then "What it is", "What was not done" and "Open decisions for the owner".
+
 | Field | Value |
 | --- | --- |
-| Status | **Draft prototype. Nothing here is adopted.** The adoption decision belongs to the owner, and this document lists what it has to decide. |
 | Claim | **No eMMC support claim.** The driver was built and tested on `native_sim` against the eMMC simulator, which is a model. No hardware, flash, reset or fuse operation was run. |
 | Issue context | [#298](https://github.com/wonny-labs/crux-pilot/issues/298) section 2, "What a backend would be", and [#310](https://github.com/wonny-labs/crux-pilot/issues/310). The model results that shape the driver are in the [trailer replay record](evidence/boot-emmc/trailer-replay/README.md). |
 | Code | `zephyr/drivers/flash/` (driver, Kconfig, CMake), `zephyr/dts/bindings/flash/crux,flash-disk.yaml`, `tests/native/emmc_flash_disk/`, `tests/native/emmc_flash_replay/` |
@@ -35,7 +39,7 @@ Software only, on `native_sim/native/64` in a native arm64 container with `ZEPHY
 v4.4.2 (`dccb09599635bdff17633fa7e9dab014b91dce90`). See the pull request for the revision and the exact commands.
 
 - `tests/native/emmc_flash_disk`: the driver against the simulator in four profiles (cached, no cache, read only,
-  and a control without the flush): 22 cases, which pass or skip as the profile says (20 run in the cached profile).
+  and a control without the flush): 22 cases; 20 run in the cached profile and 2 skip (the other profiles skip the cases they do not apply to).
   `tests/native/emmc_flash_disk_init` holds the case of a partition beyond the disk, and `test_build_guards.py` six
   cases (four refusals with seven subcases, and two accepted configurations; the defaults case configures and does
   not build).
