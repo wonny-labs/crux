@@ -58,6 +58,10 @@ FAKE_IMGTOOL = '''#!/usr/bin/env python3
 
 verify -k KEY FILE   exits as fake-mode.txt says: honest (0 only for a file whose SHA-256 is listed in
                      fake-good-sha256.txt), accept-all (0), refuse-all (1), crash (traceback)
+sign ... --slot-size N IN OUT
+                     refuses (exit 1, "exceeds requested size") when N is below the input plus a fixed
+                     header, TLV and trailer allowance, unless the mode is accept-all (never refuses)
+                     or refuse-all (always refuses); crash raises; otherwise copies IN to OUT
 getpub -k KEY [-e E] prints fake-public.pem, or exits 1 when that file is absent
 --help               exits 0, as the real tool does when its requirements are installed
 mode no-requirements raises ModuleNotFoundError for every command, as the real tool does without them
@@ -82,6 +86,18 @@ if command == "verify":
     accepted = mode == "accept-all" or (mode == "honest" and hashlib.sha256(data).hexdigest() in good)
     print("FAKE imgtool verify: " + ("Image was correctly validated" if accepted else "Image is not valid"))
     sys.exit(0 if accepted else 1)
+if command == "sign":
+    if mode == "crash":
+        raise RuntimeError("FAKE imgtool crash")
+    args = sys.argv[2:]
+    slot = int(args[args.index("--slot-size") + 1], 0)
+    source, target = Path(args[-2]), Path(args[-1])
+    needed = len(source.read_bytes()) + 0x400 + 152 + 64
+    if mode == "refuse-all" or (mode != "accept-all" and slot < needed):
+        print(f"FAKE imgtool sign: Image size ({needed - 64}) + trailer (64) exceeds requested size {slot}")
+        sys.exit(1)
+    target.write_bytes(source.read_bytes())
+    sys.exit(0)
 if command == "getpub":
     pem = here / "fake-public.pem"
     if not pem.is_file():
@@ -233,6 +249,7 @@ class BehaviourTest(unittest.TestCase):
         (self.build / "mcuboot/zephyr").mkdir(parents=True)
         self.set_images(self.image, self.confirmed8)
         self.set_fake("honest", good=[self.image], public=FAKE_SPKI)
+        (self.app / "zephyr.bin").write_bytes(bytes(range(256)) * 6)
         (self.build / "mcuboot/zephyr/zephyr.bin").write_bytes(self.mcuboot_bin)
 
     def set_images(self, signed, confirmed):
@@ -388,6 +405,58 @@ class BehaviourTest(unittest.TestCase):
         (self.build / "mcuboot/zephyr/zephyr.bin").write_bytes(self.image)
         done = self.run_script(expect=1)
         self.assertIn("image magic at the start of the MCUboot image", done.stderr)
+
+    # ---- the fit of the images in the slot, and an oversized signing request ----
+
+    def test_the_fit_rows_and_the_oversized_row_are_in_the_summary(self):
+        done = self.run_script(expect=0)
+        for text in ("fit: images in the slot", "oversized: inspector", "oversized: imgtool sign",
+                     "misaligned layout"):
+            self.assertIn(text, done.stdout)
+        self.assertRegex(done.stdout, r"oversized: imgtool sign +ok ")
+        self.assertRegex(done.stdout, r"misaligned layout +info ")
+
+    def test_the_fit_check_uses_the_alignment_read_from_the_confirmed_image(self):
+        self.set_images(self.image, self.confirmed1)
+        done = self.run_script(expect=0)
+        self.assertRegex(done.stdout, r"fit: images in the slot +ok .*alignment 1")
+
+    def test_a_signing_tool_that_never_refuses_an_oversized_slot_fails(self):
+        script = (self.tool_dir / "imgtool.py").read_text()
+        (self.tool_dir / "imgtool.py").write_text(
+            script.replace('mode != "accept-all" and slot < needed', 'False'))
+        done = self.run_script(expect=1)
+        self.assertIn("imgtool signed", done.stderr)
+        self.assertIn("slot", done.stderr)
+
+    def test_a_signing_tool_that_cannot_sign_the_control_is_a_missing_tool_not_a_verdict(self):
+        script = (self.tool_dir / "imgtool.py").read_text()
+        (self.tool_dir / "imgtool.py").write_text(
+            script.replace('(mode != "accept-all" and slot < needed)', '(slot > 0)'))
+        done = self.run_script(expect=2)
+        self.assertIn("control", done.stderr)
+        self.assertNotIn("Traceback", done.stderr)
+
+    def test_a_crash_of_imgtool_sign_is_not_a_refusal(self):
+        script = (self.tool_dir / "imgtool.py").read_text()
+        (self.tool_dir / "imgtool.py").write_text(
+            script.replace('if command == "sign":\n    if mode == "crash":',
+                           'if command == "sign":\n    if True:'))
+        done = self.run_script(expect=1)
+        self.assertIn("imgtool crashed", done.stderr)
+
+    def test_without_the_unsigned_binary_the_signing_check_is_reported_not_run(self):
+        (self.app / "zephyr.bin").unlink()
+        done = self.run_script(expect=0)
+        self.assertRegex(done.stdout, r"oversized: imgtool sign +info +not run")
+        # The inspector part does not need the unsigned binary.
+        self.assertRegex(done.stdout, r"oversized: inspector +ok ")
+
+    def test_the_unsigned_binary_is_taken_only_from_the_sysbuild_directory(self):
+        (self.app / "deeper").mkdir()
+        (self.app / "zephyr.bin").replace(self.app / "deeper/zephyr.bin")
+        done = self.run_script(expect=0)
+        self.assertRegex(done.stdout, r"oversized: imgtool sign +info +not run")
 
     # ---- missing inputs ----
 

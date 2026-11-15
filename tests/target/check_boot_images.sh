@@ -369,6 +369,59 @@ PY
     record "changed byte at $offset" ok 'inspector: digest MISMATCH, imgtool: refused'
 done
 
+# ---- (e) fit in the slot: oversized and misaligned -------------------------------------------
+# The inspector's `fit` command decides by the repository's trailer model whether an image and its
+# trailer region fit the slot, and whether the slot layout and a padded image's trailer are aligned.
+# The real images must fit the slot of the composition (3 MiB at 0x20000), with the alignment that the
+# confirmed image's trailer magic carries. Then the same image is offered to the inspector and to
+# imgtool sign with a slot that is too small: the inspector must say it does not fit, and imgtool must
+# refuse, without a crash. A control with the real slot size must sign, so that a refusal is not the
+# effect of arguments that imgtool cannot take. This checks the two tools on the build's own
+# input, not a boot result, and imgtool's reaction to a misaligned layout is not checked here.
+slot_offset=0x20000
+fit_align="$(jfield "$work/confirmed.json" padding.trailer_alignment)"
+for pair in "confirmed:$confirmed" "signed:$signed"; do
+    run_inspector "fit-${pair%%:*}" fit "${pair#*:}" --slot-size "$slot_size" --align "$fit_align" --slot-offset "$slot_offset" --json
+    [[ "$inspector_status" -eq 0 ]] || {
+        cat "$work/fit-${pair%%:*}.json" >&2
+        fail "the inspector says the ${pair%%:*} image does not fit the slot of $slot_size bytes at alignment $fit_align"
+    }
+done
+record 'fit: images in the slot' ok "signed and confirmed image fit $slot_size B at 0x20000, alignment $fit_align"
+
+run_inspector fit-over fit "$signed" --slot-size "$signed_size" --align "$fit_align" --erase-unit 1 --json
+[[ "$inspector_status" -eq 1 && "$(jfield "$work/fit-over.json" result)" == 'does not fit' ]] ||
+    fail "the inspector does not call the signed image oversized for a slot of $signed_size bytes (exit $inspector_status)"
+record 'oversized: inspector' ok "a slot of $signed_size B (the image itself) does not fit: the trailer needs $(jfield "$work/fit-over.json" over_by) B more"
+
+locate zephyr.bin
+unsigned="$located"
+if [[ -z "$unsigned" || ! -f "$unsigned" ]]; then
+    record 'oversized: imgtool sign' info "not run: no zephyr.bin in $app_dir"
+else
+    sign_status=0
+    sign_output=""
+    run_sign() {
+        sign_status=0
+        sign_output="$("${imgtool[@]}" sign -k "$key" --header-size 0x400 --align 1 --version 0.0.0 \
+            --slot-size "$1" "$unsigned" "$work/sign-$1.bin" 2>&1)" || sign_status=$?
+        if grep -q Traceback <<<"$sign_output"; then
+            fail "imgtool crashed instead of answering for a slot of $1 bytes: $sign_output"
+        fi
+    }
+    run_sign "$slot_size"
+    if [[ "$sign_status" -ne 0 ]]; then
+        printf 'boot image check: the control signing with the real slot size %s was refused (exit %s), so the arguments of this check do not suit this imgtool: %s\n' \
+            "$slot_size" "$sign_status" "$sign_output" >&2
+        exit 2
+    fi
+    run_sign "$signed_size"
+    [[ "$sign_status" -ne 0 ]] ||
+        fail "imgtool signed $unsigned into a slot of $signed_size bytes, which the inspector says is too small for the image and its trailer"
+    record 'oversized: imgtool sign' ok "refused a slot of $signed_size B; the control with $slot_size B signed"
+fi
+record 'misaligned layout' info 'decided by the inspector only (host tests); imgtool is not asked'
+
 printf 'Boot image check (the images of %s, nothing booted):\n' "$build"
 printf '  %s\n' "${summary[@]}"
 printf 'Alignment survey of the confirmed image (the open --align question of docs/boot-image-inspection.md; evidence only, not a pass criterion):\n'
