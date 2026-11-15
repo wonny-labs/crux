@@ -518,7 +518,13 @@ config CRUX_PSA_THREADING
       The locks show no absence of a race: no case exercises a concurrent use of the core
       (docs/psa-crypto-qualification.md).
 
+# The Mbed TLS module defines this symbol, and it is not in the default workspace (the crux-secure-management group is
+# off by default). Without a type here, the definition below would be an untyped symbol there, which kconfig.py rejects
+# as an error, and configdefault does not help: it adds a default to a symbol and still leaves one that no module
+# defines untyped. With the Mbed TLS module the two definitions agree on the type. The symbol then exists, empty, in an
+# image without that module, and nothing reads it there: CONFIG_CRUX_PSA_THREADING depends on the Mbed provider.
 config TF_PSA_CRYPTO_USER_CONFIG_FILE
+    string
     default "crux_tf_psa_user_config.h" if CRUX_PSA_THREADING
 
 # ADR-0004 phase 0. The management service cores, built by the module so that an application outside

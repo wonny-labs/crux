@@ -10,9 +10,8 @@
 # Build it with the Mbed profile, as tests/native/cli_console/run.sh does:
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
 #
-# What it reaches by include path: the TF-PSA-Crypto locks of the Mbed profile, which come from the
-# management composition's test glue (as in tests/native/management_module), until a later phase decides
-# how a product obtains them.
+# The TF-PSA-Crypto locks of the Mbed profile come from the module (CONFIG_CRUX_PSA_THREADING,
+# Experimental), set by mbed-threading.conf above.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")

@@ -15,6 +15,7 @@ KCONFIG = (REPO / "zephyr/Kconfig").read_text()
 MODULE_CMAKE = (REPO / "zephyr/CMakeLists.txt").read_text()
 PROVIDER = REPO / "zephyr/psa_threading"
 OLD_GLUE = "tests/native/management_composition/composition/tf_psa_threading"
+COUNTER_DIR = "tests/native/management_composition/composition/psa_threading_counter"
 OLD_CONF = "tests/native/management_composition/mbed-threading.conf"
 
 # What a product reads to enable Access: the sample that stands for one, the module's own files and the guides.
@@ -36,10 +37,13 @@ def block(symbol):
 
 class Provider(unittest.TestCase):
     def test_the_provider_sources_are_in_the_module(self):
-        for name in ("crux_tf_psa_threading.c", "crux_tf_psa_threading.h", "crux_tf_psa_user_config.h",
+        for name in ("crux_tf_psa_threading.c", "crux_tf_psa_user_config.h",
                      "threading_alt.h", "CMakeLists.txt"):
             self.assertTrue((PROVIDER / name).is_file(), name)
         self.assertFalse((REPO / OLD_GLUE).exists(), "the test copy of the glue must be gone")
+        # The lock counter header is test code: it is not in the module directory (CONTRIBUTING.md, public headers).
+        self.assertFalse((PROVIDER / "crux_tf_psa_threading.h").exists())
+        self.assertTrue((REPO / COUNTER_DIR / "crux_tf_psa_threading.h").is_file())
 
     def test_symbol_is_experimental_and_off_by_default(self):
         text = block("CRUX_PSA_THREADING")
@@ -52,7 +56,49 @@ class Provider(unittest.TestCase):
     def test_symbol_sets_the_core_user_configuration_file(self):
         self.assertRegex(
             KCONFIG,
-            r'config TF_PSA_CRYPTO_USER_CONFIG_FILE\n\s+default "crux_tf_psa_user_config\.h" if CRUX_PSA_THREADING')
+            r'(?m)^config TF_PSA_CRYPTO_USER_CONFIG_FILE\n\s+string\n'
+            r'\s+default "crux_tf_psa_user_config\.h" if CRUX_PSA_THREADING\n')
+
+    def test_the_redefinition_is_typed_and_is_not_a_configdefault(self):
+        # The Mbed TLS module defines this symbol and is absent from the default workspace. A definition without a
+        # type is an untyped symbol there, which kconfig.py rejects, and configdefault leaves it untyped too.
+        self.assertNotRegex(KCONFIG, r"(?m)^configdefault TF_PSA_CRYPTO_USER_CONFIG_FILE")
+        definitions = re.findall(r"(?m)^config TF_PSA_CRYPTO_USER_CONFIG_FILE\n((?:[ \t]+.*\n)+)", KCONFIG)
+        self.assertEqual(len(definitions), 1)
+        self.assertRegex(definitions[0], r"(?m)^\s+string\s*$")
+        self.assertNotIn("depends", definitions[0])  # no dependency that would hide the default
+
+    def test_the_lock_counter_is_a_native_sim_test_setting(self):
+        cmake = (PROVIDER / "CMakeLists.txt").read_text()
+        self.assertIn("CRUX_PSA_THREADING_TEST_COUNTER", cmake)
+        self.assertRegex(cmake, r"if\(NOT CONFIG_BOARD_NATIVE_SIM\)\s+message\(FATAL_ERROR")
+        source = (PROVIDER / "crux_tf_psa_threading.c").read_text()
+        self.assertIn("#ifdef CRUX_PSA_THREADING_TEST_COUNTER", source)
+        self.assertNotRegex(source.split("#ifdef CRUX_PSA_THREADING_TEST_COUNTER")[0], r"lock_count")
+        self.assertEqual(KCONFIG.count("COUNTER"), 0, "no Kconfig name for the counter")
+        for name in ("tests/native/management_composition/CMakeLists.txt",
+                     "tests/native/management_module/CMakeLists.txt"):
+            text = (REPO / name).read_text()
+            self.assertLess(text.index("set(CRUX_PSA_THREADING_TEST_COUNTER ON)"), text.index("find_package(Zephyr"))
+        for name in ("samples/management_rt1060_mbed/CMakeLists.txt", "tests/native/cli_console/CMakeLists.txt"):
+            self.assertNotIn("CRUX_PSA_THREADING_TEST_COUNTER", (REPO / name).read_text(), name)
+
+    def test_option_with_another_user_config_file_is_refused(self):
+        start = MODULE_CMAKE.index("if(CONFIG_CRUX_PSA_THREADING)")
+        guard = MODULE_CMAKE[start:MODULE_CMAKE.index("add_subdirectory", start)]
+        self.assertIn('NOT "${CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE}" STREQUAL "crux_tf_psa_user_config.h"', guard)
+        self.assertIn("FATAL_ERROR", guard)
+        self.assertIn("CONFIG_CRUX_PSA_THREADING", guard)
+        self.assertIn("CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE", guard)
+
+    def test_sample_refuses_an_image_without_the_option(self):
+        cmake = (REPO / "samples/management_rt1060_mbed/CMakeLists.txt").read_text()
+        self.assertRegex(cmake, r"if\(NOT CONFIG_CRUX_PSA_THREADING\)\s+message\(FATAL_ERROR[^)]*CONFIG_CRUX_PSA_THREADING=y")
+
+    def test_native_composition_refuses_the_mbed_profile_without_the_option(self):
+        text = (REPO / "tests/native/management_composition/composition/composition.cmake").read_text()
+        self.assertRegex(text, r"if\(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS\)[\s\S]*?"
+                               r"if\(NOT CONFIG_CRUX_PSA_THREADING\)\s+message\(FATAL_ERROR[^)]*CONFIG_CRUX_PSA_THREADING=y")
 
     def test_module_builds_the_provider_only_under_the_symbol(self):
         self.assertRegex(MODULE_CMAKE, r"if\(CONFIG_CRUX_PSA_THREADING\)[\s\S]*?add_subdirectory\(\"[^\n]*/psa_threading\"")
@@ -63,7 +109,10 @@ class Provider(unittest.TestCase):
         self.assertIn("#define MBEDTLS_THREADING_ALT", text)
 
     def test_provider_uses_no_test_or_wolf_header(self):
-        for path in PROVIDER.glob("*"):
+        self.assertTrue(PROVIDER.is_dir())
+        files = list(PROVIDER.glob("*"))
+        self.assertGreaterEqual(len(files), 4)
+        for path in files:
             self.assertNotRegex(path.read_text(), r"tests/|wolf", path.name)
 
     def test_the_missing_provider_is_refused_by_name(self):

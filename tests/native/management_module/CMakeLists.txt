@@ -17,11 +17,13 @@
 # target crux_web_adapter (components/web/adapter). A product outside the repository cannot do that and
 # keep to the include rule of ADR-0004 section 5; crux_web_routes() and crux_web_assets() no longer
 # hand those directories to a product's own sources (PRs 425 and 427), and the T3 fixture uses them. The
-# TF-PSA-Crypto locks of the Mbed profile come from the management composition's
-# test glue, which a later phase decides how a product obtains.
+# TF-PSA-Crypto locks of the Mbed profile come from the module's CONFIG_CRUX_PSA_THREADING
+# (Experimental); only the lock counter is test code, reached through a test-only include directory.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
+# The module's lock provider counts locks for this fixture only (zephyr/psa_threading/CMakeLists.txt).
+set(CRUX_PSA_THREADING_TEST_COUNTER ON)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_management_module LANGUAGES C)
 
@@ -44,9 +46,10 @@ if(NOT CONFIG_CRUX_CONFIG_SERVICE OR NOT CONFIG_CRUX_MGMT_STATUS OR NOT CONFIG_C
 endif()
 
 # The locks of the Mbed profile's core come from the module (CONFIG_CRUX_PSA_THREADING, set by mbed-threading.conf).
-# Its header is on the global include path and src/main.c reads the lock count through it.
+# src/main.c reads the lock count through the test-only header of the composition's counter directory.
 target_sources(app PRIVATE src/main.c)
 target_include_directories(app PRIVATE
+    "${CRUX_ROOT}/tests/native/management_composition/composition/psa_threading_counter"
     "${CRUX_ROOT}/components/access/include" "${CRUX_ROOT}/components/access/adapter"
     "${CRUX_ROOT}/components/credential/include" "${CRUX_ROOT}/components/credential/adapter"
     "${CRUX_ROOT}/components/security_event/include"

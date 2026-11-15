@@ -224,7 +224,7 @@ class Sources(unittest.TestCase):
         return set(re.findall(r'#include\s+[<"]([^>"]+)[>"]', read("src/" + name)))
 
     def test_include_discipline(self):
-        local = set(SOURCES) | {"entropy_boot.h", "crux_tf_psa_threading.h"}
+        local = set(SOURCES) | {"entropy_boot.h"}
         system = {"errno.h", "stdbool.h", "stddef.h", "stdint.h", "string.h", "stdio.h", "ff.h"}
         for name in SOURCES:
             if not name.endswith(".c"):

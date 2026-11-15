@@ -59,6 +59,7 @@ function(crux_native_management_compose)
         "${component}/mgmt_status/src/source_security_events.c")
     target_include_directories(app PRIVATE
         "${CRUX_NATIVE_MANAGEMENT_DIR}"
+        "${CRUX_NATIVE_MANAGEMENT_DIR}/psa_threading_counter"
         "${root}/tests/native/tls_offload_probe/credentials"
         "${component}/access/include" "${component}/access/adapter" "${component}/access/src"
         "${component}/credential/include" "${component}/credential/adapter"
