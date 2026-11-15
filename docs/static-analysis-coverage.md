@@ -1,7 +1,15 @@
 # Static-analysis coverage of the host build
 
-Status: **proposal and measurement**, no check or script of the repository is changed by this document.
-Measured on commit `48bc13be` on 2026-11-09. Refs #161.
+Status (2026-11-15): **stage 1 done, stage 2 waiting for the owner.** Stage 1 added
+[scripts/tidy-sources.py](../scripts/tidy-sources.py), its configuration
+[scripts/tidy-sources.conf](../scripts/tidy-sources.conf) and the host tests
+[tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py). The script derives the list from
+the compile databases and can be run by hand (see [Stage 1: the generator](#stage-1-the-generator)). It is
+**not yet wired into any check**: `scripts/analyze-host.sh` still passes its 90 hand-written paths.
+Stage 2, replacing those paths by a call to the generator, changes the protected `scripts/analyze-host.sh`
+and needs the owner's approval; the exact diff is in the pull request description.
+The sections below, from "Summary" to "Open decisions", are the proposal and measurement of
+2026-11-09 on commit `48bc13be`, kept as measured. Refs #161.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
@@ -380,6 +388,45 @@ build-directory lists) and `.github/workflows/host.yml` (the shrink-only step on
 `CRUX_ANALYZE_REQUIRE_ALL_BUILDS=1` on the analysis step so a listed build that was not built fails).
 Neither `.clang-tidy` nor `CMakePresets.json` changes. The new files are new check scripts and may be
 added within a task, but they are listed in the PR description with the other protected paths.
+
+### Stage 1: the generator
+
+[scripts/tidy-sources.py](../scripts/tidy-sources.py) (Python standard library only) turns the compile
+databases that the host job already builds into the list of sources for clang-tidy, so nobody maintains a
+path list. Its configuration is [scripts/tidy-sources.conf](../scripts/tidy-sources.conf).
+
+```bash
+python3 scripts/tidy-sources.py list           # <build>\t<source> for every source to analyse
+python3 scripts/tidy-sources.py check --strict # validate the configuration, run no clang-tidy
+python3 scripts/tidy-sources.py run --report-only --jobs 4   # one clang-tidy-18 process per source
+```
+
+- **The list is the database minus the exclusions.** Every C or C++ source under `components/`,
+  `samples/`, `tests/` and `web/` that a listed build compiles is analysed with that build's `-p`
+  directory. A source in several databases is analysed once, from the first listed build. Generated code
+  and third-party code live outside those four roots (build directories, `_deps`), so they are not listed.
+- **Three kinds of line** in the configuration: `build` (analyse this database), `ignore-build` (a
+  database that is deliberately not analysed, with a reason) and `exclude` (one explicit compiled source,
+  with a reason). Today there is one `exclude`, the compile-fail probe `tests/reboot/probe/nodiscard_probe.c`,
+  and two `ignore-build` globs, `build/*-boundary` (probes that must fail to compile) and `build/zephyr/*`
+  (not part of the host design).
+- **What fails.** An exclusion without a reason, a pattern instead of a path, or a path that does not exist;
+  a database that names a source missing from the tree; and, with `--strict` (CI), a compile database below
+  `build/` that is neither listed nor ignored (its sources would be in no list), a listed build that does
+  not exist, and an exclusion that no listed build compiles. Without `--strict` the last three are
+  warnings, so a developer who built only some consumers can still run the analysis.
+- **Report-only** (`run --report-only`) prints the counts per directory and per check and every
+  diagnostic, counted once per file, line and check, and exits 0 unless clang-tidy cannot start.
+- **Tests:** [tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py) runs in the existing
+  `python3 -m unittest discover -s tests/build` step of `host.yml`. They use synthetic databases and a fake
+  clang-tidy: a new source is picked up with no list edit, an exclusion needs a reason, a compiled source in
+  an unlisted build fails, and the list equals the database minus the exclusions. A last group checks
+  that the committed configuration is valid.
+
+Differences from the 2026-11-09 prototype: there is no per-source, per-check exceptions file and no
+shrink-only step yet. Findings are to be fixed (components first), or, where a NOLINT with a reason is the
+honest fix, annotated, and the rest listed in the pull request. Whether a baseline file is still needed is
+decided when stage 2 is applied, not before the first CI run of the generated list.
 
 ### What `check-patch.sh` teaches
 
