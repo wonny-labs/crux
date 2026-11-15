@@ -107,7 +107,7 @@ Follow the existing `docs/` and `docs/evidence/<topic>/` conventions.
 | Inputs | Pinned MCUboot `boot/zephyr/Kconfig`, `boot/zephyr/sample.yaml`, `boot/zephyr/CMakeLists.txt`, `boot/bootutil/src/loader.c`, `bootutil_loader.c`, `bootutil_public.c`, `image_validate.c`. Pinned Zephyr `share/sysbuild/images/bootloader/Kconfig`, `cmake/mcuboot.cmake`, `soc/nxp/imxrt/Kconfig`. |
 | Steps | Re-check each Appendix A row against the pinned file and line. Answer: Is sysbuild MCUboot available for RT1060-EVKB? Which modes exist? Is validation on every boot the default? Which crypto backend avoids new Zephyr crypto modules? What is the older-image comparison basis in each mode? What does the bootloader provide for SoC XIP encryption? |
 | Evidence | `pinned-source-findings.md`, one row per claim, labelled with an evidence status from section 5.2. |
-| Verification | A second agent (Haiku) re-reads each cited line and confirms or rejects the row. |
+| Verification | A second reader re-reads each cited line and confirms or rejects the row. |
 | Stop condition | Escalate if RT1060-EVKB is absent from MCUboot's Zephyr support at the pin, or if every signature option needs a Zephyr crypto module. Both would change the dependency question and overlap #142. |
 
 ### Stage 2: Update mode and staging medium fit (scope items 1 and 2)
@@ -319,21 +319,21 @@ Stop the affected stage and report to the owner if any of these occurs:
 - **Draft PR content.** Branch from current `main`, for example `docs/boot-update-investigation`. Title: `docs: record boot and update feasibility for RT1060-EVKB`. Files: `docs/boot-update-investigation.md`, `docs/evidence/boot-update/*`, and at most a one-line cross-reference from the ROM section of `docs/platform-m1-readiness.md`. The PR body states what changed, why, the tested revision, the commands and environment, tests not run (all hardware tests), and the approvals still needed. No change to `west.yml`, `.devcontainer/`, scripts, CI or source.
 - **The PR must not claim** that any image boots, that a layout is safe or adopted, that MCUboot is adopted, that secure boot, hardware root of trust or anti-rollback is achieved, that HAB authentication was observed, that microSD staging works, that Flash writes during XIP are safe, that the build is reproducible beyond the tested comparison, or that any M8 or M9 criterion is met. It must not include content from separately maintained planning materials, and it must not close #141 without A3 and the acceptance evidence.
 
-## 8. Model and effort per stage
+## 8. Effort per stage
 
-| Stage | Model | Effort | Reason |
-| --- | --- | --- | --- |
-| 0 Baseline | Haiku | Low | Read-only verification |
-| 1 Pinned-source check | Haiku re-check, Opus write-up | Low, then moderate | Most facts already gathered. Re-verification is mechanical. |
-| 2 Mode and staging fit | Opus | High | Design trade-offs with safety consequences |
-| 3 HAB, encryption, tooling | Opus | Moderate | Interpretation of vendor material and licences |
-| 4 Placement re-verification | Haiku (artefact reading), Sonnet if rebuilds are needed | Low | Mechanical extraction |
-| 5 Trial build | Sonnet | Moderate | Executing approved build steps |
-| 6 Layout and XIP write analysis | Opus | High | Cross-component reasoning on hazards |
-| 7 (removed) | None | None | Stage removed, RT1170 deferred |
-| 8 Reproducibility and signing | Sonnet | Low to moderate | Executing approved checks |
-| 9 Decision record | Opus | Moderate to high | Decision record |
-| 9 Independent review | Opus, separate context, not the author | High | Required independent review |
+| Stage | Effort | Reason |
+| --- | --- | --- |
+| 0 Baseline | Low | Read-only verification |
+| 1 Pinned-source check | Low, then moderate | Most facts already gathered. Re-verification is mechanical. |
+| 2 Mode and staging fit | High | Design trade-offs with safety consequences |
+| 3 HAB, encryption, tooling | Moderate | Interpretation of vendor material and licences |
+| 4 Placement re-verification | Low | Mechanical extraction |
+| 5 Trial build | Moderate | Executing approved build steps |
+| 6 Layout and XIP write analysis | High | Cross-component reasoning on hazards |
+| 7 (removed) | None | Stage removed, RT1170 deferred |
+| 8 Reproducibility and signing | Low to moderate | Executing approved checks |
+| 9 Decision record | Moderate to high | Decision record |
+| 9 Independent review | High | Required independent review by someone other than the author |
 
 ## 9. Issues with the current scope
 

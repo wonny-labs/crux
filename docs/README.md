@@ -66,7 +66,7 @@ Everything else in `docs/` is maintained. The groups are:
 - **Orientation and guides:** [architecture](architecture.md), [choosing an API](choosing-an-api.md), [build and integration](build.md), [product composition](product-composition.md), [component readiness](component-readiness.md), [composition interface rules](composition-interfaces.md), [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md).
 - **Decisions:** [decision records](decisions/README.md) and the [research notes](research/platform-direction-review.md) behind them.
 - **Contracts and designs:** see below.
-- **Investigations, feasibility reports and physical gates:** the boot pages ([boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
+- **Investigations, feasibility reports and physical gates:** the boot pages (start with the [boot overview](boot-overview.md); then [boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
 
 ## Contracts and designs
 

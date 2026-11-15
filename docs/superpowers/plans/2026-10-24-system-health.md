@@ -1,6 +1,6 @@
 # Portable System Health and Reset Implementation Plan
 
-> **For agentic workers:** Use superpowers:executing-plans inline. Separately authored public-only consumer and final independent Reviewer/Challenger are required; no implementer-per-task delegation. Steps use checkbox (`- [x]`).
+> **Execution:** inline. A separately authored public-only consumer and a final independent review and adversarial review are required; no separate implementer per task. Steps use checkbox (`- [x]`).
 
 **Goal:** Deliver the approved six-operation System capability, software evidence and Draft PR for #30.
 **Architecture:** Common boot-local lifecycle/observation state with private Linux monotonic watchdog emulation and Zephyr watchdog/hwinfo/reboot mappings. No automatic supervision, feeder, global readiness policy, extra worker or public registry.

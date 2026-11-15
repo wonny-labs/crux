@@ -1,6 +1,6 @@
 # Dependency review: the wolfSSL, wolfSSH and wolfPSA pins
 
-Status: **review record, a use of the [dependency review guide](dependency-review.md)** after the [Mbed TLS record](dependency-review-mbed-tls-4.1.1.md) and the FatFs review (PR #420), 14 November 2026. Baseline: `origin/main` at `7e0a31a4`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), Q7: whether newer tagged stable releases or advisories matter to the wolf pins.
+Status: **review record, a use of the [dependency review guide](dependency-review.md)** after the [Mbed TLS record](dependency-review-mbed-tls-4.1.1.md) and the FatFs review (PR #420), 14 November 2026. Baseline: `origin/main` at `7e0a31a4`. Author: the change author. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), Q7: whether newer tagged stable releases or advisories matter to the wolf pins.
 
 This record is documentation only. It moves no pin and edits no `west.yml` and no protected path. It decides nothing about licences: the licence facts below are constraints taken from existing documents.
 
@@ -108,6 +108,6 @@ On native macOS, in the worktree at `7e0a31a4`: `gh api` against `wolfSSL/wolfss
 
 | Item | Value |
 | --- | --- |
-| Author | Claude Code, `claude-sonnet-5-5` (desktop app) |
-| Independent review | pending, `reviewer` agent (`claude-opus-5-5`) |
+| Author | The change author |
+| Independent review | pending |
 | Approvals | none |

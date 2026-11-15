@@ -9,7 +9,7 @@ Refs #183.
 
 ## The owner's decision
 
-> Owner, 2026-11-09, in the session that manages stage 2 of the bench image: "1-8까지 너의 추천대로 진행해줘". The recommendation for D-c was: **patch** the bench image's build-local Zephyr copy, not a check in the composition and not acceptance.
+> Owner decision, 2026-11-09, taken as recommended on a list of eight items. The recommendation for D-c was: **patch** the bench image's build-local Zephyr copy, not a check in the composition and not acceptance.
 
 Decision D-c was open in [the image plan](rt1060-bench-image-plan.md#what-blocks-the-plan-today) and in [`board-image-profiles.md`](board-image-profiles.md). This record is its implementation.
 
@@ -91,7 +91,7 @@ Limits of the patch: `once` is a plain `static bool`, as it was (no memory barri
 
 ## How the copy is made
 
-The copy is a build-local tree outside the repository. A copy that other sessions or an earlier run already use as a read-only input is **never changed in place**: make a new one.
+The copy is a build-local tree outside the repository. A copy that other work or an earlier run already uses as a read-only input is **never changed in place**: make a new one.
 
 ```mermaid
 flowchart LR
@@ -115,7 +115,7 @@ The marker is the order of the patches: step 2 starts only from the marker that 
 
 The order is the TLS patch first. The two patches touch different files; step 2 would refuse a TLS patch that had touched `tcp.c`, because it checks the original's hash. The manifest of the build records the block of the design (`patched_zephyr`, schema 2).
 
-**What whoever builds the bench image next must do.** The board image is built later from a pinned commit by the main session. Make a **new** copy with the two commands above (do not use a copy that only has the TLS patch: configuration refuses it), build from the pinned commit, and keep the manifest. A freeze that pins stock Zephyr records a tree that was not compiled ([blocker B2](rt1060-bench-image-plan.md)): it now has two patches to account for, and the plan's options for the copy apply to both.
+**What whoever builds the bench image next must do.** The board image is built later from a pinned commit by the project maintainers. Make a **new** copy with the two commands above (do not use a copy that only has the TLS patch: configuration refuses it), build from the pinned commit, and keep the manifest. A freeze that pins stock Zephyr records a tree that was not compiled ([blocker B2](rt1060-bench-image-plan.md)): it now has two patches to account for, and the plan's options for the copy apply to both.
 
 ### How this relates to the freeze design
 
@@ -223,13 +223,13 @@ The call-site scan ([`call-sites.txt`](evidence/rt1060-management-image-feasibil
 
 | # | Decision taken for lack of an answer | Why, and the other way |
 | --- | --- | --- |
-| 1 | **The patch file lives in `patches/zephyr/`**, which is not a protected path. The TLS patch is not in the repository at all (the scripts fetch it from its upstream by revision), so there was no existing in-repo place for "the patch beside it". `patches/zephyr/` already holds Crux's own patches of Zephyr files (the Mbed TLS entropy, the MDIO and the MMC corrections) with a README | A different place needs only a move and the three hashes' file name. Reported to the main session in the hand-over |
+| 1 | **The patch file lives in `patches/zephyr/`**, which is not a protected path. The TLS patch is not in the repository at all (the scripts fetch it from its upstream by revision), so there was no existing in-repo place for "the patch beside it". `patches/zephyr/` already holds Crux's own patches of Zephyr files (the Mbed TLS entropy, the MDIO and the MMC corrections) with a README | A different place needs only a move and the three hashes' file name. |
 | 2 | **The scope grew to defect 2, the 16-byte digest buffer, and the patch now also refuses on a failed hash. This needs the owner's explicit acceptance.** A check of the key alone would leave the key unused, and a check of the hash result with the old buffer would refuse every connection | Without it the task's goal (a failed read does not lead to a predictable number) is not met in a way the red run can show. It is a security-relevant scope expansion (`AGENTS.md`: escalate before adopting), and it adds an availability dependency on wolfPSA's hash at run time. The other way: fix only the key check and accept that the number stays keyless, which makes the patch cosmetic |
 | 3 | A refused passive open is a **RST** and a refused connect returns the error of the read (`-EIO`), sending nothing | These are the stack's own exits for a failed bind and for the early errors of `net_tcp_connect`. Dropping the SYN silently is the other choice: it needs a different exit and leaves the peer waiting |
 | 4 | The key is read again at **every** attempt until a read works, rather than latching the failure | A TRNG that works again is then used. The cost is one failing read per SYN |
 | 5 | The guards also refuse `CONFIG_NET_TEST` and `CONFIG_NET_TEST_PROTOCOL` | Both make the stack skip `tcp_init_isn()`, so the patch would protect nothing. Neither is in the bench |
 | 6 | The new script is `scripts/prepare-isn-fail-closed.py`, a new file, and it does **not** edit `prepare-wolf-tls-zephyr.sh`, which is on a protected path (T11 edited the new script, and still not the TLS one) | The bench copy is made with two commands in a fixed order. A single script for both needs an approved edit of the protected one |
-| 7 | The script refuses a Git checkout and changes the tree **in place** | A copy that other sessions use as a read-only input is never changed: the next copy is made new |
+| 7 | The script refuses a Git checkout and changes the tree **in place** | A copy that other work uses as a read-only input is never changed: the next copy is made new |
 | 8 | The decision keeps the plan's label **D-c** and the declaration says `"row": "C11"`; the marker was `.crux-isn-fail-closed` (**superseded by T11**: the one marker `.crux-wolf-tls`, see decision 10) | Names follow `.crux-wolf-tls` and the existing `D8` block |
 | 9 | The native test classifies numbers by recomputing the hash. The passive path hashes with the port that `net_context_get` chose at random for the new context and `net_context_bind` writes back into `tcp_conn_new`'s address when its port is 0 (`net_context.c`, the `addr4->sin_port = net_sin_ptr(&context->local)->sin_port` line), so the test tries all 65,536 ports (a first version that assumed port 0 did not match the keyed number) | The port is not observable from outside; the cost is a fraction of a second |
 | 10 | **Two markers when the row merged, not the single extended marker of the freeze design (#373). Superseded by T11: one marker.** | The existing guard compared `.crux-wolf-tls` to one exact text and the row kept the D8 entries and checks as they were. T11 (owner's approval of one edit of `scripts/prepare-isn-fail-closed.py`, 2026-11-12 21:43:57 UTC, "Approve option B") made this script extend the TLS step's marker, and folded the two blocks into the ordered list. The TLS script is unchanged: its own "already prepared" test no longer matches a finished copy, so it makes the copy again (step 1 above) |
