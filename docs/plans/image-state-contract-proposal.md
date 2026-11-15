@@ -34,7 +34,7 @@ On 15 November 2026 the owner approved rows I1, I4 and I7 as recommended (quote 
 
 ### Owner approval
 
-The owner approved rows I1, I4 and I7 in chat with the secure boot session on 15 November 2026 at about 17:25 UTC. The question asked was whether to approve the four recommendations of that session as recommended, and the answer was "추천대로 승인" (approved as recommended). The secure boot session relayed this to the session that edited this record. The other two of the four recommendations are in the [secure boot development plan](secure-boot-development-plan.md#6-decisions-the-owner-needs-to-make) (D2 and D9). The approval covers only the rows marked Approved. It does not approve I2, I3, I5, I6, I8 or I9, any implementation, a change to #297's acceptance criteria, or a change to a protected path.
+The owner approved rows I1, I4 and I7 in chat with the secure boot session on 15 November 2026 at about 17:25 UTC. The question asked was whether to approve that session's list of four recommendations as recommended, and the answer was "추천대로 승인" (approved as recommended). The secure boot session relayed this to the session that edited this record. The same answer covers rows D2 and D9 of the [secure boot development plan](secure-boot-development-plan.md#6-decisions-the-owner-needs-to-make). The approval covers only the rows marked Approved. It does not approve I2, I3, I5, I6, I8 or I9, any implementation, a change to #297's acceptance criteria, or a change to a protected path.
 
 ## The question and the short answer
 
