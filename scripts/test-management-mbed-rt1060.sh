@@ -96,8 +96,10 @@ run_build() {
     scratch="$(mktemp -d)"
     local inside="$repo/build/management-mbed-rt1060-inside-password"
     # Whatever happens next, no copy of the test password stays behind.
-    # The paths are expanded now: the locals are gone when the script exits.
-    trap "rm -rf '$scratch' '$inside'" EXIT
+    # The trap reads script-level copies of the paths: the locals are gone when the script exits.
+    trap 'rm -rf -- "$cleanup_scratch" "$cleanup_inside"' EXIT
+    cleanup_scratch="$scratch"
+    cleanup_inside="$inside"
     password_file="$scratch/password"
     (umask 077 && head -c 24 /dev/urandom | base64 | tr -d '\n' > "$password_file")
     password="$(cat "$password_file")"

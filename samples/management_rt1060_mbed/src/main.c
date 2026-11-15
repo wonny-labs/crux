@@ -5,8 +5,8 @@
  * events to Logging on the console UART. Built here and meant to run on the board: nothing in this
  * repository flashes or resets one.
  *
- * Boot order, and what stops the image: every refusal prints one MBED-MGMT line and returns, and
- * nothing after it runs.
+ * Boot order, and what stops the image: every refusal ends in an MBED-MGMT refusing-to-start line
+ * (a failed step prints its own detail line first), and nothing after it runs.
  *   1. The first random read, before anything makes a key. A failed TRNG read stops the image: no
  * key, certificate or listener is made. There is no fallback source and no test entropy.
  *   2. The static address.

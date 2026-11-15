@@ -81,7 +81,7 @@ MBED-MGMT ready https://192.168.77.2:443/
 
 Without the test form, the fourth line is `MBED-MGMT no first account: this image has no serial setup step, so nobody can log in...`. Security events follow as Logging lines when someone logs in.
 
-A failed step prints `MBED-MGMT step failed: <name>` and then one `MBED-MGMT refusing to start: ...` line, and nothing after it runs. The refusals, in order: the first random read failed (no key or listener is made, and only the refusal line prints), the static address could not be set, a core service did not start, the first account could not be made, a service did not start. The certificate's fingerprint is read before the listener starts, so an unreadable certificate is a failed step and the listener never starts. **No `MBED-MGMT ready` line within a minute of power-up is a failure to report, not to retry blindly.**
+A failed step prints a detail line (`MBED-MGMT step failed: <name>`, or `MBED-MGMT TEST ONLY first account failed: result=<n>` for the test form, or the `CRUX-ENTROPY first-read=failed` line for the random read) and then one `MBED-MGMT refusing to start: ...` line, and nothing after it runs. The refusals, in order: the first random read failed (no key or listener is made), the static address could not be set, a core service did not start, the first account could not be made, a service did not start. The certificate's fingerprint is read before the listener starts, so an unreadable certificate is a failed step and the listener never starts. **No `MBED-MGMT ready` line within a minute of power-up is a failure to report, not to retry blindly.**
 
 ### What a team checks
 
