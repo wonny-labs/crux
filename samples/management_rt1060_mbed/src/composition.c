@@ -251,8 +251,9 @@ static int tls_credentials_register(int sec_tag)
     return result;
 }
 
-static crux_file_area_t areas[] = {{
+static const crux_file_area_t areas[] = {{
     .name = FILE_AREA,
+    .root = ROOT_FILES,
     .read_permission = PERMISSION_FILE_READ,
     .write_permission = PERMISSION_FILE_WRITE,
     .max_file_bytes = 4096u,
