@@ -53,7 +53,7 @@
 | # | Fact | Source | Label |
 | --- | --- | --- | --- |
 | P1 | ADR-0006 sets a policy for Crux's own crypto pins: the two Mbed TLS pins (option B, a security-fix path that may move them ahead of the Zephyr tag, only to revisions Zephyr pins on a release branch and within the line Crux builds) and the three wolf pins (tagged stable releases, same review). It was accepted on 14 November 2026 | [ADR-0006, section 3 and the owner's decisions](../decisions/0006-cryptographic-dependency-policy.md) | Verified in repository |
-| P2 | ADR-0006 lists MCUboot, "pinned by the open PR #339", among the dependencies that would need the same review, undecided and each a decision for the owner. The guide says the same of MCUboot and `hal_nxp` | ADR-0006 section 5, [dependency review guide, Scope](../dependency-review.md#scope) | Verified in repository |
+| P2 | ADR-0006 lists MCUboot, "pinned by the open PR #339", among the dependencies that would need the same review, undecided and each a decision for the owner. The guide says the same of MCUboot and one other module | ADR-0006 section 5, [dependency review guide, Scope](../dependency-review.md#scope) | Verified in repository |
 | P3 | The size comparison says MCUboot's tinycrypt "is not one of those pins", that it is a vendored copy of an archived upstream project, and that "no Crux policy covers it until the dependency review that ADR-0006 mentions" | [comparison record, sections 5 and 6](mcuboot-crypto-backend-comparison.md) | Verified in repository |
 | P4 | The guide's procedure (triggers, record, steps, pin base check, fix-inclusion check) is written for a Zephyr-fork module pin. Its pin base check uses `gh api .../compare` against a module's upstream tag | [dependency review guide](../dependency-review.md) | Verified in repository |
 | P5 | `west crux-pins` reports a pin and not a library line or version, and the generated compatibility table shows a version only when `west.yml` carries a version comment. The `mcuboot` entry of `west.yml` has no version comment | `west.yml:33-38`, [product composition guide, Crypto library pins](../product-composition.md#crypto-library-pins) | Verified in repository |
@@ -214,7 +214,7 @@ Body:
 
 ## What was run
 
-On native macOS, in a git worktree at `6c246d13`: `git fetch`, reads of the files cited above, `grep`, and read-only `gh api` and `curl` calls against public GitHub and the public NVD API on 15 November 2026 between about 22:55 and 23:05 UTC (contents, commits, compare, tags, releases and advisories endpoints of the MCUboot, tinycrypt and Zephyr repositories). No repository content or private context was sent. Not run: `west`, any build, `native_sim`, any test, any hardware command. The documentation link check runs in CI. `docs/plans/` is excluded from it, but the links of this file were checked by hand against the tree.
+On native macOS, in a git worktree at `6c246d13`: `git fetch`, reads of the files cited above, `grep`, and read-only `gh api` and `curl` calls against public GitHub and the public NVD API on 15 November 2026 between about 22:55 and 23:00 UTC (contents, commits, compare, tags, releases and advisories endpoints of the MCUboot, tinycrypt and Zephyr repositories). No repository content or private context was sent. Not run: `west`, any build, `native_sim`, any test, any hardware command. The documentation link check runs in CI. `docs/plans/` is excluded from it, but the links of this file were checked by hand against the tree.
 
 ## Record
 
