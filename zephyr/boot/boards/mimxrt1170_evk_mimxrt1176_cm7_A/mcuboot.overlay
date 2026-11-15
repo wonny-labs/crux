@@ -2,7 +2,12 @@
  * design note "RT1170-EVK boot composition: memory-map choices": Inference, not adopted by the
  * owner, to be corrected by the first CI build. Nothing was built or run for this board. Mirrors
  * the RT1060-EVK Rev B file of the same name. Same retained-region node in MCUboot and application.
- * Unverified: that 0x2033ff00 is free of any other use in the application at v4.4.2. */
+ * Unverified: that 0x2033ff00 is free of any other use in the application at v4.4.2.
+ * Caution, Not verified: the Zephyr v4.4.0 board document lists sdram0 at 0x80030000 and ocram2
+ * at 0x200C0000 and says only the first 16 KiB of ocram2 has the memory attributes needed for
+ * shared memory, while the devicetree files followed here give 0x80000000 and 0x202c0000; the
+ * document may describe the dual-core view or be out of date, so the first build must settle it
+ * and a different retained-region location may be needed. */
 / {
 	retained_sram: sram@2033ff00 {
 		compatible = "zephyr,memory-region", "mmio-sram";

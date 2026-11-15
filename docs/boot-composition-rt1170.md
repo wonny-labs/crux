@@ -48,6 +48,10 @@ Where the files differ from the RT1060 files only by these values, the construct
 | D3 | **CI placement.** | No CI step runs the script. A separate step or job, not inside the RT1060 step, keeps an RT1170 failure from hiding an RT1060 result. Adding it changes `.github/workflows/zephyr.yml`, a protected path, and needs the owner's approval. A test in `tests/build/test_boot_composition_rt1170.py` asserts that the step is absent and must be changed with it. |
 | D4 | **Script.** | A second script reuses every check, so no existing protected file is edited. A parameter of `scripts/test-boot-composition.sh` is the alternative and is the owner's decision. |
 
+### Memory table of the Zephyr board document (Not verified)
+
+The Zephyr board document (`boards/nxp/mimxrt1170_evk/doc/index.rst`, Zephyr v4.4.0) lists `sdram0` at `0x80030000` and `ocram2` at `0x200C0000`, and says that only the first 16 KiB of `ocram2` has the memory attributes needed for shared memory. The devicetree files that the composition files follow (`mimxrt1170_evk_mimxrt1176_cm7.dts` and `nxp_rt1170.dtsi`) give the SDRAM at `0x80000000` and `ocram2` at `0x202c0000`. The document may describe the dual-core view or be out of date. **Not verified:** which is right for this composition. The first build must settle it, and a different retained-region location may be needed.
+
 ## Not verified
 
 - That MCUboot and the application build for `mimxrt1170_evk@A//cm7` under sysbuild at Zephyr v4.4.2 with these files. The upstream MCUboot sample target resolves to revision B, so a revision-A build may need more than the four files.
