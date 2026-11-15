@@ -61,13 +61,14 @@ config CRUX_THREAD_STACK_BYTES
 	int "Minimum usable bytes per worker stack"
 	# The web session's login worker derives a password with PBKDF2 on its stack, and every in-repo image that
 	# runs it sets 8192, so an image that enables it starts from 8192 and a product's configuration need not
-	# name this symbol (ADR-0004 C6). It is the stack of every Crux worker of that image.
-	default 8192 if CRUX_WEB_SESSION
+	# name this symbol (ADR-0004 C6). It is the stack of every Crux worker of that image. The serial console
+	# thread verifies a login with the same derivation, so an image that enables it starts from 8192 too.
+	default 8192 if CRUX_WEB_SESSION || CRUX_CLI_CONSOLE
 	default 4096
 	range 1024 65536
 	help
-	  The usable stack of each Crux worker thread. With CONFIG_CRUX_WEB_SESSION the default is 8192, the
-	  value that every tested image that runs the login worker sets. It is NOT a measured stack high-water
+	  The usable stack of each Crux worker thread. With CONFIG_CRUX_WEB_SESSION or CONFIG_CRUX_CLI_CONSOLE
+	  the default is 8192, the value that every tested image that runs the login worker sets. It is NOT a measured stack high-water
 	  mark: nobody has measured it on a target. The Crux Thread API has no stack measurement, so a product
 	  should measure its own with Zephyr's (CONFIG_THREAD_STACK_INFO and CONFIG_INIT_STACKS, which
 	  CONFIG_CRUX_SSH_STACK_REPORT uses for the SSH threads) under its own load, including a login.
@@ -122,6 +123,16 @@ config CRUX_WEB_MANAGEMENT_WORKER_PRIORITY
 	help
 	  The worker that saves configuration for the web management routes,
 	  started by crux_web_management_start_worker().
+
+config CRUX_CLI_CONSOLE_PRIORITY
+	int "Serial console thread"
+	default 6
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  The thread that runs the serial console, started by
+	  crux_cli_serial_start() under CONFIG_CRUX_CLI_CONSOLE. It runs the
+	  login, the first-account setup and every session of the console,
+	  including the password verification of a login.
 
 endmenu
 
@@ -183,8 +194,9 @@ config CRUX_CLI
     bool "Crux command line and serial console"
     depends on CRUX_PILOT_MODULE && CRUX_SERIAL && CRUX_THREAD
     help
-      The command registry and the serial console over Crux Serial. Access and a provider of the
-      event port have no Zephyr composition yet, so an image that calls it does not link.
+      The command registry and the serial console over Crux Serial. The module links the console
+      only under CONFIG_CRUX_CLI_CONSOLE, which also needs Access and provides the event port:
+      an image that calls the console's functions without it does not link.
       Without CRUX_DEVELOPMENT_IMAGE, an image with this has no Zephyr shell.
 
 if CRUX_CLI
@@ -202,6 +214,31 @@ config CRUX_CLI_TOKENS_MAX
     range 4 32
 
 endif # CRUX_CLI
+
+config CRUX_CLI_CONSOLE
+    bool "Crux serial console start (Experimental)"
+    depends on CRUX_CLI && CRUX_ACCESS
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an
+      image that leaves it off.
+
+      Links the serial console with its login and first-account setup into the image, with the
+      provider of the command line's event port over the security events. The module defines the
+      composition target crux::cli_zephyr for <crux/cli_zephyr.h> (Experimental), which declares
+      crux_cli_serial_start(): a composition interface, not a portable usage target. The console
+      owns the UART that the devicetree alias crux-serial0 names, so no Zephyr console, log
+      backend or shell may use it. The application passes its command tables to crux_cli_init()
+      first. See docs/cli-contract.md.
+
+config CRUX_CLI_CONSOLE_BAUD_RATE
+    int "Baud rate of the serial console, 8N1"
+    default 115200
+    range 1200 4000000
+    depends on CRUX_CLI_CONSOLE
+    help
+      Read by crux_cli_serial_start() when it opens the port. Data bits, stop bits and parity are
+      8, 1 and none.
 
 config CRUX_DEVELOPMENT_IMAGE
     bool "Mark this image as a development image"
