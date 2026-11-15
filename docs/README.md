@@ -49,7 +49,7 @@ Most pages in `docs/` describe the current implementation or a current decision.
 | [`m3-validation.md`](m3-validation.md) | Closed execution and hardware-validation record of Pilot M3 |
 | [`m5-pilot-validation-plan.md`](m5-pilot-validation-plan.md) | Validation and completion plan of Pilot M5 |
 | [`execution-profile.md`](execution-profile.md) | Investigation that selected the reference controller's execution model |
-| [`physical-verification-plan.md`](physical-verification-plan.md) | Plan, never an approval, for physical checks of GPIO, I2C and SPI |
+| [`physical-verification-plan.md`](physical-verification-plan.md) | Unexecuted plan, never an approval, for physical checks of GPIO, I2C and SPI. Component readiness still cites its open items |
 | [`flash-safety-poc.md`](flash-safety-poc.md) | Isolated proof of concept for Flash safety. Not an adopted driver or layout |
 | [`storage-pilot-software-handoff.md`](storage-pilot-software-handoff.md) | Storage handoff of the Pilot, superseded as the selected storage direction |
 | `plans/` | Implementation plans and proposals that were completed or superseded |
@@ -111,7 +111,7 @@ When a page says "M5" without more, check its date and its neighbours: a page th
 | Stable | Covered by a compatibility promise. Only from `v1.0` |
 | Deprecated | Still works, with a compiler warning and a named replacement |
 
-Nothing is Stable, because no `v1.0` exists. The tier of each component in [Component readiness](component-readiness.md) is provisional: the public headers do not yet carry `Status:` lines. Separately, `thread`, `sync`, `queue` and `serial` are **frozen for new product code**. The freeze is not a tier; see [Choosing an API](choosing-an-api.md).
+Nothing is Stable, because no `v1.0` exists. The tier of each component in [Component readiness](component-readiness.md) is provisional: ADR-0001's assignment of a tier to every public interface (its follow-up change 5) is not done, and only some public headers, those of the management services and Configuration, carry a `Status: Experimental` line. Separately, `thread`, `sync`, `queue` and `serial` are **frozen for new product code**. The freeze is not a tier; see [Choosing an API](choosing-an-api.md).
 
 ## Decisions
 
@@ -121,7 +121,7 @@ Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.
 
 | Term | Meaning |
 | --- | --- |
-| **Portable component** | A Crux component, under `components/`, written in C17 and independent of Zephyr, board and vendor headers. OS-specific code sits in its `ports/` directory |
+| **Portable component** | A Crux component, under `components/`, written in C17 and independent of Zephyr, board and vendor headers. OS-specific code usually sits in its `ports/` directory |
 | **Public header** | A header under a component's `include/crux/`, included as `<crux/NAME.h>`. It is the interface a product uses |
 | **Usage target** | The CMake target a consumer links to use a component, such as `crux::time`. A usage target is not an installed package or a binary SDK |
 | **Composition** (platform composition) | The board- or project-specific configuration and initialisation that choose OS implementations and bind hardware resources, such as Kconfig, providers and device bindings. A **composition interface** is the one formal way composition code reaches a provider that must be bound to Zephyr resources ([rules](composition-interfaces.md)) |

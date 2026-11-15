@@ -125,7 +125,7 @@ The documents for accounts, the management services, HTTPS web management, the c
 ## Status and limits
 
 - **Not production-qualified.** Crux is a development and architecture-validation Pilot, not an installable SDK, and no `find_package(Crux)` or binary package exists.
-- **No release or tag.** Products consume Crux as a source revision (a west project or a source tree) and pin the revision they use.
+- **No release or tag.** Products consume Crux as a source revision (a west project or a source tree) and pin a revision for a release; the product template follows `main` until a tag exists.
 - **Stability tiers are provisional.** Public interfaces use the tiers of [ADR-0001](docs/decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) (Experimental, Unstable, Stable, Deprecated). Nothing is Stable, and several components are Experimental. Each component's tier and evidence are in [Component readiness](docs/component-readiness.md).
 - **Interim freeze digest.** The tree digest of the patched Zephyr copy for the RT1060 management image is recorded in an interim form, derived on macOS. It is to be re-derived in the build environment at the first real bench build ([bench image plan](docs/rt1060-bench-image-plan.md)).
 - **No board evidence for secure management.** Accounts, the management services, HTTPS web management, the command line and SFTP have run on Linux Host and, mostly, on `native_sim`, and some parts compile for RT1060-EVKB. None has run on a board.
