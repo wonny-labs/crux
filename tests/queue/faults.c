@@ -1,11 +1,17 @@
 /* Private white-box fixture: no production controls or exported test hooks. */
+// NOLINTNEXTLINE(bugprone-suspicious-include): fixture deliberately includes the unit under test
 #include "../../components/queue/src/queue.c"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 static bool context = true;
 static crux_status_t prepare_result = CRUX_OK, lock_result = CRUX_OK, deadline_result = CRUX_OK;
 static unsigned deadline_calls, waits;
-static const queue_deadline_t *original;
+/* The deadline lives on the stack of the unit under test, and this fixture only compares its
+ * address. The address is therefore kept masked, as an integer, so that the global never holds a
+ * pointer to a local that is dead after the unit returns. */
+#define DEADLINE_MASK ((uintptr_t)0x5a5a5a5aU)
+static uintptr_t original;
 bool crux_queue_context_allowed(void)
 {
     return context;
@@ -14,12 +20,12 @@ crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
 {
     (void)ms;
     ++deadline_calls;
-    original = out;
+    original = (uintptr_t)out ^ DEADLINE_MASK;
     return deadline_result;
 }
 crux_status_t crux_queue_lock(const queue_deadline_t *deadline)
 {
-    assert(deadline == NULL || deadline == original);
+    assert(deadline == NULL || ((uintptr_t)deadline ^ DEADLINE_MASK) == original);
     return lock_result;
 }
 void crux_queue_unlock(void)
@@ -33,7 +39,7 @@ crux_status_t crux_queue_prepare_wait(size_t index)
 crux_status_t crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     (void)index;
-    assert(deadline == original);
+    assert(((uintptr_t)deadline ^ DEADLINE_MASK) == original);
     return ++waits < 3 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
 void crux_queue_notify(size_t index)

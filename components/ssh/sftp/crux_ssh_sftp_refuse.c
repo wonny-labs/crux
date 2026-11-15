@@ -91,6 +91,7 @@ int crux_ssh_sftp_remove(void *fs, const char *path)
     return -1;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): mirrors the WRENAME(fs, from, to) macro
 int crux_ssh_sftp_rename(void *fs, const char *from, const char *to)
 {
     (void)fs;

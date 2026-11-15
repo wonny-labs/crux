@@ -10,7 +10,9 @@
 #include <unistd.h>
 static bool fail_lock;
 static unsigned value;
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap name, fixed by the linker
 int __real_pthread_mutex_lock(pthread_mutex_t *lock);
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap name, fixed by the linker
 int __wrap_pthread_mutex_lock(pthread_mutex_t *lock)
 {
     return fail_lock ? EINVAL : __real_pthread_mutex_lock(lock);

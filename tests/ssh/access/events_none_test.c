@@ -25,7 +25,10 @@ static void test_a_report_of_each_type_returns_and_is_left_unchanged(void)
         const crux_ssh_access_event_t before = report;
 
         crux_ssh_access_port_event(&report);
-        SSH_CHECK(memcmp(&report, &before, sizeof(report)) == 0);
+        SSH_CHECK(report.type == before.type);
+        SSH_CHECK(report.channel == before.channel);
+        SSH_CHECK(report.source_length == before.source_length);
+        SSH_CHECK(memcmp(report.source, before.source, sizeof(report.source)) == 0);
     }
 }
 
