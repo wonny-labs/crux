@@ -335,10 +335,14 @@ class Declarations(unittest.TestCase):
     """A call to a crux_ function needs a declaration the image can see. No compiler runs here, so this reads
     the headers: every crux_ function the image calls must be declared in a header that the image includes,
     directly or through the headers it includes, or be defined in the image itself. This is the check that
-    would have caught a call to a function that does not exist (the first cross-build failed on one)."""
+    would have caught a call to a function that no header of the image declares (the first cross-build
+    failed on one: a private adapter function that the image cannot include). It does not check macros,
+    types or constants, and it follows every #include, whatever its #if."""
 
     CALL = re.compile(r"(?<![\w.>])(crux_[a-z0-9_]+)\s*\(")
     INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.M)
+    # A definition or prototype starts in column zero and is not a return statement: an indented line is a call.
+    DEFINITION = re.compile(r"^(?!return\b)[A-Za-z_][\w \t\*]*?\b((?:crux|composition|medium)_[a-z0-9_]+)\s*\(", re.M)
 
     @classmethod
     def header_index(cls):
@@ -347,7 +351,8 @@ class Declarations(unittest.TestCase):
             index.setdefault(path.name, []).append(path)
             if path.parent.name == "crux":
                 index.setdefault("crux/" + path.name, []).append(path)
-        for path in [*REPO.glob("tests/native/**/*.h"), *REPO.glob("tests/zephyr/entropy_boot/*.h")]:
+        for path in [*REPO.glob("tests/native/**/*.h"), *REPO.glob("tests/zephyr/entropy_boot/*.h"),
+                     *IMAGE.glob("src/*.h")]:
             index.setdefault(path.name, []).append(path)
         return index
 
@@ -368,29 +373,51 @@ class Declarations(unittest.TestCase):
         pattern = re.compile(rf"(?<![\w])\**{name}\s*\(")
         return any(pattern.search(strip_c_comments(path.read_text())) for path in headers)
 
+    @classmethod
+    def undeclared(cls, text, headers, defined):
+        """The crux_ functions that `text` calls and that neither a header in `headers` nor `defined` provides."""
+        text = strip_c_comments(text)
+        return sorted(f for f in set(cls.CALL.findall(text)) if f not in defined and not cls.declared_in(f, headers))
+
     def image_sources(self):
         return [name for name in SOURCES if name.endswith((".c", ".h"))]
 
     def test_every_crux_call_is_declared_in_an_included_header(self):
         index = self.header_index()
+        defined = {n for name in self.image_sources()
+                   for n in self.DEFINITION.findall(strip_c_comments(read("src/" + name)))}
         for name in self.image_sources():
-            text = strip_c_comments(read("src/" + name))
-            first = self.INCLUDE.findall(text)
-            headers = self.reachable_headers(first, index)
-            local = {n for other in self.image_sources() for n in
-                     re.findall(r"^[\w\s\*]+?\b(crux_[a-z0-9_]+|composition_[a-z0-9_]+)\s*\(",
-                                strip_c_comments(read("src/" + other)), re.M)}
-            for function in sorted(set(self.CALL.findall(text))):
-                if function in local:
-                    continue
-                self.assertTrue(self.declared_in(function, headers),
-                                f"{name}: {function}() is not declared in any header that it includes")
+            text = read("src/" + name)
+            headers = self.reachable_headers(self.INCLUDE.findall(strip_c_comments(text)), index)
+            self.assertEqual(self.undeclared(text, headers, defined), [],
+                             f"{name}: a call that no header it includes declares")
 
     def test_the_check_sees_a_missing_declaration(self):
         index = self.header_index()
         headers = self.reachable_headers(["crux/credential_store.h"], index)
         self.assertTrue(self.declared_in("crux_credential_start", headers))
         self.assertFalse(self.declared_in("crux_credential_state", headers))
+
+    def test_the_check_sees_calls_in_every_position(self):
+        index = self.header_index()
+        headers = self.reachable_headers(["crux/credential_store.h"], index)
+        source = (
+            "static int f(void)\n{\n"
+            "    crux_missing_statement();\n"
+            "    x = crux_missing_assigned();\n"
+            "    if (a &&\n"
+            "        crux_missing_continued(1) == 0) {\n"
+            "        return crux_missing_returned();\n"
+            "    }\n"
+            "    return crux_credential_start(a, b);\n}\n")
+        self.assertEqual(self.undeclared(source, headers, set()),
+                         ["crux_missing_assigned", "crux_missing_continued", "crux_missing_returned",
+                          "crux_missing_statement"])
+
+    def test_a_definition_in_column_zero_is_not_a_call(self):
+        self.assertEqual(self.DEFINITION.findall("static int crux_local_one(void)\n{\n    crux_other();\n}\n"),
+                         ["crux_local_one"])
+        self.assertEqual(self.DEFINITION.findall("    return crux_x();\n"), [])
 
 
 class Checks(unittest.TestCase):
