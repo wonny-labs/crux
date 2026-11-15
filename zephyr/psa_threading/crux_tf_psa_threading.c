@@ -8,8 +8,8 @@
 #include <zephyr/kernel.h>
 
 #ifdef CRUX_PSA_THREADING_TEST_COUNTER
-/* Native_sim test fixtures only (see CMakeLists.txt): shows that the core takes the locks. A product
- * image has no counter and no atomic on the lock path. */
+/* Native_sim test fixtures only (see CMakeLists.txt): shows that the core takes the locks. A
+ * product image has no counter and no atomic on the lock path. */
 static atomic_t lock_count;
 #define COUNT_LOCK() atomic_inc(&lock_count)
 uint32_t crux_tf_psa_threading_lock_count(void);
