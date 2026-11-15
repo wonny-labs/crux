@@ -105,6 +105,8 @@ class VariantFiles(unittest.TestCase):
             "psa.conf": "CONFIG_BOOT_ECDSA_PSA=y",
             "psa-mbedtls.conf": "CONFIG_BOOT_ECDSA_PSA=y",
             "psa-mbedtls-entropy.conf": "CONFIG_BOOT_ECDSA_PSA=y",
+            "psa-mbedtls-psa-c.conf": "CONFIG_BOOT_ECDSA_PSA=y",
+            "psa-mbedtls-psa-c-entropy.conf": "CONFIG_BOOT_ECDSA_PSA=y",
         }
         for name, line in expected.items():
             path = VARIANTS / name
@@ -120,6 +122,17 @@ class VariantFiles(unittest.TestCase):
         self.assertIn("CONFIG_ENTROPY_GENERATOR=y",
                       (VARIANTS / "psa-mbedtls-entropy.conf").read_text(encoding="utf-8").splitlines())
         self.assertNotIn("CONFIG_MBEDTLS=y", (VARIANTS / "psa.conf").read_text(encoding="utf-8").splitlines())
+
+    def test_the_third_round_adds_the_module_psa_core_symbol_that_the_second_build_showed_missing(self):
+        # The second CI run (psa-mbedtls.conf) configured, then failed to compile the Mbed TLS library
+        # with "unknown type name 'mbedtls_error_pair_t'" in ssl_misc.h. MCUboot selects PSA_CRYPTO_C of
+        # Zephyr's PSA Kconfig, not MBEDTLS_PSA_CRYPTO_C of modules/mbedtls/Kconfig.tf-psa-crypto.
+        for name in ("psa-mbedtls-psa-c.conf", "psa-mbedtls-psa-c-entropy.conf"):
+            lines = (VARIANTS / name).read_text(encoding="utf-8").splitlines()
+            self.assertIn("CONFIG_MBEDTLS=y", lines)
+            self.assertIn("CONFIG_MBEDTLS_PSA_CRYPTO_C=y", lines)
+        self.assertIn("CONFIG_ENTROPY_GENERATOR=y",
+                      (VARIANTS / "psa-mbedtls-psa-c-entropy.conf").read_text(encoding="utf-8").splitlines())
 
     def test_the_variant_files_hold_only_configuration_lines_and_comments(self):
         for path in sorted(VARIANTS.glob("*.conf")):

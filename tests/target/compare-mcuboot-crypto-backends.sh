@@ -56,7 +56,7 @@ fi
 for name in mcuboot.conf mcuboot.overlay app.conf app.overlay; do
     [[ -f "$files/$name" ]] || need "$files/$name is missing"
 done
-for name in mbedtls-legacy.conf psa.conf psa-mbedtls.conf psa-mbedtls-entropy.conf; do
+for name in mbedtls-legacy.conf psa.conf psa-mbedtls.conf psa-mbedtls-entropy.conf psa-mbedtls-psa-c.conf psa-mbedtls-psa-c-entropy.conf; do
     [[ -f "$variants/$name" ]] || need "$variants/$name is missing"
 done
 
@@ -91,9 +91,14 @@ inspector, image = sys.argv[12:-1], sys.argv[-1]
 partition, slot = int(partition), int(slot)
 record = {"variant": name, "status": status, "extra_conf": os.path.basename(extra) if extra else None}
 text = open(log, errors="replace").read()
+keep = re.compile(r"^CONFIG_(BOOT_ECDSA|BOOT_USE_|BOOT_SIGNATURE_TYPE|MBEDTLS_HEAP_SIZE|MBEDTLS_VERSION|"
+                  r"PSA_CRYPTO|ENTROPY_GENERATOR|MBEDTLS=|MBEDTLS_BUILTIN|MBEDTLS_ENABLE_HEAP|MBEDTLS_PSA_CRYPTO)")
+config = f"{build}/mcuboot/zephyr/.config"
+if os.path.isfile(config):
+    record["config"] = [l for l in open(config).read().splitlines() if keep.match(l)]
 if status != "ok":
-    errors = [l for l in text.splitlines() if re.search(r"error|Error|undefined|No such|failed|FAILED", l)]
-    record["first_errors"] = errors[:25]
+    errors = [l for l in text.splitlines() if re.search(r"error:|Error |undefined reference|No such file|FAILED:", l)]
+    record["first_errors"] = [l[:300] for l in errors[:25]]
 else:
     elf = f"{build}/mcuboot/zephyr/zephyr.elf"
     binary = f"{build}/mcuboot/zephyr/zephyr.bin"
@@ -115,11 +120,6 @@ else:
                 record.setdefault("memory_regions", []).append(list(block))
             else:
                 block.append(line.rstrip())
-    config = f"{build}/mcuboot/zephyr/.config"
-    if os.path.isfile(config):
-        keep = re.compile(r"^CONFIG_(BOOT_ECDSA|BOOT_USE_|BOOT_SIGNATURE_TYPE|MBEDTLS_HEAP_SIZE|MBEDTLS_VERSION|"
-                          r"PSA_CRYPTO|ENTROPY_GENERATOR|MBEDTLS=|MBEDTLS_BUILTIN|MBEDTLS_ENABLE_HEAP)")
-        record["config"] = [l for l in open(config).read().splitlines() if keep.match(l)]
     signed = f"{build}/{image}/zephyr/zephyr.signed.bin"
     if os.path.isfile(signed):
         record["signed_app_bytes"] = os.path.getsize(signed)
@@ -163,6 +163,8 @@ for r in rows:
     if r["status"] != "ok":
         print("first error lines:")
         for line in r.get("first_errors", []):
+            print("  " + line)
+        for line in r.get("config", []):
             print("  " + line)
     else:
         for key in ("size_berkeley", "signed_app_bytes", "signed_app_imgtool_verify", "signed_app_fit"):
@@ -219,5 +221,7 @@ run_variant mbedtls-legacy "$variants/mbedtls-legacy.conf"
 run_variant psa "$variants/psa.conf"
 run_variant psa-mbedtls "$variants/psa-mbedtls.conf"
 run_variant psa-mbedtls-entropy "$variants/psa-mbedtls-entropy.conf"
+run_variant psa-mbedtls-psa-c "$variants/psa-mbedtls-psa-c.conf"
+run_variant psa-mbedtls-psa-c-entropy "$variants/psa-mbedtls-psa-c-entropy.conf"
 
 "$python" "$reporter" "$out" "${results[@]}"

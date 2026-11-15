@@ -61,6 +61,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcuboot-crypto-comparison-${{ github.run_id }}
+          include-hidden-files: true
           path: |
             crux-pilot/build/zephyr/mcuboot-crypto/*.log
             crux-pilot/build/zephyr/mcuboot-crypto/*.json
