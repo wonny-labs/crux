@@ -76,6 +76,8 @@ refuse() { # name expected-text extra-conf...
     fi
     grep -q "$text" "$out/refuse-$name.log" || { tail -20 "$out/refuse-$name.log" >&2; fail "'$name' failed for another reason"; }
 }
-refuse no-access 'CONFIG_CRUX_CLI_CONSOLE' CONFIG_CRUX_ACCESS=n
+# The text is the one of the fixture's own CMake check, not the symbol's name, which Kconfig's own warning
+# prints too.
+refuse no-access 'The fixture needs CONFIG_CRUX_CLI_CONSOLE' CONFIG_CRUX_ACCESS=n
 refuse with-shell 'must not enable CONFIG_SHELL' CONFIG_SHELL=y CONFIG_SHELL_BACKEND_SERIAL=y
 printf 'ok: a console without Access and a console beside a Zephyr shell are both refused at configuration\n'

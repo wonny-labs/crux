@@ -21,6 +21,10 @@ RUN = FIXTURE / "run.sh"
 FROZEN = ("crux/thread.h", "crux/sync.h", "crux/queue.h", "crux/serial.h")
 
 
+ADMIN_PASSWORD = "console test password"
+WRONG_PASSWORD = "this is the wrong password"
+
+
 def includes(text):
     return re.findall(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', text, re.M)
 
@@ -75,6 +79,20 @@ class Fixture(unittest.TestCase):
         self.assertRegex(node, r"tx-fifo-size = <1024>")
         self.assertIn("zephyr,log-uart = &logging_uarts", text)
         self.assertNotIn("logging_test", node)
+
+    def test_the_first_output_and_the_start_of_each_password_are_checked(self):
+        text = MAIN.read_text()
+        self.assertRegex(text, r'expect_first\("login: "\)')
+        self.assertRegex(text, r'ADMIN_PASSWORD_START\s+"console "')
+        literals = "\n".join(re.findall(r'"(?:[^"\\\n]|\\.)*"', "".join(
+            path.read_text() for path in (ROOT / "components/cli").rglob("*.c"))))
+        replies = literals
+        for start in (ADMIN_PASSWORD[:8], WRONG_PASSWORD[:8]):
+            self.assertNotIn(start, replies, "a console text contains the start of a typed password")
+
+    def test_the_no_access_refusal_checks_the_fixtures_own_message(self):
+        self.assertIn("refuse no-access 'The fixture needs CONFIG_CRUX_CLI_CONSOLE'", RUN.read_text())
+        self.assertIn("The fixture needs CONFIG_CRUX_CLI_CONSOLE", CMAKE.read_text())
 
     def test_the_number_of_cases_matches_what_the_runner_expects(self):
         cases = len(re.findall(r"^ZTEST\(cli_console, test_\d\d_", MAIN.read_text(), re.M))

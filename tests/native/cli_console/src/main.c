@@ -1,10 +1,11 @@
 /*
  * ADR-0004 phase 1b. The serial console with its first-account setup, started through the public
- * composition interface <crux/cli_zephyr.h>, on real PSA providers, a real FatFs on a simulated disk and
- * the Crux Logging provider. The first account is not created in code: the test types `!setup` into an
- * emulated UART, as a person would at a terminal, and reads the console's replies. This is the first run
- * of the console in any image. Test only: the entropy is test-only. The file includes only public
- * headers: no <crux/serial.h>, no <crux/thread.h>, no adapter and no console header.
+ * composition interface <crux/cli_zephyr.h>, on real PSA providers, a real FatFs on a simulated
+ * disk and the Crux Logging provider. The first account is not created in code: the test types
+ * `!setup` into an emulated UART, as a person would at a terminal, and reads the console's
+ * replies. This is the first run of the console in any image. Test only: the entropy is
+ * test-only. The file includes only public headers: no <crux/serial.h>, no <crux/thread.h>, no
+ * adapter and no console header.
  */
 #include <crux/access.h>
 #include <crux/cli.h>
@@ -29,6 +30,9 @@ enum { ROOT_SLOT_A = 1, ROOT_SLOT_B = 2 };
 #define ADMIN "admin"
 #define ADMIN_PASSWORD "console test password"
 #define WRONG_PASSWORD "this is the wrong password"
+/* The first eight bytes of each, which no prompt or reply of the console contains. */
+#define ADMIN_PASSWORD_START "console "
+#define WRONG_PASSWORD_START "this is "
 /* The role of the first account: it holds access.manage, as the console's setup requires. */
 #define SETUP_ROLE "administrator"
 
@@ -76,13 +80,16 @@ static void drain(void)
     uint8_t chunk[64];
     uint32_t got;
     while ((got = uart_emul_get_tx_data(console_uart, chunk, sizeof(chunk))) > 0u) {
-        zassert_true(captured + got < sizeof(capture), "the console wrote more than the fixture keeps");
+        zassert_true(captured + got < sizeof(capture), "the console wrote too much");
         memcpy(&capture[captured], chunk, got);
         captured += got;
         capture[captured] = '\0';
-        /* A password is read without echo: no byte of one ever reaches the transmit side. */
+        /* A password is read without echo: neither a whole one nor its first eight bytes, which an
+         * echo that stopped early would show, reaches the transmit side. */
         zassert_is_null(strstr(capture, ADMIN_PASSWORD), "a password was echoed");
         zassert_is_null(strstr(capture, WRONG_PASSWORD), "a password was echoed");
+        zassert_is_null(strstr(capture, ADMIN_PASSWORD_START), "password start echoed");
+        zassert_is_null(strstr(capture, WRONG_PASSWORD_START), "password start echoed");
     }
 }
 
@@ -103,6 +110,23 @@ static void expect(const char *text)
     zassert_unreachable("the console did not write \"%s\"; it wrote \"%s\"", text, capture);
 }
 
+/* Waits for the console to write `text` as the very first thing since the last expectation:
+ * nothing may come before it. */
+static void expect_first(const char *text)
+{
+    for (int attempt = 0; attempt < 1000; ++attempt) {
+        drain();
+        if (captured >= strlen(text)) {
+            zassert_equal(strncmp(capture, text, strlen(text)), 0, "first output: %s", capture);
+            memmove(capture, &capture[strlen(text)], captured - strlen(text) + 1u);
+            captured -= strlen(text);
+            return;
+        }
+        k_msleep(10);
+    }
+    zassert_unreachable("the console did not write \"%s\"; it wrote \"%s\"", text, capture);
+}
+
 /* Types a line as a terminal does: the bytes and a carriage return. */
 static void type_line(const char *text)
 {
@@ -111,7 +135,8 @@ static void type_line(const char *text)
     zassert_true(length + 1u < sizeof(line));
     memcpy(line, text, length);
     line[length] = '\r';
-    zassert_equal(uart_emul_put_rx_data(console_uart, (const uint8_t *)line, length + 1u), length + 1u);
+    size_t sent = length + 1u;
+    zassert_equal(uart_emul_put_rx_data(console_uart, (const uint8_t *)line, sent), sent);
 }
 
 static void *start_services_and_console(void)
@@ -125,7 +150,8 @@ static void *start_services_and_console(void)
     zassert_true(store == CRUX_CREDENTIAL_OK || store == CRUX_CREDENTIAL_ERR_UNUSABLE);
     zassert_equal(crux_access_init(&policy), CRUX_ACCESS_OK);
     zassert_equal(crux_security_event_start(), CRUX_OK);
-    /* The product's command tables: none. The built-in help, logout, passwd and account list remain. */
+    /* The product's command tables: none. The built-in commands (help, logout, passwd, account
+     * list) remain. */
     zassert_equal(crux_cli_init(NULL, NULL, 0u), CRUX_CLI_OK);
     static const crux_cli_serial_config_t console = {.setup_role = SETUP_ROLE};
     zassert_equal(crux_cli_serial_start(&console), CRUX_CLI_OK);
@@ -143,9 +169,10 @@ ZTEST(cli_console, test_01_the_start_refuses_a_missing_argument)
     zassert_equal(crux_cli_serial_start(&no_role), CRUX_CLI_ERR_INVALID_ARGUMENT);
 }
 
-ZTEST(cli_console, test_02_nothing_but_the_login_prompt_appears_and_an_unknown_user_is_refused)
+ZTEST(cli_console, test_02_the_login_prompt_comes_first_and_an_unknown_user_is_refused)
 {
-    expect("login: ");
+    /* Nothing about the device is written before the prompt. */
+    expect_first("login: ");
     type_line("nobody");
     expect("password: ");
     type_line(WRONG_PASSWORD);
