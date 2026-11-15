@@ -76,7 +76,10 @@ target_sources(app PRIVATE ${route_sources})
 # The web lifecycle has no public header on main yet (ADR-0004 phase 1a PRs 4 and 5), so its two private
 # directories and the adapter's are the only private roots this image reaches.
 target_include_directories(app PRIVATE "${CRUX_WEB_SESSION_DIR}" "${CRUX_WEB_MANAGEMENT_DIR}")
-target_link_libraries(app PRIVATE crux_web_adapter crux::file_zephyr crux::system crux::time
+# The public usage targets carry each service's include root: `app` names no component directory for them.
+target_link_libraries(app PRIVATE crux::access crux::credential_store crux::security_event crux::configuration
+    crux::config_service crux::mgmt_status crux::network_settings crux::tls_certificate crux::file_service
+    crux::reboot crux::web crux::file_zephyr crux::system crux::time crux_web_adapter
     crux_service_priority_placement)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 crux_web_assets(app FOLDER "${CMAKE_CURRENT_LIST_DIR}/site" STYLE strict)

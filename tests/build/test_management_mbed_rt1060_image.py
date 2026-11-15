@@ -162,6 +162,15 @@ class Cmake(unittest.TestCase):
         for directory in directories:
             self.assertIn(directory.rstrip("/"), allowed, directory)
 
+    def test_public_targets_carry_the_service_headers(self):
+        # The module's libraries are registered with the Zephyr link and carry no include root for `app`: the
+        # public usage targets do, so each service of prj.conf that has one is linked by name.
+        link = self.cmake[self.cmake.index("target_link_libraries(app"):]
+        link = link[:link.index(")")]
+        for target in ("access", "credential_store", "security_event", "config_service", "mgmt_status",
+                       "network_settings", "tls_certificate", "file_service", "reboot", "web", "system", "time"):
+            self.assertIn(f"crux::{target}", link, target)
+
     def test_service_sources_are_not_compiled_into_app(self):
         # The Zephyr module builds the cores under the service symbols. app holds only its own sources
         # and the route sources, which the module cannot build because the route table is per image.
