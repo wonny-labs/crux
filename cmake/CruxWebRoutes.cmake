@@ -10,8 +10,10 @@ include_guard(GLOBAL)
 # no route. This is the check that sees generated sources, such as the asset routes of #189, and any
 # project layout, so an image with ZEPHYR_RESOURCES must give it. See scripts/check-web-routes.py for the
 # list's form.
-# ZEPHYR_RESOURCES also generates the registered resources, and needs the Zephyr port's header and
-# Zephyr's headers on the target, as `app` has. FAKE_MANIFEST is for the Host's fake transport only.
+# ZEPHYR_RESOURCES also generates the registered resources. The function gives the Zephyr port's header to
+# that generated file alone, so the target needs only Zephyr's headers, as `app` has, and the product must not
+# add components/web/ports/zephyr to its target. Likewise a route source of a Crux component, one under the
+# repository's components/ tree, gets its private directories per source: name it here, add no directory. FAKE_MANIFEST is for the Host's fake transport only.
 function(crux_web_routes target)
     cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "REVIEWED" "SOURCES")
     if(NOT ARG_SOURCES OR ARG_UNPARSED_ARGUMENTS)
@@ -69,7 +71,34 @@ function(crux_web_routes target)
         VERBATIM)
     target_sources(${target} PRIVATE ${outputs})
     set_target_properties(${target} PROPERTIES CRUX_WEB_ROUTES_CONFIGURED TRUE)
+
+    # The private directories that Crux's own route sources and the generated resources need are attached to
+    # those files alone, as per-source properties of the target, and never to the target as a usage
+    # requirement. A product's own sources then see none of them, so a product can name the route sources of
+    # the Crux services here and still keep to the include rule of ADR-0004 section 5 (the product's sources
+    # see only components/<c>/include and components/<c>/ports/zephyr/include).
+    get_filename_component(crux_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
+    file(GLOB crux_public_roots "${crux_root}/components/*/include")
+    set(crux_route_directories "${crux_root}/components/web/adapter" "${crux_root}/components/web/src"
+        "${crux_root}/components/access/adapter" ${crux_public_roots})
+    foreach(source IN LISTS sources)
+        string(FIND "${source}" "${crux_root}/components/" owned)
+        if(owned EQUAL 0)
+            # A source of a Crux component also sees its own directory, for its private headers.
+            cmake_path(GET source PARENT_PATH own_directory)
+            set_property(SOURCE "${source}" TARGET_DIRECTORY ${target} APPEND PROPERTY INCLUDE_DIRECTORIES
+                "${own_directory}" ${crux_route_directories})
+        elseif(source MATCHES "/components/web/")
+            # Most likely the same repository under another spelling of its path (a symbolic link). The source
+            # then compiles without its private directories, and a product sees a missing header.
+            message(WARNING "crux_web_routes: if ${source} is a Crux route source, it is not under "
+                "${crux_root}/components/, so it gets no private include directory. Name it by the same path "
+                "that loaded this file.")
+        endif()
+    endforeach()
     if(ARG_ZEPHYR_RESOURCES)
-        target_link_libraries(${target} PRIVATE crux_web_zephyr_resources)
+        # The generated resources include the Zephyr port's header. Only that file sees the port's directory.
+        set_property(SOURCE "${directory}/crux_web_resources.c" TARGET_DIRECTORY ${target} APPEND PROPERTY
+            INCLUDE_DIRECTORIES "${crux_root}/components/web/ports/zephyr")
     endif()
 endfunction()

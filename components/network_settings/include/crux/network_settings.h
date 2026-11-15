@@ -2,11 +2,15 @@
  * @file
  * @brief Static IPv4 settings that an authorised user saves and the next boot applies.
  *
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Thread context only. The service sits above the Configuration service: its five parameters are in
  * the composition's table under a permission that no role holds, and it reads, updates and saves
  * them with the application calls of that service. Nothing here changes a running interface. A save
- * stores values, and the composition applies them at boot, through a private port, before any
- * management channel starts. crux_netif stays read-only.
+ * stores values, and the composition applies them at boot, through the product's port
+ * (<crux/network_settings_apply_port.h>), before any management channel starts. crux_netif stays
+ * read-only.
  *
  * A mixed set must never boot. A save writes the address, prefix length and gateway first, then a
  * check key over those three, then the `use_saved` flag, each in a save of its own, so that the
@@ -222,7 +226,8 @@ uint32_t crux_network_settings_check_key(const crux_network_settings_t *settings
 const crux_config_service_entry_t *crux_network_settings_entries(size_t *count);
 
 /**
- * Initialise and load the five parameters, decide, and apply through the private port.
+ * Initialise and load the five parameters, decide, and apply through the product's port
+ * (<crux/network_settings_apply_port.h>).
  *
  * Before crux_config_service_start() and crux_network_settings_start(), on one thread, because the
  * service owns the parameters afterwards. It loads each parameter itself, and a load that fails

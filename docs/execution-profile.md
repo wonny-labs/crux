@@ -1,5 +1,7 @@
 # Reference-controller execution investigation
 
+> **Status: historical investigation.** It selected the execution model of the Pilot's reference controller. It is not the current platform direction: see [Choosing an API](choosing-an-api.md) and the [decision records](decisions/README.md).
+
 Status: #6 independently reviewed; composition-local native Zephyr execution selected
 for the provisional #7 implementation. Subsequently authorised physical verification
 has passed the bounded native/controller scenarios described in

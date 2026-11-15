@@ -50,13 +50,27 @@ if CRUX_THREAD
 
 config CRUX_THREAD_COUNT
 	int "Thread worker slots"
+	# The management services start a worker each (the event drain, network settings, reboot, web session and
+	# web management), so an image that enables them starts from the 8 that the native_sim services image
+	# uses, and a product's configuration need not name this symbol (ADR-0004 C6).
+	default 8 if CRUX_ACCESS
 	default 4
 	range 1 64
 
 config CRUX_THREAD_STACK_BYTES
 	int "Minimum usable bytes per worker stack"
+	# The web session's login worker derives a password with PBKDF2 on its stack, and every in-repo image that
+	# runs it sets 8192, so an image that enables it starts from 8192 and a product's configuration need not
+	# name this symbol (ADR-0004 C6). It is the stack of every Crux worker of that image.
+	default 8192 if CRUX_WEB_SESSION
 	default 4096
 	range 1024 65536
+	help
+	  The usable stack of each Crux worker thread. With CONFIG_CRUX_WEB_SESSION the default is 8192, the
+	  value that every tested image that runs the login worker sets. It is NOT a measured stack high-water
+	  mark: nobody has measured it on a target. The Crux Thread API has no stack measurement, so a product
+	  should measure its own with Zephyr's (CONFIG_THREAD_STACK_INFO and CONFIG_INIT_STACKS, which
+	  CONFIG_CRUX_SSH_STACK_REPORT uses for the SSH threads) under its own load, including a login.
 
 menu "Priorities of Crux service workers"
 
@@ -124,9 +138,9 @@ if CRUX_SYNC
 
 config CRUX_SYNC_MUTEX_COUNT
 	int "Sync mutex slots"
-	# The management services take one or more each, so an image that enables them starts from the 16 that the
-	# native_sim management composition uses, and a product's configuration need not name this symbol (C6).
-	default 16 if CRUX_ACCESS
+	# The management services take one or more each, so an image that enables them starts from the 24 that the
+	# native_sim services image uses, and a product's configuration need not name this symbol (C6).
+	default 24 if CRUX_ACCESS
 	default 8
 	range 1 64
 
@@ -229,6 +243,19 @@ config CRUX_SYSTEM
     help
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
+
+config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
+    bool "Experimental: simulated Crux System watchdog, native_sim tests only"
+    depends on CRUX_SYSTEM
+    select NATIVE_SIM_REBOOT if BOARD_NATIVE_SIM
+    help
+      Experimental (ADR-0001 Decision 4) and for native_sim tests only; not hardware evidence.
+      Builds a private simulated watchdog device and binds it as the System watchdog, so a
+      native_sim test sees a feed cycle and a missed feed. A missed feed prints one line and
+      restarts the simulated process, which then reads the reset cause SOFTWARE, never WATCHDOG.
+      Selects NATIVE_SIM_REBOOT for that restart. No board dependency is declared on purpose:
+      the component stops the configure step with an error on any board but native_sim, which
+      a hidden symbol could not do. Off by default; no public header, target or function is added.
 
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
@@ -450,9 +477,9 @@ config CRUX_ACCESS
       Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
       store port, PSA ports and device ID, and the security events with their drain thread and the
       provider of Access's event port, and registers the three with the Zephyr link. It starts
-      nothing, adds no crux:: target and no public header: the application writes the start
-      sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
-      own include path until the composition interfaces of ADR-0004 phase 1a exist.
+      nothing: the application writes the start sequence (docs/management-in-a-product.md). It links
+      the portable targets crux::access, crux::credential_store and crux::security_event for their
+      public headers (Experimental).
 
       The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
       locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
@@ -489,8 +516,9 @@ config CRUX_CONFIG_SERVICE
       that leaves it off.
 
       Builds the Configuration service core and the provider of its event port over the security
-      events, and the Configuration core beneath it. It starts nothing and adds no crux:: target and
-      no public header: the application lists its parameters and calls crux_config_service_start().
+      events, and the Configuration core beneath it. It starts nothing: the application lists its
+      parameters and calls crux_config_service_start(). The module defines the portable target
+      crux::config_service for <crux/config_service.h> (Experimental).
       Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, a save returns
       CRUX_CONFIG_SERVICE_ERR_STORE with CRUX_CONFIG_ERR_NOT_SUPPORTED in the report's failed_result
       (the "no provider" port of components/configuration), and the service still reads and updates
@@ -508,16 +536,18 @@ config CRUX_MGMT_STATUS
 
       Builds the status service core and the sources of its items: System, Time, the network
       interface, the credential store and the security events. It needs Crux System and Crux Netif,
-      and the configuration refuses an image without them by name. It starts nothing and adds no
-      crux:: target and no public header: the application calls crux_mgmt_status_start().
+      and the configuration refuses an image without them by name. It starts nothing: the application
+      calls crux_mgmt_status_start(). The module defines the portable target crux::mgmt_status for
+      <crux/management_status.h> (Experimental).
 
 config CRUX_CONFIGURATION_CORE
     bool
     depends on CRUX_PILOT_MODULE
     help
-      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS,
-      selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
-      selection's copy that is linked, and this builds nothing.
+      Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE, CONFIG_CRUX_MGMT_STATUS and
+      CONFIG_CRUX_REBOOT, selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
+      selection's copy that is linked, and this builds nothing. Either way the module defines the
+      portable target crux::configuration for <crux/configuration.h>.
 
 # ADR-0004 phase 0, slice 3: network settings, the TLS certificate module, the file service and reboot. Each
 # needs Access, and the network settings service also needs the Configuration service. Each selects the
@@ -535,9 +565,10 @@ config CRUX_NETWORK_SETTINGS
       Builds the network settings service core, its check and the provider of its event port. The
       apply port is the application's (ADR-0004 C3): an application that applies settings to an
       interface implements crux_network_settings_port_apply() and crux_network_settings_port_running()
-      of components/network_settings/src/network_settings_port.h, and an image without them does not
-      link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing, adds no crux::
-      target and no public header, and builds no serial command.
+      declared in <crux/network_settings_apply_port.h> (Experimental), and an image without them does
+      not link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing and builds no
+      serial command. The module defines the portable target crux::network_settings for
+      <crux/network_settings.h> (Experimental).
 
 config CRUX_NETWORK_SETTINGS_NO_APPLY
     bool "Network settings apply port that applies nothing (Experimental)"
@@ -561,8 +592,9 @@ config CRUX_TLS_CERTIFICATE
       event port. It keeps the certificate and the device key in the credential store of CONFIG_CRUX_ACCESS.
       It registers nothing with Zephyr's TLS credentials: the application takes the material and calls
       tls_credential_add itself (ADR-0004 C4), so the key's bytes pass through application code. It
-      starts nothing and adds no crux:: target and no public header: the header that carries the key is
-      private, on purpose.
+      starts nothing: the application starts the module. It defines the portable target
+      crux::tls_certificate for <crux/tls_certificate.h> and <crux/tls_certificate_start.h>, the
+      header that carries the key (Experimental).
 
 config CRUX_FILE_SERVICE
     bool "Crux file service (Experimental)"
@@ -574,8 +606,9 @@ config CRUX_FILE_SERVICE
       that leaves it off.
 
       Builds the file service core and the provider of its event port. It reaches files through the Crux
-      File provider that CONFIG_CRUX_ACCESS already needs. It starts nothing and adds no crux:: target and
-      no public header: the application declares its areas and calls crux_file_service_start().
+      File provider that CONFIG_CRUX_ACCESS already needs. It starts nothing: the application declares its
+      areas and calls crux_file_service_start(). The module defines the portable target
+      crux::file_service for <crux/file_service.h> (Experimental).
 
 config CRUX_REBOOT
     bool "Crux reboot service (Experimental)"
@@ -591,8 +624,41 @@ config CRUX_REBOOT
       Builds the reboot service core, its sleep on Crux Sync, its reset over crux_system_reset() and the
       providers of its event port. It needs Crux System (CONFIG_CRUX_SYSTEM), and the configuration
       refuses an image without it by name. The restart policy is the application's: crux_reboot_start()
-      refuses a configuration that states none. It starts nothing and adds no crux:: target and no
-      public header.
+      refuses a configuration that states none. It starts nothing. The module defines the portable
+      target crux::reboot for <crux/reboot.h> (Experimental).
+
+# ADR-0004 phase 0, slice 4: the web session and web management cores. The routes stay the application's:
+# it names the route sources it wants to crux_web_routes(), as before. Each selects the Crux symbols that it
+# links (ADR-0004 C6).
+config CRUX_WEB_SESSION
+    bool "Crux web sessions (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off.
+
+      Builds login, sessions and request forgery protection, with the password verification port over
+      PSA Crypto. The login and logout routes are not built here: the application names
+      CRUX_WEB_SESSION_ROUTES of components/web/session/sources.cmake to crux_web_routes(), so a route
+      that is not named is not in the table. It starts nothing and adds no crux:: target and no public
+      header: the application calls crux_web_session_init() and starts the worker.
+
+config CRUX_WEB_MANAGEMENT
+    bool "Crux web management (Experimental)"
+    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
+    select CRUX_THREAD
+    select CRUX_SYNC
+    help
+      Experimental tier (ADR-0001 Decision 4): may change in any release, and the release notes list the
+      change. Off by default, and nothing changes in an image that leaves it off.
+
+      Builds the JSON of the status and configuration routes and the save worker, and, with
+      CONFIG_CRUX_NETWORK_SETTINGS, the JSON of the network routes. The routes are not built here: the
+      application names the CRUX_WEB_MANAGEMENT_*_ROUTES sources that it wants to crux_web_routes(). It
+      starts nothing and adds no crux:: target and no public header.
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
@@ -604,8 +670,10 @@ menuconfig CRUX_SSH
       composition starts the provider itself, and provides the Access core, a host key, and the CLI
       core and file service that the two options below name. Only the Wolf profile can carry it: wolfSSH
       needs wolfSSL, and a build with CONFIG_MBEDTLS is refused at configuration. Without the
-      crux-secure-management west group there is no wolfSSH, and the symbol cannot be set. See
-      docs/ssh-wolf-provider.md and docs/ssh-integrated-image.md.
+      crux-secure-management west group there is no wolfSSH, and the symbol cannot be set. The access
+      adapter reports its two security events through the event core, so an image with this symbol must
+      also link the security event core, or it does not link. CONFIG_CRUX_ACCESS builds it, and this
+      symbol does not select it. See docs/ssh-wolf-provider.md and docs/ssh-integrated-image.md.
 
 if CRUX_SSH
 

@@ -169,7 +169,8 @@ endif()
 
 # ADR-0004 phase 0: Access, the credential store and the security events, which are wired to each
 # other, so one symbol builds the three. Off by default, and an image without the symbol is unchanged.
-# Each library is registered with the Zephyr link. No crux:: target and no public header is added: see
+# Each library is registered with the Zephyr link. The portable targets crux::access,
+# crux::credential_store and crux::security_event are defined in the port directories: see
 # components/access/ports/zephyr/CMakeLists.txt. What the three need from the rest of the image is
 # refused here, at configuration, with the missing piece named.
 if(CONFIG_CRUX_ACCESS)
@@ -243,6 +244,17 @@ if(CONFIG_CRUX_REBOOT)
     endif()
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/reboot/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/reboot")
+endif()
+
+# ADR-0004 phase 0, slice 4: the web session and web management cores. Each is off by default and added only
+# under its symbol. The route sources are not built here: the application names them to crux_web_routes().
+if(CONFIG_CRUX_WEB_SESSION)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr/session"
+        "${CMAKE_CURRENT_BINARY_DIR}/web_session")
+endif()
+if(CONFIG_CRUX_WEB_MANAGEMENT)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr/management"
+        "${CMAKE_CURRENT_BINARY_DIR}/web_management")
 endif()
 
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no

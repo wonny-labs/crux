@@ -826,6 +826,17 @@ Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
 
+`tests/system/zephyr/native_sim_watchdog` is a console-harness scenario, not a Ztest, because it restarts its
+own process on a missed feed. It sets `CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` and shows the boot cause, a feed
+cycle, a missed feed and the second boot with the cause SOFTWARE. Twister finds it under `tests/system/zephyr`,
+so `scripts/test-system.sh` runs it. A simulated watchdog is not hardware evidence.
+
+`tests/consumer_system` is the same scenario as a product outside the repository: a copy outside the repository
+that links `crux::system` only and includes `<crux/system.h>` and `<crux/status.h>`. `scripts/test-consumer-system.sh`
+builds it on `native_sim`, checks it and runs it, builds it again with the symbol off, and applies six negative
+variants; `scripts/test-system.sh` calls it. `tests/build/test_consumer_system.py` is its Host check (no Zephyr SDK).
+See its [README](consumer_system/README.md).
+
 The independent Host System fixture selects only `CRUX_BUILD_SYSTEM` through the
 root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
