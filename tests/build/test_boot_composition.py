@@ -116,6 +116,12 @@ class BuildCheckTest(unittest.TestCase):
         self.assertIn("verify", self.code)
         self.assertIn("Traceback", self.code)
 
+    def test_the_application_configuration_is_read_from_its_own_build_directory(self):
+        # The sysbuild directory also holds a zephyr/.config of its own, so a search by name can
+        # return the wrong file (it did in the first CI run). The path must be explicit.
+        self.assertIn('app_config="$build/$image/zephyr/.config"', self.code)
+        self.assertNotIn("-name .config", self.code)
+
     def test_the_runtime_shard_runs_the_script(self):
         text = read(ZEPHYR_WORKFLOW)
         match = re.search(r"- name: [^\n]*\n(?:(?!      - ).*\n)*?.*scripts/test-boot-composition\.sh", text)

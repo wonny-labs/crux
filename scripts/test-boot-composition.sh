@@ -113,8 +113,8 @@ PY
 done
 
 # The application's own files reached its configuration, not only the bootloader's.
-app_config="$(find "$build/$image" -name .config -path '*/zephyr/.config' -print -quit)"
-[[ -n "$app_config" && -f "$app_config" ]] || fail 'no application configuration under the build'
+app_config="$build/$image/zephyr/.config"
+[[ -f "$app_config" ]] || fail "no application configuration at $app_config"
 grep -qx CONFIG_RETENTION_BOOTLOADER_INFO_TYPE_MCUBOOT=y "$app_config" ||
     fail 'the application configuration lacks the bootloader information type'
 [[ -s "$build/mcuboot/zephyr/zephyr.bin" ]] || fail 'the MCUboot image is empty'
