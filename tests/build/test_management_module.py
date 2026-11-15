@@ -65,6 +65,24 @@ def port_sources(component):
             for path in re.findall(r"^\s*([\w./-]+\.c)\s*\)?\s*$", text, re.MULTILINE)]
 
 
+# Phase 1a (ADR-0004; the owner approved the target names on 2026-11-15): the one alias that each of these port directories
+# defines for its portable target. Every other alias is still refused. The definitions are held to the
+# real guards by tests/build/test_service_usage_targets.py.
+PHASE_1A_ALIASES = {
+    "configuration": "add_library(crux::configuration ALIAS crux_configuration)",
+    "config_service": "add_library(crux::config_service ALIAS crux_config_service)",
+    "network_settings": "add_library(crux::network_settings ALIAS crux_network_settings)",
+    "mgmt_status": "add_library(crux::mgmt_status ALIAS crux_mgmt_status)",
+    "file_service": "add_library(crux::file_service ALIAS crux_file_service)",
+    "reboot": "add_library(crux::reboot ALIAS crux_reboot)",
+}
+
+
+def without_phase_1a_aliases(text, component):
+    """Remove the one alias that this component's port directory may define."""
+    return text.replace(PHASE_1A_ALIASES.get(component, "\0"), "")
+
+
 class KconfigTest(unittest.TestCase):
     def test_every_new_symbol_exists(self):
         blocks = kconfig_blocks()
@@ -298,7 +316,7 @@ class Slice2CMakeTest(unittest.TestCase):
         for symbol, (component, directory, _skipped) in SLICE2_DIRECTORIES.items():
             text = (REPO / "components" / component / directory / "CMakeLists.txt").read_text()
             self.assertNotRegex(text.upper(), r"WOLF", symbol)
-            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+            self.assertNotRegex(without_phase_1a_aliases(text, component), r"add_library\(crux::", symbol)
 
     def test_the_configuration_core_is_left_to_the_settings_file_selection_when_it_is_on(self):
         text = (REPO / "components/configuration/ports/zephyr/core/CMakeLists.txt").read_text()
@@ -391,7 +409,7 @@ class Slice3CMakeTest(unittest.TestCase):
                 # tests/build/test_tls_certificate_public.py holds its definition.
                 text = text.replace("add_library(crux::tls_certificate ALIAS crux_tls_certificate)", "")
             self.assertNotRegex(text.upper(), r"WOLF", symbol)
-            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+            self.assertNotRegex(without_phase_1a_aliases(text, component), r"add_library\(crux::", symbol)
 
 
 # Slice 4: the web session and web management cores. The route sources stay the application's: it names
@@ -446,6 +464,8 @@ class Slice4Test(unittest.TestCase):
         expected = {f"../../../session/{name}" for name in cmake_list_sources(
             "components/web/session/sources.cmake", "CRUX_WEB_SESSION_SOURCES")}
         expected.add("../../psa/web_session_psa.c")
+        # The provider of the event port is not in the Host list, which compiles a fake port instead.
+        expected.add("../../../session/web_session_security_events.c")
         self.assertEqual(sources_in("components/web/ports/zephyr/session"), expected)
 
     def test_the_management_library_compiles_the_management_sources(self):
@@ -478,7 +498,8 @@ class Slice4Test(unittest.TestCase):
 
     def test_the_login_worker_gets_the_stack_that_every_image_that_runs_it_sets(self):
         defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", kconfig_blocks()["CRUX_THREAD_STACK_BYTES"])
-        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION"), ("4096", "")])
+        # Phase 1b: the serial console thread verifies a login with the same derivation, so its symbol joins.
+        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION || CRUX_CLI_CONSOLE"), ("4096", "")])
 
     def test_the_management_library_links_what_provides_the_headers_it_includes(self):
         # management_status.h includes <crux/system.h>, which only crux::system puts on the include path.
@@ -491,10 +512,15 @@ class Slice4Test(unittest.TestCase):
         self.assertIn("#include <crux/system.h>", management_status)
 
     def test_no_wolf_named_in_the_new_directories(self):
+        # Phase 1a (ADR-0004) gives each directory one portable target of its own, which
+        # tests/build/test_web_lifecycle_boundary.py holds to the real guards. Any other alias is refused.
+        own_alias = {"session": "add_library(crux::web_session ALIAS crux_web_session)",
+                     "management": "add_library(crux::web_management ALIAS crux_web_management)"}
         for directory in ("session", "management"):
             text = (REPO / f"components/web/ports/zephyr/{directory}/CMakeLists.txt").read_text()
             self.assertNotRegex(text.upper(), r"WOLF")
-            self.assertNotRegex(text, r"add_library\(crux::")
+            self.assertIn(own_alias[directory], text)
+            self.assertNotRegex(text.replace(own_alias[directory], ""), r"add_library\(crux::")
 
 
 def sources_in(directory):

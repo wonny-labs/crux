@@ -2,6 +2,9 @@
  * @file
  * @brief Static IPv4 settings that an authorised user saves and the next boot applies.
  *
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Thread context only. The service sits above the Configuration service: its five parameters are in
  * the composition's table under a permission that no role holds, and it reads, updates and saves
  * them with the application calls of that service. Nothing here changes a running interface. A save

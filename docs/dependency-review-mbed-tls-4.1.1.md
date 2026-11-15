@@ -1,6 +1,6 @@
 # Dependency review: Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1 security releases
 
-Status: **review record, the first use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `8b48e33175031a0b9d32876789b03f5eb3d4f997`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted, Q2) the first pin move starts after this review, as its own PR.
+Status: **review record, the first use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `8b48e33175031a0b9d32876789b03f5eb3d4f997`. Author: the change author. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted, Q2) the first pin move starts after this review, as its own PR.
 
 This record is documentation only. It moves no pin, edits no `west.yml`, `cmake/CruxPsaCrypto.cmake` or `scripts/test-psa-crypto.sh`, and approves nothing. The owner approves the pin move itself, and the protected change to `scripts/test-psa-crypto.sh` needs its own approval (see [the plan](#plan-for-the-pin-move-evidence)).
 
@@ -171,7 +171,7 @@ This is a plan only. Nothing here was run, and the move is not approved. It impl
 | 7 | Read the **full** resolved `.config` of the HTTPS image on the Mbed profile, for the symbols of section 3.2: `MBEDTLS_SSL_SESSION_TICKETS`, the PSK and J-PAKE key exchanges, `MBEDTLS_SSL_PROTO_DTLS`, `MBEDTLS_ECP_NIST_OPTIM`, `MBEDTLS_CIPHER_ALL_ENABLED` and the PSA symbols for RSA, ChaCha20 and X25519 | **Today's CI artefacts do not hold these symbols.** The uploaded `config.txt` files are filtered: `scripts/test-tls-offload-probe.sh:69-70`, `scripts/test-native-composition.sh:128-130` (which then removes the build directory) and `scripts/test-psa-crypto.sh:400-401` keep a short list that has `MBEDTLS_SSL_PROTO_*` and none of the others. Reading them needs one of: a change to a check script or the workflow (protected paths, a separate approval), or a separately recorded build of the HTTPS image whose `.config` is kept | each symbol is unset in the **full** `.config`. A symbol missing from a filtered file proves nothing and is not a pass. **Done on 15 November 2026**, see section 6 |
 | 8 | Update every place that names the two commits: `tests/target/bench_image.py:44-45`, `docs/rt1060-bench-image-plan.md:197-198`, `docs/upstream-reuse.md:41-42`, and run the Host tests that read the bench image's pins (`tests/build/test_bench_image_profile.py`, `tests/build/test_bench_profile_wiring.py` and the other tests under `tests/build` that import `tests/target/bench_image.py`). `docs/psa-crypto-qualification.md:20-21` and `docs/rt1060-management-image-feasibility.md:493` keep the old pins as history | PR author | a `grep` of the maintained tree for the old commits finds only history, and those Host tests pass |
 | 9 | Optional: a Host test under `tests/` (not protected), written test-first, that confirms `tls_x509_parse` rejects an empty or short EC point, which the source reading of row 18 already shows | PR author | the case passes. It confirms a result and settles no open point |
-| 10 | Independent review by the `reviewer` agent, the owner's approval of the move, and the release notes line | PR | PASS, approval quoted with time and place |
+| 10 | Independent review, the owner's approval of the move, and the release notes line | PR | PASS, approval quoted with time and place |
 
 **Not part of the plan.** A physical-board run: the board evidence of `docs/evidence/psa-crypto/rt1060-board-2026-11-07/` belongs to the old pin and is not carried over, and ADR-0006 does not require a new one. A board run needs its own approval.
 
@@ -185,6 +185,5 @@ On native macOS, in the worktree at `8b48e331`: `git fetch`, reads of the files 
 | --- | --- |
 | Baseline | `8b48e33175031a0b9d32876789b03f5eb3d4f997` |
 | Skills and agents used | None that produced a result. `ecc:security-review` and `ecc:deep-research` were considered and not used (see section 2) |
-| Model | `claude-sonnet-5-5`, Claude Code |
-| Independent review | The `reviewer` agent, verdict in the pull request |
-| Approval | This record approves nothing. The owner's advance approval of 14 November 2026, relayed by the Crux Pilot main session, covers the pin move and the `scripts/test-psa-crypto.sh` change of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416); the owner may confirm it at Gate 2 |
+| Independent review | An independent reviewer, verdict in the pull request |
+| Approval | This record approves nothing. The project owner approved the pin move and the `scripts/test-psa-crypto.sh` change of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) in advance on 14 November 2026, and approved running the Mbed HTTPS build first on 15 November 2026 (see section 6); the owner confirms the merge at Gate 2 |

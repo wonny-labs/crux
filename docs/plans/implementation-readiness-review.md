@@ -10,13 +10,13 @@ Status: historical record. Planning review of 16 October 2026 of the Time Pilot 
 | Review method | Comparison with current personal architecture documents and selected official Zephyr source; consistency and execution-path review |
 | Validation limit | No environment was installed, code compiled or hardware operated during this planning review |
 
-## 1. Can Codex implement from this package?
+## 1. Can an automated coding agent implement from this package?
 
 Yes, once explicitly instructed to implement in an authorised working directory. The plan is specific enough to start repository bootstrap, independent host builds, the C17 Time component, example implementation and host verification without inventing a larger platform framework. The later implementation decision uses a C17 command handler; host GoogleTests consume the public C API from C++ and link the C17 implementation in the test composition.
 
 It is not sufficient to promise unattended end-to-end completion. Exact target identification, host tools, board connectivity, the contract-review gate and physical-execution authorisation remain prerequisites at their stated milestones. These are deliberately local gates rather than reasons to stop all independent work.
 
-The original planning review produced planning files only. A later local setup created `/Users/jiwonkim/Projects/crux-workspace/crux-pilot`, initialised Git and copied the planning package. This v0.4 update changes planning documents; it does not establish implementation/test completion or authorise physical execution.
+The original planning review produced planning files only. A later local setup created `<workspace>/crux-pilot`, initialised Git and copied the planning package. This v0.4 update changes planning documents; it does not establish implementation/test completion or authorise physical execution.
 
 ## 2. Architectural information added
 
@@ -47,7 +47,7 @@ The earlier Time-specific error type was unnecessary because its initial failure
 
 The official v4.4.0 RTC sample writes a fixed date during startup. Copying its startup behaviour would violate Crux's requirement not to establish an arbitrary default time. Adapt device acquisition and API use, not that policy.
 
-The same sample's test metadata does not list RT1060 EVK. Existing SNVS/RTC support is a useful starting point, but the sample is not evidence that this exact board/revision has passed. Codex must establish the board-specific configuration and retain its own results.
+The same sample's test metadata does not list RT1060 EVK. Existing SNVS/RTC support is a useful starting point, but the sample is not evidence that this exact board/revision has passed. The implementing agent must establish the board-specific configuration and retain its own results.
 
 The selected generic RTC Counter implementation maintains calendar offset/validity state. Counter progression and calendar restoration across reset are distinct. The prototype's session-validity restriction avoids an unsupported persistence claim; it must not become a permanent platform policy without product requirements and native evidence.
 
@@ -65,7 +65,7 @@ Source links and exact reference tags are listed in the plan. Current architectu
 | Physical execution approval | Cannot operate the board | All independent software work continues |
 | Contract-review response at M2 | Cannot accept the native implementation against the new contract | Upstream readiness and independent checks continue |
 
-Codex should discover these inputs where possible, then ask a focused question only for the missing item that affects its next dependent action. It must not repeatedly ask about routine implementation details covered by the plan.
+The agent should discover these inputs where possible, then ask a focused question only for the missing item that affects its next dependent action. It must not repeatedly ask about routine implementation details covered by the plan.
 
 ## 5. Residual architecture risks
 

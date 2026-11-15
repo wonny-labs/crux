@@ -132,7 +132,7 @@ still refuses it at 1,500 ms, which the `e2e-*` runner holds as a control.
 | 2 | The Angular screens use the client's `checkIpv4Settings` as code, not only its types | The rules are held by shared test vectors, so one copy cannot drift from the firmware's | Write the checks again in the Angular example, so that it imports only types |
 | 3 | The deep link that survives sign-in stays Preact-only | It is a shell behaviour, and the Angular example always returns to home | Add a return address to the Angular sign-in |
 | 4 | The shared advanced cases skip on `native_sim` | They need the mock's control and clock, and the real service has its own case | Real-service versions of more of them, which wait on the services image |
-| 5 | The Angular `native_sim` case is written and not run | The image needs a heavy Linux build | The main session or CI with the image runs `scripts/test-native-composition.sh e2e-mbed` |
+| 5 | The Angular `native_sim` case is written and not run | The image needs a heavy Linux build | CI, or anyone with the image, runs `scripts/test-native-composition.sh e2e-mbed` |
 
 ## Results
 

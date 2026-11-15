@@ -42,7 +42,7 @@ Record it where the work is tracked: in the PR that moves the pin or in the issu
 3. **For each advisory decide:** **applies** when the configuration compiles the affected feature and Crux reaches it, **no** when the evidence shows it does not, and **cannot tell** when it does not settle the question, with what would settle it. State what would make a "no" false.
 4. **Check the fix inclusion** for the candidate (below).
 5. **Decide:** **take** (move the pin, with the evidence below), **defer** (with the reason and a date or event to revisit), or **not applicable** (with the evidence of step 3). A "cannot tell" is a defer, never a silent "not applicable", as ADR-0006 section 5 says. A defer names what would settle it, and reading the source can settle it.
-6. **Record it**, with the unestablished points, and have the `reviewer` agent check the record against the advisories and the configuration. Its PASS is not an approval of the pin move.
+6. **Record it**, with the unestablished points, and have an independent reviewer check the record against the advisories and the configuration. Its PASS is not an approval of the pin move.
 7. **A pin move needs the owner's approval of the move itself.** After the first two moves, ADR-0006 (Q3) allows reviewer PASS plus green CI for a move within the same upstream line with unchanged results.
 
 ## Check what a pin is

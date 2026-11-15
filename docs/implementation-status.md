@@ -148,13 +148,13 @@ read status previously left its output uninitialised. It now reads the stored va
 focused regression case. Host Debug and ASan/UBSan each passed 27/27 and their sample;
 format, dependency boundaries, configured analysis and 4 provenance checks passed.
 The earlier native_sim 4/4 and EVKB build results remain applicable to unchanged Zephyr code.
-No unresolved source finding blocks an initial private push. M4 and hosted M5-03 remain
+No unresolved source finding blocks an initial push. M4 and hosted M5-03 remain
 pending until their actual evidence is collected. See [review scope and results](baseline.md#final-source-review-before-publication-2026-10-17).
 
 
 ## First publication and hosted CI (2026-10-17)
 
-Published the reviewed history to private `wonny-labs/crux-pilot/main`; remote SHA matched
+Published the reviewed history to `wonny-labs/crux-pilot/main` (the repository was not yet public at the time of this entry); remote SHA matched
 `df48e61fe96e120d1e911c594b13214053fcd6c1`. Both hosted workflows passed and both artifact
 bundles were inspected. M5-03 is now **pass**. Earlier entries saying hosted CI was pending
 are historical. The evidence-document follow-up does not change compiled code. Physical
