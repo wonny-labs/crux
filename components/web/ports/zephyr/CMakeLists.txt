@@ -17,6 +17,7 @@ add_library(crux_web_zephyr STATIC
 target_include_directories(crux_web_zephyr PRIVATE
     "${CRUX_WEB_COMPONENT_DIR}/adapter"
     "${CRUX_WEB_COMPONENT_DIR}/src"
+    "${CRUX_WEB_COMPONENT_DIR}/ports/zephyr/include"
     "${CMAKE_CURRENT_LIST_DIR}")
 zephyr_append_cmake_library(crux_web_zephyr)
 target_link_libraries(crux_web_zephyr PRIVATE crux_web_api zephyr_interface)
@@ -27,6 +28,19 @@ target_compile_options(crux_web_zephyr PRIVATE -Wall -Wextra -Werror)
 add_library(crux_web INTERFACE)
 add_library(crux::web ALIAS crux_web)
 target_link_libraries(crux_web INTERFACE crux_web_api)
+
+# The composition interface of the web start (ADR-0004 phase 1a, Experimental): the header
+# <crux/web_zephyr.h>, under ports/zephyr/include/crux/, and the portable web target. The name differs
+# from the STATIC provider library crux_web_zephyr above, which Kconfig selects with CONFIG_CRUX_WEB and
+# which this target does not link (rule 2 of docs/composition-interfaces.md). A native-free consumer check
+# rejects it by name and by path (rule 3), and tests/build/test_web_zephyr_boundary.py shows that.
+function(crux_web_zephyr_composition)
+  add_library(crux_web_zephyr_composition INTERFACE)
+  add_library(crux::web_zephyr ALIAS crux_web_zephyr_composition)
+  target_include_directories(crux_web_zephyr_composition INTERFACE "${CRUX_WEB_COMPONENT_DIR}/ports/zephyr/include")
+  target_link_libraries(crux_web_zephyr_composition INTERFACE crux_web)
+endfunction()
+crux_web_zephyr_composition()
 
 # Only for a composition, and for the generated resources, which need the server's own headers.
 add_library(crux_web_adapter INTERFACE)

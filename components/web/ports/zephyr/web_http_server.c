@@ -31,6 +31,7 @@
 #include "crux_web_adapter.h"
 #include "web_port.h"
 
+#include <crux/web_zephyr.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
