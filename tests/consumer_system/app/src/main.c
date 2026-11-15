@@ -1,13 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* ADR-0005 T3: the consumer scenario of the simulated System watchdog, as a product outside the Crux
- * repository writes it. It uses the public System service only (<crux/system.h>, <crux/status.h>), and
- * Zephyr for its own execution shell (sleep and console). A simulated watchdog is not hardware evidence.
+/* ADR-0005 T3: the consumer scenario of the simulated System watchdog, as a product outside the
+ * Crux repository writes it. It uses the public System service only (<crux/system.h>,
+ * <crux/status.h>), and Zephyr for its own execution shell (sleep and console). A simulated
+ * watchdog is not hardware evidence.
  *
- * Boot 1 (cause POR): read and clear the cause, start the watchdog, feed it past one timeout, then stop
- * feeding. The simulated device restarts the process (CONFIG_NATIVE_SIM_REBOOT).
- * Boot 2 (cause SOFTWARE, never WATCHDOG on native_sim): tell it apart from boot 1, find a fresh state,
- * start the watchdog again and keep feeding. Arming order and loop policy belong to the product: without
- * this feed the restart would repeat until the harness timeout. */
+ * Boot 1 (cause POR): read and clear the cause, start the watchdog, feed it past one timeout, then
+ * stop feeding. The simulated device restarts the process (CONFIG_NATIVE_SIM_REBOOT). Boot 2 (cause
+ * SOFTWARE, never WATCHDOG on native_sim): tell it apart from boot 1, find a fresh state, start the
+ * watchdog again and keep feeding. Arming order and loop policy belong to the product: without this
+ * feed the restart would repeat until the harness timeout. */
 #include <crux/status.h>
 #include <crux/system.h>
 #include <zephyr/kernel.h>
