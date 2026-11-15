@@ -27,7 +27,7 @@ west build --sysbuild -b 'mimxrt1170_evk@A//cm7' <app> -d <build> -- \
 
 ## Starting values and their basis
 
-The values are the RT1060-EVK values mapped to the RT1170 memory map, as proposed in the design note and approved as recommended by the project owner on 15 November 2026. All of them are **Inference**, to be corrected by the first CI build.
+The values are the RT1060-EVK values mapped to the RT1170 memory map, as the design note proposed them, now starting values approved as recommended by the project owner on 15 November 2026. All of them are **Inference**, to be corrected by the first CI build.
 
 | Choice | Starting value | Basis |
 | --- | --- | --- |
@@ -45,8 +45,8 @@ Where the files differ from the RT1060 files only by these values, the construct
 | --- | --- | --- |
 | Starting values | Approved as recommended by the project owner on 15 November 2026, as starting values. | To be corrected by the first CI build. |
 | D2 | **Application.** The controller sample has no RT1170 board configuration. | The script builds the controller sample and passes no board configuration. Whether that builds under sysbuild is Not verified. `CRUX_BOOT_RT1170_APP` replaces the application directory without a script edit, for example by a small Zephyr sample, if the controller sample needs more than a board `.conf`. |
-| D3 | **CI placement.** | The script runs in its own step of the `runtime` shard of `.github/workflows/zephyr.yml`, placed after the RT1060 step, so that an RT1170 failure does not hide an RT1060 result. The change to that protected path is additive, and tests in `tests/build/test_boot_composition_rt1170.py` check the step and that no line of the workflow was removed or reordered. The first run may fail on the memory map. |
-| D4 | **Script.** | A second script reuses every check, so no existing protected file is edited. A parameter of `scripts/test-boot-composition.sh` is the alternative and is the owner's decision. |
+| D3 | **CI placement.** | The script runs in its own step of the `runtime` shard of `.github/workflows/zephyr.yml`, placed after the RT1060 step, so that an RT1170 failure does not hide an RT1060 result. The change to that protected path is additive, and tests in `tests/build/test_boot_composition_rt1170.py` check the step and that no line of the workflow was removed or reordered. The guard against removed lines compares with `origin/main`, so it skips in CI (the host job checks out with depth 1, so there is no `origin/main` ref) and protects local runs only. The first run may fail on the memory map. |
+| D4 | **Script.** | A second script reuses every check, so no existing protected file is edited. A parameter of `scripts/test-boot-composition.sh` was the alternative; the owner chose the second script, as recommended. |
 
 ### Memory table of the Zephyr board document (Not verified)
 

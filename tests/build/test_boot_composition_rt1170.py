@@ -172,6 +172,14 @@ class PageTest(unittest.TestCase):
             self.assertNotIn("No CI step runs it yet", text)
             self.assertNotIn("Nothing was built or run for this board", text)
 
+    def test_the_open_points_record_the_owner_choices_and_the_limit_of_the_guard(self):
+        rows = {l.split("|")[1].strip(): l for l in read(PAGE).splitlines() if l.startswith("| D")}
+        self.assertIn("the owner chose the second script", rows["D4"])
+        self.assertNotIn("is the owner's decision", rows["D4"])
+        self.assertIn("skips in CI", rows["D3"])
+        self.assertIn("local runs only", rows["D3"])
+        self.assertNotIn("as proposed in the design note", read(PAGE))
+
     def test_the_padded_slot_clause_has_its_own_label(self):
         row = next(l for l in read(PAGE).splitlines() if l.startswith("| Slots"))
         self.assertIn("**Inference**", row)
@@ -349,6 +357,17 @@ class WorkflowTest(unittest.TestCase):
             fields,
         )
 
+    def test_the_comment_of_the_rt1170_step_is_accurate_about_uploads(self):
+        # The existing upload globs also match build/zephyr/boot-composition-rt1170, so its
+        # top-level logs and configuration are uploaded. The images are two levels down.
+        comment = " ".join(
+            l.strip().lstrip("# ") for l in self.text.splitlines() if l.strip().startswith("#")
+        )
+        self.assertNotIn("no output uploaded", comment)
+        self.assertIn("No image or signed binary is uploaded", comment)
+        self.assertIn("top-level sysbuild logs and configuration are", comment)
+        self.assertIn("through the existing upload globs", comment)
+
     def test_the_change_to_the_workflow_only_adds_lines(self):
         # Every line of the workflow at the point where this branch left origin/main is still
         # present, in the same order. This guards the additive CI change of this branch. It is
@@ -363,6 +382,7 @@ class WorkflowTest(unittest.TestCase):
             ).stdout
         except (OSError, subprocess.CalledProcessError):
             self.skipTest("origin/main is not available")
+        self.assertTrue(old.strip(), "the old workflow is empty")
         new_lines = iter(self.text.splitlines())
         for line in old.splitlines():
             self.assertTrue(any(line == candidate for candidate in new_lines), f"removed or reordered: {line!r}")
