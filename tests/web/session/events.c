@@ -18,6 +18,7 @@ static void expect_error(const fake_reply_t *reply, int status, const char *code
 }
 
 /* A state-changing request of a signed-in browser, with the given token and Origin. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static const fake_reply_t *post(const session_jar_t *jar, const char *origin, const char *xsrf)
 {
     session_request_t request = {.method = CRUX_WEB_POST,
