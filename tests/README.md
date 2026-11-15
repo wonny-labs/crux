@@ -89,6 +89,10 @@ and trailer inspector and its slot fit decision, on synthetic images built in me
 of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See
 [boot reproducibility](../docs/boot-reproducibility.md).
 
+`tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
+size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
+result is in [the comparison record](../docs/plans/mcuboot-crypto-backend-comparison.md).
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
