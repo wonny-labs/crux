@@ -6,9 +6,10 @@
 # sysbuild uses when no key argument is given. Images signed with it must never be programmed to
 # a board.
 #
-# STATUS: the board files under zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A hold PROPOSED
-# STARTING VALUES from the RT1170 design note "RT1170-EVK boot composition: memory-map choices".
-# They are not adopted. The script runs in its own step of the runtime shard of the Zephyr
+# STATUS: the board files under zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A hold STARTING
+# VALUES from the RT1170 design note "RT1170-EVK boot composition: memory-map choices", approved
+# as recommended by the project owner on 15 November 2026 and to be corrected by the first CI
+# build. The script runs in its own step of the runtime shard of the Zephyr
 # workflow, separate from the RT1060 step (open point D3). It has not passed yet, so the
 # composition is Not verified by build, and the first run may fail on the memory map; that is
 # information for correcting the starting values.

@@ -1,6 +1,6 @@
-# Boot composition for the RT1170-EVK (proposed, build only)
+# Boot composition for the RT1170-EVK (starting values, build only)
 
-> **Status:** Proposed starting values. Nothing here is adopted until the owner accepts the RT1170 design note, "RT1170-EVK boot composition: memory-map choices". The four board files and the check script exist so that a first CI build can test the values. The check runs in its own step of the runtime shard of the Zephyr workflow.
+> **Status:** Starting values, approved as recommended by the project owner on 15 November 2026 (design note "RT1170-EVK boot composition: memory-map choices") and to be corrected by the first CI build. The composition is still **Not verified** by build. The four board files and the check script exist so that a first CI build can test the values. The check runs in its own step of the runtime shard of the Zephyr workflow.
 > **Verified:** By host tests of file contents only (`tests/build/test_boot_composition_rt1170.py`): the files exist, both overlays declare the same retained region and trim OCRAM2 by exactly that region, the window values, and the script's argument set.
 > **Not verified:** Everything else. The CI step exists but has not passed yet, so the composition is still not verified by build, and nothing was booted. The first run may fail on the memory map, which is expected information for correcting the starting values. That the application builds for this board under sysbuild, and every RT1170 boot ROM, XMCD, OTFAD, HAB and fuse behaviour, are open.
 > **Read this first / then:** the [boot overview](boot-overview.md), then the [boot composition](boot-composition.md) page of the RT1060-EVK Rev B, which is the recipe this page copies.
@@ -27,7 +27,7 @@ west build --sysbuild -b 'mimxrt1170_evk@A//cm7' <app> -d <build> -- \
 
 ## Starting values and their basis
 
-The values are the RT1060-EVK values mapped to the RT1170 memory map, as proposed in the design note. All of them are **Inference**, to be corrected by the first CI build.
+The values are the RT1060-EVK values mapped to the RT1170 memory map, as proposed in the design note and approved as recommended by the project owner on 15 November 2026. All of them are **Inference**, to be corrected by the first CI build.
 
 | Choice | Starting value | Basis |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ Where the files differ from the RT1060 files only by these values, the construct
 
 | # | Open point | State |
 | --- | --- | --- |
-| Starting values | The owner has not accepted the design note's values. | Recommendation in the note: accept them as starting values. |
+| Starting values | Approved as recommended by the project owner on 15 November 2026, as starting values. | To be corrected by the first CI build. |
 | D2 | **Application.** The controller sample has no RT1170 board configuration. | The script builds the controller sample and passes no board configuration. Whether that builds under sysbuild is Not verified. `CRUX_BOOT_RT1170_APP` replaces the application directory without a script edit, for example by a small Zephyr sample, if the controller sample needs more than a board `.conf`. |
 | D3 | **CI placement.** | The script runs in its own step of the `runtime` shard of `.github/workflows/zephyr.yml`, placed after the RT1060 step, so that an RT1170 failure does not hide an RT1060 result. The change to that protected path is additive, and tests in `tests/build/test_boot_composition_rt1170.py` check the step and that no line of the workflow was removed or reordered. The first run may fail on the memory map. |
 | D4 | **Script.** | A second script reuses every check, so no existing protected file is edited. A parameter of `scripts/test-boot-composition.sh` is the alternative and is the owner's decision. |

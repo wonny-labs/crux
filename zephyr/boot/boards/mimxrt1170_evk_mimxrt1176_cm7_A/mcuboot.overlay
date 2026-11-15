@@ -1,9 +1,10 @@
-/* RT1170-EVK boot composition (MCUboot overlay). PROPOSED STARTING VALUES from the RT1170
- * design note "RT1170-EVK boot composition: memory-map choices": Inference, not adopted by the
- * owner, to be corrected by the first CI build. The CI step exists (runtime shard of the Zephyr
- * workflow) but no build of these files has passed yet, and its first run may fail on the memory
- * map. Mirrors the RT1060-EVK Rev B file of the same name. Same retained-region node in MCUboot
- * and application.
+/* RT1170-EVK boot composition (MCUboot overlay). STARTING VALUES from the RT1170 design
+ * note "RT1170-EVK boot composition: memory-map choices", approved as recommended by the project
+ * owner on 15 November 2026 and to be corrected by the first CI build. They are Inference, and
+ * the composition is still Not verified by build. The CI step exists (runtime shard of the
+ * Zephyr workflow) but no build of these files has passed yet, and its first run may fail on the
+ * memory map. Mirrors the RT1060-EVK Rev B file of the same name. Same retained-region node in
+ * MCUboot and application.
  * Not verified: that 0x2033ff00 is free of any other use in the application at v4.4.2.
  * Caution, Not verified: the Zephyr v4.4.0 board document lists sdram0 at 0x80030000 and ocram2
  * at 0x200C0000 and says only the first 16 KiB of ocram2 has the memory attributes needed for

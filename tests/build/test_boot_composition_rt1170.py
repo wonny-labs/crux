@@ -2,9 +2,9 @@
 
 The composition is MCUboot RAM load with revert on the RT1170-EVK (`mimxrt1170_evk@A//cm7`),
 build only. It mirrors the RT1060-EVK Rev B composition (`test_boot_composition.py`). Its values
-are PROPOSED STARTING VALUES from the RT1170 design note, "RT1170-EVK boot composition:
-memory-map choices", which the owner has not accepted yet. They are corrected by the first CI
-build. These rules read files only and use the standard library, because `host.yml` runs this
+are STARTING VALUES from the RT1170 design note, "RT1170-EVK boot composition: memory-map
+choices", approved as recommended by the project owner on 15 November 2026. They are corrected
+by the first CI build. These rules read files only and use the standard library, because `host.yml` runs this
 directory without west or PyYAML. No build ran for this board.
 """
 from pathlib import Path
@@ -177,10 +177,24 @@ class PageTest(unittest.TestCase):
         self.assertIn("**Inference**", row)
         self.assertIn("padded image", row)
 
-    def test_the_page_exists_and_is_marked_proposed(self):
+    APPROVAL = "approved as recommended by the project owner on 15 November 2026"
+
+    def test_the_page_says_the_starting_values_were_approved_and_are_not_verified_by_build(self):
         text = read(PAGE)
-        self.assertIn("> **Status:**", text)
-        self.assertIn("proposed", text.lower())
+        status = next(l for l in text.splitlines() if l.startswith("> **Status:**"))
+        self.assertIn(self.APPROVAL, status)
+        self.assertIn("starting values", status.lower())
+        self.assertIn("corrected by the first CI build", status)
+        self.assertIn("**Not verified**", status)
+        self.assertNotIn("Nothing here is adopted", text)
+        self.assertNotIn("has not accepted", text)
+
+    def test_the_headers_say_the_starting_values_were_approved(self):
+        for path in [SCRIPT] + [BOARD_DIR / n for n in FILES]:
+            text = " ".join(l.lstrip("#/* ").rstrip() for l in read(path).splitlines()[:12])
+            self.assertIn(self.APPROVAL, text, path.name)
+            self.assertNotIn("not adopted", text, path.name)
+            self.assertNotIn("PROPOSED", text, path.name)
 
     def test_the_argument_set_names_files_that_exist(self):
         named = set(re.findall(r"zephyr/boot/boards/%s/([\w.]+)" % re.escape(BOARD), read(PAGE)))
