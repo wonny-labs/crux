@@ -2,6 +2,8 @@
 
 Last verified against main `7a53ed155788df44a6d1b65246448573f8f3ded7`.
 
+**Stale since 53 commits.** Main was 53 commits ahead of that revision when this line was written (`git rev-list --count 7a53ed15..40a99210`), and only the rows named below were re-read. Later changes are not reflected. The authoritative state is the code and the CI at the revision you use.
+
 **Rows re-read since then.** The rows `thread`, `sync`, `service_priority` and `Product template` were re-read from the files at main `4ff1ba3c` (documentation change only; no test, build or board run was repeated). They carry the changes of #391, #393 and #395. Every other row, and the revision above, are unchanged: they were not re-read at `4ff1ba3c`, and a later change to the sources they cite is not reflected in them.
 
 One table: what exists for each component, in which environments, with which evidence, and what is missing. It is a reading aid over the sources it cites, written from the files at the revision above. It adds no decision, no approval and no claim beyond those sources. A cell says `unknown` where the sources read do not settle it.
