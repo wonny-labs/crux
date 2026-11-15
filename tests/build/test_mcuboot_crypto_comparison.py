@@ -92,8 +92,12 @@ class ScriptShape(unittest.TestCase):
         self.assertRegex(self.header, r"one-off|decision input|not a regression check")
 
     def test_a_failed_variant_does_not_stop_the_comparison(self):
-        self.assertIn("status=failed", self.code)
+        # run_variant sets status=failed instead of exiting, because its west build is the left side of
+        # a `|| status=failed`, and the collector then runs for it.
         self.assertRegex(self.code, r"run_variant\(\)")
+        self.assertRegex(self.code, r'west build[\s\S]*?>"\$log" 2>&1 \|\| status=failed')
+        body = self.code[self.code.index("run_variant()"):self.code.index("# 1. The baseline") if "# 1. The baseline" in self.code else None]
+        self.assertNotIn("exit 1", body)
 
 
 class VariantFiles(unittest.TestCase):
@@ -125,8 +129,8 @@ class VariantFiles(unittest.TestCase):
 
     def test_the_third_round_adds_the_module_psa_core_symbol_that_the_second_build_showed_missing(self):
         # The second CI run (psa-mbedtls.conf) configured, then failed to compile the Mbed TLS library
-        # with "unknown type name 'mbedtls_error_pair_t'" in ssl_misc.h. MCUboot selects PSA_CRYPTO_C of
-        # Zephyr's PSA Kconfig, not MBEDTLS_PSA_CRYPTO_C of modules/mbedtls/Kconfig.tf-psa-crypto.
+        # with "unknown type name 'mbedtls_error_pair_t'" in ssl_misc.h. Its resolved configuration has no
+        # MBEDTLS_PSA_CRYPTO_C of modules/mbedtls/Kconfig.tf-psa-crypto, and BOOT_ECDSA_PSA does not set it.
         for name in ("psa-mbedtls-psa-c.conf", "psa-mbedtls-psa-c-entropy.conf"):
             lines = (VARIANTS / name).read_text(encoding="utf-8").splitlines()
             self.assertIn("CONFIG_MBEDTLS=y", lines)
