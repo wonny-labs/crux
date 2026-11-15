@@ -84,6 +84,11 @@ what the checker covers and what it does not.
 and trailer inspector and its slot fit decision, on synthetic images built in memory. They need no key, board or west workspace. See
 [boot image inspection](../docs/boot-image-inspection.md).
 
+`tests/build/test_compare_boot_builds.py` and `tests/build/test_check_boot_reproducibility.py` hold the checks of
+`tests/target/compare_boot_builds.py` and `tests/target/check_boot_reproducibility.sh`, the comparison of two builds
+of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See
+[boot reproducibility](../docs/boot-reproducibility.md).
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses

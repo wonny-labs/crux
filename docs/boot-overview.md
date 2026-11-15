@@ -39,6 +39,7 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 | I run the bench tests on a board: how, with which expected results? | [Secure boot board test procedure](secure-boot-board-test-procedure.md) (not yet run) |
 | How do I build an image with MCUboot for the RT1060-EVK Rev B, and what does CI check? | [Boot composition](boot-composition.md) |
 | I take the composition to another i.MX RT1062 board (QSPI NOR or eMMC): what carries over, and what do I check or supply? | [Boot composition on an RT1062 product board](boot-porting-rt1062.md) |
+| Do two builds of the composition reproduce, and how would that be checked? | [Boot composition reproducibility](boot-reproducibility.md) (prepared, not run) |
 | Why RAM load with revert, which update modes exist, what did the trial builds show? | [Boot and update investigation](boot-update-investigation.md) |
 | Can the bootloader itself be updated or recovered in the field? | [Updating or recovering a deployed bootloader](boot-bootloader-update-investigation.md) |
 | What would booting and updating from eMMC need? | [eMMC boot and update feasibility](boot-emmc-investigation.md), with the M14 design in [emmc-reliance-design.md](plans/emmc-reliance-design.md) |
