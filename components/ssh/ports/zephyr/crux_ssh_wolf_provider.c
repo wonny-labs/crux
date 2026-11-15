@@ -721,11 +721,17 @@ static bool open_sftp(connection_t *connection)
 /*
  * wolfSSH ends a connection that used up max_auth_attempts with WS_USER_AUTH_E, in the login, after
  * it has sent the disconnect (CountUserAuthFailure in wolfSSH v1.6.0). It gives no other signal.
- * Nothing else in this build ends a login with that error: the callbacks above answer success or
- * failure only, never the hard rejection that makes wolfSSH fail on its own, and password and
- * public key are the only methods. A stop and the login timer end the handshake with other errors,
- * or with none, so they are not reported. Runs on the worker, with no provider lock held, and only
- * tells Crux.
+ * The callbacks above answer success or failure only, never the hard rejection that makes wolfSSH
+ * fail on its own, and password and public key are the only methods. A stop and the login timer end
+ * the handshake with other errors, or with none, so they are not reported.
+ *
+ * Two other paths end a connection inside wolfSSH_accept() before a login: a changed user name, and
+ * user_auth_result returning WS_FATAL_ERROR, as it does when key_verified refuses. Which error
+ * wolfSSH returns there is not known, and if it is WS_USER_AUTH_E this reports a limit that was not
+ * reached. Neither path has run on wolfSSH: the conformance case
+ * auth_limit_is_not_reported_for_other_ends holds both on the fake, and
+ * scripts/test-ssh-provider.sh would show them. Runs on the worker, with no provider lock held, and
+ * only tells Crux.
  */
 static void report_auth_limit(const connection_t *connection, int error)
 {

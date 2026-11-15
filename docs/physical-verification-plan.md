@@ -1,5 +1,7 @@
 # M6 physical verification plan (GPIO, I2C, SPI)
 
+> **Status: historical plan, not maintained.** It is neither the current state of GPIO, I2C and SPI nor an approval of any hardware operation. See [Component readiness](component-readiness.md) and the [GPIO](gpio-contract.md), [I2C](i2c-contract.md) and [SPI](spi-contract.md) contracts for the current state.
+
 Status: plan only. No programming, flashing, reset, debug session, wiring change, board rework or
 physical result is authorised by this document. Each item below needs explicit approval, one item
 at a time, with its fixture and observer named. The software evidence this plan builds on is

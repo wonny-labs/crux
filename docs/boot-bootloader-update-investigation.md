@@ -1,13 +1,18 @@
 # Updating or recovering a deployed bootloader
 
+> **Status:** Investigation. This page is a desk investigation of how a deployed bootloader is updated or recovered. It concludes that no option should become a milestone now, that the M9 results should declare the bootloader's update and recovery level, and that the two-stage design (N2) stays the candidate if a field-update requirement is confirmed. The owner decides what to adopt, and whether anything is adopted at all.
+> **Verified:** Statements were read at the pinned Zephyr, MCUboot and `hal_nxp` revisions and in public vendor and project documents. Each row carries its evidence label, and no build was run. The rows are in `docs/evidence/boot-bootloader-update/`, described in its [README](evidence/boot-bootloader-update/README.md).
+> **Not verified:** No build, hardware, debugger, fuse or manifest operation was performed, so nothing is known about a physical board, including whether a damaged bootloader falls through to the serial downloader. The eMMC configuration is a set of expectations, not a result for any device. The RT1060 Security Reference Manual, AN12079, the Code Signing Tool guide and the RT1170 reference manual were not readable.
+> **Read this first / then:** [docs/boot-composition.md](boot-composition.md) for the current build recipe, [docs/plans/secure-boot-development-plan.md](plans/secure-boot-development-plan.md) for the plan, and [docs/boot-update-investigation.md](boot-update-investigation.md) for the update-mode record. Then this page's [Summary for the owner](#summary-for-the-owner).
+
 | Field | Value |
 | --- | --- |
 | Issue | [#299](https://github.com/wonny-labs/crux-pilot/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
-| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE, round 4 (the narrow re-check of the round 3 fix) PASS; see the [Review record](#review-record). The owner decides. |
+| Status | **Merged desk record, 7 November 2026 (PR [#302](https://github.com/wonny-labs/crux-pilot/pull/302)). Desk investigation.** Nothing in this record is adopted unless the owner has decided so. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE, round 4 (the narrow re-check of the round 3 fix) PASS; see the [Review record](#review-record). The owner decides. |
 | Target | RT1060-EVKB Rev B (`mimxrt1060_evk@B/mimxrt1062/qspi`) for the NOR configuration. RT1170-EVK Rev A1 only where the public sources show a difference. The eMMC configuration is a set of expectations, not a result for any device. |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. The pins are those of the #141 record. |
 | Read on | 7 November 2026, against `main` at `3e0a5d7` |
-| Related | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) and its [record](https://github.com/wonny-labs/crux-pilot/blob/4fc5cc88b166deeb906e97ebd2b8c22bd17a5f72/docs/boot-update-investigation.md) (Draft PR [#151](https://github.com/wonny-labs/crux-pilot/pull/151), not merged). [#165](https://github.com/wonny-labs/crux-pilot/issues/165) and [#22](https://github.com/wonny-labs/crux-pilot/issues/22) for NOR writes. [#297](https://github.com/wonny-labs/crux-pilot/issues/297) for the update path. [#298](https://github.com/wonny-labs/crux-pilot/issues/298) for eMMC. |
+| Related | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) and its [record](boot-update-investigation.md) (the boot and update investigation, merged 7 November 2026). [#165](https://github.com/wonny-labs/crux-pilot/issues/165) and [#22](https://github.com/wonny-labs/crux-pilot/issues/22) for NOR writes. [#297](https://github.com/wonny-labs/crux-pilot/issues/297) for the update path. [#298](https://github.com/wonny-labs/crux-pilot/issues/298) for eMMC. |
 | Evidence | [docs/evidence/boot-bootloader-update/](evidence/boot-bootloader-update/README.md) |
 
 ## Summary for the owner
@@ -380,8 +385,7 @@ partitions can be used on RT1060, or that any M8 or M9 criterion is met.
 
 ## Review record
 
-**Round 1, 7 November 2026.** Two independent reviewers, both the repository's
-`reviewer` agent (model `claude-opus-5-5`, read-only tools, neither wrote the
+**Round 1, 7 November 2026.** Two independent reviewers (read-only, neither wrote the
 record), each took one scope: (1) the NOR options, ROM recovery, trust and
 evidence A and B, and (2) the eMMC section, evidence C and the record-wide
 label and boundary checks. They read the files and checked the cited sources
@@ -402,7 +406,7 @@ C-6, C-15, C-19, C-20, C-22 to C-26, C-29, C-31, C-32, C-40 to C-50 beyond label
 fit. These rows stay as the research agents recorded them.
 
 **Round 2, 7 November 2026: the single narrow re-check of the fix commits.** A
-third reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only tools,
+third reviewer (an independent reviewer, read-only,
 no part in round 1) checked the seven round 1 blocking findings and the fix
 diff. Verdict **ESCALATE** under AGENTS.md, because two blocking findings
 remained after the re-check. Five findings were resolved, and the new row B-84
@@ -419,9 +423,9 @@ plural "fix commits", and the label of the trust row that cites B-4.
 
 The two residual findings were fixed in `1985a66`.
 
-**Round 3, 7 November 2026, requested by the session that started this work.**
-A fourth reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only
-tools, no part in earlier rounds) checked `1985a66` only. Verdict
+**Round 3, 7 November 2026.**
+A fourth reviewer (an independent reviewer, read-only,
+no part in earlier rounds) checked `1985a66` only. Verdict
 **ESCALATE**. The B-48 finding was resolved. The Summary fix wrongly grouped
 the LPSPI recovery device with the paths that need physical access. The manual
 and ROM table row 6 say the ROM tries it automatically once its fuses are set
@@ -429,7 +433,7 @@ and a memory is present. The Summary sentence was corrected, together with the
 B-48 antecedent and the C-16 summary of the RAUC power-loss text.
 
 **Round 4, 7 November 2026: the narrow re-check of `fa62f0c`.** A fifth
-reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only tools, no
+reviewer (an independent reviewer, read-only, no
 part in earlier rounds) checked `fa62f0c` only. Verdict **PASS**. The LPSPI
 finding was resolved against RM3 sections 9.10 and 9.11. Non-blocking
 observations, recorded on the PR and not fixed here: the D2 to D4 reading omits

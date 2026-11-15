@@ -464,6 +464,8 @@ class Slice4Test(unittest.TestCase):
         expected = {f"../../../session/{name}" for name in cmake_list_sources(
             "components/web/session/sources.cmake", "CRUX_WEB_SESSION_SOURCES")}
         expected.add("../../psa/web_session_psa.c")
+        # The provider of the event port is not in the Host list, which compiles a fake port instead.
+        expected.add("../../../session/web_session_security_events.c")
         self.assertEqual(sources_in("components/web/ports/zephyr/session"), expected)
 
     def test_the_management_library_compiles_the_management_sources(self):

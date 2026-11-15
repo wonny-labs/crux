@@ -33,7 +33,7 @@ The terms of the HTTPS web, SSH command line and SFTP documents, with the one me
 | --- | --- |
 | **Refuse** | A component said no on the wire or at an interface: a refused login, a refusing entry point, a refused request |
 | **Deny** | An access decision: `crux_access` denied a permission, and the event is `access.permission_denied` |
-| **Reject** | Only inside names that exist, such as `csrf_rejected` and `origin_rejected` (error codes), `web.csrf_rejected`, `config.rejected`, `cli.line_rejected`, `file.name_rejected`, `access.change_rejected` and `web.certificate_rejected` (events), and the `rejected` state of a login attempt |
+| **Reject** | Only inside names that exist, such as `csrf_rejected` and `origin_rejected` (error codes), `web.csrf_rejected`, `web.origin_rejected`, `config.rejected`, `cli.line_rejected`, `file.name_rejected`, `access.change_rejected` and `web.certificate_rejected` (events), and the `rejected` state of a login attempt |
 
 ## Web
 

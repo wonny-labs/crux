@@ -80,6 +80,10 @@ that parse a manifest need PyYAML and skip without it.
 west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
 what the checker covers and what it does not.
 
+`tests/build/test_boot_image_inspect.py` holds the checks of `tests/target/inspect_boot_image.py`, the MCUboot image
+and trailer inspector, on synthetic images built in memory. They need no key, board or west workspace. See
+[boot image inspection](../docs/boot-image-inspection.md).
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
@@ -813,6 +817,12 @@ See [System validation](../docs/system-validation.md) for evidence and limits.
 own process on a missed feed. It sets `CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` and shows the boot cause, a feed
 cycle, a missed feed and the second boot with the cause SOFTWARE. Twister finds it under `tests/system/zephyr`,
 so `scripts/test-system.sh` runs it. A simulated watchdog is not hardware evidence.
+
+`tests/consumer_system` is the same scenario as a product outside the repository: a copy outside the repository
+that links `crux::system` only and includes `<crux/system.h>` and `<crux/status.h>`. `scripts/test-consumer-system.sh`
+builds it on `native_sim`, checks it and runs it, builds it again with the symbol off, and applies six negative
+variants; `scripts/test-system.sh` calls it. `tests/build/test_consumer_system.py` is its Host check (no Zephyr SDK).
+See its [README](consumer_system/README.md).
 
 The independent Host System fixture selects only `CRUX_BUILD_SYSTEM` through the
 root entry point. External System profiles preserve parent testing/languages,

@@ -11,6 +11,7 @@ Owner: `components/web`. The settings type, the start calls and the authenticati
 | Part | State | Evidence |
 | --- | --- | --- |
 | `crux_web_authenticate_t` over `crux_access`: cookie, session table, `Origin`, CSRF token, idle refresh | **Built** | Host on the real Web and Access cores. `native_sim` on the real Access core and its real PSA ports. |
+| Security events for a refused CSRF token and a refused `Origin`, from the session layer, at most 3 per kind in 60 s | **Built**, [below](#security-events-for-a-refused-csrf-token-or-origin) | Host on the real session core with a fake event port, and the provider on the recording fake of the event contract. `native_sim` and the target have not run it. |
 | Two-request login through one bounded worker (decision D10) | **Built** | Host, with a real worker thread. `native_sim`, with real PBKDF2. |
 | Session routes: login, attempt poll, logout, current user, own password change | **Built** | Host and `native_sim` |
 | Random and hash ports on PSA Crypto, refusing to build for a board with a known test generator (see the limit below) | **Built** | `native_sim` on TF-PSA-Crypto. RT1060: compile only, in CI. |
@@ -86,7 +87,57 @@ stateDiagram-v2
 | Replies do not reveal whether a user exists | Every login is queued and answers `202`. Every rejection polls as `{"state":"rejected"}` with the same headers: wrong password, unknown name, disabled account, a name outside the rules, a name holding a NUL, a password over 128 bytes, and an unusable store | `login.c` and `native_sim`, byte for byte |
 | Security headers | The core's: CSP, `nosniff`, `no-referrer`, `no-store`. **No HSTS**, and no CORS header. | `sessions.c` on every session route, and `native_sim` |
 
-## What a lookup receives, from the review of #184
+## Security events for a refused CSRF token or Origin
+
+Decided by the owner on 2026-11-14 on [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319): emit an event for a refused CSRF token and for a refused `Origin`, from the session layer, rate-limited so that a flood cannot fill the event ring.
+
+```mermaid
+flowchart LR
+    req[State-changing request<br/>or login] --> found{Session found?}
+    found -- no, 401 --> none[No event]
+    found -- yes --> origin{Origin accepted?}
+    login[Login: Origin checked<br/>before a session exists] --> origin
+    origin -- no, 403 origin_rejected --> gate
+    origin -- yes --> csrf{Token matches?}
+    csrf -- no, 403 csrf_rejected --> gate
+    csrf -- yes --> ok[Handler runs]
+    gate{"This kind's window<br/>has a share left?"} -- no --> count[forgery_suppressed + 1]
+    gate -- yes --> port[crux_web_session_port_event]
+    port --> prov["Provider: crux_security_event_emit"]
+    prov --> ring[("Ring: class R, admitted<br/>below 24 pending")]
+```
+
+| Refusal | Where it is decided | Event | Result | Fields |
+| --- | --- | --- | --- | --- |
+| `403 origin_rejected` on a request that has a session, any method but `GET` | `crux_web_session_authenticate` | `web.origin_rejected`, **new**, 0x0605, class R, Experimental | `DENIED` | channel 2, the peer's address, the session's account |
+| `403 csrf_rejected` on a request that has a session and an accepted `Origin` | `crux_web_session_authenticate` | `web.csrf_rejected`, 0x0601, class R, defined before and now emitted | `DENIED` | The same |
+| `403 origin_rejected` on a login | `on_login` in `web_session_routes.c`, before the body is read | `web.origin_rejected` | `DENIED` | channel 2, the peer's address, **no user**: there is no session yet |
+
+| Not reported | Why |
+| --- | --- |
+| A request with no session, a forged cookie or an ended session: `401` | `401` says nothing about a token or an `Origin`, and the check order puts the session first. A forgery against a visitor with no session leaves nothing to protect, and a probe of cookies is not this signal. |
+| `GET` with a wrong `Origin` or no token | Neither is checked on `GET`. |
+| A poll without `X-Crux-Request: 1`, which answers `403 csrf_rejected` | It is not the CSRF token, the issue names the token and `Origin`, and the attempt identifier is 256 bits. See decision 19. |
+
+A report holds the kind, the web channel, the peer's address as the web adapter gave it, and, when a session was found, the account name from `crux_access_session_user`. It has no `Origin`, no header text, no token and no subject, and the event's `subject` is empty. The event contract's rule that client input failing validation is never a field holds by construction: the report has no field that could carry it. `events.c` hostile-string case searches every report for the `Origin`, the token and the login's user name that the client sent, and for the session's own tokens.
+
+### The bound
+
+| Layer | Bound |
+| --- | --- |
+| The contract's admission | A class R record is admitted only below 24 pending of 32, and the drain pauses 100 ms after every 4 lines. Alone, that lets a flood hold the ring at 24 for as long as it lasts, and every other class R record (`access.login_failed`, for one) is dropped meanwhile. It stops the flood from reaching the change reserve and nothing more. |
+| The session layer's window | **Added here**, small, and private to the module. Per kind, a fixed window of `CRUX_WEB_SESSION_FORGERY_WINDOW_MS` (60 s, by the web clock) reports at most `CRUX_WEB_SESSION_FORGERY_EVENTS` (3) refusals. The window starts at the first refusal it reports. The later ones in that window count in `crux_web_session_stats_t.forgery_suppressed`, and send no report. |
+| What that gives | At most 3 records of each kind in a window, so 6, and 12 across the edge of two windows. That is half of the 24 that the default ring admits as routine, with the other half for other emitters, and a sustained flood adds 6 a minute. A refusal past the share reaches neither the user lookup, the provider nor the ring, so it does not pay the ring lock's wait (up to 10 ms). It does take the attempt lock once, to count itself in `forgery_suppressed`, and waits for it up to `CRUX_WEB_SESSION_LOCK_WAIT_MS` (20 ms) as the other counters do. That wait is the same bound that a poll already accepts, and the worker holds the lock only to copy. A product with a smaller ring sets the two macros lower. |
+| Why not only the contract's admission | The issue asked that a flood not fill the ring, and the contract has no per-identifier rate rule to follow. Without a window, a flood of refused requests hides every other routine record. |
+| What it costs | A flood is visible as 6 records a minute and a counter, and the count of refusals past the share is not in the event log, only in the counter, which nothing reads yet: no status item or route exposes `forgery_suppressed`. |
+
+Both windows are state of the server thread, reset by `crux_web_session_init`. `web_session_attempts_reset` also zeroes the counter.
+
+### The provider
+
+`components/web/session/web_session_security_events.c` translates a report onto `crux_security_event_emit`, as the other event providers do, and holds no state. An image that links the session module with the real events lists it (the native management composition, the RT1060 bench image's lists, the module's session library under `CONFIG_CRUX_WEB_SESSION`, which needs `CONFIG_CRUX_ACCESS` and so the events, and `tests/native/web_session`). The Host suites compile a fake port in `session_test.c` in its place. `tests/zephyr/web_compile` compiles the provider for the target and does not link it. A report of a type that the provider does not map is recorded as `event.unknown` with the result `FAILED`, never as a success.
+
+
 
 | Property | Rule here |
 | --- | --- |
@@ -163,6 +214,8 @@ Changes that could shorten the stall, none taken here:
 | --- | --- |
 | `login.c` | The two requests, cookie attributes, the token source, the poll header, unknown and malformed identifiers, identical rejections, the delay window as `429`, busy and full tables, expiry and the logout of an uncollected session, `Origin` on login, body rules, the password not staying, random failures, a full session table and the clearing of ended sessions from it |
 | `sessions.c` | Missing and forged sessions, including a prefix, a changed character, quotes, percent encoding, a near name and a duplicate; the forgery rules on every method; a configured `Origin` list; wrong role and a forced change; idle and absolute expiry; role change, reset and disable; one's own password change with each result, a `429`, a refusal after a two-part body that closes, and an expired change that leaves its session; logout; security headers; a failing hash |
+| `events.c` | The reports to a fake port: each refused token form, each refused `Origin` form, a login's `Origin`, none for accepted requests, `GET`, no session, a forged cookie and a wrong password, the bound under 100 requests of each kind with its counter, the window's two edges, a new share after `crux_web_session_init`, no client text in any report, and the fields of a report: an address that fits no buffer, no session and an ended one |
+| `events_provider.c` | The provider on the recording fake of the event contract: each type to its identifier, result `DENIED`, channel, address and user, no subject, no field omitted for being out of rule, and an unmapped type as `event.unknown` |
 | `json.c` | The bounded reader: escapes, surrogate pairs, NUL, overflow, and 31 malformed bodies |
 | `concurrency.c` | The real worker thread: a verification held open while other requests are answered, and 40 failed logins beside another client |
 
@@ -197,6 +250,13 @@ Changes that could shorten the stall, none taken here:
 | The `Origin` list matches by prefix | 4 in `sessions.c` |
 | A refusal at the access re-check keeps the connection | 1 in `sessions.c` |
 | An expired change logs out its requester | 2 in `sessions.c` |
+| No window: every refusal is reported | 9 in `events.c` |
+| Both kinds share one window | 5 in `events.c` |
+| A login's `Origin` is not reported | 3 in `events.c` |
+| The session's user is not looked up | 12 in `events.c` |
+| A refused token is reported as an `Origin` refusal | 13 in `events.c` |
+| The window never restarts | 6 in `events.c` |
+| The suppressed count is not kept | 2 in `events.c` |
 | A longer cookie value is accepted | **Not caught**, because the token's form check refuses it as well. Both checks stay. |
 
 ## Results
@@ -222,7 +282,9 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 - The worker's stack, the verifier's and the save's time on a target, and the stall they cause. The stall of a password change or a cost upgrade is declared above and not measured.
 - The PSA ports' guard is a deny-list of `CONFIG_FAKE_ENTROPY_NATIVE_SIM` and `CONFIG_TEST_RANDOM_GENERATOR`. Where those Kconfig macros are not visible to the file, as in a build without Zephyr's `autoconf.h`, or with another test generator, it passes silently.
 - The Wolf profile in #186's own `native_sim` image: only the Mbed profile runs there. Both profiles ran the sessions over HTTPS later, in [the services image](native-composition-242.md).
-- Security events for a refused CSRF token or `Origin`: none are emitted. The identifier `web.csrf_rejected` exists, and nothing emits it ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)).
+- The refusal events on `native_sim` and on a target: only Host ran them, on a fake port and on the recording fake of the event contract. The real ring, the drain and the real provider with the real session core are not run together anywhere. The window's bound is shown at the port, and its effect on the ring follows from the contract's numbers.
+- The ring's behaviour under a refusal flood with other class R records waiting, which a run with the real core would show.
+- Whether 3 records in 60 s per kind is the right share for a product. It is a default.
 
 ## Decisions taken without an answer
 
@@ -244,6 +306,11 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 | 14 | `Secure` is set in the plain HTTP test image too | The cookie lines are those of a product. Chromium 152 and Firefox 159 kept the cookie over `http://localhost` in the header captures of [the web contract](web-contract.md#header-capture). **Safari did not**: observed on 2026-11-08, by hand, on the mock server of the web examples only. Firmware over HTTPS in Safari was not run. | Drop it in the test image |
 | 15 | The `native_sim` image uses `CONFIG_MINIMAL_LIBC`, as `tests/native/web_http` does, for Zephyr's `fnmatch` | Upstream sources warn of implicit declarations under it, as in that image | Picolibc |
 | 16 | RT1060: compiled as objects, not linked | A link needs the Access core's store and events, which only a product composition brings | Stub ports in a compile test |
+| 17 | Refusals are reported through a port with a provider, not by a direct call of `crux_security_event_emit` | The same shape as every other emitter, so the session module links no event header, and a Host test records what the module reported, with a controlled clock | A direct call |
+| 18 | A window of 3 reports per kind in 60 s, fixed and global per kind, not per source | The smallest bound that keeps the ring's routine share. A per-source bound needs a table, and a flood from many sources would pass it. Two windows at the edge allow 6 per kind. | A token bucket, a per-source table, or a summary record with the suppressed count |
+| 19 | The poll's missing `X-Crux-Request` is not reported, though it answers `csrf_rejected` | The decision names the token and `Origin`, and this check has no token. A probe that guesses an attempt identifier is not the forgery these events are for. **Recommended for the owner:** leave it, or add a report of the same kind in `on_attempt` with the same window if the response code is to match the event. | Report it as `web.csrf_rejected` |
+| 20 | The account of the session is recorded, when there is one | It is a name that the server issued, and it says whose session a forgery was aimed at. A login's `Origin` check has none. | No user |
+| 21 | `web.origin_rejected` is 0x0605, class R, Experimental | The next free value in the web range. Class R, as `web.csrf_rejected` is. The component is Experimental as a whole. | A change-class record, which the reserve would then admit during a flood |
 
 ## What a route that needs a session can rely on
 

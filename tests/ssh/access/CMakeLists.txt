@@ -27,10 +27,34 @@ target_compile_features(ssh_host_key_test PRIVATE c_std_17)
 add_test(NAME Ssh.host_key COMMAND ssh_host_key_test)
 set_tests_properties(Ssh.access_adapter Ssh.host_key PROPERTIES TIMEOUT 30)
 
+# The dropping provider of the event port, for an image with no event core. No other Host target compiles it,
+# and this one links no security event library, as such an image has none. It builds the adapter's own source
+# for the same reason as the target below.
+add_executable(ssh_events_none_test events_none_test.c
+    ../../../components/ssh/access/crux_ssh_access.c
+    ../../../components/ssh/access/crux_ssh_access_events_none.c)
+target_link_libraries(ssh_events_none_test PRIVATE crux_ssh_adapter crux_access_test_composition)
+target_include_directories(ssh_events_none_test PRIVATE .. ../../../components/ssh/access
+    ../../../components/ssh/src)
+target_compile_options(ssh_events_none_test PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+target_compile_features(ssh_events_none_test PRIVATE c_std_17)
+add_test(NAME Ssh.events_none COMMAND ssh_events_none_test)
+set_tests_properties(Ssh.events_none PROPERTIES TIMEOUT 30)
+
 # The real provider of the event port on the recording fake of the event contract. It compiles the adapter's
 # own source rather than linking crux_ssh_access, which would bring in the recording port of the tests above
-# as a second provider.
-if(TARGET crux_ssh_security_events AND TARGET crux_security_event_fake)
+# as a second provider. A build that deselects CRUX_BUILD_SECURITY_EVENT has neither target, and says so: that
+# is a supported configuration. One that selects it has both, so a missing target is an error and not a
+# smaller test run, as for the CLI suites in ../cli/CMakeLists.txt.
+if(NOT CRUX_BUILD_SECURITY_EVENT)
+    message(STATUS "Ssh.security_events needs CRUX_BUILD_SECURITY_EVENT, and does not run here")
+else()
+    foreach(needed IN ITEMS crux_ssh_security_events crux_security_event_fake)
+        if(NOT TARGET ${needed})
+            message(FATAL_ERROR "Ssh.security_events needs ${needed}, which this build does not have")
+        endif()
+    endforeach()
+
     add_executable(ssh_security_events_test security_events_test.c
         ../../../components/ssh/access/crux_ssh_access.c $<TARGET_OBJECTS:crux_ssh_security_events>)
     target_link_libraries(ssh_security_events_test PRIVATE crux_ssh_adapter crux_access_test_composition
@@ -41,10 +65,7 @@ if(TARGET crux_ssh_security_events AND TARGET crux_security_event_fake)
     target_compile_features(ssh_security_events_test PRIVATE c_std_17)
     add_test(NAME Ssh.security_events COMMAND ssh_security_events_test)
     set_tests_properties(Ssh.security_events PROPERTIES TIMEOUT 30)
-else()
-    message(WARNING "Ssh.security_events is not built: the security event component or its fake is missing")
 endif()
-
 
 add_test(NAME Ssh.ProviderTypes
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_provider_types.py

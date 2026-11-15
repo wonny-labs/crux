@@ -1,6 +1,6 @@
 # Portable File implementation plan
 
-> **For agentic workers:** Use the approved contract and TDD task-by-task. Root coordinates independent Reviewer and Challenger gates.
+> **Execution:** use the approved contract and test-driven development task by task, with independent Reviewer and Challenger gates.
 
 **Goal:** Implement Issue #23's approved software-only File capability.
 **Architecture:** Small shared validation/lifetime layer, private provider port,
