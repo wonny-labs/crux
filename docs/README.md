@@ -14,8 +14,9 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
    If the product targets a board that this repository has not worked with, read [Porting Crux to a new board](porting-to-a-new-board.md) next: the test ladder, what to review, a checklist and a first-board-run outline.
 4. [Build and Integration Guide](build.md): setup, builds and external applications.
 5. [Component readiness](component-readiness.md): per component, which environments and which evidence exist, and what is missing.
-6. If the product needs remote management over HTTPS, the command line or SFTP: [Secure management in a product](management-in-a-product.md), then the contracts it links.
-7. [Testing a consumer application](build.md#testing-a-consumer-application) and the [test guide](../tests/README.md).
+6. If the product needs remote management over HTTPS, the command line or SFTP: [Secure management in a product](management-in-a-product.md), then the contracts it links. To judge what is verified in that stack before a product relies on it, read the [secure management review guide](secure-management-review.md).
+7. If the product must start only signed images and take firmware updates: the [boot overview](boot-overview.md), then the [secure boot and update review](secure-boot-and-update-review.md). Nothing in the boot path has run on a board yet.
+8. [Testing a consumer application](build.md#testing-a-consumer-application) and the [test guide](../tests/README.md).
 
 ### A platform contributor
 
@@ -23,14 +24,16 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 2. [Architecture overview](architecture.md), [Composition interface rules](composition-interfaces.md) and [Coding and Public API Documentation Guidelines](coding-guidelines.md).
 3. The [decision records](decisions/README.md) for the platform-wide decisions in force, and the capability contract of the component you change (the `*-contract.md` pages listed under [Contracts and designs](#contracts-and-designs)).
 4. [Build and Integration Guide](build.md) and the [test guide](../tests/README.md) for the commands and the checks that apply.
-5. [AGENTS.md](../AGENTS.md) if an AI agent works on the change (see the [glossary](#concepts-glossary)).
+5. For secure boot, firmware update or the management services, the two board test procedures: [secure boot](secure-boot-board-test-procedure.md) and [secure management](secure-management-board-test-procedure.md). Neither has been run on a board, and neither approves a board operation.
+6. [AGENTS.md](../AGENTS.md) if an AI agent works on the change (see the [glossary](#concepts-glossary)).
 
 ### A reviewer or manager
 
 1. The [README](../README.md), especially its status and limits paragraph.
 2. The [decision records](decisions/README.md): what has been decided and by whom.
 3. [Component readiness](component-readiness.md): the state of each component, with the evidence level behind it.
-4. The [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [issues](https://github.com/wonny-labs/crux-pilot/issues) for delivery status. Documents in this repository describe contracts and recorded evidence, not the current schedule.
+4. The two review packages: the [secure boot and update review](secure-boot-and-update-review.md) (start with the [boot overview](boot-overview.md)) and the [secure management review guide](secure-management-review.md). Each says what exists, what was verified and by which means, and what is still open.
+5. The [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [issues](https://github.com/wonny-labs/crux-pilot/issues) for delivery status. Documents in this repository describe contracts and recorded evidence, not the current schedule.
 
 ## Who to ask
 
@@ -67,7 +70,7 @@ Everything else in `docs/` is maintained. The groups are:
 - **Orientation and guides:** [architecture](architecture.md), [choosing an API](choosing-an-api.md), [build and integration](build.md), [product composition](product-composition.md), [porting to a new board](porting-to-a-new-board.md), [component readiness](component-readiness.md), [composition interface rules](composition-interfaces.md), [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md).
 - **Decisions:** [decision records](decisions/README.md) and the [research notes](research/platform-direction-review.md) behind them.
 - **Contracts and designs:** see below.
-- **Investigations, feasibility reports and physical gates:** the boot pages (start with the [boot overview](boot-overview.md); then [boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
+- **Investigations, feasibility reports and physical gates:** the boot pages (start with the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md); then [boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, the [secure management review guide](secure-management-review.md), [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
 
 ## Contracts and designs
 
