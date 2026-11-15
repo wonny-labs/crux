@@ -211,6 +211,10 @@ is unchanged. It selects `NATIVE_SIM_REBOOT`, so a missed feed restarts the simu
   and the restart records SOFTWARE. A product's warning for a watchdog reset stays covered by its Host
   test with injected causes. Nothing models the hardware timer, WDOG1 resolution, debug pause, flag
   accumulation or power loss.
+- **From outside the repository.** `tests/consumer_system` is a product-shaped consumer that links only
+  `crux::system`, includes `<crux/system.h>` and `<crux/status.h>`, and is built from a copy outside the
+  repository by `scripts/test-consumer-system.sh`. Its [README](../tests/consumer_system/README.md) says how
+  to start from it in a product repository. It is a Zephyr check, run by `scripts/test-system.sh`.
 - **Not hardware evidence.** A pass says that a product calls System in the right order and handles the
   answers in simulated kernel time. It says nothing about the RT1060-EVKB, its watchdog, its reset or
   its reset-cause register, and no board result may cite it.

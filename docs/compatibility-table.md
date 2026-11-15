@@ -1,6 +1,6 @@
 # Compatibility table
 
-Status: **PROVISIONAL, a first shape**, for review in a Draft PR. Refs #301, the `v0.1.0` item. No Crux tag exists. This change creates no tag and no release, and the generator ran on no tagged revision. Nothing here is a compatibility promise.
+Status: **provisional, a first shape.** Tracked in issue #301, in its `v0.1.0` item. No Crux tag exists, and the generator has run on no tagged revision. Nothing here is a compatibility promise.
 
 The table tells a reader which revision of each pinned project a Crux revision was built against. The owner decided on 8 November 2026 that Crux's own release notes carry it, that it is generated from `west.yml` and that nobody writes it by hand. This document records the generator, what it reads and what it does not claim.
 
@@ -8,9 +8,9 @@ The table tells a reader which revision of each pinned project a Crux revision w
 
 | What | Where | State |
 | --- | --- | --- |
-| Generator | [`scripts/gen-compat-table.py`](../scripts/gen-compat-table.py) | New, provisional. Python standard library and PyYAML, which west installs |
-| Tests | `tests/build/test_compat_table.py` with [fixtures](../tests/build/fixtures/compat_table) | New. Found by the existing `python3 -m unittest discover -s tests/build` step. That step runs on the host CI job, which has no PyYAML, so the cases that parse a manifest skip there ([follow-ups](#follow-ups)) |
-| Release notes template, tag, release | | **Not in this change** |
+| Generator | [`scripts/gen-compat-table.py`](../scripts/gen-compat-table.py) | Provisional. Python standard library and PyYAML, which west installs |
+| Tests | `tests/build/test_compat_table.py` with [fixtures](../tests/build/fixtures/compat_table) | Found by the existing `python3 -m unittest discover -s tests/build` step. That step runs on the host CI job, which has no PyYAML, so the cases that parse a manifest skip there ([follow-ups](#follow-ups)) |
+| Release notes template, tag, release | | **Not done.** No release notes template uses the generator yet, and no tag or release exists |
 
 ```sh
 python3 scripts/gen-compat-table.py --label <label> [--manifest <west.yml>]
@@ -95,7 +95,7 @@ Generating before the tag exists is possible because the generator takes a manif
 
 ## No tag exists yet
 
-No Crux tag exists, and this change does not create one. `v0.1.0` is decided but is created only after #349 and #350 merge, and **creating it needs the owner's confirmation of the exact revision at that time**. Until then the table can be generated for `main` with a label such as `main@<short sha>`, for a review or a rehearsal. A table labelled that way is not release evidence.
+No Crux tag exists. `v0.1.0` is decided but not yet created, and **creating it needs the owner's confirmation of the exact revision at that time**. Until then the table can be generated for `main` with a label such as `main@<short sha>`, for a review or a rehearsal. A table labelled that way is not release evidence.
 
 ## Open questions
 
@@ -106,6 +106,6 @@ No Crux tag exists, and this change does not create one. `v0.1.0` is decided but
 
 ## Follow-ups
 
-- **CI.** The host CI job installs no PyYAML, so the manifest cases of `tests/build/test_compat_table.py` skip there, and the job that installs west runs only named suites. Running them needs a workflow change, which is outside this change: install PyYAML on the host job, or add this test to a job that has west. Until then the cases run only where PyYAML is installed.
+- **CI.** The host CI job installs no PyYAML, so the manifest cases of `tests/build/test_compat_table.py` skip there, and the job that installs west runs only named suites. Running them needs a workflow change, which has not been made: install PyYAML on the host job, or add this test to a job that has west. Until then the cases run only where PyYAML is installed.
 - **Release notes template.** The release documentation template in `templates/product` is a separate item of #301. It can call this generator.
 - **A fuller table.** A column for the compiler or SDK version, the CMake or Python tool pins and the Docker image is outside the owner's decision and is not in the generator.

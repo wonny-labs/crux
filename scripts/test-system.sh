@@ -17,6 +17,8 @@ CRUX_WORKSPACE="$workspace" CRUX_SYSTEM_COMPOSITION_TESTS=1 python3 "$repo/tests
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/system/zephyr" -T "$repo/tests/system_consumer/zephyr" \
     -O "$repo/build/zephyr/twister-system" --inline-logs --extra-args="ZEPHYR_MODULES=$repo")
+# ADR-0005 T3: the System consumer outside the repository, on native_sim (build and run, no hardware).
+CRUX_WORKSPACE="$workspace" "$repo/scripts/test-consumer-system.sh"
 mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
 modules+=("$repo")
 modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
@@ -41,6 +43,6 @@ cp "$build/zephyr/.config" "$evidence/selected.config"
 (cd "$build" && sha256sum zephyr/.config zephyr/zephyr.dts zephyr/zephyr.elf) > "$evidence/sha256.txt"
 (cd "$workspace" && west list zephyr cmsis cmsis_6 hal_nxp -f '{name} {revision} {path}') > "$evidence/modules.txt"
 (cd "$repo" && git ls-files --cached --others --exclude-standard \
-    components/system tests/system tests/system_consumer samples/controller/system \
-    zephyr cmake/CruxConsumerBoundary.cmake scripts/test-system.sh | sort -u | \
+    components/system tests/system tests/system_consumer tests/consumer_system samples/controller/system \
+    zephyr cmake/CruxConsumerBoundary.cmake scripts/test-system.sh scripts/test-consumer-system.sh | sort -u | \
     while IFS= read -r file; do sha256sum "$file"; done) > "$evidence/input-sha256.txt"
