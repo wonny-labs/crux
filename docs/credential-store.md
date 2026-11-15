@@ -240,7 +240,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 | `key_ensure` also makes a fallback to the older slot permanent, as the next save does, and with a corrupt newest slot it does so at boot with no save | **Not shown.** Found in the review of #235. |
 | The two-slot assumption depends on the medium: a card's mapping can disturb another sector | **Not shown.** A Host fake cannot. |
 | Creating a slot writes FAT sectors that can hold the other slot's chain | **Not shown.** A Host fake cannot. |
-| The pinned FatFs lacks a range check on its direct-write path that upstream labels `CVE-2026-6685`, and every save uses that path | **Not assessed.** It is for dependency review, which the [guide](dependency-review.md) defines. |
+| `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
 | No unauthenticated wipe (S4). The reference has no command for erase, and the Pilot recovers with a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
 

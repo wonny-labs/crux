@@ -1,5 +1,6 @@
 /* The host key's way from the credential store to the provider. See crux_ssh_access.h. */
 #include "crux_ssh_access.h"
+#include "crux_ssh_access_port.h"
 
 #include <crux_credential_adapter.h>
 
@@ -69,5 +70,12 @@ crux_status_t crux_ssh_host_key_load(crux_ssh_key_type_t type, crux_ssh_host_key
         status = CRUX_OK;
     }
     wipe(record, sizeof(record));
+    if (status != CRUX_OK) {
+        /* No key, so the server must not start. There is no connection behind this report. */
+        const crux_ssh_access_event_t event = {.type = CRUX_SSH_ACCESS_EVENT_HOST_KEY_MISSING,
+                                               .channel = CRUX_SSH_ACCESS_EVENT_CHANNEL};
+
+        crux_ssh_access_port_event(&event);
+    }
     return status;
 }
