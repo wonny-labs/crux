@@ -1,6 +1,6 @@
 # Networking Physical Fixture Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans inline with TDD and one independent whole-branch review. User has authorised execution of the preceding physical-test plan within software scope; no additional routine plan approval is required.
+> **Execution:** inline, with test-driven development and one independent whole-branch review. The project owner has authorised execution of the preceding physical-test plan within software scope; no additional routine plan approval is required.
 
 **Goal:** Prepare an identified RT1060 test-only composition and bounded capture/peer/oracle runner, without operating hardware.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** C17, Zephyr 4.4.0/SDK1.0.1, Python unittest, existing pinned tools.
 
-**Spec:** User-approved minimum physical plan in this chat: three fresh boots; ten healthy TCP/UDP pairs each; silent peers, TCP early close, real loss and explicit fresh-socket recovery; 2000ms functional operation budget; whole-call latency measured independently (proposed2500ms review threshold,not a contract guarantee); external10000ms per-call host liveness stop;15000ms link bound;5000ms cleanup; contexts/connections4,packet16/16,buffer32/32;4096-byte main/1024 minimum unused. Native observer uses2048bytes/512 minimum unused. All are short-test acceptance objectives, not worst-case guarantees. Final hardware input/action approval remains separate.
+**Spec:** Minimum physical plan approved by the project owner: three fresh boots; ten healthy TCP/UDP pairs each; silent peers, TCP early close, real loss and explicit fresh-socket recovery; 2000ms functional operation budget; whole-call latency measured independently (proposed2500ms review threshold,not a contract guarantee); external10000ms per-call host liveness stop;15000ms link bound;5000ms cleanup; contexts/connections4,packet16/16,buffer32/32;4096-byte main/1024 minimum unused. Native observer uses2048bytes/512 minimum unused. All are short-test acceptance objectives, not worst-case guarantees. Final hardware input/action approval remains separate.
 
 ## Global Constraints
 

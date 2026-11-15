@@ -1,7 +1,7 @@
 # Portable access control contract implementation plan
 
-> **For agentic workers:** executed natively by one agent, because every task shares `components/access/`
-> and its private state. A fresh `reviewer` agent checks the whole branch at the end.
+> **Execution:** carried out by one author, because every task shares `components/access/`
+> and its private state. An independent reviewer checks the whole branch at the end.
 
 **Goal:** Implement the accepted access control contract (Issue #177) for the Linux Host with fake
 providers, so that gate #183 can review it.
@@ -108,4 +108,4 @@ re-runs, then commits.
 ### Task 8: Documentation, verification and review
 
 - `docs/access-contract.md`, `tests/README.md`.
-- All checks in the Dev Container image, the `reviewer` agent, Draft PR, removal of build output.
+- All checks in the Dev Container image, the independent review, Draft PR, removal of build output.

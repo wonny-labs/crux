@@ -380,8 +380,7 @@ partitions can be used on RT1060, or that any M8 or M9 criterion is met.
 
 ## Review record
 
-**Round 1, 7 November 2026.** Two independent reviewers, both the repository's
-`reviewer` agent (model `claude-opus-5-5`, read-only tools, neither wrote the
+**Round 1, 7 November 2026.** Two independent reviewers (read-only, neither wrote the
 record), each took one scope: (1) the NOR options, ROM recovery, trust and
 evidence A and B, and (2) the eMMC section, evidence C and the record-wide
 label and boundary checks. They read the files and checked the cited sources
@@ -402,7 +401,7 @@ C-6, C-15, C-19, C-20, C-22 to C-26, C-29, C-31, C-32, C-40 to C-50 beyond label
 fit. These rows stay as the research agents recorded them.
 
 **Round 2, 7 November 2026: the single narrow re-check of the fix commits.** A
-third reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only tools,
+third reviewer (an independent reviewer, read-only,
 no part in round 1) checked the seven round 1 blocking findings and the fix
 diff. Verdict **ESCALATE** under AGENTS.md, because two blocking findings
 remained after the re-check. Five findings were resolved, and the new row B-84
@@ -420,8 +419,8 @@ plural "fix commits", and the label of the trust row that cites B-4.
 The two residual findings were fixed in `1985a66`.
 
 **Round 3, 7 November 2026, requested by the session that started this work.**
-A fourth reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only
-tools, no part in earlier rounds) checked `1985a66` only. Verdict
+A fourth reviewer (an independent reviewer, read-only,
+no part in earlier rounds) checked `1985a66` only. Verdict
 **ESCALATE**. The B-48 finding was resolved. The Summary fix wrongly grouped
 the LPSPI recovery device with the paths that need physical access. The manual
 and ROM table row 6 say the ROM tries it automatically once its fuses are set
@@ -429,7 +428,7 @@ and a memory is present. The Summary sentence was corrected, together with the
 B-48 antecedent and the C-16 summary of the RAUC power-loss text.
 
 **Round 4, 7 November 2026: the narrow re-check of `fa62f0c`.** A fifth
-reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only tools, no
+reviewer (an independent reviewer, read-only, no
 part in earlier rounds) checked `fa62f0c` only. Verdict **PASS**. The LPSPI
 finding was resolved against RM3 sections 9.10 and 9.11. Non-blocking
 observations, recorded on the PR and not fixed here: the D2 to D4 reading omits

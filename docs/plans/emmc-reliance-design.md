@@ -1,7 +1,7 @@
 # Transactional storage on eMMC: design
 
-Status: design approved by the owner for software-only development on 3 November 2026 (session), with the decisions under
-Intent; the decisions below were approved with it and on 4 November 2026 (session). The findings are source readings. Test
+Status: design approved by the owner for software-only development on 3 November 2026, with the decisions under
+Intent; the decisions below were approved with it and on 4 November 2026. The findings are source readings. Test
 results and their limits are recorded in `docs/evidence/emmc-reliance/` and in the pull requests of M14, and none of them is
 physical evidence. This document authorises no physical operation, merge or upstream contribution.
 
@@ -11,19 +11,19 @@ Baseline: main `a80acd7`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
 
 This document describes a target profile, not any particular product.
 
-**What the owner asked for (3 November 2026, session):** prepare Crux for eMMC with a Reliance file system, alongside
+**What the owner asked for (3 November 2026):** prepare Crux for eMMC with a Reliance file system, alongside
 today's FatFs on microSD, knowing that it may not get all the way. Review it, plan it, create a milestone and issues, and
 develop it. Board tests may come later, but the work should be verified by unit and integration tests, with `native_sim`,
 before the board.
 
-**Owner's answers (same session):**
+**Owner's answers (3 November 2026):**
 
 - The file system is Reliance Edge, not Reliance Nitro.
 - Develop and test against the public GPLv2 source. A product build uses the commercial kit.
 - The scope is the data file system. The boot path is out of scope.
 - The MCU is in the RT1060 series.
 
-**Owner's decisions on changes after `main` moved (4 November 2026, session, "추천안대로 해줘", accepting these three as recommended):**
+**Owner's decisions on changes after `main` moved (4 November 2026, accepting these three as recommended):**
 
 - The RT1060 link may compile the File additions (F18). This is an exception to the contract's condition that target work on
   them stays behind M7. It covers linking only, and nothing runs on a target.

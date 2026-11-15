@@ -1,6 +1,6 @@
 # Transactional storage on eMMC Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Implementation approach:** implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Run the unchanged `crux/file.h` and `crux/configuration.h` consumers on Reliance Edge on an eMMC disk, verified on `native_sim` and by an RT1060 link, before any board.
 
@@ -24,7 +24,7 @@
 - Where checks run: Zephyr commands run in a Linux container unless a step says otherwise. Local `native_sim` runs are 64-bit and at most 4 jobs wide. The Dev Container image has no 32-bit libraries, so the 32-bit runs, `scripts/test-storage-simulators.sh` as a whole, and the full Host checks run in CI on the Draft PR. Before a branch can be pushed, run the named 64-bit subset and record that the rest is pending.
 - Target alignment: this work's File selection sets `SDHC_BUFFER_ALIGNMENT` to 32 and keeps the D-cache check, as the RT1060 selections do (spec F17).
 - Physical programming, reset and power operations are out of this plan.
-- Style: `.clang-format` for owned C, `scripts/check-format.sh` before each commit, Conventional Commits, and this attribution on each commit: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Style: `.clang-format` for owned C, `scripts/check-format.sh` before each commit, Conventional Commits, and the repository's commit attribution trailer on each commit.
 
 **Delivery:** one branch and Draft PR per issue. `CONTRIBUTING.md` prefers a branch from the default branch; these are stacked on purpose, each on the previous issue's branch until that one merges, because each depends on the last, and each is rebased when its base merges. Merging needs the owner. Each PR records its protected paths, checks and independent review as `AGENTS.md` requires. The issue numbers below are the design's: 1 is #249, 2 is #250, 3 is #251, 4 is #252, 5 is #253, 6 is #254, 7 is #255, 8 is #256. Issue 9, #257, is a planning item with no task here, outside the milestone.
 
@@ -606,7 +606,7 @@ And in `run_replay.py`, `--fs reliance` asserts I1 to I5 and `read_error=0` on `
 - [ ] **Step 3: Run it**
 
 Run: `run_replay.py --fs reliance --seed 1 --samples 8 --max-seconds 300`
-Expected: exit 0, with every mandatory position tested, including each metaroot sector under `torn`. Record the results as a new record in `docs/evidence/emmc-reliance/replay-reliance/README.md`. If an invariant fails on `red-fix`, this is a finding about the model, the adapter or the file system: investigate with superpowers:systematic-debugging, and do not relax the check.
+Expected: exit 0, with every mandatory position tested, including each metaroot sector under `torn`. Record the results as a new record in `docs/evidence/emmc-reliance/replay-reliance/README.md`. If an invariant fails on `red-fix`, this is a finding about the model, the adapter or the file system: investigate systematically, and do not relax the check.
 
 - [ ] **Step 4: Verify the licence check, and commit**
 
@@ -800,4 +800,4 @@ git add docs/emmc-reliance-physical-gate.md docs/emmc-reliance-composition.md
 git commit -m "docs: write the eMMC and Reliance Edge physical gate"
 ```
 
-**Before each issue's PR:** run `scripts/check-format.sh`, `scripts/check-dependencies.sh` and `scripts/test-storage-emmc.sh` locally, and for issue 6 `scripts/test-file-emmc-compile.sh`. `scripts/check-host.sh`, `scripts/analyze-host.sh` and `scripts/test-storage-simulators.sh` run in CI on the Draft PR; issues 5 and 7 touch what that gate covers, so their review waits for that CI result where the branch can be pushed. Record results, skips, what is pending and the tested revision. Dispatch the `reviewer` agent with the inputs `CLAUDE.md` lists. Use superpowers:verification-before-completion before claiming an issue done.
+**Before each issue's PR:** run `scripts/check-format.sh`, `scripts/check-dependencies.sh` and `scripts/test-storage-emmc.sh` locally, and for issue 6 `scripts/test-file-emmc-compile.sh`. `scripts/check-host.sh`, `scripts/analyze-host.sh` and `scripts/test-storage-simulators.sh` run in CI on the Draft PR; issues 5 and 7 touch what that gate covers, so their review waits for that CI result where the branch can be pushed. Record results, skips, what is pending and the tested revision. Request an independent review with the inputs the repository's review rules list. Verify the acceptance criteria before claiming an issue done.

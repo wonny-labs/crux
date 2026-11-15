@@ -246,7 +246,7 @@ The root build does not call it yet, and Host CI has no west workspace. wolfPSA 
 
 ### Entropy failure
 
-**Adopted: a failed entropy read fails PSA, with no fallback to `sys_rand_get()`.** Owner decision of 6 November 2026, in the working session ("추천대로(fail-closed)"), on the independent review of #153, which raised it as O4. The route is a build-local copy of Zephyr's `modules/mbedtls/zephyr_entropy.c` with the one fallback flag changed, made by [`scripts/prepare-mbedtls-entropy.py`](../scripts/prepare-mbedtls-entropy.py) after it checks the original's SHA-256, and applied by [`cmake/CruxMbedtlsEntropy.cmake`](../cmake/CruxMbedtlsEntropy.cmake). See [the patch notes](../patches/zephyr/README.md#mbed-tls-entropy-without-a-fallback). The Zephyr checkout is not modified.
+**Adopted: a failed entropy read fails PSA, with no fallback to `sys_rand_get()`.** Owner decision of 6 November 2026, taken as recommended (fail-closed), on the independent review of #153, which raised it as O4. The route is a build-local copy of Zephyr's `modules/mbedtls/zephyr_entropy.c` with the one fallback flag changed, made by [`scripts/prepare-mbedtls-entropy.py`](../scripts/prepare-mbedtls-entropy.py) after it checks the original's SHA-256, and applied by [`cmake/CruxMbedtlsEntropy.cmake`](../cmake/CruxMbedtlsEntropy.cmake). See [the patch notes](../patches/zephyr/README.md#mbed-tls-entropy-without-a-fallback). The Zephyr checkout is not modified.
 
 | Option | Result |
 | --- | --- |

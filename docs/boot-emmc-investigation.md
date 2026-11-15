@@ -39,7 +39,7 @@ Rows from Linux, U-Boot and mmc-utils are Verified on source of those projects a
 standard requires. **The JEDEC eMMC standard could not be read.** The RT1060 reference manual was read only in a
 third-party-hosted copy of Rev. 3 (label "Verified by public vendor document", with the copy named). Statements that rest on
 the standard are expectations. Third-party and forum statements are hints and are not used as evidence. The evidence files say
-which rows the author re-read and which a research subagent read.
+which rows the author re-read and which were read through automated research tooling.
 
 ## Answers in brief
 
@@ -334,7 +334,7 @@ status changes.
 | Item | How it was done |
 | --- | --- |
 | Source access | `gh api` and `raw.githubusercontent.com` for the pinned revisions of Zephyr, MCUboot and `hal_nxp`, at both sets of pins. Nothing was cloned and no dependency checkout was touched. |
-| Documents | Public NXP and SPSDK pages. Four pages of the RT1060 Manufacturing Guide were read in full text by the author. **Chapter 9 of the RT1060 Reference Manual Rev. 3 was read by the author in a third-party-hosted copy, downloaded with the owner's approval on 7 November 2026, as locally extracted text (tables partly garbled).** Other documents were read through a summarising fetch or local text extraction by research subagents, and the evidence files say which. |
+| Documents | Public NXP and SPSDK pages. Four pages of the RT1060 Manufacturing Guide were read in full text by the author. **Chapter 9 of the RT1060 Reference Manual Rev. 3 was read by the author in a third-party-hosted copy, downloaded with the owner's approval on 7 November 2026, as locally extracted text (tables partly garbled).** Other documents were read through a summarising fetch or local text extraction by automated research tooling, and the evidence files say which. |
 | Linux, U-Boot, mmc-utils | Fetched at the revisions named in the evidence. The key rows were re-read by the author. |
 | Repository | `git show` and file reads at `3e0a5d7`. |
 | Builds, tools, hardware | None. |
