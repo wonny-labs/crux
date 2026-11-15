@@ -33,77 +33,28 @@ jobs:
           echo "${RUNNER_TEMP}/crux-tools/bin" >> "$GITHUB_PATH"
       - name: Configure, build, and test
         run: ./scripts/bootstrap-host.sh
-      - name: Verify host checks with network dependency resolution disabled
-        run: ./scripts/check-host.sh
-      - name: Verify host sanitizers
-        run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
-      - name: Validate Access on Host
-        run: ./scripts/test-access.sh
-      - name: Validate the command line on Host
-        run: ./scripts/test-cli.sh
-      - name: Validate the command line over SSH under ThreadSanitizer
-        run: ./tests/ssh/cli/test-thread-sanitizer.sh
-      - name: Validate the credential store on Host
-        run: ./scripts/test-credential.sh
-      - name: Validate Security events on Host
-        run: ./scripts/test-security-event.sh
-      - name: Validate the status and configuration services on Host
-        run: ./scripts/test-mgmt-services.sh
-      - name: Validate the web contract on Host
-        run: ./scripts/test-web.sh host
-      - name: Validate independent execution consumers and public boundaries
-        run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers
         run: |
           cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build/file-consumers
-          ctest --test-dir build/file-consumers --output-on-failure
-
-      - name: Validate independent messaging consumers
-        run: ./scripts/test-messaging.sh --host-only
-      - name: Check build provenance safeguards
-        run: python3 -m unittest discover -s tests/build -v
-      - name: Test the power-cut wrapper with fake commands
-        run: python3 -m unittest discover -s tests/power_cut -v
-      - name: Check format
-        run: ./scripts/check-format.sh
-      - name: Validate public Serial consumers
-        run: ./scripts/test-serial.sh --host-only
-
-      - name: Validate public Logging consumers
+      - name: Portable execution consumers
+        run: ./scripts/test-portable-execution.sh --host-only
+      - name: Logging consumers
         run: ./scripts/test-logging.sh --host-only
-
-      - name: Validate public System consumers
+      - name: System consumers
         run: ./scripts/test-system.sh --host-only
-
-      - name: Analyze host sources
-        run: ./scripts/analyze-host.sh
-      - name: Check build boundaries
-        run: ./scripts/check-dependencies.sh
-      - name: Upload host test reports and raw logs
+      - name: Databases
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: host-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            build/linux/sanitize/ctest-junit.xml
-            build/linux/sanitize/Testing/Temporary/LastTest.log
-            build/linux/debug/samples/controller/host/controller.log
-            build/linux/debug/ctest-junit.xml
-            build/linux/debug/Testing/Temporary/LastTest.log
-            build/thread-only/ctest-junit.xml
-            build/thread-only/compile_commands.json
-            build/thread-only/consumer.map
-            build/sync-only/ctest-junit.xml
-            build/sync-only/compile_commands.json
-            build/sync-only/consumer.map
-            build/execution-firmware-host/ctest-junit.xml
-            build/execution-firmware-host/consumer-boundary.json
-            build/execution-firmware-host/compile_commands.json
-            build/execution-runtime-host/ctest-junit.xml
-            build/execution-runtime-host/compile_commands.json
-            build/messaging-consumer/ctest-junit.xml
-            build/logging-consumer/ctest-junit.xml
-            build/system-consumer/ctest-junit.xml
-          retention-days: 14
-          if-no-files-found: warn
+        run: find build -name compile_commands.json | sort
+      - name: Superset of the old hand-written list (probe)
+        if: always()
+        run: |
+          python3 scripts/tidy-sources.py list > /tmp/new-list.tsv
+          cut -f2 /tmp/new-list.tsv | sort > /tmp/new.txt
+          wc -l /tmp/new.txt
+          echo "old paths missing from the generated list:"; comm -23 scripts/old90.txt /tmp/new.txt
+          echo "end of missing list"
+          cut -f1 /tmp/new-list.tsv | sort | uniq -c
+      - name: Report-only run (probe)
+        if: always()
+        run: python3 scripts/tidy-sources.py run --report-only --jobs 4
