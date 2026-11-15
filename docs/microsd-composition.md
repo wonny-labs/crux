@@ -181,7 +181,7 @@ uSDHC1 ownership has only the document and photo check below (no measurement); a
 
 Source: [comment on issue #14](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6609663276), posted 2026-11-03 16:33 UTC, after the physical runs above
 (which is why the accepted evidence README of those runs says no schematic was available then). The comment was
-recorded by a Claude session from the owner's GitHub account. It reads the board label as `SCH-47858 REV B1`, so the
+posted from the project owner's GitHub account. It reads the board label as `SCH-47858 REV B1`, so the
 schematic SPF-47858 Rev B1 applies. On it, the SD slot reaches `GPIO_SD_B0_00` to `B0_05` (uSDHC1 CMD, CLK, DAT0-3, on
 `NVCC_SD`) through populated 0 ohm resistors (R364, R366, R351, R348, R377, R369), and the M.2 `WIFI_SDIO_*` nets
 reach the same pads only through six resistors (R368, R376, R347, R349, R365, R363) that the B1 BOM marks DNP. A photo

@@ -1,10 +1,10 @@
 # External application build implementation plan
 
-**Goal:** Execute the user-approved Goal 02 from the attached specification: source-tree
+**Goal:** Execute the project-owner-approved Goal 02, as specified: source-tree
 `add_subdirectory()` consumption, explicit component/native composition, parent isolation,
 representative external execution, preserved Host/Zephyr boundaries and a reviewed Draft PR.
 
-**Spec:** User attachment `f8291b4c-4124-494d-8d2b-3acf6f79e219/pasted-text-1.txt`.
+**Spec:** the Goal 02 specification, supplied by the project owner as a text file.
 **Baseline:** `98f05104ad2bc915e4da93ab9e8732e850c140c5`.
 
 ## Constraints and baseline

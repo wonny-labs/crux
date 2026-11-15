@@ -2,7 +2,7 @@
 
 Status: historical record. Implementation plan for Issue #28 (sockets and network interface) in the M5 milestone of Issues #25–#30, not the Time Pilot M5; merged in PR #38 and kept as a record. Issue #28 itself is still open. The approved design is in [the networking proposal](m5-networking-proposal.md).
 
-> Execute inline with superpowers:executing-plans and TDD; independent whole-branch review before Draft PR.
+> Execute inline with test-driven development; independent whole-branch review before Draft PR.
 
 Goal: qualify the approved IPv4 TCP client/connected UDP standard profile and
 read-only primary-interface observation for independent firmware/runtime consumers.
@@ -12,8 +12,8 @@ its public snapshot and selects private Host/Zephyr observation providers. Porta
 sample logic implements bounded framing and deadlines, without a socket wrapper.
 
 Tech stack: existing C17/C++17, CMake, GoogleTest, Python unittest, Zephyr 4.4.0.
-Spec: [approved proposal](m5-networking-proposal.md), qualified by the user's six
-approval conditions in this chat on 22 October 2026.
+Spec: [approved proposal](m5-networking-proposal.md), qualified by the project owner's six
+approval conditions of 22 October 2026.
 
 ## Constraints and review focus
 
@@ -93,9 +93,9 @@ M5/physical completion.
 
 ## Execution ledger
 
-22 October 2026: user approved the bounded architecture and authorised routine
-implementation without another plan approval. Execute inline; delegate only the
-required independent final review. Existing worktree is isolated and clean at
+22 October 2026: the project owner approved the bounded architecture and authorised routine
+implementation without another plan approval. Execute inline; only the
+required independent final review is done separately. Existing worktree is isolated and clean at
 039932d. Baseline 42 Host tests and header spikes already passed; do not relabel
 them as full profile evidence. Any material deviation returns to human review.
 

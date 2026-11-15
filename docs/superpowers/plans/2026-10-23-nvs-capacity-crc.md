@@ -1,6 +1,6 @@
 # Candidate NVS capacity, CRC and remount verification plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan inline. Steps use checkbox (`- [x]`) syntax for tracking.
+> **Execution:** implement this plan inline. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Measure the approved candidate 64 KiB BOOL/U32 workload through actual Settings/NVS and verify CRC/full-read and fresh-backend remount behavior.
 
@@ -17,7 +17,7 @@
 - CRC off/on are independent freshly initialized simulator profiles, not migration approval.
 - NVS lookup cache 256 entries; Settings name cache off; bad-region reinitialization off.
 - Reuse existing tooling and owned read-only-mounted container. Final independent Reviewer/Challenger required.
-- Inline authoring is the existing execution method; no per-task implementer agents.
+- Inline authoring is the existing execution method; no separate implementer per task.
 
 ## Review focus
 

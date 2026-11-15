@@ -422,4 +422,4 @@ None are made here.
 - Search first: the PSA Firmware Update API is the one existing bootloader-neutral interface found. It is not adopted (see above). No package, tool or wrapper was installed.
 - Decision format: the table above follows the repository's decision tables, with the alternatives in [Options compared](#options-compared). No file was written under `docs/adr/`.
 - Upstream sources were fetched into a scratchpad outside the repository and read there. None is copied.
-- Independent review (the `reviewer` agent, Opus): first round REVISE with four blocking findings (an erased staged image and the power-cut outcome, the mcumgr confirm and upload paths, and a wrong reading of owner decision 13), fixed in this revision. The re-check and the CI results are recorded in the pull request.
+- Independent review (by the independent reviewer): first round REVISE with four blocking findings (an erased staged image and the power-cut outcome, the mcumgr confirm and upload paths, and a wrong reading of owner decision 13), fixed in this revision. The re-check and the CI results are recorded in the pull request.
