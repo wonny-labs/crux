@@ -38,7 +38,6 @@ python="${CRUX_PYTHON:-python3}"
 board='mimxrt1170_evk@A//cm7'
 files="$repo/zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A"
 app="${CRUX_BOOT_RT1170_APP:-$repo/samples/controller/zephyr}"
-image="$(basename "$app")"
 build="$repo/build/zephyr/boot-composition-rt1170"
 mcuboot="$workspace/bootloader/mcuboot"
 public_key="$mcuboot/root-ec-p256.pem"
@@ -53,6 +52,10 @@ if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     exit 2
 fi
 [[ -d "$app" ]] || fail "the application directory does not exist: $app"
+# West runs from the workspace, so a relative path is made absolute here, which also keeps a
+# value such as "." from becoming the image name.
+app="$(cd "$app" && pwd)"
+image="$(basename "$app")"
 for name in mcuboot.conf mcuboot.overlay app.conf app.overlay; do
     [[ -f "$files/$name" ]] || fail "$files/$name is missing"
 done

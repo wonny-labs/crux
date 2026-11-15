@@ -5,7 +5,7 @@
 > **Not verified:** Everything else. No build was run, no CI step exists, and nothing was booted. That the application builds for this board under sysbuild, and every RT1170 boot ROM, XMCD, OTFAD, HAB and fuse behaviour, are open.
 > **Read this first / then:** the [boot overview](boot-overview.md), then the [boot composition](boot-composition.md) page of the RT1060-EVK Rev B, which is the recipe this page copies.
 
-This page is the RT1170-EVK counterpart of [boot composition](boot-composition.md) (work package WP1a of [issue #296](https://github.com/wonny-labs/crux-pilot/issues/296), RT1170 build-only evidence of M8). It does not change that page or the RT1060-EVK files. Statements carry the same labels as there: **Verified by build**, **Verified on source**, **Inference** and **Not verified**. No statement about the RT1170 on this page is Verified by build.
+This page is the RT1170-EVK counterpart of [boot composition](boot-composition.md) (work package WP1a of [issue #296](https://github.com/wonny-labs/crux-pilot/issues/296), RT1170 build-only evidence of M8). It does not change that page or the RT1060-EVK files. Statements carry the labels **Verified by build**, **Verified on source** (read in the named Zephyr source tree, as in the boot and update investigation), **Inference** and **Not verified**. No statement about the RT1170 on this page is Verified by build.
 
 ## The argument set
 
@@ -35,9 +35,9 @@ The values are the RT1060-EVK values mapped to the RT1170 memory map, as propose
 | Executable window | `0x80000000`, size `67108864` (the whole 64 MiB SDRAM) | The RT1060 mechanism, which uses the whole 32 MiB. **Verified on source (v4.4.0):** `sdram0` is 64 MiB at `0x80000000` and is the board's default RAM. |
 | MCUboot's own RAM | `ocram2` (`0x202c0000`, 512 KiB), trimmed by the retained region | MCUboot must not use the SDRAM for its own RAM, because it loads the image there. **Verified on source (v4.4.0):** `nxp_rt1170.dtsi` defines `ocram2` with these values. |
 | Retained region | 256 B (`0x100`) at `0x2033ff00`, the end of `ocram2`, declared identically in both overlays | Same size and role as the RT1060 region at `0x2027ff00`. The trimmed `ocram2` is `0x202c0000` size `0x7ff00`, which ends where the region begins. |
-| Slots | The upstream partitions, unchanged (7 MiB each) | **Verified on source (v4.4.0)** for the sizes. A padded image is the full 7 MiB slot. |
+| Slots | The upstream partitions, unchanged (7 MiB each) | **Verified on source (v4.4.0)** for the sizes. **Inference**, inherited from the RT1060 work: a padded image is the full 7 MiB slot. |
 
-Where the files differ from the RT1060 files only by these values, the construct is the RT1060 one. The overlays say in a comment that two points are unverified: that overriding `ocram2` by `reg` is accepted at v4.4.2, and that `0x2033ff00` is free of any other use in the application.
+Where the files differ from the RT1060 files only by these values, the construct is the RT1060 one. The overlays say in a comment that two points are **Not verified**: that overriding `ocram2` by `reg` is accepted at v4.4.2, and that `0x2033ff00` is free of any other use in the application.
 
 ## Open points
 

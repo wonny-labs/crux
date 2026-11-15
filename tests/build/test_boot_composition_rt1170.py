@@ -45,6 +45,19 @@ class ArithmeticTest(unittest.TestCase):
         self.assertEqual(0x7FF00, TRIMMED_OCRAM2_SIZE)
         self.assertEqual(67108864, SDRAM_SIZE)
 
+    def test_the_numbers_in_the_files_agree_with_the_arithmetic(self):
+        # Read from the files, so that a change to one of them can fail this test.
+        text = read(BOARD_DIR / "mcuboot.overlay")
+        retained = re.search(r"sram@([0-9a-f]+) \{[^}]*?reg = <(0x[0-9a-f]+) (0x[0-9a-f]+)>;", text)
+        self.assertIsNotNone(retained)
+        node, start, size = (int(v, 16) for v in retained.groups())
+        self.assertEqual(node, start)
+        trimmed = re.search(r"&ocram2\s*\{\s*reg = <(0x[0-9a-f]+) (0x[0-9a-f]+)>;", text)
+        self.assertIsNotNone(trimmed)
+        ocram2_start, ocram2_size = (int(v, 16) for v in trimmed.groups())
+        self.assertEqual(start, ocram2_start + ocram2_size)
+        self.assertEqual(OCRAM2_SIZE, ocram2_size + size)
+
 
 class BoardFilesTest(unittest.TestCase):
     def test_the_four_files_exist(self):
@@ -111,7 +124,13 @@ class BoardFilesTest(unittest.TestCase):
 
     def test_the_retained_region_lies_outside_the_load_window(self):
         # The image is loaded into the SDRAM, and the retained region must survive the load.
-        self.assertFalse(SDRAM_START <= RETAINED_START < SDRAM_START + SDRAM_SIZE)
+        # Both ends come from the files.
+        conf = dict(l.split("=", 1) for l in read(BOARD_DIR / "mcuboot.conf").splitlines() if l.startswith("CONFIG_"))
+        window_start = int(conf["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START"], 0)
+        window_end = window_start + int(conf["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)
+        for name in ("mcuboot.overlay", "app.overlay"):
+            start, size = next(c for c in reg_cells(read(BOARD_DIR / name)) if c[1] == RETAINED_SIZE and c[0])
+            self.assertTrue(start + size <= window_start or start >= window_end, name)
 
     def test_no_key_or_certificate_file_is_stored_under_zephyr_boot(self):
         suffixes = {".pem", ".key", ".der", ".crt", ".p12", ".pfx"}
@@ -123,6 +142,28 @@ class BoardFilesTest(unittest.TestCase):
 
 
 class PageTest(unittest.TestCase):
+    def test_the_labels_are_the_ones_the_page_defines(self):
+        text = read(PAGE)
+        self.assertIn(
+            "Statements carry the labels **Verified by build**, **Verified on source** "
+            "(read in the named Zephyr source tree, as in the boot and update investigation), "
+            "**Inference** and **Not verified**.",
+            text,
+        )
+        self.assertNotIn("same labels as there", text)
+        self.assertNotIn("Verified by command", text)
+        # Only the defined labels, in the page and in the file headers.
+        defined = ("Verified by build", "Verified on source", "Verified:")
+        for path in [PAGE] + [BOARD_DIR / n for n in FILES]:
+            body = read(path)
+            for label in re.findall(r"Verified\s+(?:by|on)\s+\w+|Unverified", body):
+                self.assertTrue(label.startswith(defined[:2]), f"{path.name}: {label}")
+
+    def test_the_padded_slot_clause_has_its_own_label(self):
+        row = next(l for l in read(PAGE).splitlines() if l.startswith("| Slots"))
+        self.assertIn("**Inference**", row)
+        self.assertIn("padded image", row)
+
     def test_the_page_exists_and_is_marked_proposed(self):
         text = read(PAGE)
         self.assertIn("> **Status:**", text)
@@ -194,6 +235,15 @@ class BuildCheckTest(unittest.TestCase):
         # Open point D2: the controller sample has no RT1170 board configuration.
         self.assertIn("CRUX_BOOT_RT1170_APP:-$repo/samples/controller/zephyr", self.code)
         self.assertIn("CRUX_BOOT_RT1170_APP", self.script.split("set -euo pipefail")[0])
+
+    def test_a_relative_application_directory_is_made_absolute_after_the_existence_check(self):
+        # `west build` runs after `cd "$workspace"`, and a value of `.` would name the image `.`.
+        lines = self.code.splitlines()
+        exists = next(i for i, l in enumerate(lines) if '[[ -d "$app" ]]' in l)
+        absolute = next(i for i, l in enumerate(lines) if 'app="$(cd "$app" && pwd)"' in l)
+        named = next(i for i, l in enumerate(lines) if 'image="$(basename "$app")"' in l)
+        self.assertLess(exists, absolute)
+        self.assertLess(absolute, named)
 
     def test_the_script_is_linux_only(self):
         self.assertIn('uname -s', self.code)
