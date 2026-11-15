@@ -33,14 +33,16 @@ the reason `needs the mock control`, as that document says.
 
 ## The full resolved `.config`
 
-`mbed-https-image-full.config` is the complete `zephyr/.config` of the Mbed-profile HTTPS image (627 symbols, SHA-256
+`mbed-https-image-full.config` is the complete `zephyr/.config` of the Mbed-profile HTTPS image (627 set symbols among 1425 `CONFIG_` entries, SHA-256
 `536c57ef0b7134fb6d8be69450915d06f659ec42517f605a54bd28bde10e5d1f`). The Preact and Angular images resolved to the same file
 (`cmp` shows no difference). The symbols of the review's section 3.2, as read:
 
 | Symbol | In the full `.config` | The review's reading |
 | --- | --- | --- |
 | `MBEDTLS_SSL_SESSION_TICKETS` | not set | no session tickets: **confirmed** |
-| `MBEDTLS_KEY_EXCHANGE_PSK_ENABLED` | not set. No ECDHE-PSK or J-PAKE symbol is present, and `PSA_WANT_ALG_JPAKE`, `PSA_WANT_ALG_TLS12_PSK_TO_MS` and `PSA_WANT_ALG_TLS12_ECJPAKE_TO_PMS` are not set | no PSK, no J-PAKE: **confirmed** |
+| `MBEDTLS_KEY_EXCHANGE_PSK_ENABLED`, `..._ECDHE_PSK_ENABLED` | both not set (config lines 302 and 303). The ECDHE-PSK and EC J-PAKE cipher suites are not set either (for example `MBEDTLS_CIPHERSUITE_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384` at line 390 and `MBEDTLS_CIPHERSUITE_ECJPAKE_WITH_AES_128_CCM_8` at line 393), and `PSA_WANT_ALG_JPAKE` (line 202) and `PSA_WANT_ALG_TLS12_ECJPAKE_TO_PMS` (line 229) are not set. `MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED` is absent from the file: it is a Kconfig symbol that `depends on PSA_WANT_ALG_JPAKE`, which is off (read in a Zephyr v4.4.0 checkout at the lines the review cites, not re-read at v4.4.2) | no PSK, no J-PAKE: **confirmed** |
+| `MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED`, `..._PSK_EPHEMERAL_ENABLED` | both not set (lines 308 and 310). Only `..._EPHEMERAL_ENABLED` is `y` (line 309) | the TLS 1.3 key exchange is ephemeral only: **confirmed** |
+| `MBEDTLS_SSL_EXTENDED_MASTER_SECRET` | not set (line 318) | no extended master secret: **confirmed** |
 | `MBEDTLS_SSL_PROTO_DTLS` | not set | no DTLS: **confirmed** |
 | `MBEDTLS_SSL_PROTO_TLS1_2`, `..._TLS1_3` | both `y` | the profile compiles both: **confirmed** (the listener refuses TLS 1.2 by its own setting, see `docs/e2e-native-220.md`) |
 | `MBEDTLS_ECP_NIST_OPTIM` | not set | row 16 does not apply at this Zephyr tag: **confirmed** |
@@ -48,7 +50,7 @@ the reason `needs the mock control`, as that document says.
 | `PSA_WANT_ALG_CHACHA20_POLY1305`, `PSA_WANT_KEY_TYPE_CHACHA20` | not set | no ChaCha20: **confirmed** |
 | `PSA_WANT_ALG_RSA_*` (OAEP, PKCS1V15 crypt and sign, PSS), `PSA_WANT_KEY_TYPE_RSA_*` | all not set | no RSA: **confirmed** |
 | `PSA_WANT_ECC_MONTGOMERY_255`, `..._448` | not set | no X25519 or X448, so row 17 (Everest) has nothing to act on: **confirmed** |
-| `MBEDTLS_PKCS7_C`, `MBEDTLS_RSA_C`, `MBEDTLS_PK_C`, `MBEDTLS_KEY_EXCHANGE_JPAKE_ENABLED` | not Kconfig symbols here (absent from the file). They are C macros that `config-mbedtls.h` derives. Read against the PSA symbols above, RSA and J-PAKE have no `PSA_WANT` symbol set | consistent with the review: PKCS #7 does not appear in `config-mbedtls.h` (section 3.2) |
+| `MBEDTLS_PKCS7_C`, `MBEDTLS_RSA_C`, `MBEDTLS_PK_C` | not Kconfig symbols (absent from the file), and the file cannot show them. `MBEDTLS_PK_C` is derived in `config-tf-psa-crypto.h` from `MBEDTLS_PK_PARSE_C`, and `CONFIG_MBEDTLS_PK_PARSE_C=y` (line 367), so it is **on**. `MBEDTLS_PKCS7_C` is never defined (review section 3.2). `MBEDTLS_RSA_C` is not defined by Zephyr's headers as read in the v4.4.0 checkout. The preprocessed headers of the built image were not kept. RSA has no `PSA_WANT` symbol set | consistent with the review: no PKCS #7, no RSA. `PK_C` on is the parsing the TLS 1.3 certificate path uses, and changes no verdict |
 | `PSA_WANT_ALG_ECDH`, `PSA_WANT_ECC_SECP_R1_256` | both `y` | **A fact the review did not state.** ECDH on P-256 is on, which the TLS 1.3 ephemeral key exchange needs. No advisory verdict of section 4 relied on ECDH being off: row 17 needs a Montgomery curve, which is off |
 | `MBEDTLS_X509_CRT_PARSE_C` | `y` | selected by the ephemeral TLS 1.3 mode, as the review reads |
 
@@ -59,7 +61,8 @@ was not kept).
 ## What was not run, and how this differs from the recorded script
 
 - **Not run:** `e2e-wolf`, any wolf profile, any RT1060-EVKB build or board run, the Twister tests and the other `native-composition`
-  modes. CI ran the `mbed` mode and the PSA qualification on the same pins (see the PR).
+  modes. The `psa-crypto` workflow of the PR runs the `mbed` mode and the PSA qualification on the same pins: its result is in the PR's checks, not here.
+- **`run.log` is an excerpt:** the script prints only a few lines of each browser run (the full per-case output is in the three `e2e-*-browser.log` files). The module revisions in the table above come from `west.yml` at `250205e8` and the `west update`, and `west list` output was not kept.
 - **The script was not edited.** It deletes each build directory and keeps no `.config`. A shell function that copies
   `zephyr/.config` out before the `rm` ran, loaded through `BASH_ENV` for this run only, kept the files. The copy is the
   resolved `.config` of the images the script built and tested.

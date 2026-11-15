@@ -4,7 +4,7 @@ Status: **review record, the first use of the [dependency review guide](dependen
 
 This record is documentation only. It moves no pin, edits no `west.yml`, `cmake/CruxPsaCrypto.cmake` or `scripts/test-psa-crypto.sh`, and approves nothing. The owner approves the pin move itself, and the protected change to `scripts/test-psa-crypto.sh` needs its own approval (see [the plan](#plan-for-the-pin-move-evidence)).
 
-**Labels.** **Verified** means I read it at the baseline revision and cite `path:line`, or I read it from an upstream repository with `gh api` or `curl` on 14 November 2026 and cite the URL. **Inference** is my reading. **Not verified** means no run or read exists. No build, `west` command, `native_sim` run or test ran: the Crux configuration is read from files, not from a resolved `.config` (see [what could not be established](#what-could-not-be-established)).
+**Labels.** **Verified** means I read it at the baseline revision and cite `path:line`, or I read it from an upstream repository with `gh api` or `curl` on 14 November 2026 and cite the URL. **Inference** is my reading. **Not verified** means no run or read exists. No build, `west` command, `native_sim` run or test ran for this review on 14 November (step 7 ran later, see section 6): the Crux configuration is read from files, not from a resolved `.config` (see [what could not be established](#what-could-not-be-established)).
 
 ## Result
 
@@ -12,7 +12,7 @@ This record is documentation only. It moves no pin, edits no `west.yml`, `cmake/
 - **The fixes are in Zephyr's `v4.4-branch` revisions.** For every advisory that lists fix commits on the 4.1.x or 1.1.x branch, every listed commit is an ancestor of `098e120a` (`mbedtls`) and `fa923495` (`tf-psa-crypto`). No fix commit is an ancestor of the current pins; the one hash that they hold is an excluded range start, the v4.1.0 tag commit (section 5). Ancestry shows the commit is present, not that the fix works in Crux's build.
 - **Most advisories are not reached because of what the Mbed profile leaves off:** TLS 1.3 only on the listener, no session tickets, no PSK or J-PAKE, no DTLS, no peer certificate verification, no PKCS #7, no RSA, no ChaCha20.
 - **That holds only as long as the configuration stays as it is.** Section 4 lists the changes that would make the "not applicable" verdicts false.
-- **Not established at the time of writing (14 November):** a resolved `.config` of the HTTPS image, and whether the module revisions work with Zephyr v4.4.2's glue (I did not check whether Zephyr tested that pair: **Not verified**). Both were closed on 15 November by the recorded build of step 7, see section 6: the full `.config` matches this review's reading, and the pair builds and runs on `native_sim` with Zephyr v4.4.2.
+- **Not established at the time of writing (14 November):** a resolved `.config` of the HTTPS image, and whether the module revisions work with Zephyr v4.4.2's glue (I did not check whether Zephyr tested that pair: **Not verified**). The first was closed on 15 November by the recorded build of step 7, see section 6: the full `.config` matches this review's reading. The second is closed for one configuration only: the Mbed HTTPS image builds and runs on `native_sim` with Zephyr v4.4.2's glue. The glue question of section 5 (the shim in `drivers/crypto/crypto_mbedtls_shim.c`, OpenThread, and RT1060) is not covered.
 
 ## 1. Subject
 
@@ -152,13 +152,13 @@ For each advisory that lists fix commits for the 4.1.x or 1.1.x branch, the tabl
 - Whether the module CMake defines `MBEDTLS_ECDH_VARIANT_EVEREST_ENABLED` (row 17).
 - Whether a product's own code uses a TLS client, PKCS #7, RSA or ChaCha20 (rows 4, 6, 7, 8, 12, 14, 15). This review covers `components/` and the Mbed profile files.
 - The 11 March 2026 advisories (section 1).
-- Whether the candidate revisions work with Zephyr v4.4.2's glue (section 5), and whether Zephyr's CI tested that pair (Not verified).
+- Whether the candidate revisions work with Zephyr v4.4.2's glue (section 5), and whether Zephyr's CI tested that pair (Not verified). **Partly resolved on 15 November 2026:** the recorded build of step 7 shows that the Mbed HTTPS image builds and runs on `native_sim` with v4.4.2's glue. It does not exercise `drivers/crypto/crypto_mbedtls_shim.c`, OpenThread or an RT1060 build.
 - The completeness of each upstream fix and every commit inside a range (section 5).
 - Whether the upstream advisories are complete: I read the 7 July set that the two releases list.
 
 ## Plan for the pin move evidence
 
-This is a plan only. Nothing here was run, and the move is not approved. It implements item 4 of [ADR-0006 option B](decisions/0006-cryptographic-dependency-policy.md#3-policy-options). The evidence runs in CI because local runs are not planned: disk space is at about 12 GB and Docker is in use for other work.
+This is a plan only. Nothing here was run, and the move is not approved. It implements item 4 of [ADR-0006 option B](decisions/0006-cryptographic-dependency-policy.md#3-policy-options). The evidence runs in CI because local runs were not planned: disk space was at about 12 GB and Docker was in use for other work. **Added 15 November 2026:** step 7 then ran locally in Docker, once, with the owner's decision to run it before the merge, and its record is in [`docs/evidence/mbedtls-pin-move-416/`](evidence/mbedtls-pin-move-416/README.md).
 
 | Step | What | Where | Pass means |
 | --- | --- | --- | --- |
@@ -168,7 +168,7 @@ This is a plan only. Nothing here was run, and the move is not approved. It impl
 | 4 | Host and `native_sim` PSA conformance on TF-PSA-Crypto | `psa-crypto.yml:64-70` (`host`, `zephyr` with the entropy declaration) | the summary line `N cases, 0 failed, X declared unsupported, Y declared deviations` equals the recorded counts, or each difference is explained (a gap that closes or opens is a finding) |
 | 5 | The Mbed-profile composition on `native_sim`: the TLS socket probe, the management composition, the web adapter over HTTPS and the login and session suite | `psa-crypto.yml:84-98` (`test-tls-offload-probe.sh mbed`, `test-native-composition.sh mbed`, `test-web.sh https mbedtls`, `test-web-session.sh native`) | all steps pass, and `docs/https-composition.md`'s declared cases (TLS 1.3 only, the one suite) still hold |
 | 6 | RT1060 compile of the conformance application, the web adapter and the PSA ports, without running them | `psa-crypto.yml:72-78`, `:100-102` | compiles and links |
-| 7 | Read the **full** resolved `.config` of the HTTPS image on the Mbed profile, for the symbols of section 3.2: `MBEDTLS_SSL_SESSION_TICKETS`, the PSK and J-PAKE key exchanges, `MBEDTLS_SSL_PROTO_DTLS`, `MBEDTLS_ECP_NIST_OPTIM`, `MBEDTLS_CIPHER_ALL_ENABLED` and the PSA symbols for RSA, ChaCha20 and X25519 | **Today's CI artefacts do not hold these symbols.** The uploaded `config.txt` files are filtered: `scripts/test-tls-offload-probe.sh:69-70`, `scripts/test-native-composition.sh:128-130` (which then removes the build directory) and `scripts/test-psa-crypto.sh:400-401` keep a short list that has `MBEDTLS_SSL_PROTO_*` and none of the others. Reading them needs one of: a change to a check script or the workflow (protected paths, a separate approval), or a separately recorded build of the HTTPS image whose `.config` is kept | each symbol is unset in the **full** `.config`. A symbol missing from a filtered file proves nothing and is not a pass  **Done on 15 November 2026**, see section 6 |
+| 7 | Read the **full** resolved `.config` of the HTTPS image on the Mbed profile, for the symbols of section 3.2: `MBEDTLS_SSL_SESSION_TICKETS`, the PSK and J-PAKE key exchanges, `MBEDTLS_SSL_PROTO_DTLS`, `MBEDTLS_ECP_NIST_OPTIM`, `MBEDTLS_CIPHER_ALL_ENABLED` and the PSA symbols for RSA, ChaCha20 and X25519 | **Today's CI artefacts do not hold these symbols.** The uploaded `config.txt` files are filtered: `scripts/test-tls-offload-probe.sh:69-70`, `scripts/test-native-composition.sh:128-130` (which then removes the build directory) and `scripts/test-psa-crypto.sh:400-401` keep a short list that has `MBEDTLS_SSL_PROTO_*` and none of the others. Reading them needs one of: a change to a check script or the workflow (protected paths, a separate approval), or a separately recorded build of the HTTPS image whose `.config` is kept | each symbol is unset in the **full** `.config`. A symbol missing from a filtered file proves nothing and is not a pass. **Done on 15 November 2026**, see section 6 |
 | 8 | Update every place that names the two commits: `tests/target/bench_image.py:44-45`, `docs/rt1060-bench-image-plan.md:197-198`, `docs/upstream-reuse.md:41-42`, and run the Host tests that read the bench image's pins (`tests/build/test_bench_image_profile.py`, `tests/build/test_bench_profile_wiring.py` and the other tests under `tests/build` that import `tests/target/bench_image.py`). `docs/psa-crypto-qualification.md:20-21` and `docs/rt1060-management-image-feasibility.md:493` keep the old pins as history | PR author | a `grep` of the maintained tree for the old commits finds only history, and those Host tests pass |
 | 9 | Optional: a Host test under `tests/` (not protected), written test-first, that confirms `tls_x509_parse` rejects an empty or short EC point, which the source reading of row 18 already shows | PR author | the case passes. It confirms a result and settles no open point |
 | 10 | Independent review by the `reviewer` agent, the owner's approval of the move, and the release notes line | PR | PASS, approval quoted with time and place |
@@ -177,7 +177,7 @@ This is a plan only. Nothing here was run, and the move is not approved. It impl
 
 ## What was run
 
-On native macOS, in the worktree at `8b48e331`: `git fetch`, reads of the files cited above, `grep`, `gh api` and `curl` against public GitHub URLs (releases, tags, contents, compare and the advisory files), all on 14 November 2026. The Zephyr v4.4.2 files were read through the GitHub contents API. Not run: `west`, CMake, any build or test, Docker, any hardware command, any proof-of-concept code. The documentation link check is recorded in the pull request.
+On native macOS, in the worktree at `8b48e331`: `git fetch`, reads of the files cited above, `grep`, `gh api` and `curl` against public GitHub URLs (releases, tags, contents, compare and the advisory files), all on 14 November 2026. The Zephyr v4.4.2 files were read through the GitHub contents API. Not run for this review on 14 November: `west`, CMake, any build or test, Docker, any hardware command, any proof-of-concept code (step 7 ran later, on 15 November, see section 6). The documentation link check is recorded in the pull request.
 
 ## Record
 
@@ -187,4 +187,4 @@ On native macOS, in the worktree at `8b48e331`: `git fetch`, reads of the files 
 | Skills and agents used | None that produced a result. `ecc:security-review` and `ecc:deep-research` were considered and not used (see section 2) |
 | Model | `claude-sonnet-5-5`, Claude Code |
 | Independent review | The `reviewer` agent, verdict in the pull request |
-| Approval | None. The owner's approval of the pin move itself, and of the `scripts/test-psa-crypto.sh` change, are still needed |
+| Approval | This record approves nothing. The owner's advance approval of 14 November 2026, relayed by the Crux Pilot main session, covers the pin move and the `scripts/test-psa-crypto.sh` change of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416); the owner may confirm it at Gate 2 |
