@@ -4,6 +4,10 @@ Status: software scope of M6 and M7 by owner decision of 2 November 2026 (Issue 
 software-only evidence. Hardware verification is deferred to Issue #155, and the board is not a
 qualified or supported physical target until that evidence exists.
 
+Note of 15 November 2026: the project owner set the RT1170-EVK aside for now (see the
+[boot overview](boot-overview.md)). This record stays as software-only evidence and is not a
+current work item.
+
 ## Scope and evidence boundary
 
 This is a source and build-configuration review for Issue #33. No RT1170 board,
