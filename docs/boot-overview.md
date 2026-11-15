@@ -29,7 +29,7 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 | 4 | HAB signing structure in the open (unlocked) configuration | Not started |
 | 5 | Closed configuration and production: fuses, key custody, lockdown | Not started. Needs owner decisions first |
 
-**WP1a** is the first work package of M8 (tasks 0 to 7 of #296). Merged so far: the re-baseline, MCUboot in the manifest, the layout of the composition files and the baseline of the M7 reference configurations (the checks that existing controller builds do not change), recorded in [the WP1a evidence record](evidence/boot-composition/wp1a-evidence.md), and then the four board files and the CI build check, described in the boot composition page. Rejection of an oversized or misaligned image and reproducibility of the build are later WP1a tasks and are Not verified. **No WP1b is defined in this repository**, and the later tasks of #296 are not yet split into numbered work packages.
+**WP1a** is the first work package of M8 (tasks 0 to 7 of #296). Merged so far: the re-baseline, MCUboot in the manifest, the layout of the composition files and the baseline of the M7 reference configurations (the checks that existing controller builds do not change), recorded in [the WP1a evidence record](evidence/boot-composition/wp1a-evidence.md), and then the four board files and the CI build check, described in the boot composition page. Rejection of an oversized or misaligned image by `imgtool` and MCUboot, and reproducibility of the build, are Not verified; the inspector's `fit` decision on synthetic images is Verified by command ([boot image inspection](boot-image-inspection.md)). **No WP1b is defined in this repository**, and the later tasks of #296 are not yet split into numbered work packages.
 
 ## 3. Which page answers which question
 
@@ -54,7 +54,7 @@ Merged:
 - The [boot composition](boot-composition.md) page, the four board files for the RT1060-EVK Rev B in `zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/`, and a CI step that builds MCUboot and the controller sample with sysbuild, signs the application with the public test key and checks the signature with `imgtool verify`. It also checks that a key of another type and an image changed after signing are refused by the signing tool.
 - The three investigation records and the plan, as records. They adopt only the owner decisions they list.
 - The trailer replay of MCUboot sequences on the eMMC simulator.
-- Software-only tools for the RT1060 path: the [boot image inspector](boot-image-inspection.md) (#466), a check of the CI-built images against it that is **not wired into CI** and has never run on a real build (#467), and the [porting guide](boot-porting-rt1062.md) for another i.MX RT1062 board (#468).
+- Software-only tools for the RT1060 path: the [boot image inspector](boot-image-inspection.md) with its `fit` decision for oversized or misaligned images (#466, #472), a check of the CI-built images against it that is **not wired into CI** and has never run on a real build (#467), and the [porting guide](boot-porting-rt1062.md) for another i.MX RT1062 board (#468).
 
 Not merged or not started:
 

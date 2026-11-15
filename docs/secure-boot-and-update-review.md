@@ -107,7 +107,7 @@ The [boot and update investigation](boot-update-investigation.md) was written fr
 
 ## 6. Recovery
 
-**State plainly: recovery work has not started.** The plan (Phase 1) requires a non-destructive recovery path to be proved before any physical boot experiment. That path is not built, and the ROM serial downloader check (issue #309) is planned and has not run.
+**State plainly: recovery work has not started.** The plan (Phase 1) requires a non-destructive recovery path to be proved before any physical boot experiment. That path is not built (a design note on the options is a Draft, #459, not merged), and the ROM serial downloader check (issue #309) is planned and has not run.
 
 What the pages state:
 
