@@ -53,6 +53,8 @@ typedef struct {
     uint32_t expired;       /**< Attempts that expired before anyone collected them. */
     uint32_t sessions;      /**< Sessions handed out by a poll. */
     uint32_t worker_max_ms; /**< Longest attempt on the worker, by the web clock. */
+    /** Refused forgery checks not reported as events, because the window's share was used. */
+    uint32_t forgery_suppressed;
 } crux_web_session_stats_t;
 
 /**

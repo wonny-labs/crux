@@ -26,3 +26,12 @@ target_compile_definitions(crux_web_session_compile PRIVATE
   CRUX_WEB_BODY_BUFFER=${CONFIG_CRUX_WEB_BODY_BUFFER}u)
 target_link_libraries(crux_web_session_compile PRIVATE zephyr_interface crux_service_priority_placement)
 target_compile_options(crux_web_session_compile PRIVATE -Wall -Wextra -Werror)
+
+# The provider of the session module's event port (Issue #319), compiled for the target and not linked. It
+# is a library of its own, because scripts/test-web.sh counts the objects of crux_web_session_compile.
+add_library(crux_web_session_events_compile OBJECT ${CRUX_WEB_SESSION_EVENTS})
+target_include_directories(crux_web_session_events_compile PRIVATE ${CRUX_WEB_SESSION_DIR}
+  ${CRUX_ROOT}/components/access/include ${CRUX_ROOT}/components/base/include
+  ${CRUX_ROOT}/components/security_event/include)
+target_link_libraries(crux_web_session_events_compile PRIVATE zephyr_interface)
+target_compile_options(crux_web_session_events_compile PRIVATE -Wall -Wextra -Werror)

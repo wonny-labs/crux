@@ -54,6 +54,7 @@ function(crux_management_target_compose)
         "${component}/mgmt_status/src/source_credential.c"
         "${component}/mgmt_status/src/source_security_events.c"
         ${CRUX_WEB_SESSION_SOURCES} ${CRUX_WEB_SESSION_PSA_PORT}
+        "${component}/web/session/web_session_security_events.c"
         ${CRUX_WEB_MANAGEMENT_SOURCES} ${CRUX_WEB_MANAGEMENT_NETWORK_SOURCES}
         "${component}/network_settings/src/network_settings.c"
         "${component}/network_settings/src/network_settings_check.c"
