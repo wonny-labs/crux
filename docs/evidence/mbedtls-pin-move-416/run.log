@@ -1,0 +1,56 @@
+start 2026-11-15T09:49:33Z
+Google Chrome 157.0.8103.78 
+v24.22.2
+West version: v1.4.0
+cmake version 3.28.4
+script-start 2026-11-15T09:51:43Z
+Crux revision: 250205e8b852b1f0ce871fd16d0b03fb7a7b29f9
+......................
+----------------------------------------------------------------------
+Ran 22 tests in 0.014s
+
+OK
+control ok: the Angular example needs the default 3,000 ms deadline: web_assets: /main-7ET2HXBZ.js: 92064 bytes served exceeds the largest asset that fits, 49152 bytes: the response deadline 1500 ms at 32768 bytes/s. Split the file, or set CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS and the declared client rate together
+/workspaces/crux/crux-pilot/build/native-composition/mbed/e2e-preact-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, mbed profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, preact on the mbed profile: 0 failures, 23 checks, results in /workspaces/crux/crux-pilot/build/native-composition/mbed/server-preact-results.json
+✔ preact: a route another client holds answers the real 409, and the example retries it (4528.461461ms)
+✔ preact: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (23963.587094ms)
+✔ preact: network settings: the real service shows no running address and refuses a change it cannot save (3751.047502ms)
+﹣ preact: reboot and a restarted session (2.713583ms) # the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only
+ℹ tests 118
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 72
+ℹ todo 0
+ℹ duration_ms 403069.63606
+/workspaces/crux/crux-pilot/build/native-composition/mbed/e2e-preact-browser-results.json: {'measured': 6, 'passed': 46, 'skipped': 72}
+/workspaces/crux/crux-pilot/build/native-composition/mbed/e2e-angular-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, mbed profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, angular on the mbed profile: 0 failures, 23 checks, results in /workspaces/crux/crux-pilot/build/native-composition/mbed/server-angular-results.json
+✔ angular: a route another client holds answers the real 409, and the example retries it (5119.901961ms)
+✔ angular: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (24475.918761ms)
+✔ angular: network settings: the real service shows no running address and refuses a change it cannot save (3633.832877ms)
+﹣ angular: reboot and a restarted session (0.771ms) # the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only
+ℹ tests 118
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 72
+ℹ todo 0
+ℹ duration_ms 344144.442574
+/workspaces/crux/crux-pilot/build/native-composition/mbed/e2e-angular-browser-results.json: {'measured': 6, 'passed': 46, 'skipped': 72}
+ℹ tests 218
+ℹ suites 0
+ℹ pass 218
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 865606.30948
+/workspaces/crux/crux-pilot/build/native-composition/mbed/e2e-mock-browser-results.json: {'passed': 218}
+Native composition (e2e-mbed) finished.
+script-exit=0
+script-end 2026-11-15T10:37:21Z
+exit=0
