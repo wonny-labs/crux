@@ -16,7 +16,7 @@ Yes, once explicitly instructed to implement in an authorised working directory.
 
 It is not sufficient to promise unattended end-to-end completion. Exact target identification, host tools, board connectivity, the contract-review gate and physical-execution authorisation remain prerequisites at their stated milestones. These are deliberately local gates rather than reasons to stop all independent work.
 
-The original planning review produced planning files only. A later local setup created `/Users/jiwonkim/Projects/crux-workspace/crux-pilot`, initialised Git and copied the planning package. This v0.4 update changes planning documents; it does not establish implementation/test completion or authorise physical execution.
+The original planning review produced planning files only. A later local setup created `<workspace>/crux-pilot`, initialised Git and copied the planning package. This v0.4 update changes planning documents; it does not establish implementation/test completion or authorise physical execution.
 
 ## 2. Architectural information added
 

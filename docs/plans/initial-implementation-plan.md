@@ -29,7 +29,7 @@ This file is a specification, not a record of completed builds or tests. Creatin
 
 ### Current execution boundary
 
-The checkout is `/Users/jiwonkim/Projects/crux-workspace/crux-pilot`; the parent `crux-workspace`
+The checkout is `<workspace>/crux-pilot`; the parent `crux-workspace`
 is a west workspace, not a Git repository. The M0–M1 text in
 `docs/plans/codex-start-instructions.md` is a historical handoff. `AGENTS.md` and
 `docs/implementation-status.md` identify the active software scope and execution boundaries.
