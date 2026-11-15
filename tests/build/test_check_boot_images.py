@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Check scripts/check-boot-images.sh, the check of the CI-built boot images, on the host.
+"""Check tests/target/check_boot_images.sh, the check of the CI-built boot images, on the host.
 
 The script reads the images that scripts/test-boot-composition.sh builds. This file cannot build them:
 the real Zephyr build, the real imgtool and the real images are exercised only where the composition
@@ -31,7 +31,7 @@ import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts/check-boot-images.sh"
+SCRIPT = REPO / "tests/target/check_boot_images.sh"
 PAGE = REPO / "docs/boot-image-inspection.md"
 PROPOSAL = REPO / "docs/plans/image-state-contract-proposal.md"
 SLOT_SIZE = 3145728
@@ -115,6 +115,31 @@ class ScriptShape(unittest.TestCase):
         self.assertTrue(SCRIPT.stat().st_mode & 0o111, "the script is not executable")
         self.assertTrue(self.script.startswith("#!/usr/bin/env bash\n"))
 
+    def test_the_script_sits_beside_the_inspector_and_not_under_scripts(self):
+        # scripts/ is a protected path (AGENTS.md); tests/target/ is not.
+        self.assertTrue(SCRIPT.is_file())
+        self.assertEqual(REPO / "tests/target", SCRIPT.parent)
+        self.assertTrue((SCRIPT.parent / "inspect_boot_image.py").is_file())
+        self.assertFalse((REPO / "scripts/check-boot-images.sh").exists())
+        self.assertFalse(list((REPO / "scripts").glob("*boot*image*")))
+
+    def test_the_script_derives_the_repository_root_from_its_depth(self):
+        # tests/target/ is two levels below the repository root.
+        self.assertIn('repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"', self.code)
+        self.assertTrue((REPO / "samples/controller/zephyr").is_dir())
+        self.assertIn('app="$repo/samples/controller/zephyr"', self.code)
+        self.assertIn('inspector=("$python" "$repo/tests/target/inspect_boot_image.py")', self.code)
+
+    def test_the_default_build_directory_is_under_the_derived_repository_root(self):
+        default = REPO / "build/zephyr/boot-composition"
+        if default.exists():
+            self.skipTest("a local composition build exists at the default directory")
+        done = subprocess.run(["bash", str(SCRIPT)], capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin",
+                                   "CRUX_PYTHON": sys.executable})
+        self.assertEqual(2, done.returncode, done.stderr)
+        self.assertIn(str(default), done.stderr)
+
     def test_the_script_uses_strict_mode(self):
         self.assertIn("set -euo pipefail", self.code.splitlines())
 
@@ -168,7 +193,7 @@ class ScriptShape(unittest.TestCase):
     def test_the_page_describes_the_check_and_its_limits(self):
         page = PAGE.read_text(encoding="utf-8")
         self.assertIn("Check of the CI-built images", page)
-        self.assertIn("scripts/check-boot-images.sh", page)
+        self.assertIn("tests/target/check_boot_images.sh", page)
         self.assertRegex(page, r"NOT wired")
         self.assertRegex(page, r"never run on a real build")
 
@@ -177,7 +202,7 @@ class ScriptShape(unittest.TestCase):
         page = PAGE.read_text(encoding="utf-8")
         self.assertIn("both refusing, fails (exit 1)", page)
         self.assertIn("key hash NOT compared with the key", page)
-        self.assertIn("check-boot-images.tmp", page)
+        self.assertIn("check_boot_images.tmp", page)
         self.assertIn("requirements", page)
         header = "\n".join(l for l in SCRIPT.read_text(encoding="utf-8").splitlines() if l.startswith("#"))
         self.assertIn("2 the build or a tool cannot be used", header)
@@ -237,7 +262,7 @@ class BehaviourTest(unittest.TestCase):
         if expect is not None:
             self.assertEqual(expect, done.returncode, f"stdout:\n{done.stdout}\nstderr:\n{done.stderr}")
         # Temporary copies are removed after a pass and after a failure.
-        self.assertFalse((self.build / "check-boot-images.tmp").exists())
+        self.assertFalse((self.build / "check_boot_images.tmp").exists())
         return done
 
     # ---- passing ----

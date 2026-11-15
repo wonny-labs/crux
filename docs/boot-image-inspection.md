@@ -73,7 +73,7 @@ A `swap_info` that disagrees with `image_ok` (a test request with `image_ok` set
 
 > **Status:** Prepared, **NOT wired** into any workflow, and it has **never run on a real build**. Its host tests ([`tests/build/test_check_boot_images.py`](../tests/build/test_check_boot_images.py)) run it only against a fake build tree of synthetic images and a fake `imgtool`. Whether it passes on the real images is **Not verified**.
 
-`scripts/check-boot-images.sh [build-dir]` uses the images that the [boot composition](boot-composition.md) check builds as the ground truth for this inspector. It builds nothing, programs nothing and generates no key; it reads the build directory of `scripts/test-boot-composition.sh` (`build/zephyr/boot-composition` by default) and writes only into one temporary directory below it, `check-boot-images.tmp`, which it removes again (also after a failure). That directory holds the changed copies of the signed image, the inspector's JSON outputs and a few helper files. `CRUX_PYTHON` and `CRUX_WORKSPACE` work as in the composition script. It exits 0 when every check passed, 2 when something it needs cannot be used, and 1 when a check fails.
+`tests/target/check_boot_images.sh [build-dir]` sits in `tests/target/` beside the inspector, so that no protected path (`scripts/`) holds it. It uses the images that the [boot composition](boot-composition.md) check builds as the ground truth for this inspector. It builds nothing, programs nothing and generates no key; it reads the build directory of `scripts/test-boot-composition.sh` (`build/zephyr/boot-composition` by default) and writes only into one temporary directory below it, `check_boot_images.tmp`, which it removes again (also after a failure). That directory holds the changed copies of the signed image, the inspector's JSON outputs and a few helper files. `CRUX_PYTHON` and `CRUX_WORKSPACE` work as in the composition script. It exits 0 when every check passed, 2 when something it needs cannot be used, and 1 when a check fails.
 
 | Exit | Cases |
 | --- | --- |
@@ -96,13 +96,13 @@ The script prints a summary table and, for the confirmed image, a **survey of th
 
 ### Proposed workflow step (needs the owner's approval)
 
-Running it in CI means editing `.github/workflows/zephyr.yml`, a protected file (`AGENTS.md`, protected paths). That change has **not** been approved, so the workflow is untouched. The proposal is one step directly after the composition step in the `runtime` shard, where the build directory, the MCUboot checkout and imgtool's requirements already exist:
+The script itself touches no protected path. Running it in CI still means editing `.github/workflows/zephyr.yml`, a protected file (`AGENTS.md`, protected paths). That change has **not** been approved and stays a proposal that needs the owner's approval, so the workflow is untouched. The proposal is one step directly after the composition step in the `runtime` shard, where the build directory, the MCUboot checkout and imgtool's requirements already exist:
 
 ```yaml
       - name: Check the RAM load composition images against the boot image inspector (software-only)
         if: matrix.shard == 'runtime'
         working-directory: crux-pilot
-        run: scripts/check-boot-images.sh
+        run: tests/target/check_boot_images.sh
 ```
 
 Until the step is wired and has run, the inspector remains unchecked against a real image.

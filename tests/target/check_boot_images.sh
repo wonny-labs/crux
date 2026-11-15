@@ -6,14 +6,14 @@
 #
 # This script builds nothing, programs nothing, boots nothing and generates no key. It reads the build
 # directory of the RT1060 composition check ($repo/build/zephyr/boot-composition unless an argument names
-# another one) and writes only below $build/check-boot-images.tmp (changed copies of the signed image, the
+# another one) and writes only below $build/check_boot_images.tmp (changed copies of the signed image, the
 # inspector's JSON outputs and small helper files), which it removes again, also after a failure.
 # It is NOT wired into any workflow: a step in .github/workflows/zephyr.yml is a protected-file change
 # that needs the project owner's approval (proposal: docs/boot-image-inspection.md, "Check of the
 # CI-built images"). It has never run on a real build; the host tests in
 # tests/build/test_check_boot_images.py run it against a synthetic build tree and a fake imgtool only.
 #
-# Usage: scripts/check-boot-images.sh [build-dir]
+# Usage: tests/target/check_boot_images.sh [build-dir]
 # Environment: CRUX_PYTHON (python3 by default), CRUX_WORKSPACE (the parent of the repository by default,
 # where bootloader/mcuboot is checked out, as in scripts/test-boot-composition.sh).
 # Exit status: 0 every check passed (a key hash that could not be compared is said so on the last line),
@@ -22,7 +22,7 @@
 # directory, image, Python, imgtool or key, or imgtool without its requirements (a traceback on --help).
 set -euo pipefail
 
-repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 python="${CRUX_PYTHON:-python3}"
 app="$repo/samples/controller/zephyr"
@@ -92,7 +92,7 @@ confirmed="$located"
 [[ -n "$confirmed" && -f "$confirmed" ]] ||
     fail "the build produced no zephyr.signed.confirmed.bin in $app_dir; at Zephyr v4.4.2 RAM load with revert implies it (erratum of docs/boot-update-investigation.md), so this is not the build of docs/boot-composition.md"
 
-work="$build/check-boot-images.tmp"
+work="$build/check_boot_images.tmp"
 rm -rf "$work"
 mkdir -p "$work"
 trap 'rm -rf "$work"' EXIT
