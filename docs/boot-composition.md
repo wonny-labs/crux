@@ -1,6 +1,6 @@
 # Boot composition: MCUboot with an application (build only)
 
-> **Status:** Current. The documented interface of the MCUboot RAM load composition for the RT1060-EVK Rev B. The values are decided; the RT1170-EVK is not covered.
+> **Status:** Current. The documented interface of the MCUboot RAM load composition for the RT1060-EVK Rev B. The argument set and the file paths are the documented interface; the slot sizes are provisional (see the WP1a evidence record), and neither the update mode nor MCUboot's crypto backend is an adopted decision (see the plan). The RT1170-EVK is not covered.
 > **Verified:** By build, in CI: the published argument set configures, builds, signs the application with MCUboot's public test key and passes `imgtool verify`. Evidence: the [WP1a evidence record](evidence/boot-composition/wp1a-evidence.md) and the CI job named in the first table row.
 > **Not verified:** Anything on a board. Nothing was programmed or booted, so the boot ROM, the jump into the image, confirm, revert and how MCUboot treats the padded confirmed image are Not verified (see the end of this page).
 > **Read this first / then:** the [boot overview](boot-overview.md), then the table below, then the [secure boot development plan](plans/secure-boot-development-plan.md).

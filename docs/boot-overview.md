@@ -1,7 +1,7 @@
 # Boot overview: secure boot and update for Crux
 
 > **Status:** Orientation page, current on 15 November 2026. It decides nothing. Decisions are in the pages it points to, each with its status.
-> **Verified:** What is merged and built (section 4), by build in CI and in the evidence records named there.
+> **Verified:** What is merged and built (section 4), by build in CI; the evidence is in the [boot composition](boot-composition.md) page and the [WP1a evidence record](evidence/boot-composition/wp1a-evidence.md).
 > **Not verified:** Everything that needs a board. No boot experiment has run on any board: no signed image has been booted, no unsigned, wrong-key or modified image has been shown to be refused by the boot ROM or MCUboot, and no confirm, revert or update has run.
 > **Read this first / then:** this page, then the [boot composition](boot-composition.md) page for the current recipe, then the [secure boot development plan](plans/secure-boot-development-plan.md) for phases and open decisions.
 
@@ -23,13 +23,13 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 | Phase | What | Where it stands on 15 November 2026 |
 | --- | --- | --- |
 | 0 | Investigations of boot and update, eMMC, and bootloader update | Done, as desk results and build-only trial builds |
-| 1 | M8 on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The first work package is merged (below). Board evidence, a recovery path and RT1170 build-only evidence are not started |
+| 1 | M8 on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The merged parts of WP1a are listed below. Board evidence, a recovery path and RT1170 build-only evidence are not started |
 | 2 | M9 update path: image-state contract, update agent, version policy, boot-result record | Not started |
 | 3 | eMMC media path | The MCUboot trailer replay on the eMMC simulator is merged. A flash-API driver exists only as a Draft prototype that is not merged. Nothing runs on eMMC hardware |
 | 4 | HAB signing structure in the open (unlocked) configuration | Not started |
 | 5 | Closed configuration and production: fuses, key custody, lockdown | Not started. Needs owner decisions first |
 
-**WP1a** is the first work package of M8: re-baseline, MCUboot in the manifest, the layout of the composition files, and the baseline of the M7 reference configurations (the checks that existing controller builds do not change). Its evidence is [the WP1a evidence record](evidence/boot-composition/wp1a-evidence.md). The files and the build check that came after it are described in the boot composition page. The later tasks of #296 are listed in the plan's Phase 1; this repository does not yet split them into numbered work packages.
+**WP1a** is the first work package of M8 (tasks 0 to 7 of #296). Merged so far: the re-baseline, MCUboot in the manifest, the layout of the composition files and the baseline of the M7 reference configurations (the checks that existing controller builds do not change), recorded in [the WP1a evidence record](evidence/boot-composition/wp1a-evidence.md), and then the four board files and the CI build check, described in the boot composition page. Rejection of an oversized or misaligned image and reproducibility of the build are later WP1a tasks and are Not verified. **No WP1b is defined in this repository**, and the later tasks of #296 are not yet split into numbered work packages.
 
 ## 3. Which page answers which question
 
@@ -56,12 +56,12 @@ Not merged or not started:
 
 - The eMMC flash-API driver prototype (Draft, not for merge without an owner decision).
 - Any run on a board: boot, refusal of bad images, confirm, revert, update, power loss.
-- RT1170-EVK build-only evidence (a design note with questions for the owner is in review as a Draft), the recovery path, HAB signing, closed configuration.
+- RT1170-EVK build-only evidence, the recovery path, HAB signing, closed configuration.
 - A choice of MCUboot's cryptographic backend. It is an owner decision under ADR-0006.
 
 ## 5. Rules that apply to this work
 
-- The documents label evidence: **Verified by build**, **Verified by command**, **Verified on pinned source**, **Inference**, **Not verified**. A build proves that something configures, builds and signs. It never proves that a board boots.
+- The documents label evidence: **Verified by build**, **Verified by command**, **Verified on pinned source**, **Verified by public vendor document**, **Verified in repository**, **Inference**, **Not verified**. A build proves that something configures, builds and signs. It never proves that a board boots.
 - Hardware work (programming, reset, fuses) needs explicit approval for that task. None is part of the merged work.
-- NXP's security reference manual and the HAB and fuse application notes are confidential. They are never copied into this repository. Statements about the boot ROM, HAB and fuses come from public sources and carry their label. Many are Inference or Not verified.
+- Documents under a non-disclosure agreement never enter this repository (see the plan, section 10). Statements about the boot ROM, HAB and fuses come from public sources and carry their label. Many are Inference or Not verified.
 - Public interface or architecture choices (the image-state contract, the bootloader update policy, the crypto backend) go through the owner as decisions, not through a pull request alone.
