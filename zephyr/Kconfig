@@ -496,6 +496,31 @@ config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
 
 endif # CRUX_WEB
 
+# The locks that the Mbed profile's PSA core needs once Access, the credential store and TLS threads
+# share it. Zephyr's module offers no option for them at the pinned revision, so the module provides them.
+config CRUX_PSA_THREADING
+    bool "Locks for TF-PSA-Crypto's core on Zephyr kernel objects (Experimental)"
+    depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
+    help
+      Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
+      release, and the release notes list the change. Off by default, and nothing changes in an image
+      that leaves it off, including every image on the Wolf profile (the symbol depends on the Mbed
+      provider, and nothing selects or implies it).
+
+      Turns on MBEDTLS_THREADING_C and MBEDTLS_THREADING_ALT in TF-PSA-Crypto's user configuration
+      and builds the locks of the core on k_mutex and k_condvar. They are registered at POST_KERNEL
+      priority 0, before the module's own PSA start, so the core is locked before anything uses it.
+      CONFIG_CRUX_ACCESS refuses an Mbed profile image without them (or without a lock provider of
+      the product's own, set through CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE). The option sets that
+      file name to the module's own header, so a product that sets another file keeps its own locks
+      and leaves this option off; setting both is refused at configuration.
+
+      The locks show no absence of a race: no case exercises a concurrent use of the core
+      (docs/psa-crypto-qualification.md).
+
+config TF_PSA_CRYPTO_USER_CONFIG_FILE
+    default "crux_tf_psa_user_config.h" if CRUX_PSA_THREADING
+
 # ADR-0004 phase 0. The management service cores, built by the module so that an application outside
 # this repository enables them with Kconfig and ZEPHYR_EXTRA_MODULES, and does not compile Crux's source
 # files into its own target. Access, the credential store and the security events are wired to each
@@ -522,9 +547,9 @@ config CRUX_ACCESS
       public headers (Experimental).
 
       The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
-      locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
-      profile-psa.conf), a Crux File provider for the store's two roots, Crux Logging for the events,
-      and CONFIG_HWINFO for the device ID. The configuration refuses a missing profile, locks, File
+      locks of CONFIG_CRUX_PSA_THREADING, and the algorithms of profile-psa.conf), a Crux File
+      provider for the store's two roots, Crux Logging for the events, and CONFIG_HWINFO for the
+      device ID. The configuration refuses a missing profile, locks, File
       provider, Logging or HWINFO by name; a missing algorithm is not checked and fails at run time. No SSH provider and
       no other PSA profile is part of this symbol.
 

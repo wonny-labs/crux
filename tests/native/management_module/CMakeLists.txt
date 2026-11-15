@@ -43,9 +43,9 @@ if(NOT CONFIG_CRUX_CONFIG_SERVICE OR NOT CONFIG_CRUX_MGMT_STATUS OR NOT CONFIG_C
     message(FATAL_ERROR "The fixture needs the symbols of slices 2, 3 and 4")
 endif()
 
-set(glue "${CRUX_ROOT}/tests/native/management_composition/composition/tf_psa_threading")
-target_sources(app PRIVATE src/main.c "${glue}/crux_tf_psa_threading.c")
-zephyr_include_directories("${glue}")
+# The locks of the Mbed profile's core come from the module (CONFIG_CRUX_PSA_THREADING, set by mbed-threading.conf).
+# Its header is on the global include path and src/main.c reads the lock count through it.
+target_sources(app PRIVATE src/main.c)
 target_include_directories(app PRIVATE
     "${CRUX_ROOT}/components/access/include" "${CRUX_ROOT}/components/access/adapter"
     "${CRUX_ROOT}/components/credential/include" "${CRUX_ROOT}/components/credential/adapter"

@@ -282,7 +282,7 @@ The design asks #242 to make the providers safe beside TLS threads on TF-PSA-Cry
 
 | Point | Finding |
 | --- | --- |
-| The way through | Zephyr's module has no Kconfig for it, and it does read `CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE`. `composition/tf_psa_threading` turns on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` there, and gives the core locks on `k_mutex` and `k_condvar` before the module's own start. |
+| The way through | Zephyr's module has no Kconfig for it, and it does read `CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE`. The Crux module's `CONFIG_CRUX_PSA_THREADING` (Experimental, `zephyr/psa_threading`) turns on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` there, and gives the core locks on `k_mutex` and `k_condvar` before the module's own start. It started as test glue in `composition/tf_psa_threading` and is now the public provider that the test images and the Mbed image take through `mbed-threading.conf`, which holds the one line `CONFIG_CRUX_PSA_THREADING=y`. |
 | What this covers | The core's own key table and random source, for Mbed TLS and the Crux providers alike, because they take the same locks |
 | Shown | It builds and runs, and the core took about 203,000 locks on one first boot, from a login, TLS and the store |
 | **Not shown** | That no race remains. A `native_sim` thread that does not sleep is never preempted, so a race cannot show here. It has not compiled for a target, its overhead is unmeasured, and #185 still has to adopt it for a product composition. |

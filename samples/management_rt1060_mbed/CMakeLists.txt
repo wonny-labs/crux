@@ -12,8 +12,7 @@ get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 set(composition_dir "${CRUX_ROOT}/tests/native/management_composition")
 set(EXTRA_CONF_FILE
     "${CRUX_ROOT}/tests/native/tls_offload_probe/mbed.conf"
-    "${composition_dir}/profile-psa.conf"
-    "${composition_dir}/mbed-threading.conf")
+    "${composition_dir}/profile-psa.conf")
 set(DTC_OVERLAY_FILE
     "${CRUX_ROOT}/samples/controller/zephyr/m3-network.overlay"
     "${CMAKE_CURRENT_LIST_DIR}/target.overlay"
@@ -28,6 +27,9 @@ if(NOT "${CONFIG_BOARD_TARGET}" STREQUAL "mimxrt1060_evk@B/mimxrt1062/qspi")
 endif()
 if(NOT CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS OR NOT CONFIG_MBEDTLS)
     message(FATAL_ERROR "This image is the Mbed TLS profile: the PSA provider must be Mbed TLS")
+endif()
+if(NOT CONFIG_CRUX_PSA_THREADING)
+    message(FATAL_ERROR "This image needs the locks of the Mbed profile's core: CONFIG_CRUX_PSA_THREADING=y")
 endif()
 # Entropy: the i.MX RT TRNG through its driver, and nothing else. A test generator or a fake source would make keys
 # that mean nothing, so each is refused, and a missing TRNG driver is too.
@@ -61,13 +63,11 @@ include("${CRUX_ROOT}/components/web/management/sources.cmake")
 include("${CRUX_ROOT}/cmake/CruxWebAssets.cmake")
 include("${CRUX_ROOT}/cmake/CruxWebRoutes.cmake")
 
-# The locks of the Mbed profile's core and the boot check of the random source, both from test code of this
-# repository, because no public form of either exists yet (docs/rt1060-mbed-management-image.md, "Taken from tests").
-set(tf_psa_glue "${CRUX_ROOT}/tests/native/management_composition/composition/tf_psa_threading")
+# The boot check of the random source comes from test code of this repository, because no public form exists yet
+# (docs/rt1060-mbed-management-image.md, "Taken from tests"). The locks of the Mbed profile's core are the module's
+# own provider, CONFIG_CRUX_PSA_THREADING in prj.conf.
 set(entropy_boot "${CRUX_ROOT}/tests/zephyr/entropy_boot")
-zephyr_include_directories("${tf_psa_glue}")
-target_sources(app PRIVATE src/main.c src/composition.c src/medium.c
-    "${tf_psa_glue}/crux_tf_psa_threading.c" "${entropy_boot}/entropy_boot.c")
+target_sources(app PRIVATE src/main.c src/composition.c src/medium.c "${entropy_boot}/entropy_boot.c")
 target_include_directories(app PRIVATE src "${entropy_boot}")
 
 set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
