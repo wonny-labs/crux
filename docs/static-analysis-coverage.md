@@ -7,8 +7,10 @@ configuration [scripts/tidy-sources.conf](../scripts/tidy-sources.conf) and the 
 paths of `scripts/analyze-host.sh` by a call to the generator, with the owner's approval of that one protected
 change (given in the session chat on 2026-11-15). Stage 3, removing the 12 duplicate per-component clang-tidy
 calls, has not started. See [Stage 1: the generator](#stage-1-the-generator) and
-[Result of the first CI run](#result-of-the-first-ci-run). The sections from "Summary" to "Open decisions"
-are the proposal and measurement of 2026-11-09 on commit `48bc13be`, kept as measured. Refs #161.
+[Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
+implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
+shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
+2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. Refs #161.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
@@ -521,16 +523,25 @@ require that name. `main` has no branch protection today, so none of these names
   own justification.
 - Coverage (line, branch) and SonarQube: not measured and not designed here.
 - The 19 sources of the eight consumer builds that the prototype leaves out, including the two
-  `DeadStores` findings of `tests/file_service_consumer`.
-- Whether a diagnostic is a true defect: the 63 findings were counted, not triaged one by one.
+  `DeadStores` findings of `tests/file_service_consumer`. (2026-11-15: the generated list does not analyse
+  them either. Three of the eight, `messaging`, `serial` and `mgmt-services`, are now listed; the
+  `tests/file_service_consumer` and the other consumer builds are not built by the host job.)
+- Whether a diagnostic is a true defect: the 63 findings of 2026-11-09 were counted, not triaged one by one.
+  (2026-11-15: the 62 findings of the generated list were each fixed or suppressed with a reason in pull
+  request #477, which is a change of the code, not a triage of whether each is a defect.)
 - Sources compiled only on a platform other than the Linux host.
 
 ## What was not verified
 
+Status of 2026-11-09, with the 2026-11-15 update in brackets.
+
 - A CI run of the generated list, and which build directories exist when the analysis step runs on a
-  GitHub-hosted runner. The two build-directory lists are INFERRED from the scripts.
+  GitHub-hosted runner. The two build-directory lists are INFERRED from the scripts. [2026-11-15: observed in
+  CI runs of probe branches, see "Result of the first CI run". Still not observed: a full `host` job on the pull
+  request head with the strict `analyze-host.sh`; its result is the pull request's `host` check.]
 - That a GitHub-hosted runner has the OpenSSL headers (see [How it was measured](#how-it-was-measured)).
 - The 18 consumer builds were configured with the arguments in this session, not by the CI scripts.
+  [2026-11-15: the listed builds are the ones the CI scripts configured in the probe runs.]
 - clang-tidy time on a GitHub-hosted runner; the range above is INFERRED from native and emulated runs.
 - That `test-web-assets.sh` and `test-web-session.sh` never run `run_host` in CI: read from the scripts
   and the workflow arguments, not observed in a log.
