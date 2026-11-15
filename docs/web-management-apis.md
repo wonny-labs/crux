@@ -4,7 +4,7 @@ Status: merged in [PR #281](https://github.com/wonny-labs/crux-pilot/pull/281) f
 [the services image](native-composition-242.md) of #242 serves these routes over HTTPS on `native_sim`. Host and `native_sim` results are interim results, and physical evidence stays
 tracked apart.
 
-Owner: `components/web`. Internal header `components/web/management/crux_web_management.h`, for a composition only, like
+Owner: `components/web`. The start calls and the save query are public in `<crux/web_management.h>` (target `crux::web_management`, ADR-0004 phase 1a, Experimental). The rest, the counters and the body size, is in the internal header `components/web/management/crux_web_management.h`, for a composition only, like
 `crux_web_session.h`. Sources in `components/web/management/`, listed by `sources.cmake`. The routes are described in
 [`web/api/openapi.yaml`](../web/api/openapi.yaml), whose change rule applies: this is the one reviewed change that the firmware and
 frontend tracks rebase onto.
@@ -320,7 +320,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | Item | Where |
 | --- | --- |
 | Compile `CRUX_WEB_MANAGEMENT_SOURCES`, name `CRUX_WEB_MANAGEMENT_ROUTES` to `crux_web_routes(... SOURCES ...)`, and give `REVIEWED` the lines of `components/web/reviewed-routes.txt` | `components/web/management/sources.cmake` |
-| Start the status and configuration services before the server, then `crux_web_management_init()`, then `crux_web_management_start_worker()` | `crux_web_management.h` |
+| Start the status and configuration services before the server, then `crux_web_management_init()`, then `crux_web_management_start_worker()` | `crux/web_management.h` |
 | Link `crux::config_service`, `crux::mgmt_status`, `crux::sync` and `crux::thread` | The composition |
 | A `config.save` permission in the roles that may save, and the table's permissions in the roles that may see each parameter | The product's policy |
 | Keep validators quick | The service's contract |

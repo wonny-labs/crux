@@ -1,6 +1,6 @@
 # Build and debug tooling scope: proposal
 
-Status: **section 5 approved and implemented on this branch; section 6 undecided.** The owner approved the change draft of section 5 on 2026-11-03 ("추천 범위로 시작", Claude desktop session, about 23:40 UTC), including the two protected files `scripts/build-debug-target.sh` and `scripts/debug-optimizations.conf`. It is implemented in the pull request that carries this document. Nothing in section 6 is adopted: options A, B and C for a SEMC J-Link script, the launcher and any such script are still the owner's decision. No probe, board or J-Link tool was run.
+Status: **section 5 approved and implemented on this branch; section 6 undecided.** The owner approved the change draft of section 5 on 2026-11-03, about 23:40 UTC, starting with the recommended scope and including the two protected files `scripts/build-debug-target.sh` and `scripts/debug-optimizations.conf`. It is implemented in the pull request that carries this document. Nothing in section 6 is adopted: options A, B and C for a SEMC J-Link script, the launcher and any such script are still the owner's decision. No probe, board or J-Link tool was run.
 
 Bases: Crux `origin/main` 82d2c9b. Zephyr `dccb09599635` (v4.4.2), read with `git show` because the local checkout is at v4.4.0. J-Link software V9.86a for the library check in section 6. Line numbers for Zephyr files refer to that revision.
 

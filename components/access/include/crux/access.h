@@ -274,8 +274,9 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
 
 /**
  * Add a public key. An account's own keys need access.self only. Sessions continue.
- * @param key SSH public key blob of type ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384 or
- * ecdsa-sha2-nistp521, compared byte for byte. Any other type or form is an invalid argument.
+ * @param key SSH public key blob of type ssh-ed25519 or ecdsa-sha2-nistp256, the types the SSH
+ * provider offers, compared byte for byte. Any other type or form, including ECDSA on P-384 or
+ * P-521, is an invalid argument.
  * @retval CRUX_ACCESS_ERR_NOT_FOUND The account does not exist.
  * @retval CRUX_ACCESS_ERR_ALREADY_EXISTS The account already lists this key.
  * @retval CRUX_ACCESS_ERR_NO_RESOURCES The account's key table is full.

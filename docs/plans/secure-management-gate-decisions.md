@@ -21,8 +21,8 @@ Target implementations can finish later, so the gate does not need PSA (#142), a
 
 ## Decisions for the owner
 
-The owner's words, on 3 November 2026 at 21:56 UTC in the working session: "추천대로 진행해줘 3번까지만 하고 4번 하기전에 알려줘", in reply to the
-recommendation to accept this record's recommendations and approve the headers, fakes and Host tests of #178 to #182.
+The project owner decided on 3 November 2026 at 21:56 UTC, in reply to the
+recommendation to accept this record's recommendations and approve the headers, fakes and Host tests of #178 to #182, to proceed as recommended through step 3 only, and to be told before step 4 starts.
 
 - **Accepted:** G-A to G-D, AC1, AC3 to AC10, S1 to S7, F1 to F6 (F4 for now), C1 to C8, L1 to L6 and E1 to E6.
 - **Declined:** AC2.

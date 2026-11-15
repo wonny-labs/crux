@@ -36,6 +36,7 @@ function(crux_native_management_compose_services)
         "${CRUX_NATIVE_MANAGEMENT_DIR}/crux_native_management_services.c"
         # Web sessions on PSA, and the status, configuration and network routes' helpers.
         ${CRUX_WEB_SESSION_SOURCES} ${CRUX_WEB_SESSION_PSA_PORT}
+        "${component}/web/session/web_session_security_events.c"
         ${CRUX_WEB_MANAGEMENT_SOURCES} ${CRUX_WEB_MANAGEMENT_NETWORK_SOURCES}
         # Network settings, with the no-op apply port: nothing is applied to an interface.
         "${component}/network_settings/src/network_settings.c"

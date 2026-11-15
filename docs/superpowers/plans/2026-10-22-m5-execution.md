@@ -1,6 +1,6 @@
 # Portable Execution Implementation Plan
 
-> Execute inline with Superpowers executing-plans and test-driven-development.
+> Execute inline with test-driven development.
 > Use independent consumer authorship and independent final review.
 
 **Goal:** Implement Issue #25's approved bounded execution capability and prepare a review-ready PR.

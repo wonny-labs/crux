@@ -168,11 +168,11 @@ typedef struct {
     size_t point_size;
 } key_type_t;
 
+/* Only the user key types that the SSH provider offers (#316). A type added here must be offered
+ * there first, or an account holds a key that no login can use. */
 static const key_type_t key_types[] = {
     {"ssh-ed25519", NULL, 32u},
     {"ecdsa-sha2-nistp256", "nistp256", 65u},
-    {"ecdsa-sha2-nistp384", "nistp384", 97u},
-    {"ecdsa-sha2-nistp521", "nistp521", 133u},
 };
 
 #define ACCESS_EC_POINT_UNCOMPRESSED 0x04u

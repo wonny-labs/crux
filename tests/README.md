@@ -80,6 +80,10 @@ that parse a manifest need PyYAML and skip without it.
 west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
 what the checker covers and what it does not.
 
+`tests/build/test_boot_image_inspect.py` holds the checks of `tests/target/inspect_boot_image.py`, the MCUboot image
+and trailer inspector, on synthetic images built in memory. They need no key, board or west workspace. See
+[boot image inspection](../docs/boot-image-inspection.md).
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
