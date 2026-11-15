@@ -8,7 +8,7 @@ hardware operations. Baseline: main `5569478`, Zephyr v4.4.2.
 
 ## Decisions
 
-The owner accepted A1 to A7 as recommended on 3 November 2026, at about 15:30 GMT: "A1~A7 권장대로 수용할게". This
+The project owner accepted A1 to A7 as recommended on 3 November 2026, at about 15:30 GMT. This
 settles these directions. It does not establish behaviour, and implementation of the contract still needs its
 own approval and evidence.
 

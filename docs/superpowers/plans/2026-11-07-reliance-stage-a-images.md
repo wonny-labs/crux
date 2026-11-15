@@ -1,6 +1,6 @@
 # Reliance Edge Stage A images Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Implementation approach:** implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build, check and rehearse on `native_sim` the images that Stage A of the eMMC physical gate flashes to the EVKB microSD, so that the board session needs no software work.
 
@@ -17,7 +17,7 @@
 - Protected paths (`AGENTS.md`): `scripts/test-file-emmc-compile.sh` and `scripts/test-storage-emmc.sh` may be extended and nothing removed (no suite, board, option or flag). Do not edit `.github/`, `docs/evidence/`, `scripts/test-storage-simulators.sh`, or any other protected file. If a task needs one, stop and report.
 - Every option that writes the medium is off by default. `red_format` is linked only in the format image.
 - Mount point stays `/MMC:` whatever the disk name is. Disk name for Stage A: `SD`. Board: `mimxrt1060_evk@B/mimxrt1062/qspi`. `CONFIG_SDHC_BUFFER_ALIGNMENT` is 32 (default of `CONFIG_CRUX_FILE_RELIANCE_EDGE`). Linked size ends below `0x60600000`.
-- British English, plain style. Every commit ends with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+- British English, plain style. Every commit ends with the repository's commit attribution trailer.
 - Containers: 64-bit `native_sim` only, `-j 4` at most, `run_in_background` for long commands, check `df -h /System/Volumes/Data` before each build (below 10 GiB start nothing heavy, below 5 GiB stop), remove build output when done. Never kill Docker or hung clients; if Docker hangs, run `open -a Docker` once and wait.
 
 ## Review Focus

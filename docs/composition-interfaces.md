@@ -4,7 +4,7 @@ Status: **adopted** by the owner's acceptance of [ADR-0001](decisions/0001-appli
 
 ## What a composition interface is
 
-A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first and so far only Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>`, described in [File root binding](file-composition-interface.md). The only Linux Host composition target is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
+A **composition interface** is the one formal way for a product's platform composition code to reach a Crux provider that must be bound to Zephyr resources: a root, a device, an instance. It is not a portable contract. It names the OS on purpose, so that the [native-free consumer check](native-interface-policy.md) rejects it in portable code. The first Zephyr example is `crux::file_zephyr` with `<crux/file_zephyr.h>` and the second is `crux::web_zephyr` with `<crux/web_zephyr.h>` (see [The web start](#the-web-start)). The File one is described in [File root binding](file-composition-interface.md). The only Linux Host composition target is `crux::queue_linux`, see the [Linux Host nuance](#linux-host-composition-targets).
 
 A product has two routes to Zephyr, and neither is an exception to the [three layers](architecture.md#three-layers-for-a-product-adr-0001):
 
@@ -29,6 +29,10 @@ Why rule 5 exists, in the ADR's words: composition code is Zephyr code already, 
 Rule 1 puts the header under `components/<c>/ports/zephyr/include/crux/`, not under `components/<c>/include/crux/`. The [File root binding](file-composition-interface.md#decisions-taken) justified this for one header (its decision 5): the header names a provider, so it stays with the port and reaches a product only through the composition target, while the portable `<crux/<capability>.h>` header is unchanged. Rule 1 extends that placement to every composition interface.
 
 [CONTRIBUTING](../CONTRIBUTING.md#public-headers-and-module-dependencies) places public headers in a component's `include/crux/`, and does not name this second location. Whether it should is a follow-up change that needs the owner's approval, because CONTRIBUTING is a protected path. It is **not** part of this document's change, and until it is made the placement rests on the File root binding's recorded decision and the ADR.
+
+### The web start
+
+The second composition interface is the Zephyr web start (ADR-0004 section 2, phase 1a, Experimental): target `crux::web_zephyr` and header `<crux/web_zephyr.h>` under `components/web/ports/zephyr/include/crux/`. It binds the web core to the Zephyr HTTP server, its sockets and the TLS security tag, and publishes one existing declaration, `crux_web_start()`, with no new function (rule 4). The settings type `crux_web_config_t` is in the portable `<crux/web.h>`, so that a Host or Linux transport can use it too and the portable core does not include a `_zephyr` header. The INTERFACE target is `crux_web_zephyr_composition`, a name unlike the STATIC provider library `crux_web_zephyr` (rule 2: it links the portable target `crux_web` and not the provider). `tests/build/test_web_zephyr_boundary.py` is its negative test (rule 3), and `tests/build/test_web_zephyr_public.py` its header and target checks. The web session and management calls beside it are ordinary service API, not composition interfaces: `<crux/web_session.h>` and `<crux/web_management.h>`.
 
 ### Linux Host composition targets
 

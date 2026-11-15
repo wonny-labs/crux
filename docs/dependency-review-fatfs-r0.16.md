@@ -1,6 +1,6 @@
 # Dependency review: FatFs R0.16 and the 2026 runZero advisories
 
-Status: **review record, the second use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `21e9d438`. Author: Claude Code, model `claude-sonnet-5-5`. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), whose Q5 puts FatFs first among the dependencies after the crypto pair.
+Status: **review record, the second use of the [dependency review guide](dependency-review.md)**, 14 November 2026. Baseline: `origin/main` at `21e9d438`. Author: the change author. Under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026), whose Q5 puts FatFs first among the dependencies after the crypto pair.
 
 This record is documentation only. It moves no pin, edits no `west.yml` and no protected path, and approves nothing. The pin move it recommends needs the owner's approval, and so does the target rule it asks about (section 6).
 
@@ -113,6 +113,6 @@ On native macOS, in the worktree at `21e9d438`: `gh api` and `curl` against publ
 
 | Item | Value |
 | --- | --- |
-| Author | Claude Code, `claude-sonnet-5-5` (desktop app) |
-| Independent review | pending, `reviewer` agent (`claude-opus-5-5`) |
+| Author | The change author |
+| Independent review | pending |
 | Approvals | none |

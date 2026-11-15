@@ -1,6 +1,6 @@
 # The first account of the RT1060-EVKB bench image (row C4, decision D3)
 
-Status: **stage 2 row C4** of [the RT1060-EVKB feasibility report](rt1060-management-image-feasibility.md), for review in a Draft PR. Refs #197 and #318. **Nothing here ran on a board.** Every result is a Host test, a host script, a configure-only run, or a compile and link for `mimxrt1060_evk@B//qspi`, and the image still refuses to start (the switch of C1 is untouched). The owner took D3 on 2026-11-08, as recommended: *"the first account on a reachable board comes from a password in an untracked file, hashed into the manifest"* ("추천대로 진행해주고", [decisions](rt1060-management-image-feasibility.md#owner-decisions)). This row does not approve any board stage.
+Status: **stage 2 row C4** of [the RT1060-EVKB feasibility report](rt1060-management-image-feasibility.md), for review in a Draft PR. Refs #197 and #318. **Nothing here ran on a board.** Every result is a Host test, a host script, a configure-only run, or a compile and link for `mimxrt1060_evk@B//qspi`, and the image still refuses to start (the switch of C1 is untouched). The owner took D3 on 2026-11-08, as recommended: *"the first account on a reachable board comes from a password in an untracked file, hashed into the manifest"* ([decisions](rt1060-management-image-feasibility.md#owner-decisions)). This row does not approve any board stage.
 
 ## Result
 

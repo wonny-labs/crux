@@ -1,6 +1,6 @@
 # The file backend of the RT1060-EVKB bench image: a RAM disk, and a mount rule that never formats a card
 
-Status: **row C3 of stage 2** of [the RT1060-EVKB feasibility report](rt1060-management-image-feasibility.md), for review in a Draft PR. Refs #197. Decision D2 of that report, taken by the owner on 2026-11-08 ("추천대로 진행해주고"): **a RAM disk for the first board run, no card, no format risk; microSD in a later run.**
+Status: **row C3 of stage 2** of [the RT1060-EVKB feasibility report](rt1060-management-image-feasibility.md), for review in a Draft PR. Refs #197. Decision D2 of that report, taken by the owner on 2026-11-08, as recommended: **a RAM disk for the first board run, no card, no format risk; microSD in a later run.**
 It authorises no hardware operation, and **nothing here ran on a board or on a card**: the results are host tests with fake devices, a `native_sim` run of the real FatFs on the board's RAM disk geometry, and a compile and link for `mimxrt1060_evk@B//qspi`. The image still refuses to start (row C1's switch is untouched).
 
 ## Result
