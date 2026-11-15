@@ -26,110 +26,12 @@ if [[ ! -f "$build_dir/compile_commands.json" ]]; then
     exit 2
 fi
 tidy="${CLANG_TIDY:-clang-tidy-18}"
-"$tidy" -p "$build_dir" \
-    "$repo/components/time/src/time.c" \
-    "$repo/components/time/src/time_types.c" \
-    "$repo/components/time/src/time_clock.c" \
-    "$repo/components/time/ports/linux/time_clock_linux.c" \
-    "$repo/components/time/ports/linux/time_lock_linux.c" \
-    "$repo/components/time/ports/linux/time_realtime_linux.c" \
-    "$repo/components/time/src/time_calendar.c" \
-    "$repo/components/time/src/time_port_memory.c" \
-    "$repo/components/interrupt/ports/linux/interrupt_linux.c" \
-    "$repo/components/time/src/busy_wait.c" \
-    "$repo/components/time/src/busy_wait_disabled.c" \
-    "$repo/components/time/ports/linux/busy_wait_linux.c" \
-    "$repo/samples/time/src/time_command.c" \
-    "$repo/samples/time/host/main.c" \
-    "$repo/tests/time/time_test.cpp" \
-    "$repo/tests/time/calendar_test.cpp" \
-    "$repo/tests/time/command_test.cpp" \
-    "$repo/tests/execution/src/posix.c" \
-    "$repo/components/thread/src/thread.c" \
-    "$repo/components/thread/src/thread_sleep.c" \
-    "$repo/components/sync/src/sync.c" \
-    "$repo/components/thread/ports/linux/thread_native.c" \
-    "$repo/components/sync/ports/linux/sync_native.c" \
-    "$repo/tests/portable_execution/conformance.c" \
-    "$repo/tests/portable_execution/host_main.c" \
-    "$repo/tests/portable_execution/host_failures.c" \
-    "$repo/tests/portable_execution/host_poll.c" \
-    "$repo/tests/portable_execution/host_admission.c" \
-    "$repo/tests/portable_execution/host_poll_finalize.c" \
-    "$repo/tests/portable_execution/admission.c" \
-    "$repo/samples/controller/core/controller.c" \
-    "$repo/samples/controller/core/health.c" \
-    "$repo/samples/controller/host/main.c" \
-    "$repo/tests/controller/controller_test.cpp" \
-    "$repo/tests/controller/health_test.cpp"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/netif/src/netif.c" \
-    "$repo/components/netif/ports/linux/netif_linux.c" \
-    "$repo/samples/networking/client.c" \
-    "$repo/samples/networking/host/main.c" \
-    "$repo/tests/networking/runtime_port.c"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/configuration/src/configuration.c" \
-    "$repo/tests/configuration/conformance.c" \
-    "$repo/tests/configuration/fault_provider.c" \
-    "$repo/samples/controller/configuration/scenario.c" \
-    "$repo/components/file/src/file.c" \
-    "$repo/components/file/ports/linux/file_linux.c" \
-    "$repo/components/file/ports/linux/file_lock.c" \
-    "$repo/tests/file/fault_test.c" \
-    "$repo/tests/file/host_test.c" \
-    "$repo/components/queue/src/queue.c" \
-    "$repo/components/queue/ports/linux/queue_port.c"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/serial/src/serial.c" \
-    "$repo/components/serial/ports/linux/serial_linux.c" \
-    "$repo/tests/serial/common.c" \
-    "$repo/tests/serial/host.c"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/logging/src/logging.c" \
-    "$repo/components/logging/ports/linux/logging_linux.c" \
-    "$repo/tests/logging/common.c" \
-    "$repo/tests/logging/host.c"
-
-"$tidy" -p "$repo/build/logging-consumer" \
-    "$repo/tests/logging_consumer/src/runtime.c" \
-    "$repo/tests/logging_consumer/src/consumer.cpp" \
-    "$repo/tests/logging_consumer/src/contract_test.c" \
-    "$repo/tests/logging_consumer/host/main.c" \
-    "$repo/samples/logging/controller.c"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/system/src/system.c" \
-    "$repo/components/system/ports/linux/system_linux.c" \
-    "$repo/tests/system/common.c" \
-    "$repo/tests/system/host.c"
-
-"$tidy" -p "$repo/build/system-consumer" \
-    "$repo/tests/system_consumer/src/runtime.c" \
-    "$repo/tests/system_consumer/src/consumer.cpp" \
-    "$repo/tests/system_consumer/src/contract_test.c" \
-    "$repo/tests/system_consumer/host/main.c" \
-    "$repo/samples/controller/system/controller_system.c"
-
-"$tidy" -p "$build_dir" \
-    "$repo/components/ssh/src/crux_ssh_callbacks.c" \
-    "$repo/components/ssh/access/crux_ssh_access.c" \
-    "$repo/components/ssh/access/crux_ssh_host_key.c" \
-    "$repo/components/ssh/src/crux_ssh_wire.c" \
-    "$repo/components/ssh/cli/crux_ssh_cli.c" \
-    "$repo/components/ssh/sftp/crux_ssh_sftp.c" \
-    "$repo/tests/ssh/fake_provider.c" \
-    "$repo/tests/ssh/fake_attachment.c" \
-    "$repo/tests/ssh/conformance.c" \
-    "$repo/tests/ssh/conformance_test.c" \
-    "$repo/tests/ssh/fault_test.c" \
-    "$repo/tests/ssh/fake_test.c" \
-    "$repo/tests/ssh/attachment_test.c" \
-    "$repo/tests/ssh/callback_table_test.c" \
-    "$repo/tests/ssh/access/adapter_test.c" \
-    "$repo/tests/ssh/access/host_key_test.c" \
-    "$repo/tests/ssh/wire/wire_test.c"
+# The sources come from the compile databases of the builds listed in scripts/tidy-sources.conf; see
+# docs/static-analysis-coverage.md. CI (GITHUB_ACTIONS) and CRUX_TIDY_STRICT=1 also fail on a listed build
+# that was not built and on a compile database that is neither listed nor ignored.
+strict=()
+if [[ "${GITHUB_ACTIONS:-}" == true || "${CRUX_TIDY_STRICT:-}" == 1 ]]; then
+    strict=(--strict)
+fi
+exec python3 "$repo/scripts/tidy-sources.py" run --repo "$repo" --tidy "$tidy" \
+    --primary "build/linux/${host_preset#host-}" ${strict[@]+"${strict[@]}"}

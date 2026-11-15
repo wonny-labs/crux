@@ -1,3 +1,4 @@
+// NOLINTNEXTLINE(bugprone-reserved-identifier): feature-test macro, the name is fixed by POSIX
 #define _POSIX_C_SOURCE 200809L
 #include <crux/thread.h>
 #include <errno.h>
@@ -14,6 +15,7 @@ static int failures;
     } while (0)
 static struct timespec reading = {1, 0}, deadline_seen;
 static int sleep_calls, read_calls, interrupt_once = 1, sleep_error, bad_call;
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_gettime(clockid_t id, struct timespec *out)
 {
     if (id != CLOCK_MONOTONIC)
@@ -22,6 +24,7 @@ int __wrap_clock_gettime(clockid_t id, struct timespec *out)
     *out = reading;
     return 0;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_getres(clockid_t id, struct timespec *out)
 {
     if (id != CLOCK_MONOTONIC)
@@ -29,6 +32,7 @@ int __wrap_clock_getres(clockid_t id, struct timespec *out)
     *out = (struct timespec){0, 1};
     return 0;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_nanosleep(clockid_t id, int flags, const struct timespec *deadline,
                            struct timespec *remaining)
 {

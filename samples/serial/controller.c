@@ -42,6 +42,8 @@ static crux_status_t exchange(crux_serial_t handle, crux_monotonic_time_t deadli
     expected[3] = 0x41;
     return memcmp(expected, response, sizeof(expected)) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
+/* Sample entry point; call sites name each value. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t serial_controller_run(crux_serial_port_t port, uint32_t nonce)
 {
     crux_monotonic_time_t deadline;

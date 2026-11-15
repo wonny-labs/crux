@@ -73,6 +73,7 @@ extern "C" int networking_test_poll(pollfd *fds, nfds_t, int remaining)
     fds->revents = s.events ? s.events : fds->events;
     return s.silence ? 0 : 1;
 }
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): mirrors the signature of send(2)
 extern "C" ssize_t networking_test_send(int, const void *data, size_t length, int flags)
 {
     EXPECT_EQ(flags, 0);
@@ -86,6 +87,7 @@ extern "C" ssize_t networking_test_send(int, const void *data, size_t length, in
     s.sent += count;
     return static_cast<ssize_t>(count);
 }
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): mirrors the signature of recv(2)
 extern "C" ssize_t networking_test_recv(int, void *data, size_t length, int flags)
 {
     EXPECT_EQ(flags, 0);

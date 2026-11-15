@@ -51,6 +51,7 @@ static void reset(void)
     fake.registers[0x0F] = UINT16_C(0x0117);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, fixed order at each call
 static void temperature_is(uint16_t raw, crux_status_t expected_status, int32_t expected_value)
 {
     reset();

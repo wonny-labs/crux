@@ -54,6 +54,7 @@ static runtime_result_t runtime_result(crux_status_t status)
     }
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper; call sites name the values
 static crux_thread_options_t runtime_options(size_t stack_words, runtime_priority_t priority)
 {
     crux_thread_options_t options = {0};
@@ -108,6 +109,7 @@ static void runtime_task_entry(void *opaque)
     WORKER_EXPECT(crux_semaphore_give(session->progress), CRUX_OK);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper; call sites name the values
 static int run_session(runtime_priority_t priority, unsigned increment)
 {
     /* Static storage remains valid even if a broken provider cannot join. */

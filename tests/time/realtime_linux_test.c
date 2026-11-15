@@ -14,6 +14,7 @@ static struct timespec native_time = {1700000000, 123456789};
         }                                                                                          \
     } while (0)
 /* All native writes are intercepted. There is no __real_clock_settime path. */
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
 {
     CHECK(clock == CLOCK_REALTIME);
@@ -25,6 +26,7 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
     }
     return 0;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_settime(clockid_t clock, const struct timespec *value)
 {
     CHECK(clock == CLOCK_REALTIME);

@@ -1,7 +1,16 @@
 # Static-analysis coverage of the host build
 
-Status: **proposal and measurement**, no check or script of the repository is changed by this document.
-Measured on commit `48bc13be` on 2026-11-09. Refs #161.
+Status (2026-11-15): **stages 1 and 2 are in pull request #477, which is a Draft until CI is green and
+the independent review has passed.** Stage 1 added [scripts/tidy-sources.py](../scripts/tidy-sources.py), its
+configuration [scripts/tidy-sources.conf](../scripts/tidy-sources.conf) and the host tests
+[tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py). Stage 2 replaced the 90 hand-written
+paths of `scripts/analyze-host.sh` by a call to the generator, with the owner's approval of that one protected
+change (given in the session chat on 2026-11-15). Stage 3, removing the 12 duplicate per-component clang-tidy
+calls, has not started. See [Stage 1: the generator](#stage-1-the-generator) and
+[Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
+implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
+shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
+2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. Refs #161.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
@@ -381,6 +390,82 @@ build-directory lists) and `.github/workflows/host.yml` (the shrink-only step on
 Neither `.clang-tidy` nor `CMakePresets.json` changes. The new files are new check scripts and may be
 added within a task, but they are listed in the PR description with the other protected paths.
 
+### Stage 1: the generator
+
+[scripts/tidy-sources.py](../scripts/tidy-sources.py) (Python standard library only) turns the compile
+databases that the host job already builds into the list of sources for clang-tidy, so nobody maintains a
+path list. Its configuration is [scripts/tidy-sources.conf](../scripts/tidy-sources.conf).
+
+```bash
+python3 scripts/tidy-sources.py list           # <build>\t<source> for every source to analyse
+python3 scripts/tidy-sources.py check --strict # validate the configuration, run no clang-tidy
+python3 scripts/tidy-sources.py run --report-only --jobs 4   # one clang-tidy-18 process per source
+```
+
+- **The list is the database minus the exclusions.** Every C or C++ source under `components/`,
+  `samples/`, `tests/` and `web/` that a listed build compiles is analysed with that build's `-p`
+  directory. A source in several databases is analysed once, from the first listed build. Generated code
+  and third-party code live outside those four roots (build directories, `_deps`), so they are not listed.
+- **Three kinds of line** in the configuration: `build` (analyse this database), `ignore-build` (a
+  database that is deliberately not analysed, with a reason) and `exclude` (one explicit compiled source,
+  with a reason). Today there is one `exclude`, the compile-fail probe `tests/reboot/probe/nodiscard_probe.c`,
+  and three `ignore-build` lines: `build/clangd` (a copy of a preset database), `build/*-boundary` (probes that
+  must fail to compile) and `build/zephyr/*` (not part of the host design).
+- **What fails.** An exclusion without a reason, a pattern instead of a path, or a path that does not exist;
+  a database that names a source missing from the tree; and, with `--strict` (CI), a compile database below
+  `build/` that is neither listed nor ignored (its sources would be in no list), a listed build that does
+  not exist, and an exclusion that no listed build compiles. Without `--strict` the last three are
+  warnings, so a developer who built only some consumers can still run the analysis.
+- **Report-only** (`run --report-only`) prints the counts per directory and per check and every
+  diagnostic, counted once per file, line, column and check, and exits 0 unless clang-tidy cannot start.
+- **Tests:** [tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py) runs in the existing
+  `python3 -m unittest discover -s tests/build` step of `host.yml`. They use synthetic databases and a fake
+  clang-tidy: a new source is picked up with no list edit, an exclusion needs a reason, a compiled source in
+  an unlisted build fails, and the list equals the database minus the exclusions. A last group checks
+  that the committed configuration is valid.
+
+Differences from the 2026-11-09 prototype: there is no per-source, per-check exceptions file and no
+shrink-only step. The first CI run of the generated list (below) was small enough to clear instead:
+15 findings were fixed in code and 47 are suppressed with a narrow `NOLINTNEXTLINE(<check>): <reason>`, all
+listed in the pull request. A new finding fails the step, since the one exclusion is a compile-fail probe.
+
+### Result of the first CI run
+
+Report-only run of the generated list on the CI runner (clang-tidy 18.1.3), pull request base `06ca8907`
+plus `scripts/tidy-sources.py`, before any finding was fixed (probe run 43741222712, a temporary branch,
+not merged):
+
+- 10 compile databases existed at the point of the analysis step: `build/linux/debug`, `build/linux/sanitize`,
+  `build/file-consumers`, `logging-consumer`, `system-consumer`, `thread-only`, `sync-only`,
+  `execution-firmware-host`, `execution-runtime-host` and `build/clangd` (a copy of one preset's database,
+  now ignored with a reason).
+- Three consumer builds of the host job existed but wrote no compile database, because their
+  `CMakeLists.txt` did not set `CMAKE_EXPORT_COMPILE_COMMANDS`: `messaging-consumer`, `serial-consumer` and
+  `mgmt-services-consumer`. Their sources (for example `tests/messaging_consumer/main.cpp`) were in no list. The
+  pull request sets the option in the three `CMakeLists.txt` files and lists the builds. The root builds
+  `mgmt-services-string-limit`, `mgmt-services-tsan` and `ssh-cli-tsan` also write no database, but they compile
+  only sources that `build/linux/debug` compiles. A consumer build added later without the option has the same
+  gap, and the check cannot see it: a build with no database is invisible to it (see "What is not covered").
+- 417 sources analysed in 9 builds, 21 failed, 57 diagnostics in 22 files (the 2026-11-09 measurement
+  expected about 64: the missing builds hold the rest). By directory of the reported file: `tests/time` 18,
+  `tests/file` 16, `tests/thread` 4, `components/queue` 3 (reported through the fixture `tests/queue/faults.c`),
+  `tests/networking` 3, `tests/queue` 3, `components/file_service` 1, `components/ssh` 1, and 8 in other
+  `tests/` directories. By check: `bugprone-reserved-identifier` 22, `bugprone-easily-swappable-parameters` 16,
+  `bugprone-suspicious-memory-comparison` 5, `clang-analyzer-security.insecureAPI.strcpy` 4,
+  `clang-analyzer-core.StackAddressEscape` 3, and six checks with 1 or 2.
+- Fixed in code (15): the memory comparisons (field-wise), the `strcpy` calls (bounded copies, and one
+  unbounded copy in a test fake now aborts on an over-long name), the widening multiplications, one pointer
+  cast, and the stack-address global of `tests/queue/faults.c`. Suppressed (42): 22 linker `--wrap` names and
+  feature-test macros, 16 swappable-parameter findings whose signature is fixed by an API, and four others.
+  Two of the suppressions are in production code (`crux_file_service_port_event` and
+  `crux_ssh_sftp_rename`, signatures fixed by their ports).
+- Listing the three consumer builds that had no database added 10 sources (427 in all, in 11 builds) and 5
+  more diagnostics, all in the serial consumer: four `bugprone-easily-swappable-parameters` and one
+  `_XOPEN_SOURCE`. They are suppressed like the others, so 15 findings are fixed in code and 47 are suppressed.
+- Lean CI run (the preset build and the consumer builds, no sanitize build) before those five suppressions: 427
+  sources, the 5 diagnostics above and no other, and the generated list contained all 90 paths of the old
+  `analyze-host.sh` list. The last full run is the pull request's own `host` check (see the pull request).
+
 ### What `check-patch.sh` teaches
 
 [check-patch.sh](../scripts/check-patch.sh) is a diff-based gate: it checks only changed lines, starts
@@ -429,21 +514,34 @@ require that name. `main` has no branch protection today, so none of these names
 
 ## What is not covered
 
+- A build that writes no compile database. The generator reads databases, so a source that only such a
+  build compiles is in no list and no check notices. Today these are the root builds of
+  `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh`, which compile only sources
+  that `build/linux/debug` also compiles. Every consumer build must set `CMAKE_EXPORT_COMPILE_COMMANDS`.
 - Zephyr and `native_sim` sources, the PSA composition and the boundary probes (above).
 - MISRA C and CERT C: no compliance claim exists, none is made. Dedicated analysers would need their
   own justification.
 - Coverage (line, branch) and SonarQube: not measured and not designed here.
 - The 19 sources of the eight consumer builds that the prototype leaves out, including the two
-  `DeadStores` findings of `tests/file_service_consumer`.
-- Whether a diagnostic is a true defect: the 63 findings were counted, not triaged one by one.
+  `DeadStores` findings of `tests/file_service_consumer`. (2026-11-15: the generated list does not analyse
+  them either. Three of the eight, `messaging`, `serial` and `mgmt-services`, are now listed; the
+  `tests/file_service_consumer` and the other consumer builds are not built by the host job.)
+- Whether a diagnostic is a true defect: the 63 findings of 2026-11-09 were counted, not triaged one by one.
+  (2026-11-15: the 62 findings of the generated list were each fixed or suppressed with a reason in pull
+  request #477, which is a change of the code, not a triage of whether each is a defect.)
 - Sources compiled only on a platform other than the Linux host.
 
 ## What was not verified
 
+Status of 2026-11-09, with the 2026-11-15 update in brackets.
+
 - A CI run of the generated list, and which build directories exist when the analysis step runs on a
-  GitHub-hosted runner. The two build-directory lists are INFERRED from the scripts.
+  GitHub-hosted runner. The two build-directory lists are INFERRED from the scripts. [2026-11-15: observed in
+  CI runs of probe branches, see "Result of the first CI run". Still not observed: a full `host` job on the pull
+  request head with the strict `analyze-host.sh`; its result is the pull request's `host` check.]
 - That a GitHub-hosted runner has the OpenSSL headers (see [How it was measured](#how-it-was-measured)).
 - The 18 consumer builds were configured with the arguments in this session, not by the CI scripts.
+  [2026-11-15: the listed builds are the ones the CI scripts configured in the probe runs.]
 - clang-tidy time on a GitHub-hosted runner; the range above is INFERRED from native and emulated runs.
 - That `test-web-assets.sh` and `test-web-session.sh` never run `run_host` in CI: read from the scripts
   and the workflow arguments, not observed in a log.

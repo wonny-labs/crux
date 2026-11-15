@@ -25,7 +25,11 @@ TEST(Netif, PreservesOutputWhenObservationFails)
         observed = {};
         observed_result = error;
         EXPECT_EQ(crux_netif_get_status(&output), error);
-        EXPECT_EQ(std::memcmp(&saved, &output, sizeof output), 0);
+        EXPECT_EQ(output.administrative_up, saved.administrative_up);
+        EXPECT_EQ(output.link, saved.link);
+        EXPECT_EQ(output.ipv4_available, saved.ipv4_available);
+        EXPECT_EQ(std::memcmp(saved.ipv4_address, output.ipv4_address, sizeof output.ipv4_address),
+                  0);
     }
 }
 TEST(Netif, AddressRemainsConfiguredWhenLinkAndAdminDown)
