@@ -78,6 +78,13 @@ jobs:
 
       - name: Analyze host sources
         run: ./scripts/analyze-host.sh
+      - name: List the compile databases (probe)
+        if: always()
+        run: find build -name compile_commands.json | sort
+      - name: Report the generated clang-tidy list, report only (probe)
+        if: always()
+        run: |
+          python3 scripts/tidy-sources.py run --report-only --strict --jobs 4 --json build/tidy-report.json
       - name: Check build boundaries
         run: ./scripts/check-dependencies.sh
       - name: Upload host test reports and raw logs
