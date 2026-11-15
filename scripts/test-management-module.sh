@@ -111,4 +111,5 @@ for entry in crux_access_init crux_credential_start crux_security_event_init cru
     crux_mgmt_status_start; do
     ! grep -qE " [Tt] ${entry}\$" <<< "$off_symbols" || fail "an image that sets no service symbol defines $entry"
 done
+"$repo/tests/native/cli_console/run.sh"
 printf 'ok: default off, an image of the module has no service symbol set and defines no entry point. Native_sim only: no board was built or run.\n'
