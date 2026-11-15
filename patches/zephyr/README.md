@@ -109,6 +109,11 @@ this patch, and the patch also calls wolfSSL, so Crux refers to it by revision u
 | Core patch | `zephyr/4.4/zephyr-tls-4.4.1.patch`, SHA-256 `3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda` |
 | Decoupling patch | `zephyr/4.4/zephyr-tls-4.4.1-mbedtls-decoupling.patch`, SHA-256 `b581396c70e7ecaf4b09ae66875b8cc5d29e428fd74c9938d3249d426b185c05` |
 
+The first derivation of the tree digest of the patched copy (2026-11-14, on macOS, interim, [evidence](../../docs/evidence/rt1060-patched-zephyr-first-freeze-20261114/README.md)) recorded
+the facts about the core patch that this repository holds, and nothing of its text: it touches nine files (seven modified, two added, no rename,
+mode change or binary hunk), and `patch` applies 3 of the 71 hunks of `sockets_tls.c` to v4.4.2 only with fuzz. The paths and the hashes of the results
+are in `tests/zephyr/management_rt1060_compile/bench_declaration.json`. Recording them decides nothing about the licence.
+
 Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the core patch fails in `sockets_tls.c`, and
 `git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
 between those tags. It runs on `native_sim` in the [TLS probe](../../docs/native-management-composition.md#tls-probe), on a patched copy of the tree that

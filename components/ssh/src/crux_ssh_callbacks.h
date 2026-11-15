@@ -29,6 +29,7 @@ crux_ssh_auth_result_t crux_ssh_access_key_verified(void *context, const crux_ss
 void crux_ssh_access_key_failed(void *context, const crux_ssh_peer_t *peer, const char *user);
 bool crux_ssh_access_session_alive(void *context, crux_ssh_attachment_t *attachment);
 void crux_ssh_access_connection_closed(void *context, crux_ssh_attachment_t *attachment);
+void crux_ssh_access_auth_limit(void *context, const crux_ssh_peer_t *peer);
 
 /* In components/ssh/cli/, owned by #193. */
 int crux_ssh_cli_shell(void *context, crux_ssh_attachment_t *attachment,

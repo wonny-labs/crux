@@ -35,7 +35,9 @@ target_include_directories(crux_mgmt_status_zephyr PRIVATE
   "${CRUX_COMPONENTS_DIR}/security_event/include")
 target_compile_definitions(crux_mgmt_status_zephyr PRIVATE CRUX_MGMT_STATUS_REFRESH_MS=1000u)
 zephyr_append_cmake_library(crux_mgmt_status_zephyr)
-target_link_libraries(crux_mgmt_status_zephyr PRIVATE zephyr_interface crux::base crux::sync crux::system
-  crux::time crux::netif)
+# crux::file: source_credential.c includes <crux/credential_store.h>, which includes <crux/file.h> for the
+# roots of crux_credential_start() (phase 1a). CONFIG_CRUX_ACCESS, which this needs, requires a File provider.
+target_link_libraries(crux_mgmt_status_zephyr PRIVATE zephyr_interface crux::base crux::file crux::sync
+  crux::system crux::time crux::netif)
 add_dependencies(crux_mgmt_status_zephyr zephyr_generated_headers)
 target_compile_options(crux_mgmt_status_zephyr PRIVATE -Wall -Wextra -Werror)

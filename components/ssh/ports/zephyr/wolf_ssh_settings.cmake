@@ -13,6 +13,11 @@ endif()
 if(CONFIG_CRUX_SSH_SFTP)
     set(CRUX_SSH_SFTP_FILE_SERVICE ON)
 endif()
+# An image that selects SSH has the security event core, and records the adapter's reports through it. A
+# test image that sets the variables itself drops them, as it has no event core.
+if(CONFIG_CRUX_SSH)
+    set(CRUX_SSH_ACCESS_SECURITY_EVENTS ON)
+endif()
 set(CRUX_SSH_WOLF_SETTINGS_DIR "${CMAKE_CURRENT_LIST_DIR}")
 get_filename_component(CRUX_SSH_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 get_filename_component(CRUX_REPOSITORY_DIR "${CRUX_SSH_DIR}/../.." ABSOLUTE)
@@ -61,12 +66,14 @@ function(crux_ssh_wolf_settings)
     # The entry points and the table. They use no wolfSSH header.
     _crux_ssh_owned_objects(crux_ssh_entries
         "${CRUX_SSH_DIR}/src/crux_ssh_callbacks.c"
-        ${CRUX_SSH_ACCESS_SOURCES} ${CRUX_SSH_CLI_SOURCES} ${CRUX_SSH_SFTP_SOURCES})
+        ${CRUX_SSH_ACCESS_SOURCES} ${CRUX_SSH_ACCESS_EVENT_SOURCES} ${CRUX_SSH_CLI_SOURCES}
+        ${CRUX_SSH_SFTP_SOURCES})
     target_include_directories(crux_ssh_entries PRIVATE
         "${CRUX_SSH_DIR}/src" "${CRUX_SSH_DIR}/adapter"
         "${CRUX_REPOSITORY_DIR}/components/access/include"
         "${CRUX_REPOSITORY_DIR}/components/base/include"
-        ${CRUX_SSH_ACCESS_INCLUDES} ${CRUX_SSH_CLI_INCLUDES} ${CRUX_SSH_SFTP_INCLUDES})
+        ${CRUX_SSH_ACCESS_INCLUDES} ${CRUX_SSH_ACCESS_EVENT_INCLUDES} ${CRUX_SSH_CLI_INCLUDES}
+        ${CRUX_SSH_SFTP_INCLUDES})
 
     # The file port, built with the wolfSSH settings.
     _crux_ssh_owned_objects(crux_ssh_sftp_port ${CRUX_SSH_SFTP_PORT_SOURCES})

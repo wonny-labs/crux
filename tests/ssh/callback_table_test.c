@@ -28,6 +28,7 @@ int main(void)
     SSH_CHECK(table->sftp_close == crux_ssh_sftp_close);
     SSH_CHECK(table->session_alive == crux_ssh_access_session_alive);
     SSH_CHECK(table->connection_closed == crux_ssh_access_connection_closed);
+    SSH_CHECK(table->auth_limit == crux_ssh_access_auth_limit);
     SSH_CHECK(client->provider->start(&config, table) == CRUX_OK);
     SSH_CHECK(client->provider->stop() == CRUX_OK);
     printf("%u failures\n", ssh_check_failures);

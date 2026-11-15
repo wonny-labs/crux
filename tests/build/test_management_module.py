@@ -305,5 +305,203 @@ class Slice2CMakeTest(unittest.TestCase):
         self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE", text)
 
 
+# Slice 3: network settings, the TLS certificate module, the file service and reboot. Each is a visible
+# Experimental symbol that needs Access. The network settings service also needs the Configuration
+# service, and its apply port is the application's (ADR-0004 C3) unless the no-op port is asked for.
+SLICE3_VISIBLE = {
+    "CRUX_NETWORK_SETTINGS": ("CRUX_CONFIG_SERVICE", {"CRUX_THREAD", "CRUX_SYNC"}),
+    "CRUX_NETWORK_SETTINGS_NO_APPLY": ("CRUX_NETWORK_SETTINGS", set()),
+    "CRUX_TLS_CERTIFICATE": ("CRUX_ACCESS", {"CRUX_SYNC"}),
+    "CRUX_FILE_SERVICE": ("CRUX_ACCESS", {"CRUX_SYNC"}),
+    "CRUX_REBOOT": ("CRUX_ACCESS", {"CRUX_CONFIGURATION_CORE", "CRUX_THREAD", "CRUX_SYNC"}),
+}
+# symbol -> component, the Host sources the module leaves out, and the sources it adds from a port directory
+SLICE3_DIRECTORIES = {
+    "CRUX_NETWORK_SETTINGS": ("network_settings", {"src/network_settings_cli.c"}, set()),
+    "CRUX_TLS_CERTIFICATE": ("tls_certificate", set(), {"ports/psa/tls_certificate_psa.c"}),
+    "CRUX_FILE_SERVICE": ("file_service", set(), set()),
+    "CRUX_REBOOT": ("reboot", set(), set()),
+}
+
+
+class Slice3KconfigTest(unittest.TestCase):
+    def test_the_symbols_exist_are_off_by_default_and_say_experimental(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE3_VISIBLE:
+            self.assertTrue(symbol in blocks, symbol)
+            self.assertIsNone(re.search(r"(?m)^\s+default\s+y\b", blocks[symbol]), symbol)
+            self.assertRegex(blocks[symbol], r"Experimental", symbol)
+            self.assertRegex(blocks[symbol], r"(?m)^\s+bool\s+\"", symbol)
+
+    def test_each_symbol_depends_on_what_it_needs_and_selects_what_it_links(self):
+        blocks = kconfig_blocks()
+        for symbol, (needs, selects) in SLICE3_VISIBLE.items():
+            self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
+            if needs != "CRUX_NETWORK_SETTINGS":  # that symbol reaches the module through its dependency
+                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_PILOT_MODULE\b", symbol)
+            for chosen in selects:
+                self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
+
+    def test_the_network_settings_service_says_the_apply_port_is_the_applications(self):
+        blocks = kconfig_blocks()
+        self.assertRegex(blocks["CRUX_NETWORK_SETTINGS"], r"apply port")
+        self.assertRegex(blocks["CRUX_NETWORK_SETTINGS_NO_APPLY"], r"applies nothing|no-op")
+
+    def test_no_wolf_symbol_is_named(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE3_VISIBLE:
+            self.assertNotRegex(blocks[symbol].upper(), r"WOLF", symbol)
+
+
+class Slice3CMakeTest(unittest.TestCase):
+    def test_each_directory_is_added_once_and_only_under_its_symbol(self):
+        text = MODULE_CMAKE.read_text()
+        for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():
+            guarded = re.search(rf"if\(CONFIG_{symbol}\)(.*?)\nendif\(\)", text, re.DOTALL)
+            self.assertIsNotNone(guarded, f"no if(CONFIG_{symbol}) block")
+            path = f"components/{component}/ports/zephyr"
+            self.assertEqual(text.count(f'/../{path}"'), 1, path)
+            self.assertIn(f'/../{path}"', guarded.group(1), path)
+
+    def test_the_module_compiles_the_host_sources_plus_the_listed_providers(self):
+        for symbol, (component, skipped, extra) in SLICE3_DIRECTORIES.items():
+            expected = (host_c_files(component) - skipped) | extra
+            self.assertEqual(listed_sources(component, "ports/zephyr"), expected, symbol)
+
+    def test_the_no_op_apply_port_is_built_only_under_its_symbol(self):
+        text = (REPO / "components/network_settings/ports/zephyr/CMakeLists.txt").read_text()
+        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        head, _, tail = text.partition("if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY)")
+        self.assertTrue(tail, "no if(CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY) block")
+        guarded, _, after = tail.partition("\nendif()")
+        self.assertNotIn("network_settings_no_apply.c", head)
+        self.assertIn("network_settings_no_apply.c", guarded)
+        self.assertNotIn("network_settings_no_apply.c", after)
+
+    def test_reboot_is_refused_without_system(self):
+        text = MODULE_CMAKE.read_text()
+        guarded = re.search(r"if\(CONFIG_CRUX_REBOOT\)(.*?)\nendif\(\)", text, re.DOTALL).group(1)
+        self.assertRegex(guarded, r"if\(NOT TARGET crux::system\)\s*message\(FATAL_ERROR")
+
+    def test_no_new_directory_names_a_wolf_target_or_a_crux_alias(self):
+        for symbol, (component, _skipped, _extra) in SLICE3_DIRECTORIES.items():
+            text = (REPO / "components" / component / "ports/zephyr/CMakeLists.txt").read_text()
+            if symbol == "CRUX_TLS_CERTIFICATE":
+                # Phase 1a (ADR-0004) publishes this one target here, and no other alias.
+                # tests/build/test_tls_certificate_public.py holds its definition.
+                text = text.replace("add_library(crux::tls_certificate ALIAS crux_tls_certificate)", "")
+            self.assertNotRegex(text.upper(), r"WOLF", symbol)
+            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+
+
+# Slice 4: the web session and web management cores. The route sources stay the application's: it names
+# CRUX_WEB_SESSION_ROUTES and CRUX_WEB_MANAGEMENT_ROUTES to crux_web_routes() as before.
+SLICE4_VISIBLE = {
+    "CRUX_WEB_SESSION": ("CRUX_WEB", {"CRUX_THREAD", "CRUX_SYNC"}),
+    "CRUX_WEB_MANAGEMENT": ("CRUX_WEB_SESSION", {"CRUX_THREAD", "CRUX_SYNC"}),
+}
+
+
+def cmake_list_sources(path, variable):
+    """Return the .c names of one set(VARIABLE ...) of a sources.cmake, relative to its directory."""
+    text = (REPO / path).read_text()
+    body = re.search(rf"set\({variable}\s+(.*?)CACHE", text, re.DOTALL).group(1)
+    return set(re.findall(r"CMAKE_CURRENT_LIST_DIR\}/([\w./-]+\.c)", body))
+
+
+class Slice4Test(unittest.TestCase):
+    def test_the_symbols_exist_are_off_by_default_and_say_experimental(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE4_VISIBLE:
+            self.assertTrue(symbol in blocks, symbol)
+            self.assertIsNone(re.search(r"(?m)^\s+default\s+y\b", blocks[symbol]), symbol)
+            self.assertRegex(blocks[symbol], r"Experimental", symbol)
+            self.assertRegex(blocks[symbol], r"(?m)^\s+bool\s+\"", symbol)
+
+    def test_each_symbol_depends_on_what_it_needs_and_selects_what_it_links(self):
+        blocks = kconfig_blocks()
+        for symbol, (needs, selects) in SLICE4_VISIBLE.items():
+            self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
+            self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_ACCESS\b", symbol)
+            for chosen in selects:
+                self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
+        self.assertRegex(blocks["CRUX_WEB_MANAGEMENT"], r"depends on [^\n]*\bCRUX_CONFIG_SERVICE\b")
+        self.assertRegex(blocks["CRUX_WEB_MANAGEMENT"], r"depends on [^\n]*\bCRUX_MGMT_STATUS\b")
+
+    def test_the_routes_are_said_to_stay_the_applications(self):
+        blocks = kconfig_blocks()
+        for symbol in SLICE4_VISIBLE:
+            self.assertRegex(blocks[symbol], r"crux_web_routes", symbol)
+
+    def test_each_directory_is_added_once_and_only_under_its_symbol(self):
+        text = MODULE_CMAKE.read_text()
+        for symbol, directory in (("CRUX_WEB_SESSION", "session"), ("CRUX_WEB_MANAGEMENT", "management")):
+            guarded = re.search(rf"if\(CONFIG_{symbol}\)(.*?)\nendif\(\)", text, re.DOTALL)
+            self.assertIsNotNone(guarded, symbol)
+            path = f"components/web/ports/zephyr/{directory}"
+            self.assertEqual(text.count(f'/../{path}"'), 1, path)
+            self.assertIn(f'/../{path}"', guarded.group(1), path)
+
+    def test_the_session_library_compiles_the_session_sources_and_the_psa_port(self):
+        expected = {f"../../../session/{name}" for name in cmake_list_sources(
+            "components/web/session/sources.cmake", "CRUX_WEB_SESSION_SOURCES")}
+        expected.add("../../psa/web_session_psa.c")
+        self.assertEqual(sources_in("components/web/ports/zephyr/session"), expected)
+
+    def test_the_management_library_compiles_the_management_sources(self):
+        names = cmake_list_sources("components/web/management/sources.cmake", "CRUX_WEB_MANAGEMENT_SOURCES")
+        names |= cmake_list_sources("components/web/management/sources.cmake",
+                                    "CRUX_WEB_MANAGEMENT_NETWORK_SOURCES")
+        self.assertEqual(sources_in("components/web/ports/zephyr/management"),
+                         {f"../../../management/{name}" for name in names})
+
+    def test_the_management_network_source_is_built_only_with_network_settings(self):
+        text = (REPO / "components/web/ports/zephyr/management/CMakeLists.txt").read_text()
+        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        head, _, tail = text.partition("if(CONFIG_CRUX_NETWORK_SETTINGS)")
+        self.assertTrue(tail)
+        guarded, _, after = tail.partition("\nendif()")
+        self.assertNotIn("web_management_network_json.c", head)
+        self.assertIn("web_management_network_json.c", guarded)
+        self.assertNotIn("web_management_network_json.c", after)
+
+    def test_no_route_source_is_compiled_into_a_library(self):
+        for directory in ("session", "management"):
+            for name in sources_in(f"components/web/ports/zephyr/{directory}"):
+                self.assertNotRegex(name, r"_routes\.c$|web_management_network\.c$|web_management_reboot\.c$")
+
+    def test_the_service_slots_grow_with_the_management_services_and_not_without_them(self):
+        blocks = kconfig_blocks()
+        for symbol, grown, plain in (("CRUX_SYNC_MUTEX_COUNT", "24", "8"), ("CRUX_THREAD_COUNT", "8", "4")):
+            defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", blocks[symbol])
+            self.assertEqual(defaults, [(grown, "CRUX_ACCESS"), (plain, "")], symbol)
+
+    def test_the_login_worker_gets_the_stack_that_every_image_that_runs_it_sets(self):
+        defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", kconfig_blocks()["CRUX_THREAD_STACK_BYTES"])
+        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION"), ("4096", "")])
+
+    def test_the_management_library_links_what_provides_the_headers_it_includes(self):
+        # management_status.h includes <crux/system.h>, which only crux::system puts on the include path.
+        text = (REPO / "components/web/ports/zephyr/management/CMakeLists.txt").read_text()
+        text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        links = re.search(r"target_link_libraries\(crux_web_management_zephyr PRIVATE([^)]*)\)", text).group(1)
+        for target in ("crux_web_api", "crux::base", "crux::sync", "crux::system", "crux::thread"):
+            self.assertIn(target, links.split(), target)
+        management_status = (REPO / "components/mgmt_status/include/crux/management_status.h").read_text()
+        self.assertIn("#include <crux/system.h>", management_status)
+
+    def test_no_wolf_named_in_the_new_directories(self):
+        for directory in ("session", "management"):
+            text = (REPO / f"components/web/ports/zephyr/{directory}/CMakeLists.txt").read_text()
+            self.assertNotRegex(text.upper(), r"WOLF")
+            self.assertNotRegex(text, r"add_library\(crux::")
+
+
+def sources_in(directory):
+    """Return the .c paths a port directory lists, exactly as written."""
+    text = (REPO / directory / "CMakeLists.txt").read_text()
+    return set(re.findall(r"^\s*([\w./-]+\.c)\s*\)?\s*$", text, re.MULTILINE))
+
+
 if __name__ == "__main__":
     unittest.main()
