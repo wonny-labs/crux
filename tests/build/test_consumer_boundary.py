@@ -527,6 +527,7 @@ WRAP_FORMS = {
     "split_linker": "LINKER:--wrap;LINKER:{symbol}",
     "split_xlinker": "-Xlinker;--wrap;-Xlinker;{symbol}",
     "split_wl": "-Wl,--wrap;-Wl,{symbol}",
+    "split_bare": "--wrap;{symbol}",
     "genex_build_interface": "$<BUILD_INTERFACE:-Wl,--wrap={symbol}>",
     "genex_condition": "$<$<BOOL:1>:-Wl,--wrap={symbol}>",
 }

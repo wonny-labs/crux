@@ -97,7 +97,14 @@ function(_crux_refuse_crux_link_wrap target property values)
     foreach(wrap IN LISTS wraps)
         string(REGEX REPLACE "^.*[= ,]([^ ,]+)$" "\\1" symbol "${wrap}")
         # The symbol may arrive as its own list item, which CMake expands to -Wl,S or LINKER:S.
-        string(REGEX REPLACE "^(LINKER:|SHELL:)?(-Wl,)?" "" symbol "${symbol}")
+        # Each strip is a match with a required prefix: CMake 3.28 rejects a REGEX REPLACE whose
+        # regex can match the empty string, and a symbol with no prefix is the common case.
+        if(symbol MATCHES "^(LINKER:|SHELL:)(.*)$")
+            set(symbol "${CMAKE_MATCH_2}")
+        endif()
+        if(symbol MATCHES "^-Wl,(.*)$")
+            set(symbol "${CMAKE_MATCH_1}")
+        endif()
         if(symbol MATCHES "^(__wrap_|__real_)?crux_")
             message(FATAL_ERROR "native consumer requirement: ${target} ${property}: link-time wrap of Crux symbol ${symbol}")
         endif()
