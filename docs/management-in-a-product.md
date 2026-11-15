@@ -28,7 +28,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
 | Status, configuration, account routes | `GET /api/v1/status`, the configuration list, read, update and save. | Real over HTTPS on `native_sim`. A configuration save has no provider, so none succeeds. | [Management APIs](web-management-apis.md) |
 | Network settings routes | `GET` and `PUT /api/v1/network`. | Real over HTTPS on `native_sim` with a no-op apply port. Nothing is applied to an interface, and nothing can be saved. | [Network settings](network-settings-service.md) |
-| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: no image composes them.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
+| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: the only image that composes them is the RT1060 Mbed image, which has not run.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
 | Packaged web assets | A built frontend folder, compressed, hashed and served as public `GET` routes, with a content policy and a size budget. | Real on `native_sim`. Chrome loaded both examples over HTTPS. | [Web assets](web-assets.md) |
 | TLS certificate model | A P-256 key and a self-signed certificate made at first boot, requests, and checked uploads. | Real on `native_sim` on both PSA providers. **The listener of every `native_sim` composition still serves the declared test certificate**, whose key is public. The RT1060 bench image registers a generated one in code that is compile-only: the image refuses to start and has not run on a board. | [TLS certificate](tls-certificate.md) |
 | Command line, serial | Registry, login, first-account setup `!setup`. | Host. The serial console is **composed in no image**. LPUART3 wiring compiles for RT1060-EVKB. | [Command line contract](cli-contract.md) |
@@ -48,7 +48,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
 | `GET /api/v1/events`, web file upload and download, a browser console | Not built. | [Security event contract](security-event-contract.md), [Issue #188](https://github.com/wonny-labs/crux-pilot/issues/188), [Issue #204](https://github.com/wonny-labs/crux-pilot/issues/204) |
-| A board | Nothing ran on one. | Every document above |
+| A board | Nothing ran on one. A Mbed-profile image for RT1060-EVK Rev B that is meant to run there (HTTPS only, a test-only first account, a RAM disk) is written, and its cross-build check has not run yet; the image has not run either: [RT1060 Mbed management image](rt1060-mbed-management-image.md). | Every document above |
 
 ## Steps
 
@@ -79,7 +79,7 @@ set(route_sources
     ${CRUX_WEB_SESSION_ROUTES}               # session routes, including the password change, 5
     ${CRUX_WEB_MANAGEMENT_ROUTES}            # status and configuration, 5
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES}    # network settings, 2
-    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed in no image yet
+    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed only by the RT1060 Mbed image, not run
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
@@ -161,6 +161,9 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. Defines the portable target `crux::reboot` (ADR-0004 phase 1a). | Module |
 | `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). Starts nothing. Defines the portable target `crux::web_session` for `<crux/web_session.h>` (ADR-0004 phase 1a): ordinary service API, not a composition interface. | Module |
 | `CRUX_WEB_MANAGEMENT` | off | **Experimental** (slice 4). Builds the JSON of the status and configuration routes and the save worker, and with `CRUX_NETWORK_SETTINGS` the JSON of the network routes. Needs `CRUX_WEB_SESSION`, `CRUX_CONFIG_SERVICE` and `CRUX_MGMT_STATUS`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The routes are the application's to name (`CRUX_WEB_MANAGEMENT_*_ROUTES`). Starts nothing. Defines the portable target `crux::web_management` for `<crux/web_management.h>` (ADR-0004 phase 1a): ordinary service API, not a composition interface. | Module |
+| `CRUX_CLI_CONSOLE` | off | **Experimental** (ADR-0004 phase 1b). Needs `CRUX_CLI` and `CRUX_ACCESS`. Links the serial console with its login and first-account setup (`!setup`) and the provider of the command line's event port over the security events, and registers them with the Zephyr link. Defines the composition target `crux::cli_zephyr` for `<crux/cli_zephyr.h>`, which declares `crux_cli_serial_start()`; the target is rejected in a portable consumer. The console owns the UART of the devicetree alias `crux-serial0`. | Module |
+| `CRUX_CLI_CONSOLE_BAUD_RATE` | 115200 | Baud rate of the console, 8N1. Read by `crux_cli_serial_start()` | Module |
+| `CRUX_CLI_CONSOLE_PRIORITY` | 6 | Priority of the console thread (ADR-0002 P3). It also runs the password verification of a login | Module |
 | `CRUX_SSH` | off | The wolfSSH provider and the access adapter. Needs wolfSSH, IPv4 and sockets, and **refuses the Mbed profile**. Its adapter also needs the security event core at link time: `CRUX_ACCESS` selects it, and `CRUX_SSH` does not. A dependency that is not met only warns in Zephyr, so the symbol silently becomes `n`: check it in your CMake. | Module |
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |
@@ -172,7 +175,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_SSH_IO_TIMEOUT_MS` | 200 | Longest that one read or write of a session waits | Composition |
 | `CRUX_SSH_WORKER_STACK_BYTES`, `_LISTENER_STACK_BYTES`, `_WINDOW_BYTES` | 16384, 4096, 16384 | Provider sizes. The worker stack is **not measured on a target**. | Module |
 
-With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 24 instead of 8 and `CRUX_THREAD_COUNT` to 8 instead of 4, the values of the `native_sim` services image: the management services take one or more mutexes and a worker thread each (the event drain, network settings, reboot, web session and web management are five of the eight threads), and a product's configuration then need not name them (ADR-0004 C6). With `CRUX_WEB_SESSION` set, `CRUX_THREAD_STACK_BYTES` defaults to 8192 instead of 4096, because the login worker derives a password on its stack and every in-repo image that runs it sets 8192; it is the stack of every Crux worker of that image. **8192 equals the tested images and is not a measured stack high-water mark: nobody has measured it on a target.** The Crux Thread API has no stack measurement, so a product should measure its own with Zephyr's (`CONFIG_THREAD_STACK_INFO` and `CONFIG_INIT_STACKS`) under its own load, including a login. `CRUX_SYNC_SEMAPHORE_COUNT` stays at 8, and all the services together use 7 of them. An image that leaves `CRUX_ACCESS` off keeps 8, 4 and 4096, as before.
+With `CRUX_ACCESS` set, `CRUX_SYNC_MUTEX_COUNT` defaults to 24 instead of 8 and `CRUX_THREAD_COUNT` to 8 instead of 4, the values of the `native_sim` services image: the management services take one or more mutexes and a worker thread each (the event drain, network settings, reboot, web session and web management are five of the eight threads, and the serial console thread of `CRUX_CLI_CONSOLE` is a sixth), and a product's configuration then need not name them (ADR-0004 C6). With `CRUX_WEB_SESSION` or `CRUX_CLI_CONSOLE` set, `CRUX_THREAD_STACK_BYTES` defaults to 8192 instead of 4096, because the login worker, and the console thread, which verifies a login with the same derivation, derive a password on their stacks and every in-repo image that runs it sets 8192; it is the stack of every Crux worker of that image. **8192 equals the tested images and is not a measured stack high-water mark: nobody has measured it on a target.** The Crux Thread API has no stack measurement, so a product should measure its own with Zephyr's (`CONFIG_THREAD_STACK_INFO` and `CONFIG_INIT_STACKS`) under its own load, including a login. `CRUX_SYNC_SEMAPHORE_COUNT` stays at 8, and all the services together use 7 of them. An image that leaves `CRUX_ACCESS` off keeps 8, 4 and 4096, as before.
 
 Sizes of the Access table are compile-time constants, not Kconfig: `CRUX_ACCESS_SESSION_MAX` 8 and `CRUX_ACCESS_SESSIONS_PER_ACCOUNT` 3 in `components/access/src/access_port.h`.
 
@@ -214,7 +217,7 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | `GET /api/v1/config`, `GET` and `PUT /api/v1/config/{name}` | session, per parameter | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image |
 | `POST /api/v1/config/save` | permission `config.save` | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image. No save provider: it answers `202`, and the list then shows `"save":{"state":"failed","code":"not_supported"}`. |
 | `GET` and `PUT /api/v1/network` | permissions `network.read`, `network.write` | `CRUX_WEB_MANAGEMENT_NETWORK_ROUTES` | Services image. A change answers `501`. |
-| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **No image** |
+| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **Only the RT1060 Mbed image**, not run |
 | One `GET` per packaged file, and `/` | public | `crux_web_assets` | Services image |
 
 No route exists for the TLS certificate, events, file upload or download. The services image holds exactly the 12 component routes above plus the packaged folder: [services image](native-composition-242.md#boot-order). The reviewed list is [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt).
@@ -349,7 +352,7 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Browser cases against firmware (`e2e-mbed`, `e2e-wolf`) | | **Local only.** No workflow runs them. |
 | Browser cases on the mock, the Angular example, the specification lint | `web.yml` | |
 | Firefox and Chromium header capture, WinSCP | | By hand |
-| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
+| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board. `scripts/test-management-mbed-rt1060.sh build` is the cross-build check of the [Mbed management image](rt1060-mbed-management-image.md); it has no workflow step yet and has not run. |
 
 ## Owner decisions
 
