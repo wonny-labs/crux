@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Draft proposal for a decision.** Nothing here is adopted. No file of the composition exists for this board, nothing was built and nothing was run on a board. |
+| Status | **Starting values approved.** The project owner approved the starting values C1 to C5 and the four choices D1 to D4 as recommended on 15 November 2026. The values are starting values, to be corrected by the first CI build. The RT1170 composition itself is not built or verified, and nothing was run on a board. The files and the check are in a Draft pull request that is not merged. |
 | Date | 15 November 2026 |
 | Work package | RT1170 build-only evidence of M8 ([#296](https://github.com/wonny-labs/crux-pilot/issues/296)), Phase 1 of the [secure boot development plan](secure-boot-development-plan.md) |
 | Builds on | [Boot composition](../boot-composition.md) (RT1060-EVK Rev B, merged), the RT1170 desk study [Stage 7](../evidence/boot-update/stage7-rt1170-delta.md) of the [boot and update investigation](../boot-update-investigation.md) |
@@ -45,7 +45,7 @@ Files would live in `zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A/` with t
 
 A build-only result for the RT1170 would show that the arguments configure, MCUboot and the application build, the application is signed and `imgtool verify` accepts it. It would **not** show that the boot ROM accepts the layout. Everything about the RT1170 boot ROM is Not verified, because every NXP reference manual, security manual and application note and the Rev A1 user guide were unreadable for Stage 7: the FCB offset (`0x400`, against `0x0` on the RT1060), the XMCD that starts the SDRAM (the RT1060 uses a DCD), the boot switch settings, OTFAD in place of BEE, and any HAB or fuse behaviour. None of this is addressed by the proposed files.
 
-## 5. Questions for the owner
+## 5. Decisions
 
 | # | Question | Recommendation |
 | --- | --- | --- |
@@ -53,6 +53,8 @@ A build-only result for the RT1170 would show that the arguments configure, MCUb
 | D2 | Which application does the RT1170 build use? The controller sample has no RT1170 board configuration. | A minimal board configuration for the controller sample, only if it needs no change to the sample's source. If it does, a small Zephyr sample first (the claim is then about the composition, not about the Controller). |
 | D3 | Where does the RT1170 build run in CI? | A separate step or job, not inside the RT1060 step of the `runtime` shard, so that an RT1170 failure does not hide an RT1060 result. Adding it changes `.github/workflows/zephyr.yml`, a protected path: the change is additive and needs a human approval that covers it. Alternative: one step that loops over both boards, which hides which board failed. |
 | D4 | How does the check script handle a second board? | A second script that reuses the same checks, because a new check script may be added within the task and no existing protected file is edited. Alternative: a parameter of the existing `scripts/test-boot-composition.sh`, which keeps one script. That is an edit of an existing protected file; `AGENTS.md` lets an approved work package edit the test runner of a component it changes if no suite, board, build option or warning flag is removed, so it may need no separate approval, but the owner decides whether that reading applies. |
+
+**Answer.** D1 to D4 were approved as recommended by the project owner on 15 November 2026: D1, the starting values C1 to C5 as proposed; D2, a minimal board configuration for the controller sample only if it needs no source change, otherwise a small Zephyr sample; D3, a separate step or job for the RT1170 in the Zephyr workflow, additive and not inside the RT1060 step; D4, a second, new check script.
 
 ## 6. Not verified
 
@@ -62,6 +64,6 @@ A build-only result for the RT1170 would show that the arguments configure, MCUb
 - The memory-map facts of section 2 at Zephyr v4.4.2.
 - Whether the retained region at `0x2033ff00` is free of any other use in the application at v4.4.2.
 
-## 7. Next step if D1 to D4 are accepted
+## 7. Next step
 
-Four files and a build check as a Draft pull request, built only by CI, with a reviewer PASS before any merge, as for the RT1060. No board, no key, no fuse operation.
+The four files, the second check script and the CI step are prepared in a Draft pull request that is built only by CI, with a reviewer PASS before any merge, as for the RT1060. The first CI run may fail on the memory-map assumptions of this note. That is expected information, and the values are corrected from it. No board, no key, no fuse operation.
