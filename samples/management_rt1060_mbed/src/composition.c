@@ -203,7 +203,12 @@ bool composition_core_start(void)
     if (store != CRUX_CREDENTIAL_OK && store != CRUX_CREDENTIAL_ERR_UNUSABLE) {
         return failed("credential store");
     }
-    state_at_start = crux_credential_state();
+    /* A failed read leaves the state UNUSABLE: it fails closed and no first account is created. */
+    crux_credential_store_info_t info;
+    state_at_start = CRUX_CREDENTIAL_STATE_UNUSABLE;
+    if (crux_credential_store_get_info(&info) == CRUX_OK) {
+        state_at_start = info.state;
+    }
     /* An unusable store reads NOT_READY here and stays so: it fails closed. */
     crux_access_result_t access = crux_access_init(&policy);
     if (access != CRUX_ACCESS_OK && access != CRUX_ACCESS_ERR_NOT_READY) {
