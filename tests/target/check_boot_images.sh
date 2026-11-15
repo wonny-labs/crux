@@ -7,7 +7,8 @@
 # This script builds nothing, programs nothing, boots nothing and generates no key. It reads the build
 # directory of the RT1060 composition check ($repo/build/zephyr/boot-composition unless an argument names
 # another one) and writes only below $build/check_boot_images.tmp (changed copies of the signed image, the
-# inspector's JSON outputs and small helper files), which it removes again, also after a failure.
+# inspector's JSON outputs, the images that the oversized check signs with imgtool sign and small helper
+# files), which it removes again, also after a failure.
 # It is NOT wired into any workflow: a step in .github/workflows/zephyr.yml is a protected-file change
 # that needs the project owner's approval (proposal: docs/boot-image-inspection.md, "Check of the
 # CI-built images"). It has never run on a real build; the host tests in
@@ -17,9 +18,11 @@
 # Environment: CRUX_PYTHON (python3 by default), CRUX_WORKSPACE (the parent of the repository by default,
 # where bootloader/mcuboot is checked out, as in scripts/test-boot-composition.sh).
 # Exit status: 0 every check passed (a key hash that could not be compared is said so on the last line),
-# 1 a check failed (including a disagreement between the inspector and imgtool, a missing confirmed image
-# and an image name that is not exactly one file), 2 the build or a tool cannot be used: a missing build
-# directory, image, Python, imgtool or key, or imgtool without its requirements (a traceback on --help).
+# 1 a check failed (including a disagreement between the inspector and imgtool, a missing confirmed image,
+# an image that does not fit the slot, imgtool signing into a slot that is too small and an image name that
+# is not exactly one file), 2 the build or a tool cannot be used: a missing build directory, image, Python,
+# imgtool or key, imgtool without its requirements (a traceback on --help), or a control signing with the
+# real slot size that imgtool refuses.
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

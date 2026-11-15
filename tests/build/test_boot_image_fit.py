@@ -14,7 +14,6 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
-import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -38,6 +37,7 @@ FIELD_NAMES = {"image", "layout", "size", "padding", "trailer alignment"}
 
 def padded_slot(image, slot_size, align, magic="good"):
     """The image at the start of a slot-sized buffer whose end carries the trailer magic."""
+    assert len(image) <= slot_size - 16, "the image must leave room for the trailer magic"
     slot = bytearray(base.trailer_bytes(slot_size, align, magic=magic))
     slot[:len(image)] = image
     return bytes(slot)
@@ -169,12 +169,19 @@ class FitPaddedImageTest(unittest.TestCase):
         self.assertEqual("info", statuses(report)["trailer alignment"])
 
     def test_the_trailer_overlapping_the_image_is_oversized(self):
+        # About 3.2 KiB of image in a 4 KiB slot leaves room for the 16-byte magic, but not for the
+        # 2048 bytes that the trailer fields of alignment 512 reach below the end.
         image = base.build_image(payload=bytes(range(256)) * 8)
-        size = 3 * KIB
+        size = 4 * KIB
         data = padded_slot(image, size, 512)
+        self.assertEqual(size, len(data))
         report = check(data, slot_size=size, align=512)
         self.assertFalse(report["ok"])
         self.assertEqual("fail", statuses(report)["size"])
+        self.assertEqual("ok", statuses(report)["padding"])
+        detail = next(e["detail"] for e in report["checks"] if e["name"] == "size")
+        self.assertIn("trailer region", detail)
+        self.assertGreater(report["over_by"], 0)
 
 
 class FitImageValidityTest(unittest.TestCase):

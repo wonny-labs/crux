@@ -85,6 +85,13 @@ EPILOG = (
     "Exit status: 0 decodes (image: digest matches), 1 inconsistent or digest mismatch, 2 usage error."
 )
 
+FIT_EPILOG = (
+    "fit decides by the repository's trailer model, not by imgtool or MCUboot, and is NOT a signature "
+    "verification.\n"
+    f"{LAYOUT_NOTE}\n"
+    "Exit status: 0 the image fits, 1 it does not fit (oversized or misaligned), 2 usage error."
+)
+
 
 def hex_of(data):
     return bytes(data).hex()
@@ -829,7 +836,7 @@ def build_parser():
             "length of a padded image and the alignment of its trailer magic. It is not an imgtool or "
             "MCUboot decision and not a signature verification."
         ),
-        epilog=EPILOG,
+        epilog=FIT_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     fit.add_argument("file")
