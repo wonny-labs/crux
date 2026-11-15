@@ -286,7 +286,7 @@ as an explicit dependency. No edits to the Flash Safety branch or private planni
 
 ## Review and approval record
 
-Independent Challenger `/root/execution_challenger` returned **REVISE** on the initial
+An independent Challenger returned **REVISE** on the initial
 direction: monotonic POSIX condition variables must be considered, finite join must
 not imply task shutdown, and new consumers/resource lifecycle must justify an API.
 Subsequent review requested a precise static-composition alternative and mandatory
@@ -296,8 +296,8 @@ as a human approval proposal only**. The recommendation remains conditional: poo
 qualify consumer-controlled reservation/reclamation; composition-owned resources
 remain smaller if that objective adds insufficient value. This PASS grants no
 contract, implementation, integration or hardware approval.
-The user explicitly approved this proposed Crux contract in this chat on 22 October
-2026, selecting “Approve the proposed Crux contract (recommended)”. That approves
+The project owner explicitly approved this proposed Crux contract on 22 October
+2026, as recommended. That approves
 implementation of the contract above, not hardware operations, integration, Issue
 closure or untested guarantees. Subsequent implementation evidence belongs in the
 contract and validation record; this proposal retains the decision rationale.

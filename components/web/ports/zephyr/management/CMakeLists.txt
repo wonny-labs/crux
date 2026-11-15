@@ -9,11 +9,30 @@
 # CRUX_WEB_MANAGEMENT_REBOOT_ROUTES of components/web/management/sources.cmake. The save worker's priority
 # is the Kconfig symbol of ADR-0002 P3, CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY.
 #
-# No crux:: target and no public header: see components/access/ports/zephyr/CMakeLists.txt. The sources are
-# the ones components/web/management/sources.cmake lists, and tests/build/test_management_module.py holds
-# the lists together.
+# It publishes the portable target crux::web_management (ADR-0004 phase 1a, Experimental). The init, the
+# worker start and the save query are declared in <crux/web_management.h>, under the include root of crux::web
+# that the target links, so the target needs no management, adapter or src directory. It is ordinary service
+# API and not a composition interface: nothing in it binds a Crux provider to a Zephyr resource. The sources
+# are the ones components/web/management/sources.cmake lists, and tests/build/test_management_module.py
+# holds the lists together.
 get_filename_component(CRUX_WEB_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 get_filename_component(CRUX_COMPONENTS_DIR "${CRUX_WEB_COMPONENT_DIR}/.." ABSOLUTE)
+include("${CRUX_COMPONENTS_DIR}/../cmake/CruxAccessBoundary.cmake")
+include("${CRUX_COMPONENTS_DIR}/../cmake/CruxWebBoundary.cmake")
+
+# A portable usage target, like the Host build's: the public include roots of crux::web, which carry
+# <crux/web_management.h> and <crux/web.h>, and nothing private. The library below is registered with the
+# Zephyr link by zephyr_append_cmake_library, so the target does not link it, and the adapter, management and
+# src directories stay private to it. tests/build/test_web_lifecycle_boundary.py runs this definition
+# against the real guards.
+function(crux_web_management_public_target)
+  if(NOT TARGET crux::web)
+    message(FATAL_ERROR "crux::web_management needs crux::web: set CONFIG_CRUX_WEB")
+  endif()
+  add_library(crux_web_management INTERFACE)
+  add_library(crux::web_management ALIAS crux_web_management)
+  target_link_libraries(crux_web_management INTERFACE crux::web)
+endfunction()
 
 if(NOT CONFIG_CRUX_WEB_MANAGEMENT)
   message(FATAL_ERROR "This directory is the web management selection of the module: set CONFIG_CRUX_WEB_MANAGEMENT")
@@ -44,3 +63,8 @@ target_link_libraries(crux_web_management_zephyr PRIVATE zephyr_interface crux_w
   crux::system crux::thread crux_service_priority_placement)
 add_dependencies(crux_web_management_zephyr zephyr_generated_headers)
 target_compile_options(crux_web_management_zephyr PRIVATE -Wall -Wextra -Werror)
+
+crux_web_management_public_target()
+cmake_language(DEFER CALL crux_assert_portable_usage crux::web_management)
+cmake_language(DEFER CALL crux_assert_access_adapter_unreachable crux::web_management)
+cmake_language(DEFER CALL crux_assert_web_internal_unreachable crux::web_management)

@@ -464,6 +464,8 @@ class Slice4Test(unittest.TestCase):
         expected = {f"../../../session/{name}" for name in cmake_list_sources(
             "components/web/session/sources.cmake", "CRUX_WEB_SESSION_SOURCES")}
         expected.add("../../psa/web_session_psa.c")
+        # The provider of the event port is not in the Host list, which compiles a fake port instead.
+        expected.add("../../../session/web_session_security_events.c")
         self.assertEqual(sources_in("components/web/ports/zephyr/session"), expected)
 
     def test_the_management_library_compiles_the_management_sources(self):
@@ -510,10 +512,15 @@ class Slice4Test(unittest.TestCase):
         self.assertIn("#include <crux/system.h>", management_status)
 
     def test_no_wolf_named_in_the_new_directories(self):
+        # Phase 1a (ADR-0004) gives each directory one portable target of its own, which
+        # tests/build/test_web_lifecycle_boundary.py holds to the real guards. Any other alias is refused.
+        own_alias = {"session": "add_library(crux::web_session ALIAS crux_web_session)",
+                     "management": "add_library(crux::web_management ALIAS crux_web_management)"}
         for directory in ("session", "management"):
             text = (REPO / f"components/web/ports/zephyr/{directory}/CMakeLists.txt").read_text()
             self.assertNotRegex(text.upper(), r"WOLF")
-            self.assertNotRegex(text, r"add_library\(crux::")
+            self.assertIn(own_alias[directory], text)
+            self.assertNotRegex(text.replace(own_alias[directory], ""), r"add_library\(crux::")
 
 
 def sources_in(directory):

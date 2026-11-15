@@ -105,6 +105,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh target-mbed
 
+      - name: Cross-build the RT1060 Mbed management image, without flashing it
+        working-directory: crux-pilot
+        run: scripts/test-management-mbed-rt1060.sh build
+
       - name: Upload logs and reports
         if: always()
         uses: actions/upload-artifact@v4

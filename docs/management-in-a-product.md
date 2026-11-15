@@ -2,6 +2,8 @@
 
 Status: a guide for a product team that uses Crux as a west module and wants HTTPS web management, the SSH command line and SFTP, without reading the code. It adds no behaviour and no decision. Each statement cites a document or a file, and says whether it is **real**, **faked** or **untested**. It was written against `origin/main` at `e1023e7`. **Stale since 159 commits:** `origin/main` was 159 commits ahead of that revision when this line was written (`git rev-list --count e1023e7..40a99210`), and the page was not re-verified. The authoritative state is the code and the CI at the revision you use.
 
+To review the security model, read the [secure management review guide](secure-management-review.md); to check a board on your own bench, the [bench test procedure](secure-management-board-test-procedure.md), which has not yet been run.
+
 **Nothing in this guide has run on a board.** Every result is Host, `native_sim` or a compile for RT1060-EVKB. `native_sim` uses the host's TCP stack and a test entropy source, so a result there shows that protocols and algorithms run, and not that anything is fast, small or safe on a device. See [what "real" means on `native_sim`](psa-crypto-design.md#what-real-means-on-native_sim).
 
 The terms are in [the glossary](management-glossary.md). How to read the tables:
@@ -26,7 +28,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
 | Status, configuration, account routes | `GET /api/v1/status`, the configuration list, read, update and save. | Real over HTTPS on `native_sim`. A configuration save has no provider, so none succeeds. | [Management APIs](web-management-apis.md) |
 | Network settings routes | `GET` and `PUT /api/v1/network`. | Real over HTTPS on `native_sim` with a no-op apply port. Nothing is applied to an interface, and nothing can be saved. | [Network settings](network-settings-service.md) |
-| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: no image composes them.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
+| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: the only image that composes them is the RT1060 Mbed image, which has not run.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
 | Packaged web assets | A built frontend folder, compressed, hashed and served as public `GET` routes, with a content policy and a size budget. | Real on `native_sim`. Chrome loaded both examples over HTTPS. | [Web assets](web-assets.md) |
 | TLS certificate model | A P-256 key and a self-signed certificate made at first boot, requests, and checked uploads. | Real on `native_sim` on both PSA providers. **The listener of every `native_sim` composition still serves the declared test certificate**, whose key is public. The RT1060 bench image registers a generated one in code that is compile-only: the image refuses to start and has not run on a board. | [TLS certificate](tls-certificate.md) |
 | Command line, serial | Registry, login, first-account setup `!setup`. | Host. The serial console is **composed in no image**. LPUART3 wiring compiles for RT1060-EVKB. | [Command line contract](cli-contract.md) |
@@ -46,7 +48,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
 | `GET /api/v1/events`, web file upload and download, a browser console | Not built. | [Security event contract](security-event-contract.md), [Issue #188](https://github.com/wonny-labs/crux-pilot/issues/188), [Issue #204](https://github.com/wonny-labs/crux-pilot/issues/204) |
-| A board | Nothing ran on one. | Every document above |
+| A board | Nothing ran on one. A Mbed-profile image for RT1060-EVK Rev B that is meant to run there (HTTPS only, a test-only first account, a RAM disk) is written, and its cross-build check has not run yet; the image has not run either: [RT1060 Mbed management image](rt1060-mbed-management-image.md). | Every document above |
 
 ## Steps
 
@@ -77,7 +79,7 @@ set(route_sources
     ${CRUX_WEB_SESSION_ROUTES}               # session routes, including the password change, 5
     ${CRUX_WEB_MANAGEMENT_ROUTES}            # status and configuration, 5
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES}    # network settings, 2
-    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed in no image yet
+    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed only by the RT1060 Mbed image, not run
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
@@ -133,7 +135,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 
 | Symbol | Default | What it sets | Read by |
 | --- | --- | --- | --- |
-| `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. | Module |
+| `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. Defines the composition target `crux::web_zephyr` for `<crux/web_zephyr.h>` (ADR-0004 phase 1a, Experimental), which declares `crux_web_start()`; the target is rejected in a portable consumer. | Module |
 | `CRUX_WEB_PORT` | 443 | Listening port, or 0 for an ephemeral one | Adapter |
 | `CRUX_WEB_BACKLOG` | 4 | Connections the listening socket queues | Adapter |
 | `CRUX_WEB_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Adapter |
@@ -157,8 +159,8 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). Starts nothing. Defines the portable target `crux::tls_certificate` for `<crux/tls_certificate.h>` and `<crux/tls_certificate_start.h>`, the header that carries the key (phase 1a). | Module |
 | `CRUX_FILE_SERVICE` | off | **Experimental** (slice 3). Builds the file service core. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Defines the portable target `crux::file_service` (ADR-0004 phase 1a). | Module |
 | `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. Defines the portable target `crux::reboot` (ADR-0004 phase 1a). | Module |
-| `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). | Module |
-| `CRUX_WEB_MANAGEMENT` | off | **Experimental** (slice 4). Builds the JSON of the status and configuration routes and the save worker, and with `CRUX_NETWORK_SETTINGS` the JSON of the network routes. Needs `CRUX_WEB_SESSION`, `CRUX_CONFIG_SERVICE` and `CRUX_MGMT_STATUS`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The routes are the application's to name (`CRUX_WEB_MANAGEMENT_*_ROUTES`). | Module |
+| `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). Starts nothing. Defines the portable target `crux::web_session` for `<crux/web_session.h>` (ADR-0004 phase 1a): ordinary service API, not a composition interface. | Module |
+| `CRUX_WEB_MANAGEMENT` | off | **Experimental** (slice 4). Builds the JSON of the status and configuration routes and the save worker, and with `CRUX_NETWORK_SETTINGS` the JSON of the network routes. Needs `CRUX_WEB_SESSION`, `CRUX_CONFIG_SERVICE` and `CRUX_MGMT_STATUS`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The routes are the application's to name (`CRUX_WEB_MANAGEMENT_*_ROUTES`). Starts nothing. Defines the portable target `crux::web_management` for `<crux/web_management.h>` (ADR-0004 phase 1a): ordinary service API, not a composition interface. | Module |
 | `CRUX_CLI_CONSOLE` | off | **Experimental** (ADR-0004 phase 1b). Needs `CRUX_CLI` and `CRUX_ACCESS`. Links the serial console with its login and first-account setup (`!setup`) and the provider of the command line's event port over the security events, and registers them with the Zephyr link. Defines the composition target `crux::cli_zephyr` for `<crux/cli_zephyr.h>`, which declares `crux_cli_serial_start()`; the target is rejected in a portable consumer. The console owns the UART of the devicetree alias `crux-serial0`. | Module |
 | `CRUX_CLI_CONSOLE_BAUD_RATE` | 115200 | Baud rate of the console, 8N1. Read by `crux_cli_serial_start()` | Module |
 | `CRUX_CLI_CONSOLE_PRIORITY` | 6 | Priority of the console thread (ADR-0002 P3). It also runs the password verification of a login | Module |
@@ -215,7 +217,7 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | `GET /api/v1/config`, `GET` and `PUT /api/v1/config/{name}` | session, per parameter | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image |
 | `POST /api/v1/config/save` | permission `config.save` | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image. No save provider: it answers `202`, and the list then shows `"save":{"state":"failed","code":"not_supported"}`. |
 | `GET` and `PUT /api/v1/network` | permissions `network.read`, `network.write` | `CRUX_WEB_MANAGEMENT_NETWORK_ROUTES` | Services image. A change answers `501`. |
-| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **No image** |
+| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **Only the RT1060 Mbed image**, not run |
 | One `GET` per packaged file, and `/` | public | `crux_web_assets` | Services image |
 
 No route exists for the TLS certificate, events, file upload or download. The services image holds exactly the 12 component routes above plus the packaged folder: [services image](native-composition-242.md#boot-order). The reviewed list is [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt).
@@ -239,7 +241,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | Malformed request, header dropped by the capture, `Transfer-Encoding: chunked`, a body on `GET` | `400 bad_request`, connection closed | No | [Web contract](web-contract.md#answering-early) |
 | Field errors on an update | `400 invalid_field` with a field and a reason | No | [Management APIs](web-management-apis.md) |
 | No valid session | `401 unauthorized` | Log in | [Web session](web-session.md) |
-| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No | [Web session](web-session.md) |
+| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No. A refused token or `Origin` with a session, or a login with a refused `Origin`, leaves a rate-limited `web.csrf_rejected` or `web.origin_rejected` event. | [Web session](web-session.md) |
 | Unknown or hidden item | `404 not_found` | No | [Web contract](web-contract.md) |
 | Body over the route's limit | `413 payload_too_large`, closed | No | [Web contract](web-contract.md#answering-early) |
 | Login attempt inside a delay window | `429 retry_later` on the poll, with `Retry-After` | After `Retry-After`, with a new attempt | [Web session](web-session.md) |
@@ -262,7 +264,8 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | `file.*`, `cli.*` | file created, removed, renamed, refused; `cli.line_rejected`, `cli.console_error` | File service, command line | Real on `native_sim` |
 | `web.certificate_*` | replaced, rejected, unusable | TLS certificate model | Real on `native_sim` |
 | `system.reboot_*` | requested, refused, failed | Reboot service | **Host, and a `native_sim` fixture that starts it and makes no request** |
-| **`web.tls_failed`, `web.csrf_rejected`** | Defined | **Nothing emits them.** A refused CSRF token or `Origin` leaves no event: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319). | Missing |
+| `web.csrf_rejected`, `web.origin_rejected` | A request with a session, refused for its CSRF token or its `Origin`, and a login refused for its `Origin` | Web session module, at most 3 of each kind in 60 s ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [Web session](web-session.md#security-events-for-a-refused-csrf-token-or-origin)). A request with no session (`401`) and a poll without `X-Crux-Request` leave no event. | **Tested on the Host only**. An image links `web_session_security_events.c` with the session sources. |
+| **`web.tls_failed`** | Defined | **Nothing emits it.** | Missing |
 | `ssh.auth_limit`, `ssh.host_key_missing` | A connection ended at `max_auth_attempts`; the credential store could not supply the host key | SSH access adapter ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [contract](security-event-contract.md#from-the-ssh-adapter-port)) | **Tested on the Host only**. An image that selects `CONFIG_CRUX_SSH` compiles and links the same provider, and no image run shows the records. A refusal before a callback is **reserved**: it leaves no event. |
 | File operations refused with no identifier | | | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) |
 
@@ -277,7 +280,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 | Key exchange | `curve25519-sha256`, `ecdh-sha2-nistp256`. `mlkem768x25519-sha256` only if built with `CRUX_SSH_WOLF_OFFER_MLKEM`, **off by default**. Strict key exchange is on. | `diffie-hellman` groups |
 | Ciphers | `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`, `aes128-ctr`. No `chacha20-poly1305`. | `aes128-cbc`, `aes256-cbc`, `3des-cbc` |
 | MAC | `hmac-sha2-256` | `hmac-sha1` |
-| User keys | `ssh-ed25519`, `ecdsa-sha2-nistp256` (P-256 only). **No RSA**, by owner decision. | `ssh-rsa` and `rsa-sha2-256` (refused by OpenSSH in the cases), P-384 and P-521 (refused by the Host wire checks). Access accepts P-384 and P-521 keys that SSH never offers: [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316). |
+| User keys | `ssh-ed25519`, `ecdsa-sha2-nistp256` (P-256 only). **No RSA**, by owner decision. | `ssh-rsa` and `rsa-sha2-256` (refused by OpenSSH in the cases), P-384 and P-521 (refused by the Host wire checks). Access accepts the same two types and refuses a P-384 or P-521 key as `INVALID_ARGUMENT` ([Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316), [Access contract](access-contract.md#user-key-types-issue-316)). |
 | Host key | Ed25519 or ECDSA P-256 | |
 
 **Clients that ran.**
@@ -300,7 +303,7 @@ On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-
 | --- | --- |
 | What does the product call? | `crux_access_account_add_key(session, user, key, key_length)`, and `crux_access_account_remove_key` to take a key away |
 | With which session? | One that holds `access.manage` for another account's key. An account's own keys need `access.self` only, which every role holds, but a session under a forced password change is denied even that: it may only change the password and log out, so add a first account's key after that change or with an administrator session. The test composition adds keys for two accounts with an administrator session |
-| What is the key? | An SSH public key blob, compared byte for byte, of type `ssh-ed25519` or `ecdsa-sha2-nistp256`: the wire-format blob that the base64 field of an OpenSSH public key line holds, not the text line. Access also accepts P-384 and P-521 blobs today, which SSH never offers: the owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) (option A, Ed25519 and P-256 only) is not implemented yet, so register only those two types. Any other type or form is `INVALID_ARGUMENT`, and `CRUX_ACCESS_KEY_SIZE_MAX` (192 bytes by default, [Access contract](access-contract.md)) bounds the blob |
+| What is the key? | An SSH public key blob, compared byte for byte, of type `ssh-ed25519` or `ecdsa-sha2-nistp256`: the wire-format blob that the base64 field of an OpenSSH public key line holds, not the text line. Access accepts only those two types, as the owner decided on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) (option A): a P-384 or P-521 blob is `INVALID_ARGUMENT`, because SSH never offers those curves. A store that an earlier revision saved with such a key reads as unusable, so no account can log in until it is recovered ([Access contract](access-contract.md#user-key-types-issue-316)). The key is only checked for its form: SSH verifies the signature, and the Mbed profile has no SSH, so a key registered on an Mbed image is stored and unused. Any other type or form is also `INVALID_ARGUMENT`, and `CRUX_ACCESS_KEY_SIZE_MAX` (192 bytes by default, [Access contract](access-contract.md)) bounds the blob |
 | What can come back? | `NOT_FOUND` (no such account), `ALREADY_EXISTS` (the account already lists this key), `NO_RESOURCES` (its key table is full), `INVALID_ARGUMENT`, and also `DENIED` (the session lacks the permission), `SESSION_INVALID`, `NOT_READY` (Access is not ready) and `STORE` (the save failed and the account is unchanged in RAM). A product handles `STORE` and `DENIED` in particular; the result enum in `access.h` is the full list. The test composition treats `ALREADY_EXISTS` as success, because a later boot on the same disk finds the key that the first boot added |
 | What happens to sessions? | Adding a key leaves the account's sessions as they are. Removing a key ends the account's sessions |
 | When? | After Access is ready and the account exists, before the SSH listener starts, in the composition's own code: [boot order](#boot-order) |
@@ -349,7 +352,7 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Browser cases against firmware (`e2e-mbed`, `e2e-wolf`) | | **Local only.** No workflow runs them. |
 | Browser cases on the mock, the Angular example, the specification lint | `web.yml` | |
 | Firefox and Chromium header capture, WinSCP | | By hand |
-| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
+| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board. `scripts/test-management-mbed-rt1060.sh build` is the cross-build check of the [Mbed management image](rt1060-mbed-management-image.md); it has no workflow step yet and has not run. |
 
 ## Owner decisions
 
@@ -363,7 +366,7 @@ Decisions that need the owner and decisions the owner has already taken, with wh
 | A separately approved physical run on RT1060-EVKB | [HTTPS composition](https-composition.md#approvals-needed), approval A4 | Open |
 | A server deadline for trickled headers | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) | Decided 2026-11-14, option B (a header-phase deadline, as a build-local patch); not implemented yet |
 | Certificate validity, the private key as PKCS #8 in RAM, `psa_sign_hash` outside the qualified subset, event identifiers | [TLS certificate](tls-certificate.md#owner-decisions-needed-before-adoption), decisions A to D | Open |
-| Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Decided 2026-11-14, option A (Ed25519 and P-256 only); not implemented yet |
+| Which user key types Access accepts and SSH offers | [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316) | Decided 2026-11-14, option A (Ed25519 and P-256 only); built, and tested on the Host only. A stored P-384 or P-521 key makes the store unusable ([Access contract](access-contract.md#user-key-types-issue-316)) |
 | Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Decided 2026-11-14: emit `ssh.auth_limit` and `ssh.host_key_missing` (option A), refusals before the first callback stay reserved (option B); built, and tested on the Host only |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Decided 2026-11-14, option A with rate limiting; not implemented yet |
