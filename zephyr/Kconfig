@@ -665,8 +665,10 @@ menuconfig CRUX_SSH
       composition starts the provider itself, and provides the Access core, a host key, and the CLI
       core and file service that the two options below name. Only the Wolf profile can carry it: wolfSSH
       needs wolfSSL, and a build with CONFIG_MBEDTLS is refused at configuration. Without the
-      crux-secure-management west group there is no wolfSSH, and the symbol cannot be set. See
-      docs/ssh-wolf-provider.md and docs/ssh-integrated-image.md.
+      crux-secure-management west group there is no wolfSSH, and the symbol cannot be set. The access
+      adapter reports its two security events through the event core, so an image with this symbol must
+      also link the security event core, or it does not link. CONFIG_CRUX_ACCESS builds it, and this
+      symbol does not select it. See docs/ssh-wolf-provider.md and docs/ssh-integrated-image.md.
 
 if CRUX_SSH
 
