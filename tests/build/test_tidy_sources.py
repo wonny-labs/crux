@@ -295,12 +295,12 @@ with open(log, "a") as handle:
     handle.write(" ".join(args) + "\\n")
 source = args[-1]
 if source.endswith("bad.c"):
-    print(f"{source}:3:5: error: something is off [bugprone-fake-check]")
+    print(f"{source}:3:5: error: something is off [bugprone-fake-check,-warnings-as-errors]")
     print("    int x;")
     sys.exit(1)
 if source.endswith("noisy.c"):
     header = os.path.join(os.path.dirname(source), "shared.h")
-    print(f"{header}:9:1: error: shared problem [bugprone-shared]")
+    print(f"{header}:9:1: error: shared problem [bugprone-shared,-warnings-as-errors]")
     sys.exit(1)
 """
 
@@ -360,6 +360,7 @@ class RunTest(TidySourcesCase):
         self.assertIn("components/a", out)
         self.assertRegex(out, r"components/a\s+1\b")
         self.assertIn("bugprone-fake-check", out)
+        self.assertNotIn("warnings-as-errors", out)
         # The same header diagnostic reported through two sources is counted once.
         self.assertRegex(out, r"tests/a\s+1\b")
         self.assertIn("2 diagnostics", out)

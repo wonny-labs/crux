@@ -220,8 +220,11 @@ def parse_diagnostics(text, repo):
                 rel = path
         else:
             rel = path
+        # clang-tidy appends ",-warnings-as-errors" to the check name when WarningsAsErrors promotes it.
+        checks = [name for name in (match.group("check") or "").split(",")
+                  if name and name != "-warnings-as-errors"]
         found.append({"file": rel, "line": int(match.group("line")), "col": int(match.group("col")),
-                      "level": match.group("level"), "check": match.group("check") or "(no check)",
+                      "level": match.group("level"), "check": ",".join(checks) or "(no check)",
                       "message": match.group("message")})
     return found
 
