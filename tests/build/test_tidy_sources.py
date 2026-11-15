@@ -198,6 +198,18 @@ class CompiledButInNoListTest(TidySourcesCase):
         self.assertEqual(1, strict.returncode, strict.stdout)
         self.assertIn("build/logging-consumer", strict.stderr)
 
+    def test_a_listed_database_with_no_owned_source_fails_only_in_strict_mode(self):
+        t = self.tree
+        t.source("components/a/a.c")
+        t.source("elsewhere/x.c")
+        t.database("build/linux/debug", ["components/a/a.c"])
+        t.database("build/empty", [t.root / "elsewhere/x.c"])
+        t.configure("build ; build/linux/debug\nbuild ; build/empty\n")
+        self.assertEqual(0, t.run("check").returncode)
+        strict = t.run("check", "--strict")
+        self.assertEqual(1, strict.returncode, strict.stdout)
+        self.assertIn("build/empty", strict.stderr)
+
     def test_a_database_below_a_database_is_not_a_separate_build(self):
         t = self.tree
         t.source("components/a/a.c")
@@ -384,9 +396,10 @@ class RunTest(TidySourcesCase):
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("2 sources", result.stdout)
 
-    def test_a_clang_tidy_that_cannot_start_is_a_failure_even_in_report_only_mode_output(self):
+    def test_a_clang_tidy_that_cannot_start_fails_even_in_report_only_mode(self):
         result = self.tree.run("run", "--tidy", str(self.tree.root / "no-such-tidy"), "--report-only",
                                env=self.env)
+        self.assertEqual(1, result.returncode, result.stdout + result.stderr)
         self.assertIn("no-such-tidy", result.stdout + result.stderr)
         self.assertNotEqual("", result.stdout + result.stderr)
 

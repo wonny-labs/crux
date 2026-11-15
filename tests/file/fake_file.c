@@ -587,11 +587,11 @@ crux_file_result_t crux_file_impl_rename(crux_file_root_t root, const char *from
     if (find(root, to) != FAKE_ENTRIES) {
         return CRUX_FILE_ERR_EXISTS;
     }
-    if (!mutate()) {
-        return CRUX_FILE_ERR_IO;
-    }
     if (strlen(to) >= FAKE_NAME) {
         abort();
+    }
+    if (!mutate()) {
+        return CRUX_FILE_ERR_IO;
     }
     memcpy(s->entries[source].name, to, strlen(to) + 1u);
     s->entries[source].on_medium = true;
