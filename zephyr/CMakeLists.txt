@@ -164,7 +164,8 @@ endif()
 
 # ADR-0004 phase 0: Access, the credential store and the security events, which are wired to each
 # other, so one symbol builds the three. Off by default, and an image without the symbol is unchanged.
-# Each library is registered with the Zephyr link. No crux:: target and no public header is added: see
+# Each library is registered with the Zephyr link. The portable targets crux::access,
+# crux::credential_store and crux::security_event are defined in the port directories: see
 # components/access/ports/zephyr/CMakeLists.txt. What the three need from the rest of the image is
 # refused here, at configuration, with the missing piece named.
 if(CONFIG_CRUX_ACCESS)

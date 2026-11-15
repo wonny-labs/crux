@@ -3,14 +3,15 @@
 # only under CONFIG_CRUX_NETWORK_SETTINGS, which needs CONFIG_CRUX_ACCESS and CONFIG_CRUX_CONFIG_SERVICE.
 #
 # The apply port is the application's (ADR-0004 C3): the core calls crux_network_settings_port_apply() and
-# crux_network_settings_port_running() from src/network_settings_port.h, and an application that applies
-# settings to an interface implements them. With CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY the module builds the
+# crux_network_settings_port_running(), declared in the public
+# <crux/network_settings_apply_port.h>, and an application that applies settings to an interface
+# implements them. With CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY the module builds the
 # port that applies nothing (src/network_settings_no_apply.c) instead, for native_sim and for an image whose
 # application applies nothing. The two must not be combined: an application's own port would then define
 # the same symbols twice.
 #
 # The serial recovery command (src/network_settings_cli.c) belongs to the command line and is not built here.
-# No crux:: target and no public header: see components/access/ports/zephyr/CMakeLists.txt. The sources are
+# It adds no crux:: target. The sources are
 # the ones the Host build lists in components/network_settings/CMakeLists.txt, and
 # tests/build/test_management_module.py holds the two lists together.
 get_filename_component(CRUX_NETWORK_SETTINGS_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)

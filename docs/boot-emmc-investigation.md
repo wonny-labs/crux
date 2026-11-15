@@ -259,7 +259,10 @@ It would not show atomic **activation**, for these reasons (Inference unless not
 - The **flush correction** is a prerequisite for any write ordering on eMMC, for a file system or for a flash-area backend.
 - The **replay method** (cut models, a medium rebuilt per cut position, negative controls that must fail) can be applied to
   the `flash_area` calls of a backend, driven with MCUboot's real trailer sequences, on the existing simulator. That would
-  be software-only work. It is proposed in [Open questions](#open-questions-and-owner-decisions), not started.
+  be software-only work. It is proposed in [Open questions](#open-questions-and-owner-decisions). A first replay, of
+  RAM load with revert against two models of cache behaviour, is recorded in the
+  [trailer replay record](evidence/boot-emmc/trailer-replay/README.md) (#310). It is a result of models, not of the C
+  simulator and not of a device, and it makes no eMMC support claim.
 - Any atomic-activation claim needs its own evidence on the backend. A claim from the file-system store would not carry over.
 
 ## Hardware needed
@@ -304,7 +307,7 @@ status changes.
 | --- | --- | --- |
 | 1 | The reference manual was read only in a third-party-hosted Rev. 3 copy, and the JEDEC eMMC standard not at all. Can the owner supply the `nxp.com` manual (to compare R1 to R12, X8) and JESD84-B51x (for Y1)? | Supply both. A comparison of the manual copy is cheap. The JEDEC text settles the atomicity and reset questions of sections 3 and 5. |
 | 2 | Scope for an eMMC flash-area backend (variant (b) for eMMC) in the bootloader, as the next step after this record | Do not start before question 1. Then decide between a read-only RAM-load first stage and a full backend, and decide where the driver lives (Zephyr, Crux module or out of tree). |
-| 3 | Software-only replay of MCUboot's trailer sequences on the existing eMMC simulator, to test ordering and alignment assumptions (section 5) | Propose it as a follow-up issue under M14 or M8 after the scope in question 2. It needs no hardware. |
+| 3 | Software-only replay of MCUboot's trailer sequences on the existing eMMC simulator, to test ordering and alignment assumptions (section 5) | Issue #310 exists. A model-only replay of RAM load with revert is recorded in the [trailer replay record](evidence/boot-emmc/trailer-replay/README.md). It needs no hardware. A run through a driver and the C simulator on `native_sim` waits for a backend scope decision (question 2). |
 | 4 | Is there an eMMC-bearing RT1060 or RT1062 target for M8 and M9 validation, or does the pilot hardware remain the only one? | Owner decision. Until one exists, eMMC boot and update stay unvalidated, and the NOR results stay the only evidence. |
 | 5 | Fuse programming, closed configuration and permanent boot-partition protection | Remain product decisions, as in #141 and #299. Nothing in this record needs them. |
 | 6 | Input to #299 | Section 3 is the eMMC input. The first gap to close there is whether the ROM's secondary image mechanism (R9) and the Enter Bootloader API (R12) work with eMMC boot partitions, and what the ROM does with an invalid image in Open configuration. |

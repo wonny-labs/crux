@@ -8,14 +8,16 @@
 # Build it with the Mbed profile, as scripts/test-management-module.sh does:
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
 #
-# What this fixture still reaches by include path, because no public header carries it yet (the
-# composition interfaces of ADR-0004 phase 1a): the Access first-account call, the TLS certificate module's adapter
-# header and the credential
-# store's start, and, for the three route sources, the private directories of the web component:
-# components/web/session, components/web/management and components/web/src, and the private target
-# crux_web_adapter (components/web/adapter). A product outside the repository cannot do that and keep to the
-# include rule of ADR-0004 section 5, which is what crux_web_routes() and crux_web_assets() are being changed
-# for (PRs 425 and 427); the T3 fixture will use them. The TF-PSA-Crypto locks of the Mbed profile come from the management composition's
+# What this fixture still reaches by include path: the Access first-account call, which no public
+# header carries by decision (ADR-0004 section 2); the TLS certificate module's adapter header, until
+# its public header of phase 1a lands; and the credential store's start, which <crux/credential_store.h>
+# and crux::credential_store now carry (phase 1a) but this fixture has not moved to yet. For the three
+# route sources it also reaches the private directories of the web component: components/web/session,
+# components/web/management and components/web/src, and the private target crux_web_adapter
+# (components/web/adapter). A product outside the repository cannot do that and keep to the include rule
+# of ADR-0004 section 5, which is what crux_web_routes() and crux_web_assets() are being changed for
+# (PRs 425 and 427); the T3 fixture will use them. The
+# TF-PSA-Crypto locks of the Mbed profile come from the management composition's
 # test glue, which a later phase decides how a product obtains.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)

@@ -244,6 +244,19 @@ config CRUX_SYSTEM
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
 
+config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
+    bool "Experimental: simulated Crux System watchdog, native_sim tests only"
+    depends on CRUX_SYSTEM
+    select NATIVE_SIM_REBOOT if BOARD_NATIVE_SIM
+    help
+      Experimental (ADR-0001 Decision 4) and for native_sim tests only; not hardware evidence.
+      Builds a private simulated watchdog device and binds it as the System watchdog, so a
+      native_sim test sees a feed cycle and a missed feed. A missed feed prints one line and
+      restarts the simulated process, which then reads the reset cause SOFTWARE, never WATCHDOG.
+      Selects NATIVE_SIM_REBOOT for that restart. No board dependency is declared on purpose:
+      the component stops the configure step with an error on any board but native_sim, which
+      a hidden symbol could not do. Off by default; no public header, target or function is added.
+
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
     depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
@@ -464,9 +477,9 @@ config CRUX_ACCESS
       Builds the Access core with its PSA Crypto and Time ports, the credential store with its Access
       store port, PSA ports and device ID, and the security events with their drain thread and the
       provider of Access's event port, and registers the three with the Zephyr link. It starts
-      nothing, adds no crux:: target and no public header: the application writes the start
-      sequence (docs/management-in-a-product.md), and reaches the public <crux/access.h> through its
-      own include path until the composition interfaces of ADR-0004 phase 1a exist.
+      nothing: the application writes the start sequence (docs/management-in-a-product.md). It links
+      the portable targets crux::access, crux::credential_store and crux::security_event for their
+      public headers (Experimental).
 
       The image needs the Mbed profile of PSA Crypto (CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS, with the
       locks of tests/native/management_composition/mbed-threading.conf, and the algorithms of
@@ -549,9 +562,9 @@ config CRUX_NETWORK_SETTINGS
       Builds the network settings service core, its check and the provider of its event port. The
       apply port is the application's (ADR-0004 C3): an application that applies settings to an
       interface implements crux_network_settings_port_apply() and crux_network_settings_port_running()
-      of components/network_settings/src/network_settings_port.h, and an image without them does not
-      link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing, adds no crux::
-      target and no public header, and builds no serial command.
+      declared in <crux/network_settings_apply_port.h> (Experimental), and an image without them does
+      not link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing and builds no
+      serial command.
 
 config CRUX_NETWORK_SETTINGS_NO_APPLY
     bool "Network settings apply port that applies nothing (Experimental)"

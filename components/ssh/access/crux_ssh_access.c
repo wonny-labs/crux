@@ -4,6 +4,7 @@
  * only. Every access result other than success is a denial on the wire.
  */
 #include "crux_ssh_access.h"
+#include "crux_ssh_access_port.h"
 #include "crux_ssh_attachment.h"
 #include "crux_ssh_callbacks.h"
 
@@ -16,6 +17,12 @@
 #define IPV6_LENGTH 16u
 #define IPV6_PREFIX_LENGTH 8u
 #define IPV4_MAPPED_PREFIX_LENGTH 12u
+
+_Static_assert((unsigned)CRUX_ACCESS_CHANNEL_SSH == CRUX_SSH_ACCESS_EVENT_CHANNEL,
+               "the report names the channel that Access does");
+
+_Static_assert(CRUX_SSH_ACCESS_EVENT_SOURCE_MAX == sizeof(((crux_access_origin_t *)0)->source),
+               "a source fits a report");
 
 struct crux_ssh_attachment {
     atomic_bool in_use;
@@ -160,4 +167,21 @@ crux_access_session_t crux_ssh_attachment_session(const crux_ssh_attachment_t *a
     crux_access_session_t none = {0};
 
     return attachment != NULL ? attachment->session : none;
+}
+
+void crux_ssh_access_auth_limit(void *context, const crux_ssh_peer_t *peer)
+{
+    crux_ssh_access_event_t event = {.type = CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT,
+                                     .channel = CRUX_SSH_ACCESS_EVENT_CHANNEL};
+    crux_access_origin_t origin = {.channel = CRUX_ACCESS_CHANNEL_SSH};
+
+    (void)context;
+    /* A limit was reached whatever the address looks like, so a peer that cannot be read still
+     * reports, with no source. The report names no user: that is text from the client. */
+    if (peer != NULL) {
+        origin = origin_of(peer);
+    }
+    memcpy(event.source, origin.source, origin.source_length);
+    event.source_length = origin.source_length;
+    crux_ssh_access_port_event(&event);
 }
