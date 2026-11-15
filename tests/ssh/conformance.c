@@ -683,7 +683,12 @@ static void case_auth_limit_is_reported_at_the_limit(const crux_ssh_test_client_
     CHECK(same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_b));
     CHECK(!same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_a));
 
-    /* An attempt that the provider refuses before any callback counts, so it can reach the limit.
+    /*
+     * An attempt that the provider refuses before any callback counts, so it can reach the limit.
+     * On wolfSSH this depends on wolfSSH counting a request that the provider refuses in its
+     * callback as an attempt, which nothing has shown: scripts/test-ssh-provider.sh is the first
+     * run of this subcase on that provider, and a failure here may be wolfSSH's count and not the
+     * report.
      */
     state.event_count = 0;
     first = connect_ok(client, &client->peer_a);
@@ -696,7 +701,10 @@ static void case_auth_limit_is_reported_at_the_limit(const crux_ssh_test_client_
     CHECK(same_peer(last_event(EVENT_AUTH_LIMIT), &client->peer_a));
 }
 
-/* Nothing but the limit is reported: not a client that leaves, a login, a timeout or a stop. */
+/*
+ * Nothing but the limit is reported: not a client that leaves, a login, a timeout, a changed user
+ * name, a refusal from key_verified, or a stop.
+ */
 static void case_auth_limit_is_not_reported_for_other_ends(const crux_ssh_test_client_t *client)
 {
     int connection;
@@ -727,8 +735,42 @@ static void case_auth_limit_is_not_reported_for_other_ends(const crux_ssh_test_c
     CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
     CHECK(count_events(EVENT_CONNECTION_CLOSED) == 1);
 
-    /* A stop ends a connection that has not logged in. */
+    /*
+     * A changed user name ends the connection under the limit, before a callback runs for the new
+     * name. wolfSSH ends it inside wolfSSH_accept(), as it ends a connection at the limit, so a
+     * provider that reads every such end as the limit reports it falsely. What wolfSSH does here
+     * has not been shown: see docs/ssh-wolf-provider.md, decision 29.
+     */
+    state.event_count = 0;
     state.password_result = CRUX_SSH_AUTH_DENIED;
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(!client->password(connection, "operator", 8, "wrong"));
+    CHECK(!client->password(connection, "viewer", 6, "wrong"));
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_PASSWORD) == 1);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+    /* The opening request binds the name as well. */
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(!client->none_request(connection, "operator"));
+    CHECK(!client->password(connection, "viewer", 6, "wrong"));
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+
+    /*
+     * A refusal from key_verified, on the first attempt of three. The wolfSSH provider answers it
+     * with a fatal result of user_auth_result, which wolfSSH may also end the login with. The
+     * callback must have run, so that the case holds for that path and no other.
+     */
+    state.key_check_result = CRUX_SSH_AUTH_ACCEPTED;
+    state.key_verified_result = CRUX_SSH_AUTH_DENIED;
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(!client->key_login(connection, "operator", ed25519, ED25519_KEY(client), true));
+    CHECK(count_events(EVENT_KEY_VERIFIED) == 1);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+    client->disconnect(connection);
+    CHECK(count_events(EVENT_AUTH_LIMIT) == 0);
+
+    /* A stop ends a connection that has not logged in. */
     connection = connect_ok(client, &client->peer_b);
     CHECK(!client->password(connection, "operator", 8, "wrong"));
     CHECK(client->provider->stop() == CRUX_OK);

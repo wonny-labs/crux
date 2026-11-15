@@ -19,7 +19,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`. The web session module emits `web.csrf_rejected` and `web.origin_rejected` for a refused CSRF token or `Origin`, rate-limited ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [below](#from-the-web-session-port)), on the Host only. The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), on the Host only. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`. The web session module emits `web.csrf_rejected` and `web.origin_rejected` for a refused CSRF token or `Origin`, rate-limited ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [below](#from-the-web-session-port)), tested on the Host only. The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), tested on the Host only: the same code is compiled into images that select `CONFIG_CRUX_SSH`, and no run of one has shown a record. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
 | Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
@@ -330,11 +330,21 @@ records at most one. A composition that retried the load in a loop would repeat 
 change-class reserve, so it should pause or cap its attempts. A report of a type that the provider does not know is recorded as
 `event.unknown` with the result `FAILED`.
 
+**How much one client can record.** `ssh.auth_limit` is reported at most once per connection, so the number of records is the
+number of connections that reach `max_auth_attempts`. `max_connections` (`CRUX_SSH_MAX_CONNECTIONS`, 1 to 4) limits how many are
+in the login at once, and `auth_timeout_ms` (30000 ms by default) ends one that has not logged in. Neither limits how often a
+client reconnects, so the rate has no bound of its own. The bound is in the ring. `ssh.auth_limit` is class R, so [admission](#admission)
+drops it, counted in `dropped` and reported by `event.lost`, once 24 records are pending (the defaults of `CRUX_SECURITY_EVENT_RING`
+and `_RESERVE` are 32 and 8, and the drain writes 4 lines and then pauses 100 ms). That keeps the last 8 places for class C
+records, such as `ssh.host_key_missing`, so a flood of limits can cost other class R records and not a change record.
+
 **Reserved: refusals before a first callback.** The provider refuses RSA, DSA, other curves, security keys, certificates, an
 empty, overlong or NUL-holding name, and a malformed key blob before any callback ([the SSH provider record](ssh-wolf-provider.md#decision-22-the-trade-off)).
-Each one stays unemitted, and no identifier is assigned, until the provider can report it. Two cases are visible meanwhile: such a
-refusal counts as an attempt, so the one that reaches `max_auth_attempts` is followed by `ssh.auth_limit`; and a provider's
-refusal of a connection past `max_connections` reaches no callback and leaves no event.
+Each one stays unemitted, and no identifier is assigned, until the provider can report it. Only one case leaves a trace
+meanwhile: such a refusal counts as an attempt, so when one of them is the attempt that reaches `max_auth_attempts`, the end of
+the connection is reported as `ssh.auth_limit`. The conformance case `auth_limit_is_reported_at_the_limit` shows this on the
+fake provider only, with an `ssh-rsa` key. On wolfSSH it holds only if wolfSSH counts such a refusal as an attempt, which nothing
+has shown. A provider's refusal of a connection past `max_connections` reaches no callback and leaves no event at all.
 
 ### From the web session port
 
@@ -351,7 +361,11 @@ Neither record has a subject, and none carries a header, a token or any text fro
 
 ## Decisions for review
 
-The owner could not be asked. Each is the narrow choice, and a changed choice is small while nothing depends on it.
+The owner could not be asked about decisions 1 to 20. Each is the narrow choice, and a changed choice is small while nothing depends on it.
+
+Decisions 21 to 24 are details inside an owner decision: [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) was
+decided on 2026-11-14, with option A for `ssh.auth_limit` and `ssh.host_key_missing` and option B for refusals before the first
+callback, and that decision did not cover them. They are the narrow choice as well, and a changed choice is small.
 
 | # | Point | Choice | Reason |
 | --- | --- | --- | --- |
@@ -378,6 +392,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | 21 | `ssh.auth_limit` result and fields | `LIMIT`, with channel 3 and the peer's source, and no user or subject | The limit is a declared bound. The adapter has only a claimed name, which is not a known account, so no user is recorded. |
 | 22 | `ssh.host_key_missing` is reported by `crux_ssh_host_key_load()` | It reports a failure of the store to supply a key, and not a key that the provider's `start()` then refuses as unusable | The load is the adapter's own step and the one place that knows the key is missing. A key that `start()` refuses is the provider's result, and the composition already sees it. A follow-up could report it. |
 | 23 | An image with no event core | Links `crux_ssh_access_events_none.c`, which drops the SSH reports | The test images of the provider and the settings probe have nothing to record on. An image that selects `CONFIG_CRUX_SSH` links the real provider, so a missing core fails at link time. |
+| 24 | The fields of `ssh.host_key_missing` | Channel 3, and no source, user or subject | The proposal's table lists no field for it. The report comes from the adapter's start step, so no connection, peer or account is behind it. Channel 3 is SSH's, as for `ssh.auth_limit`, so a reader that filters by channel finds both. Dropping the channel is a one-line change in `crux_ssh_host_key.c`. |
 
 ## What is built, faked and untested
 
@@ -387,7 +402,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | Never real | Time's realtime provider, which is the controlled `memory` one even in `integration`. Access's crypto and storage ports in the Host suites, which are `tests/access/fake_ports.c`. The `native_sim` compositions use the PSA ports and the credential store instead. |
 | Controlled in every suite but `integration`, `public_fake` and `fake_cases` | Through linker wraps: the monotonic clock, unless a case asks for the real one, the Time snapshot, `crux_log_write`, `crux_is_in_isr`, and failures of Sync and Thread creation. The signal and the pause pass through and are counted, and a case can change what a wait reports. |
 | Stubbed in `conformance`, `ring`, `ring_small`, `drain`, `time_cases`, `init`, `concurrency` and `public_core` | `crux_access_check`, from `tests/security_event/access_check_stub.c`, which answers what a case sets. These suites do not link Access. |
-| Untested | The wolfSSH provider's report of the limit, and the SSH records in an image that runs: both need `native_sim`, which no workflow runs for SSH. Anything on a target, and anything on Zephyr or `native_sim` beyond the [test compositions](native-management-composition.md), which show the drain's counts and nothing on a wire. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
+| Untested | The wolfSSH provider's report of the limit, and the SSH records in an image that runs: both need `native_sim`, which no workflow runs for SSH. Whether wolfSSH ends the login with the limit's error on a changed user name or a fatal result of `key_verified`, which would report a limit that was not reached, and whether it counts a refusal before a callback as an attempt (the `ssh-rsa` subcase): [decision 29](ssh-wolf-provider.md#decisions-for-review). Anything on a target, and anything on Zephyr or `native_sim` beyond the [test compositions](native-management-composition.md), which show the drain's counts and nothing on a wire. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
 
 ## What is not known
 
