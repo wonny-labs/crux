@@ -103,11 +103,23 @@ class VariantFiles(unittest.TestCase):
         expected = {
             "mbedtls-legacy.conf": "CONFIG_BOOT_ECDSA_MBEDTLS=y",
             "psa.conf": "CONFIG_BOOT_ECDSA_PSA=y",
+            "psa-mbedtls.conf": "CONFIG_BOOT_ECDSA_PSA=y",
+            "psa-mbedtls-entropy.conf": "CONFIG_BOOT_ECDSA_PSA=y",
         }
         for name, line in expected.items():
             path = VARIANTS / name
             self.assertTrue(path.is_file(), f"{path} is missing")
             self.assertIn(line, path.read_text(encoding="utf-8").splitlines())
+
+    def test_the_psa_variants_add_the_zephyr_module_symbol_that_the_first_build_showed_missing(self):
+        # The first CI run of psa.conf failed with "psa/crypto.h: No such file or directory": Zephyr's
+        # modules/mbedtls/CMakeLists.txt (v4.4.2) adds the TF-PSA-Crypto include directories only when
+        # CONFIG_MBEDTLS is set, and BOOT_ECDSA_PSA does not select it.
+        for name in ("psa-mbedtls.conf", "psa-mbedtls-entropy.conf"):
+            self.assertIn("CONFIG_MBEDTLS=y", (VARIANTS / name).read_text(encoding="utf-8").splitlines())
+        self.assertIn("CONFIG_ENTROPY_GENERATOR=y",
+                      (VARIANTS / "psa-mbedtls-entropy.conf").read_text(encoding="utf-8").splitlines())
+        self.assertNotIn("CONFIG_MBEDTLS=y", (VARIANTS / "psa.conf").read_text(encoding="utf-8").splitlines())
 
     def test_the_variant_files_hold_only_configuration_lines_and_comments(self):
         for path in sorted(VARIANTS.glob("*.conf")):

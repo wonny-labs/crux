@@ -56,7 +56,7 @@ fi
 for name in mcuboot.conf mcuboot.overlay app.conf app.overlay; do
     [[ -f "$files/$name" ]] || need "$files/$name is missing"
 done
-for name in mbedtls-legacy.conf psa.conf; do
+for name in mbedtls-legacy.conf psa.conf psa-mbedtls.conf psa-mbedtls-entropy.conf; do
     [[ -f "$variants/$name" ]] || need "$variants/$name is missing"
 done
 
@@ -217,5 +217,7 @@ fi
 run_variant tinycrypt-modules-present
 run_variant mbedtls-legacy "$variants/mbedtls-legacy.conf"
 run_variant psa "$variants/psa.conf"
+run_variant psa-mbedtls "$variants/psa-mbedtls.conf"
+run_variant psa-mbedtls-entropy "$variants/psa-mbedtls-entropy.conf"
 
 "$python" "$reporter" "$out" "${results[@]}"
