@@ -99,7 +99,7 @@ flowchart TB
     subgraph VAR["Platform variants"]
         direction LR
         LIN["Linux providers<br/>host test runs, not a product target"]
-        ELX["Embedded Linux<br/>expected, no date, designed<br/>at the service boundary"]
+        ELX["Embedded Linux<br/>expected, no date, to be<br/>designed at the service boundary"]
         ZEP["Zephyr<br/>kernel, drivers, BSP, vendor HALs"]
     end
     HW["Target hardware"]

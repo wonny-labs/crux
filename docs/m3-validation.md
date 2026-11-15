@@ -1,6 +1,6 @@
 # M3 execution and validation
 
-> **Status: historical.** Closed record of Pilot milestone M3 (execution and hardware validation), kept as written. For the current state of components and evidence see [Component readiness](component-readiness.md).
+> **Status: historical.** Closed record of platform milestone M3 (issues #10 to #12; not the Time Pilot's M3), kept as written. For the current state of components and evidence see [Component readiness](component-readiness.md).
 
 The accepted result and merged implementation are recorded under
 [User acceptance and closeout](#user-acceptance-and-closeout). Earlier interim

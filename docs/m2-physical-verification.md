@@ -1,6 +1,6 @@
 # M2 physical verification plan
 
-> **Status: historical.** Plan and authorisation record of the first physical verification of the Time Pilot (Pilot milestone M2), kept as written. It authorises nothing now. For the current state of components and evidence see [Component readiness](component-readiness.md).
+> **Status: historical.** Plan and authorisation record of the first physical Flash, reset and UART verification of the reference controller's execution (platform milestone M2, issues #6 and #7; not the Time Pilot's M2), kept as written. It authorises nothing now. For the current state of components and evidence see [Component readiness](component-readiness.md).
 
 Authorisation: user explicitly permits current-task Flash, Reset and UART verification for PR #9. This supersedes the earlier software-only hardware prohibition for this task. No PR merging, issue closure, M2 completion declaration, fuse/security/boot-layout operations, full-chip erase, board rework or M3 functionality is authorised.
 

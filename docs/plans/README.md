@@ -1,5 +1,5 @@
-# Historical plans and proposals
+# Plans, designs and proposals
 
-Status: **historical.** The files in this folder are implementation plans, designs and proposals that were completed, superseded or turned into contracts. They are kept as written, so their dates, issue numbers, commands and approvals apply only to the work they describe. They are not current guidance, and the documentation link check does not read them.
+Status: **mixed; check each file's own status line.** This folder holds implementation plans, designs and proposals. Many are completed or superseded and are kept as written, so their dates, issue numbers, commands and approvals apply only to the work they describe. Some are still active: for example `secure-boot-development-plan.md` is a proposed plan with work in progress, and `emmc-reliance-design.md` is the approved design that maintained pages cite. A page here is not guidance until its own status line says it is adopted. The documentation link check does not read this folder.
 
-For the current state, start at the [repository README](../../README.md), then [Component readiness](../component-readiness.md) and the [decision records](../decisions/README.md). A plan here may describe a design that was later changed: the contract page of the component, linked from the [architecture overview](../architecture.md#current-capability-integration), wins.
+For the current state, start at the [repository README](../../README.md), then [Component readiness](../component-readiness.md) (check the revision it names) and the [decision records](../decisions/README.md). Where a plan and the contract page of a component differ, the contract page, linked from the [architecture overview](../architecture.md#current-capability-integration), wins.
