@@ -64,7 +64,8 @@ crux_web_result_t crux_web_session_start_worker(void);
  * The crux_web_authenticate_t of an image, to be named as crux_web_config_t.authenticate with a
  * NULL context. It reads the crux_session cookie, and on any method but GET it also checks Origin
  * and the X-XSRF-TOKEN header, and refreshes the session's idle timer. It never waits on storage or
- * a password. Without it every route that is not public answers 503.
+ * a password. With no authentication function in crux_web_config_t, every route that is not
+ * public answers 503.
  */
 crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *head,
                                               crux_access_session_t *session, void *context);
