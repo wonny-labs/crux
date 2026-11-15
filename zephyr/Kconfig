@@ -548,9 +548,9 @@ config CRUX_NETWORK_SETTINGS
       Builds the network settings service core, its check and the provider of its event port. The
       apply port is the application's (ADR-0004 C3): an application that applies settings to an
       interface implements crux_network_settings_port_apply() and crux_network_settings_port_running()
-      of components/network_settings/src/network_settings_port.h, and an image without them does not
-      link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing, adds no crux::
-      target and no public header, and builds no serial command.
+      declared in <crux/network_settings_apply_port.h> (Experimental), and an image without them does
+      not link, unless CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY is set. It starts nothing and builds no
+      serial command.
 
 config CRUX_NETWORK_SETTINGS_NO_APPLY
     bool "Network settings apply port that applies nothing (Experimental)"
