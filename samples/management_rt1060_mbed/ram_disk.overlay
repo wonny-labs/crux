@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The file backend of this image: a RAM disk of 524,288 B (512 KiB) in the SDRAM, which holds all RAM of this board
+ * configuration. It is zero at every boot, so nothing survives a reset: the credential store, the accounts, the
+ * generated key and certificate, and the configuration are made again at each boot. A card is not reachable: the SD
+ * driver is off in prj.conf. */
+/ {
+    mgmt_ram_disk: ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "RAM";
+        sector-size = <512>;
+        sector-count = <1024>;
+    };
+};

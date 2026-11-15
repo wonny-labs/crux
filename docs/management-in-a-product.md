@@ -28,7 +28,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
 | Status, configuration, account routes | `GET /api/v1/status`, the configuration list, read, update and save. | Real over HTTPS on `native_sim`. A configuration save has no provider, so none succeeds. | [Management APIs](web-management-apis.md) |
 | Network settings routes | `GET` and `PUT /api/v1/network`. | Real over HTTPS on `native_sim` with a no-op apply port. Nothing is applied to an interface, and nothing can be saved. | [Network settings](network-settings-service.md) |
-| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: no image composes them.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
+| Reboot routes | `GET` and `POST /api/v1/system/reboot`. | **Host only for the routes: the only image that composes them is the RT1060 Mbed image, which has not run.** The service itself starts in one `native_sim` fixture (`CONFIG_CRUX_REBOOT`), which makes no request, so nothing calls a real reset. | [Reboot service](reboot-service.md) |
 | Packaged web assets | A built frontend folder, compressed, hashed and served as public `GET` routes, with a content policy and a size budget. | Real on `native_sim`. Chrome loaded both examples over HTTPS. | [Web assets](web-assets.md) |
 | TLS certificate model | A P-256 key and a self-signed certificate made at first boot, requests, and checked uploads. | Real on `native_sim` on both PSA providers. **The listener of every `native_sim` composition still serves the declared test certificate**, whose key is public. The RT1060 bench image registers a generated one in code that is compile-only: the image refuses to start and has not run on a board. | [TLS certificate](tls-certificate.md) |
 | Command line, serial | Registry, login, first-account setup `!setup`. | Host. The serial console is **composed in no image**. LPUART3 wiring compiles for RT1060-EVKB. | [Command line contract](cli-contract.md) |
@@ -48,7 +48,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
 | `GET /api/v1/events`, web file upload and download, a browser console | Not built. | [Security event contract](security-event-contract.md), [Issue #188](https://github.com/wonny-labs/crux-pilot/issues/188), [Issue #204](https://github.com/wonny-labs/crux-pilot/issues/204) |
-| A board | Nothing ran on one. | Every document above |
+| A board | Nothing ran on one. A Mbed-profile image for RT1060-EVK Rev B that is meant to run there (HTTPS only, a test-only first account, a RAM disk) is written, and its cross-build check has not run yet; the image has not run either: [RT1060 Mbed management image](rt1060-mbed-management-image.md). | Every document above |
 
 ## Steps
 
@@ -79,7 +79,7 @@ set(route_sources
     ${CRUX_WEB_SESSION_ROUTES}               # session routes, including the password change, 5
     ${CRUX_WEB_MANAGEMENT_ROUTES}            # status and configuration, 5
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES}    # network settings, 2
-    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed in no image yet
+    # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed only by the RT1060 Mbed image, not run
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
@@ -214,7 +214,7 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | `GET /api/v1/config`, `GET` and `PUT /api/v1/config/{name}` | session, per parameter | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image |
 | `POST /api/v1/config/save` | permission `config.save` | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image. No save provider: it answers `202`, and the list then shows `"save":{"state":"failed","code":"not_supported"}`. |
 | `GET` and `PUT /api/v1/network` | permissions `network.read`, `network.write` | `CRUX_WEB_MANAGEMENT_NETWORK_ROUTES` | Services image. A change answers `501`. |
-| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **No image** |
+| `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **Only the RT1060 Mbed image**, not run |
 | One `GET` per packaged file, and `/` | public | `crux_web_assets` | Services image |
 
 No route exists for the TLS certificate, events, file upload or download. The services image holds exactly the 12 component routes above plus the packaged folder: [services image](native-composition-242.md#boot-order). The reviewed list is [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt).
@@ -349,7 +349,7 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Browser cases against firmware (`e2e-mbed`, `e2e-wolf`) | | **Local only.** No workflow runs them. |
 | Browser cases on the mock, the Angular example, the specification lint | `web.yml` | |
 | Firefox and Chromium header capture, WinSCP | | By hand |
-| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
+| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board. `scripts/test-management-mbed-rt1060.sh build` is the cross-build check of the [Mbed management image](rt1060-mbed-management-image.md); it has no workflow step yet and has not run. |
 
 ## Owner decisions
 
