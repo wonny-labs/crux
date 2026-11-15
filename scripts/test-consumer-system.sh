@@ -24,6 +24,10 @@ python="${CRUX_PYTHON:-python3}"
 # relative path. The Crux module is found through ZEPHYR_EXTRA_MODULES, as a product does.
 work="$(mktemp -d "${TMPDIR:-/tmp}/crux-consumer-system.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
+if [[ "$work/" == "$repo/"* ]]; then
+    printf 'The work directory %s is inside the repository %s; set TMPDIR to a directory outside it.\n' "$work" "$repo" >&2
+    exit 2
+fi
 
 build() { # build <copy> <build-dir> [--cmake-only] [extra cmake args...]
     local copy="$1" dir="$2" mode="$3"
@@ -32,7 +36,7 @@ build() { # build <copy> <build-dir> [--cmake-only] [extra cmake args...]
     local only=()
     [[ "$mode" == cmake-only ]] && only=(--cmake-only)
     (cd "$workspace" && west build -p always "${only[@]}" -b "$board" -d "$dir" "$copy/app" -- \
-        -DZEPHYR_EXTRA_MODULES="$repo" -DCRUX_DIR="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "${args[@]}")
+        -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "${args[@]}")
 }
 
 # T3: the simulated watchdog on. Build, check, run.
@@ -66,7 +70,7 @@ PY
     # The checks of the consumer's own text need no build. Only a variant they let through is configured
     # (no compile), so that the refusal is the check's and not a compiler error.
     if output="$("$python" "$copy/check_build.py" sources "$copy")"; then
-        build "$copy" "$work/build-variant-$name" cmake-only
+        build "$copy" "$work/build-variant-$name" cmake-only -DCRUX_DIR="$repo"
         if output="$("$python" "$copy/check_build.py" build "$copy" "$work/build-variant-$name" "$repo" on)"; then
             printf 'Variant %s was not refused.\n%s\n' "$name" "$output" >&2
             exit 1

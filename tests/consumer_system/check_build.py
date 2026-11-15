@@ -24,8 +24,10 @@ answer one question each:
 A simulated watchdog is not hardware evidence: nothing here says anything about a board.
 """
 import json
+import os
 from pathlib import Path
 import re
+import selectors
 import shlex
 import subprocess
 import sys
@@ -164,7 +166,7 @@ def device_violations(nm_text, simulated):
 
 def run_violations(output):
     """Return the first expected line of RUN_LINES that is missing from the output in order, or a FAIL line."""
-    problems = [line for line in output.splitlines() if "simwdt: FAIL" in line]
+    problems = [line for line in output.splitlines() if "simwdt: FAIL" in line or "check_build: FAIL" in line]
     position = 0
     for pattern in RUN_LINES:
         match = re.compile(pattern).search(output, position)
@@ -215,19 +217,38 @@ def check_build(copy_root, build_dir, repo, simulated):
 
 
 def run(executable, timeout=90):
-    """Run the image until its last line, or the timeout. The second boot feeds for ever, so it is stopped."""
-    last = RUN_LINES[-1]
-    process = subprocess.Popen([executable], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    lines, deadline = [], time.monotonic() + timeout
+    """Run the image until its last line, or the deadline. The second boot feeds for ever, so it is stopped.
+
+    The deadline holds for a silent image too: the output is read with a selector, not line by line, so a
+    process that prints nothing cannot block here. A timeout adds one ``check_build: FAIL`` line to the output.
+    """
+    last = re.compile(RUN_LINES[-1])
+    process = subprocess.Popen([executable], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
+    text, deadline, timed_out = "", time.monotonic() + timeout, False
     try:
-        for line in process.stdout:
-            lines.append(line)
-            if re.search(last, line) or time.monotonic() > deadline:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
+                break
+            if not selector.select(min(remaining, 1.0)):
+                continue
+            data = os.read(process.stdout.fileno(), 4096)
+            if not data:
+                break
+            text += data.decode(errors="replace")
+            if last.search(text):
                 break
     finally:
+        selector.close()
         process.kill()
         process.wait()
-    return "".join(lines)
+        process.stdout.close()
+    if timed_out:
+        text += f"\ncheck_build: FAIL no last scenario line within {timeout} s\n"
+    return text
 
 
 def main(argv):

@@ -37,7 +37,7 @@ A product repository can start from this directory:
 1. Copy `app/` (and `check_build.py`, `variants.json` if you want the checks) into your repository.
 2. Make the Crux checkout a Zephyr module of your workspace, as `west.yml` of `templates/product` does, or pass
    `-DZEPHYR_EXTRA_MODULES=<crux checkout>`. Nothing else of this directory reads the Crux checkout. `variants.json`
-   uses `${CRUX_DIR}` and the script passes `-DCRUX_DIR=<crux checkout>` for the variants only.
+   uses `${CRUX_DIR}` in its include variant, and the script passes `-DCRUX_DIR=<crux checkout>` to the variant build only.
 3. Build and run on `native_sim`:
 
    ~~~sh
@@ -79,7 +79,26 @@ A product repository can start from this directory:
 | `frozen_symbol_in_prj_conf` | a Thread symbol named in `prj.conf` |
 
 A wrap of a Zephyr symbol such as `sys_reboot` is not refused: ADR-0005 S6 leaves a product's own wraps alone.
-Each check also runs against a weakened copy in the Host test and must then pass, so a refusal is not vacuous.
+In the Host test, each variant is also run with only the check function it relies on (`header_violations`,
+`link_violations`, `wrap_violations` or `conf_violations`) replaced by one that finds nothing, and the variant is then
+accepted. So each refusal is that function's. The include variant needs a build, so it has no such control on the
+Host; its function is tested on a hand-made compile command, and CI runs the variant. Non-vacuity of the whole
+fixture also rests on the clean-fixture test (the fixture passes every check) and on the message that each variant
+must produce.
+
+## Limits of the checks
+
+- The link check reads `target_link_libraries()` calls in `app/CMakeLists.txt` only. A link added another way
+  (`target_link_options`, a variable, another file) is not seen by it; the wrap check covers `--wrap` in any text of
+  that file.
+- The private-file pattern for includes matches path parts and names such as `system_zephyr` and `system_binding`; a
+  private header with another name is caught only by its `crux` spelling or by the include-directory check.
+- The include-directory check looks at directories under the repository's `components/` only, in the compile commands
+  of the consumer's own sources.
+- T5 (the symbol off) is a build and a `.config` and image check. The run-time expectation of an absent provider
+  rests on the existing tests (`tests/m5_integrated/zephyr/main.c`), not on a run here.
+- The run is read with a deadline (90 s by default): an image that goes silent fails with a `check_build: FAIL` line
+  and does not block the runner.
 
 ## What it does not show
 

@@ -10,8 +10,12 @@ import json
 from pathlib import Path
 import re
 import shutil
+import stat
 import tempfile
+import threading
+import time
 import unittest
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURE = REPO / "tests/consumer_system"
@@ -25,6 +29,26 @@ def load_checks():
 
 
 check = load_checks()
+
+def strip_comments(path, text):
+    """The code of a fixture file: comments are removed line by line, never across lines."""
+    if path.suffix in (".c", ".h"):
+        # A '#' starts a preprocessor directive in C, not a comment.
+        return re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", text, flags=re.S))
+    return re.sub(r"#[^\n]*", "", text)
+
+
+def repository_references(path, text):
+    """Every path into the Crux components that the code of a fixture file names."""
+    return re.findall(r"components/\S*", strip_comments(path, text))
+
+
+PLANTED = {
+    ".txt": "set(PLANTED ${CRUX_DIR}/components/system/src)\n",
+    ".conf": 'CONFIG_PLANTED="components/system/src"\n',
+    ".c": 'static const char *planted = "components/system/src";\n',
+}
+
 
 GOOD_RUN = "\n".join([
     "*** Booting Zephyr OS build ***",
@@ -49,7 +73,22 @@ class FixtureLayoutTest(unittest.TestCase):
             text = path.read_text()
             with self.subTest(path=str(path.relative_to(FIXTURE))):
                 self.assertNotRegex(text, r"\.\./", "no relative path out of the copy")
-                self.assertNotIn("components/", re.sub(r"#.*|/\*.*?\*/", "", text, flags=re.S))
+                self.assertEqual(repository_references(path, text), [])
+
+    def test_the_reference_check_sees_a_path_planted_anywhere_in_each_file(self):
+        # A comment must not hide the rest of the file: plant a path at the start and at the end of every file.
+        for path in sorted((FIXTURE / "app").rglob("*")):
+            if not path.is_file():
+                continue
+            text = path.read_text()
+            planted = PLANTED[path.suffix]
+            with self.subTest(path=str(path.relative_to(FIXTURE))):
+                self.assertEqual(repository_references(path, text), [])
+                self.assertTrue(repository_references(path, planted + text), "planted at the start")
+                self.assertTrue(repository_references(path, text + planted), "planted at the end")
+                first_code_line = next(line for line in text.splitlines() if line and line[0] in "#@")
+                after_first = text.replace(first_code_line + "\n", first_code_line + "\n" + planted, 1)
+                self.assertTrue(repository_references(path, after_first), "planted after the first '#' line")
 
     def test_the_fixture_is_clean_by_its_own_checks(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -194,18 +233,29 @@ class VariantTest(unittest.TestCase):
             with self.subTest(variant=variant["name"]):
                 self.assertIn(variant["expect"], self.refused(variant, check))
 
-    def test_the_variants_pass_a_weakened_check(self):
-        # The same checks with every function replaced by one that finds nothing: nothing is refused, so each
-        # refusal above is the check's and not the fixture's.
-        class Weak:
-            @staticmethod
-            def check_sources(copy):
-                return []
+    FUNCTION_OF = (("headers:", "header_violations"), ("link:", "link_violations"),
+                   ("wrap:", "wrap_violations"), ("symbol in", "conf_violations"))
+
+    def test_each_refusal_goes_when_the_function_it_relies_on_is_weakened(self):
+        # The one function that finds the variant returns nothing: the variant is then accepted, so the refusal
+        # above is that function's and not the fixture's. Nothing else refuses the variant.
         for variant in self.variants():
             if variant["expect"].startswith("include:"):
                 continue
-            with self.subTest(variant=variant["name"]):
-                self.assertEqual(self.refused(variant, Weak), "")
+            name = next(function for prefix, function in self.FUNCTION_OF if variant["expect"].startswith(prefix))
+            with self.subTest(variant=variant["name"], weakened=name):
+                refused = self.refused(variant, check)
+                with mock.patch.object(check, name, return_value=[]):
+                    accepted = self.refused(variant, check)
+                self.assertIn(variant["expect"], refused)
+                self.assertNotEqual(refused, accepted, "the weakening changed nothing")
+                self.assertEqual(accepted, "")
+
+    def test_the_variants_are_the_six_of_the_record(self):
+        self.assertEqual([variant["name"] for variant in self.variants()],
+                         ["private_include_directory", "private_header_in_the_shell",
+                          "frozen_header_in_the_shell", "target_without_a_crux_name",
+                          "wrap_of_the_binding_seam", "frozen_symbol_in_prj_conf"])
 
     def test_the_include_variant_is_refused_by_the_include_check_and_named_in_variants(self):
         include = [v for v in self.variants() if v["expect"].startswith("include:")]
@@ -219,6 +269,60 @@ class VariantTest(unittest.TestCase):
         # S6 leaves a product's own wraps of Zephyr symbols alone; only a Crux symbol is refused.
         for variant in self.variants():
             self.assertNotIn("sys_reboot", variant["new"])
+
+
+class RunTest(unittest.TestCase):
+    """check.run reads the image with a real deadline: a silent image cannot block the runner."""
+
+    def stub(self, directory, printed, tail="exec sleep 30"):
+        path = Path(directory) / "image"
+        path.write_text("#!/bin/sh\ncat <<'EOF'\n" + printed + "EOF\n" + tail + "\n")
+        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        return path
+
+    def run_limited(self, executable, timeout):
+        result = {}
+        worker = threading.Thread(target=lambda: result.update(output=check.run(str(executable), timeout=timeout)),
+                                  daemon=True)
+        started = time.monotonic()
+        worker.start()
+        worker.join(20)
+        self.assertFalse(worker.is_alive(), "run() did not return: it blocks on a silent image")
+        return result["output"], time.monotonic() - started
+
+    def test_a_silent_image_times_out_and_is_reported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, elapsed = self.run_limited(self.stub(directory, ""), 1)
+        self.assertLess(elapsed, 10)
+        self.assertIn("check_build: FAIL", output)
+        self.assertTrue(check.run_violations(output))
+
+    def test_an_image_that_stops_after_some_lines_times_out_and_is_reported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, elapsed = self.run_limited(self.stub(directory, "\n".join(GOOD_RUN.splitlines()[:3]) + "\n"), 1)
+        self.assertLess(elapsed, 10)
+        self.assertIn("simwdt: boot 1 cause POR", output)
+        self.assertIn("check_build: FAIL", output)
+        self.assertTrue(check.run_violations(output))
+
+    def test_an_image_that_reaches_its_last_line_returns_at_once_and_clean(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, elapsed = self.run_limited(self.stub(directory, GOOD_RUN), 60)
+        self.assertLess(elapsed, 10, "it must not wait for the image to exit")
+        self.assertNotIn("check_build: FAIL", output)
+        self.assertEqual(check.run_violations(output), [])
+
+
+class ScriptTest(unittest.TestCase):
+    def setUp(self):
+        self.text = (REPO / "scripts/test-consumer-system.sh").read_text()
+
+    def test_the_work_directory_is_outside_the_repository(self):
+        self.assertIn('"$work/" == "$repo/"*', self.text)
+
+    def test_crux_dir_is_passed_to_the_variant_build_only(self):
+        self.assertEqual(self.text.count("-DCRUX_DIR"), 1)
+        self.assertGreater(self.text.index("-DCRUX_DIR"), self.text.index("# T4:"))
 
 
 if __name__ == "__main__":
