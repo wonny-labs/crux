@@ -187,7 +187,7 @@ The plan defines trust levels, declared per result and never implied ([plan, sec
 | Boot, refusal of bad images, confirm, revert, update, power loss, recovery | Not verified | Nothing has run | none |
 | Shared boot information survives the jump; ROM accepts the layout | Not verified | Needs a board | none |
 | Rejection of an oversized or misaligned image | Verified by command for the inspector's `fit` decision on synthetic images (a model decision). Not verified for `imgtool` and MCUboot: the check against the real images and `imgtool sign` is prepared and not wired | Host tests only | [boot image inspection](boot-image-inspection.md) |
-| Reproducibility of the composition | Not verified | A later WP1a task | [boot composition](boot-composition.md) |
+| Reproducibility of the committed composition | Not verified. The comparison logic is Verified by command on synthetic build trees; the check of two real builds is prepared and not wired | Host tests only | [boot reproducibility](boot-reproducibility.md) |
 | RT1170-EVK composition | Not verified | Not built | none |
 | HAB structure, closed configuration, eMMC hardware | Not verified | Not started | none |
 
