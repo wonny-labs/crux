@@ -14,7 +14,7 @@ A product built on Crux should start only an image whose signature a bootloader 
 - **Recovery** means a way back when the bootloader or the image is damaged.
 - **Keys** are the product's business. This repository holds no signing key. Builds in CI sign with MCUboot's published public test key, only to prove the build works. Images signed with it must never be programmed to a board.
 
-The first board is the NXP RT1060-EVK Rev B with 8 MiB of QSPI NOR flash. The RT1170-EVK is a later, build-only target. eMMC as the image medium is an investigation, not a feature.
+The first board is the NXP RT1060-EVK Rev B with 8 MiB of QSPI NOR flash. The RT1170-EVK was planned as a later, build-only target; the project owner set it aside for now on 15 November 2026, so the RT1060 path comes first. eMMC as the image medium is an investigation, not a feature.
 
 ## 2. The stages
 
@@ -23,8 +23,8 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 | Phase | What | Where it stands on 15 November 2026 |
 | --- | --- | --- |
 | 0 | Investigations of boot and update, eMMC, and bootloader update | Done, as desk results and build-only trial builds |
-| 1 | M8 on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The merged parts of WP1a are listed below. Board evidence, a recovery path and RT1170 build-only evidence are not started |
-| 2 | M9 update path: image-state contract, update agent, version policy, boot-result record | Not started |
+| 1 | M8 on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The merged parts of WP1a are listed below. Board evidence is not started. A design note on recovery options is a Draft (#459, not merged). RT1170 build-only evidence is set aside: its design note (#445) and starting files (#460, Draft) are not merged |
+| 2 | M9 update path: image-state contract, update agent, version policy, boot-result record | Not started. A host prototype of the image state exists as a Draft (#462, not for merge) |
 | 3 | eMMC media path | The MCUboot trailer replay on the eMMC simulator is merged. A flash-API driver exists only as a Draft prototype that is not merged. Nothing runs on eMMC hardware |
 | 4 | HAB signing structure in the open (unlocked) configuration | Not started |
 | 5 | Closed configuration and production: fuses, key custody, lockdown | Not started. Needs owner decisions first |
@@ -54,12 +54,13 @@ Merged:
 - The [boot composition](boot-composition.md) page, the four board files for the RT1060-EVK Rev B in `zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/`, and a CI step that builds MCUboot and the controller sample with sysbuild, signs the application with the public test key and checks the signature with `imgtool verify`. It also checks that a key of another type and an image changed after signing are refused by the signing tool.
 - The three investigation records and the plan, as records. They adopt only the owner decisions they list.
 - The trailer replay of MCUboot sequences on the eMMC simulator.
+- Software-only tools for the RT1060 path: the [boot image inspector](boot-image-inspection.md) (#466), a check of the CI-built images against it that is **not wired into CI** and has never run on a real build (#467), and the [porting guide](boot-porting-rt1062.md) for another i.MX RT1062 board (#468).
 
 Not merged or not started:
 
 - The eMMC flash-API driver prototype (Draft, not for merge without an owner decision).
 - Any run on a board: boot, refusal of bad images, confirm, revert, update, power loss.
-- RT1170-EVK build-only evidence, the recovery path, HAB signing, closed configuration.
+- RT1170-EVK build-only evidence (set aside for now), the recovery path (a Draft note only), HAB signing, closed configuration.
 - A choice of MCUboot's cryptographic backend. It is an owner decision under ADR-0006.
 
 ## 5. Rules that apply to this work
