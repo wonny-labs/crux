@@ -43,15 +43,7 @@ struct crux_web_request_head {
     bool upgrade;            /**< The request asks for a protocol upgrade. */
 };
 
-/* crux_web_auth_t and crux_web_authenticate_t are declared in <crux/web.h>. */
-
-/** The core's fixed settings. */
-typedef struct {
-    crux_web_authenticate_t authenticate; /**< NULL answers every non-public route with 503. */
-    void *authenticate_context;
-    uint32_t request_deadline_ms; /**< From the first callback to the last body byte. */
-    uint32_t handler_limit_ms;    /**< Declared time limit, counted when exceeded. */
-} crux_web_config_t;
+/* crux_web_auth_t, crux_web_authenticate_t and crux_web_config_t are declared in <crux/web.h>. */
 
 /** One name and value of a response. */
 typedef struct {
@@ -169,7 +161,10 @@ crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int statu
 
 /* A composition starts and stops the transport. Implemented by the adapter of the platform. */
 
-/** Start serving. @retval CRUX_WEB_OK Started. */
+/**
+ * Start serving. @retval CRUX_WEB_OK Started. The Zephyr one is also declared, identically, in
+ * <crux/web_zephyr.h>, which a product includes: a test holds the two together.
+ */
 crux_web_result_t crux_web_start(const crux_web_config_t *config);
 /** Stop serving, closing every client. */
 crux_web_result_t crux_web_stop(void);
