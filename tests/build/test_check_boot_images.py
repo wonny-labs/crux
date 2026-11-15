@@ -323,7 +323,7 @@ class BehaviourTest(unittest.TestCase):
     def test_flags_at_the_offsets_of_another_alignment_fail_with_the_survey(self):
         # The magic of alignment 8, but image_ok one byte-aligned slot below it (the offset an alignment
         # of 1 would use): no alignment gives a consistent decode that reads RUNNING_CONFIRMED.
-        data = bytearray(self.confirmed8)
+        data = bytearray(confirmed_of(self.image, 8))
         data[SLOT_SIZE - 17] = 1
         self.set_images(self.image, bytes(data))
         done = self.run_script(expect=1)
