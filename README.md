@@ -2,7 +2,7 @@
 
 **Crux** is a reusable embedded software platform for controller and firmware applications. It provides portable C17 components and selected standard APIs, supported by OS-specific integration, build tools and tests. Portable application code remains separate from operating-system and board details.
 
-This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Embedded Linux is not planned for the foreseeable future; if it is ever needed, it would be designed at the service boundary. Crux is not yet a production-qualified or installable SDK.
+This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined, no date is set, and nothing of it is built yet. Crux is not yet a production-qualified or installable SDK; see [Status and limits](#status-and-limits).
 
 ## Capabilities
 
@@ -34,7 +34,7 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | Simulated Zephyr target | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
 | Physical Zephyr target | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
 | Physical Zephyr target | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
-| Not planned | Production Embedded Linux | Not planned for the foreseeable future and not implemented or qualified; if ever needed, designed at the service boundary |
+| Expected, not scheduled | Embedded Linux | An integration is expected and will be designed at the service boundary when its first product is defined. No date is set. Not implemented or qualified, and the Linux Host providers remain test providers until then |
 
 **What the Linux Host providers are used for today.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](docs/build.md#external-linux-application-using-crux-source), [`tests/consumer_poc`](tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
@@ -103,6 +103,8 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | Composing, versioning and releasing a product on Crux | [Product Composition Guide](docs/product-composition.md) |
 | Test commands and qualification procedures | [Test guide](tests/README.md) |
 | Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
+| Where to start, which pages are current or historical, terms and milestones | [Documentation index](docs/README.md) |
+| Platform-wide decisions (ADRs) | [Decision records](docs/decisions/README.md) |
 | Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
 
 ### Secure management
@@ -120,7 +122,18 @@ The documents for accounts, the management services, HTTPS web management, the c
 | SFTP | [SFTP design](docs/sftp-design.md), including the recorded WinSCP runs |
 | Management services together on `native_sim` | [Management composition](docs/native-management-composition.md) and [the services image](docs/native-composition-242.md) |
 
+## Status and limits
+
+- **Not production-qualified.** Crux is a development and architecture-validation Pilot, not an installable SDK, and no `find_package(Crux)` or binary package exists.
+- **No release or tag.** Products consume Crux as a source revision (a west project or a source tree) and pin the revision they use.
+- **Stability tiers are provisional.** Public interfaces use the tiers of [ADR-0001](docs/decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) (Experimental, Unstable, Stable, Deprecated). Nothing is Stable, and several components are Experimental. Each component's tier and evidence are in [Component readiness](docs/component-readiness.md).
+- **Interim freeze digest.** The tree digest of the patched Zephyr copy for the RT1060 management image is recorded in an interim form, derived on macOS. It is to be re-derived in the build environment at the first real bench build ([bench image plan](docs/rt1060-bench-image-plan.md)).
+- **No board evidence for secure management.** Accounts, the management services, HTTPS web management, the command line and SFTP have run on Linux Host and, mostly, on `native_sim`, and some parts compile for RT1060-EVKB. None has run on a board.
+- **Evidence levels differ.** A Host test, a `native_sim` run, a target cross-build and a physical-board run each prove different things, and none implies another. See [Development and target environments](#development-and-target-environments).
+
 ## Project status and contributing
+
+**Who to ask.** Open a [GitHub issue](https://github.com/wonny-labs/crux-pilot/issues) for a question, a documentation gap or a missing interface. The repository records no other contact channel.
 
 Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work.
 
