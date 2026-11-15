@@ -2,6 +2,9 @@
  * @file
  * @brief Permission-filtered status items for management channels.
  *
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Built-in items report the system, the reset cause the boot owner captured, the network interface,
  * versions and, where a composition links them, the credential store and security events. A project
  * adds its own items. Web and CLI read the same items through crux_mgmt_status_next().

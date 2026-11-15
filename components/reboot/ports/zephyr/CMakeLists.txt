@@ -7,11 +7,24 @@
 # worker's priority is the Kconfig symbol of ADR-0002 P3, CONFIG_CRUX_REBOOT_WORKER_PRIORITY, through
 # crux_service_priority_placement.
 #
-# No crux:: target and no public header: see components/access/ports/zephyr/CMakeLists.txt. The sources are
+# Publishes the portable target crux::reboot. The sources are
 # the ones the Host build lists in components/reboot/CMakeLists.txt, and
 # tests/build/test_management_module.py holds the two lists together.
 get_filename_component(CRUX_REBOOT_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 get_filename_component(CRUX_COMPONENTS_DIR "${CRUX_REBOOT_COMPONENT_DIR}/.." ABSOLUTE)
+include("${CRUX_COMPONENTS_DIR}/../cmake/CruxAccessBoundary.cmake")
+
+# A portable usage target, like the Host build's (ADR-0004 phase 1a, Experimental; the owner approved the
+# names on 2026-11-15): the public include root and the contracts that the header includes,
+# and nothing private. The library below is registered with the Zephyr link by zephyr_append_cmake_library,
+# so the target does not link it. tests/build/test_service_usage_targets.py runs this definition against
+# the real guards.
+function(crux_reboot_public_target)
+  add_library(crux_reboot INTERFACE)
+  add_library(crux::reboot ALIAS crux_reboot)
+  target_include_directories(crux_reboot INTERFACE "${CRUX_REBOOT_COMPONENT_DIR}/include")
+  target_link_libraries(crux_reboot INTERFACE crux::access)
+endfunction()
 
 if(NOT CONFIG_CRUX_REBOOT)
   message(FATAL_ERROR "This directory is the reboot selection of the module: set CONFIG_CRUX_REBOOT")
@@ -34,3 +47,7 @@ target_link_libraries(crux_reboot_zephyr PRIVATE zephyr_interface crux::base cru
   crux::system crux_service_priority_placement)
 add_dependencies(crux_reboot_zephyr zephyr_generated_headers)
 target_compile_options(crux_reboot_zephyr PRIVATE -Wall -Wextra -Werror)
+
+crux_reboot_public_target()
+cmake_language(DEFER CALL crux_assert_portable_usage crux::reboot)
+cmake_language(DEFER CALL crux_assert_access_adapter_unreachable crux::reboot)
