@@ -496,7 +496,8 @@ class Slice4Test(unittest.TestCase):
 
     def test_the_login_worker_gets_the_stack_that_every_image_that_runs_it_sets(self):
         defaults = re.findall(r"(?m)^\s+default\s+(\d+)(?:\s+if\s+(.+))?$", kconfig_blocks()["CRUX_THREAD_STACK_BYTES"])
-        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION"), ("4096", "")])
+        # Phase 1b: the serial console thread verifies a login with the same derivation, so its symbol joins.
+        self.assertEqual(defaults, [("8192", "CRUX_WEB_SESSION || CRUX_CLI_CONSOLE"), ("4096", "")])
 
     def test_the_management_library_links_what_provides_the_headers_it_includes(self):
         # management_status.h includes <crux/system.h>, which only crux::system puts on the include path.

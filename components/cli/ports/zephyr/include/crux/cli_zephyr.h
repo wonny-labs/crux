@@ -6,8 +6,8 @@
  * @brief Start of the serial console, with its first-account setup, on a Zephyr UART. A composition
  * interface.
  *
- * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet, and
- * a change is listed in the release notes.
+ * Status: Experimental (ADR-0001 decision 4). No image uses it yet, and a change is listed in the
+ * release notes.
  *
  * This is a composition interface, not a portable one (ADR-0004 phase 1b, rules of
  * docs/composition-interfaces.md). crux_cli_serial_start() binds the Crux console to the UART that
@@ -33,9 +33,11 @@
  * docs/cli-contract.md, which also states the limit that a typed password stays in the Serial ring
  * and the UART FIFO after the console has cleared its own buffers.
  *
- * Order, for a product's start code (ADR-0004 section 3, steps 4 to 9): crux_access_init() has
- * returned, the product's command tables have been passed to crux_cli_init(), and the services that
- * the commands call have started. Then crux_cli_serial_start(), once, from thread context.
+ * Order, for a product's start code. ADR-0004 section 3 puts the first account at step 7, before
+ * the CLI tables of step 9; here the console starts after them, because the start refuses a
+ * registry that is not ready: crux_access_init() has returned, the product's command tables have
+ * been passed to crux_cli_init(), and the services that the commands call have started. Then
+ * crux_cli_serial_start(), once, from thread context.
  */
 
 #include <crux/cli.h>

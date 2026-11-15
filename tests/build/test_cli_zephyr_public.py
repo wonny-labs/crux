@@ -3,8 +3,8 @@
 `<crux/cli_zephyr.h>` and `crux::cli_zephyr` let a product start the serial console with the first-account
 setup without a frozen header (`<crux/serial.h>`, `<crux/thread.h>`) and without the private CLI adapter
 header, which pulls in first-account provisioning. These checks run on the host. They compile the header
-alone, read the CMake definition of the target and the module's wiring, and read the Kconfig symbols. The
-Zephyr builds that use the target are exercised by the Zephyr CI shards.
+alone, read the CMake definition of the target and the module's wiring, and read the Kconfig symbols. No
+Zephyr build uses the target yet: the native_sim fixture of the next change is the first.
 """
 import os
 from pathlib import Path
@@ -223,6 +223,14 @@ class Kconfig(unittest.TestCase):
         block = symbol_block("CRUX_CLI_CONSOLE_PRIORITY")
         self.assertRegex(block, r"default 6\b")
 
+    def test_the_console_thread_gets_the_login_stack_default_of_the_web_worker(self):
+        # The console verifies a login with the same PBKDF2 derivation on its own stack.
+        block = symbol_block("CRUX_THREAD_STACK_BYTES")
+        self.assertRegex(block, r"default 8192 if [^\n]*CRUX_CLI_CONSOLE")
+
+    def test_the_baud_rate_has_a_range(self):
+        self.assertRegex(symbol_block("CRUX_CLI_CONSOLE_BAUD_RATE"), r"range \d+ \d+")
+
     def test_the_cli_help_no_longer_says_access_has_no_zephyr_composition(self):
         block = " ".join((symbol_block("CRUX_CLI") or "").split())
         self.assertNotIn("have no Zephyr composition yet", block)
@@ -239,6 +247,23 @@ class Documents(unittest.TestCase):
         text = " ".join((ROOT / "docs/composition-interfaces.md").read_text().split())
         self.assertIn("`crux::cli_zephyr`", text)
         self.assertIn("`<crux/cli_zephyr.h>`", text)
+
+    def test_the_composition_doc_states_the_departure_from_rule_4_and_does_not_overstate_adr_0004(self):
+        text = " ".join((ROOT / "docs/composition-interfaces.md").read_text().split())
+        self.assertIn("It departs from rule 4", text)
+        self.assertIn("crux_cli_serial_run()", text)
+        self.assertNotIn("ADR-0004 adds `crux::web_zephyr`", text)
+        self.assertNotIn("ADR-0004 adds", text)
+
+    def test_the_header_says_the_order_differs_from_adr_0004_step_7(self):
+        text = words(HEADER)
+        self.assertIn("ADR-0004 section 3 puts the first account at step 7", text)
+
+    def test_the_thread_docs_count_six_workers_and_say_no_image_starts_the_console(self):
+        text = " ".join((ROOT / "docs/thread-sync.md").read_text().split())
+        self.assertIn("one of the six worker sources", text)
+        self.assertNotIn("one of the five worker sources", text)
+        self.assertIn("no Zephyr image starts the reboot worker or the serial console thread", text)
 
     def test_the_cli_contract_says_where_a_product_starts_the_console(self):
         text = " ".join((ROOT / "docs/cli-contract.md").read_text().split())
