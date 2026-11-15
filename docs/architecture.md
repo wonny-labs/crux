@@ -99,7 +99,7 @@ flowchart TB
     subgraph VAR["Platform variants"]
         direction LR
         LIN["Linux providers<br/>host test runs, not a product target"]
-        ELX["Embedded Linux<br/>deferred, would plug in<br/>at the service boundary"]
+        ELX["Embedded Linux<br/>expected, no date, to be<br/>designed at the service boundary"]
         ZEP["Zephyr<br/>kernel, drivers, BSP, vendor HALs"]
     end
     HW["Target hardware"]
@@ -110,13 +110,15 @@ flowchart TB
     MGT -->|"ssh: native threads"| ZEP
     FRZ --> ZEP
     CRUX -->|"Host tests"| LIN
-    CRUX -.->|"not planned"| ELX
+    CRUX -.->|"expected, no date"| ELX
     ZEP --> HW
 ```
 
-The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider and no plan. The dashed edge marks where one would attach.
+The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider yet: [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) (R5) records that an integration is expected and will be designed at the service boundary when its first product is defined, with no date set. The dashed edge marks where it would attach.
 
-**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. Embedded Linux is not planned and would be designed at the service boundary if ever needed, and the Linux providers remain as test providers.
+**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. An Embedded Linux integration is expected, with no date, and will be designed at the service boundary when its first product is defined (ADR-0003 R5). Until then the Linux providers remain test providers.
+
+**Thread and Sync after ADR-0003.** [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) accepted option O4 on 14 November 2026: Crux's own services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers, and do not move to Zephyr kernel objects. The recorded target is that Thread and Sync become internal to Crux, which is a later, separate change that needs the owner's approval; until then they stay frozen for new product code, and product code uses the OS natively.
 
 ## Component ownership and source layout
 
@@ -149,16 +151,16 @@ For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CP
 
 Thread and Sync are separate component-owned capabilities, frozen for new product code (see [Choosing an API](choosing-an-api.md)). `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
-Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposed), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
+Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposal-not-adopted), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposal-not-adopted) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
-### Layout and naming of samples (proposed)
+### Layout and naming of samples (proposal, not adopted)
 
-**Status: proposed, for the owner's decision**, except for the folder and the first two names of the [applications](#applications-proposed), which the owner decided on 9 November 2026. It is a structure decision, so no rule here is adopted yet, and no existing sample was moved
+**Status: proposal, not adopted, for the owner's decision**, except for the folder and the first two names of the [applications](#applications-proposal-not-adopted), which the owner decided on 9 November 2026. It is a structure decision, so no rule here is adopted yet, and no existing sample was moved
 for it. It is the third step of the owner's review of 8 November 2026 (Refs #243). Once adopted, new samples follow it, and the
 samples that do not are listed below for the owner to move, or to leave, one by one.
 
 A sample is a small composition that shows one capability, one framework or one scenario through Crux's public contracts. It is
-not part of the platform API, and Crux does not maintain it as a product template. The product template, formerly `product_template`, is `templates/product`, outside `samples/` since 9 November 2026, and the rows below that name `product_template` describe the state before the move. A maintained integrated image is not a sample but an [application](#applications-proposed).
+not part of the platform API, and Crux does not maintain it as a product template. The product template, formerly `product_template`, is `templates/product`, outside `samples/` since 9 November 2026, and the rows below that name `product_template` describe the state before the move. A maintained integrated image is not a sample but an [application](#applications-proposal-not-adopted).
 
 | # | Rule | Why |
 | --- | --- | --- |
@@ -202,7 +204,7 @@ Nothing is moved by this proposal. A rule number refers to the table above.
 
 | Sample | What differs | Rule |
 | --- | --- | --- |
-| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the application `io_controller` that the owner decided on 9 November 2026 (see [Applications](#applications-proposed)), and it stays here until a move that is not scheduled. | |
+| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the application `io_controller` that the owner decided on 9 November 2026 (see [Applications](#applications-proposal-not-adopted)), and it stays here until a move that is not scheduled. | |
 | `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
 | `web/preact` | No README of its own. Its commands and flows are in the [web guide](../web/README.md). | 3 |
 | `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
@@ -224,7 +226,7 @@ Choices for the owner:
 | 3 | Treat `product_template` as a separate kind of folder, outside rules 3 and 4? | Yes, since a product copies it as it is |
 | 4 | Group the storage samples under `samples/storage/`? | Only with a move of its own, because four scripts, ten documents and eighteen files under `tests/` name a storage sample folder |
 
-#### Applications (proposed)
+#### Applications (proposal, not adopted)
 
 **Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
 

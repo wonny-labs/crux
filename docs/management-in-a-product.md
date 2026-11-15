@@ -1,6 +1,6 @@
 # Secure management in a product
 
-Status: a guide for a product team that uses Crux as a west module and wants HTTPS web management, the SSH command line and SFTP, without reading the code. It adds no behaviour and no decision. Each statement cites a document or a file, and says whether it is **real**, **faked** or **untested**. It was written against `origin/main` at `e1023e7`.
+Status: a guide for a product team that uses Crux as a west module and wants HTTPS web management, the SSH command line and SFTP, without reading the code. It adds no behaviour and no decision. Each statement cites a document or a file, and says whether it is **real**, **faked** or **untested**. It was written against `origin/main` at `e1023e7`. **Stale since 159 commits:** `origin/main` was 159 commits ahead of that revision when this line was written (`git rev-list --count e1023e7..40a99210`), and the page was not re-verified. The authoritative state is the code and the CI at the revision you use.
 
 To review the security model, read the [secure management review guide](secure-management-review.md); to check a board on your own bench, the [bench test procedure](secure-management-board-test-procedure.md), which has not yet been run.
 
