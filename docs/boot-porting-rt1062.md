@@ -117,7 +117,7 @@ Everything in this section is a desk result or a simulator result. The [eMMC inv
 
 ## 5. The image-state prototype and the recovery note on an RT1062 product
 
-The image-state contract is a proposal ([image-state contract proposal](plans/image-state-contract-proposal.md), status Proposed). A host prototype of it and a design note on recovery options are in Draft pull requests (#462 and #459). Neither is merged, and this page does not cite their text. The table uses the merged proposal and the investigation records.
+The image-state contract is a proposal that the owner adopted as Experimental for rows I1 to I7 on 15 November 2026, with I8 and I9 still open ([image-state contract proposal](plans/image-state-contract-proposal.md)). No code of it is merged. A host prototype of it and a design note on recovery options are in Draft pull requests (#462 and #459). Neither is merged, and this page does not cite their text. The table uses the merged proposal and the investigation records.
 
 | Question | QSPI NOR product | eMMC product |
 | --- | --- | --- |
