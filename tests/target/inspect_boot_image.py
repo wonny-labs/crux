@@ -85,6 +85,13 @@ EPILOG = (
     "Exit status: 0 decodes (image: digest matches), 1 inconsistent or digest mismatch, 2 usage error."
 )
 
+FIT_EPILOG = (
+    "fit decides by the repository's trailer model, not by imgtool or MCUboot, and is NOT a signature "
+    "verification.\n"
+    f"{LAYOUT_NOTE}\n"
+    "Exit status: 0 the image fits, 1 it does not fit (oversized or misaligned), 2 usage error."
+)
+
 
 def hex_of(data):
     return bytes(data).hex()
@@ -623,6 +630,126 @@ def format_trailer(report, name="trailer"):
 # Command line
 # --------------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------------
+# Fit of an image in a slot
+# --------------------------------------------------------------------------------------------
+
+DEFAULT_ERASE_UNIT = 64 * 1024  # the boundary rule of decision 17 of the boot and update investigation
+
+
+def check_fit(data, slot_size, align=None, slot_offset=None, erase_unit=DEFAULT_ERASE_UNIT):
+    """Decide whether an image fits a slot, by the repository's trailer model. Not an imgtool or
+    MCUboot decision.
+
+    Oversized: the image (header, payload, TLVs) plus the trailer region, which reaches `swap_info`
+    below the slot end for the alignment unit, is longer than the slot, or the file is longer than the
+    slot. Misaligned: the slot size or offset is not a multiple of the erase unit, a padded image is not
+    exactly the slot size, or its trailer magic is the one of another alignment than the requested one.
+    """
+    data = bytes(data)
+    inspected = inspect_image(data)
+    checks = []
+
+    def add(name, status, detail):
+        checks.append({"name": name, "status": status, "detail": detail})
+
+    image_ok = inspected["ok"]
+    padding = inspected["padding"]
+    image_bytes = len(data) - padding["trailing_bytes"] if image_ok else None
+    if image_ok:
+        add("image", "ok", f"the image parses with a matching digest ({image_bytes} bytes without padding)")
+    else:
+        add("image", "fail", f"the file is not a well-formed image: {inspected['result']}"
+            + (f" ({inspected['errors'][0]})" if inspected["errors"] else ""))
+
+    problems = []
+    if slot_size % erase_unit:
+        problems.append(f"misaligned: the slot size {slot_size} is not a multiple of the erase unit {erase_unit}")
+    if slot_offset is not None and slot_offset % erase_unit:
+        problems.append(f"misaligned: the slot offset 0x{slot_offset:x} is not a multiple of the erase unit "
+                        f"{erase_unit}")
+    if problems:
+        add("layout", "fail", "; ".join(problems))
+    else:
+        offset = "" if slot_offset is None else f", the slot offset 0x{slot_offset:x}"
+        add("layout", "ok", f"the slot size {slot_size}{offset} sit on the erase unit {erase_unit}")
+
+    trailer_bytes = None
+    required = None
+    over_by = None
+    if align is not None:
+        trailer_bytes = max(trailer_distances(align).values())
+    length = image_bytes if image_ok else len(data) - padding["trailing_bytes"]
+    if len(data) > slot_size:
+        over_by = len(data) - slot_size
+        add("size", "fail", f"oversized: the file is {len(data)} bytes, longer than the slot ({slot_size}), "
+            f"over by {over_by}")
+    elif align is None:
+        add("size", "info", f"the image is {length} bytes in a slot of {slot_size}; the trailer is not "
+            "counted because no alignment was given")
+    else:
+        required = length + trailer_bytes
+        over_by = max(0, required - slot_size)
+        if required > slot_size:
+            add("size", "fail", f"oversized: the image ({length} bytes) and the trailer region "
+                f"({trailer_bytes} bytes at alignment {align}) need {required} bytes, the slot has "
+                f"{slot_size}, over by {over_by}")
+        else:
+            add("size", "ok", f"the image ({length} bytes) and the trailer region ({trailer_bytes} bytes at "
+                f"alignment {align}) need {required} of {slot_size} bytes")
+
+    if padding["padded"] and len(data) != slot_size:
+        add("padding", "fail", f"the padded image is {len(data)} bytes, the slot is {slot_size}")
+    elif padding["padded"]:
+        add("padding", "ok", "the padded image is exactly the slot size")
+    else:
+        add("padding", "ok", "the image is not padded")
+
+    found = padding["trailer_alignment"]
+    if found is None:
+        add("trailer alignment", "info", "the file carries no trailer magic, so no alignment is read from it")
+    elif align is None:
+        add("trailer alignment", "info", f"the trailer magic is the one of alignment {found}; no alignment was "
+            "requested to compare with")
+    elif found != align:
+        add("trailer alignment", "fail", f"misaligned: the trailer magic is the one of alignment {found}, "
+            f"the requested alignment is {align}")
+    else:
+        add("trailer alignment", "ok", f"the trailer magic is the one of alignment {align}")
+
+    ok = all(entry["status"] != "fail" for entry in checks)
+    return {
+        "kind": "fit",
+        "ok": ok,
+        "result": "fits" if ok else "does not fit",
+        "signature_verified": False,
+        "signature_note": SIGNATURE_NOTE,
+        "slot_size": slot_size,
+        "slot_offset": slot_offset,
+        "erase_unit": erase_unit,
+        "alignment": align,
+        "file_size": len(data),
+        "image_bytes": image_bytes,
+        "trailer_bytes": trailer_bytes,
+        "required_bytes": required,
+        "over_by": over_by,
+        "checks": checks,
+        "layout_note": LAYOUT_NOTE,
+    }
+
+
+def format_fit(report, name="image"):
+    lines = [f"{name}: fit in a slot of {report['slot_size']} bytes"]
+    for entry in report["checks"]:
+        lines.append(f"  {entry['name']:<18} {entry['status']:<5} {entry['detail']}")
+    if not report["ok"] and report["over_by"]:
+        lines.append(f"  over by {report['over_by']} bytes")
+    lines.append(f"Result: {report['result']}")
+    lines.append("This is a decision by the repository's trailer model, not by imgtool or MCUboot, and not a "
+                 "signature verification.")
+    return "\n".join(lines)
+
+
 def _positive_int(text):
     try:
         value = int(text, 0)
@@ -630,6 +757,16 @@ def _positive_int(text):
         raise argparse.ArgumentTypeError(f"not a number: {text!r}") from None
     if value <= 0:
         raise argparse.ArgumentTypeError(f"must be positive: {text!r}")
+    return value
+
+
+def _non_negative_int(text):
+    try:
+        value = int(text, 0)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a number: {text!r}") from None
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"must not be negative: {text!r}")
     return value
 
 
@@ -650,7 +787,7 @@ def build_parser():
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    sub = parser.add_subparsers(dest="command", required=True, metavar="{image,trailer}")
+    sub = parser.add_subparsers(dest="command", required=True, metavar="{image,trailer,fit}")
     image = sub.add_parser(
         "image",
         help="parse an MCUboot image and check its digest",
@@ -690,6 +827,27 @@ def build_parser():
     trailer.add_argument("--check-header", action="store_true",
                          help="the file starts with the image header: check the image magic at offset 0")
     trailer.add_argument("--json", action="store_true", help="print the report as JSON")
+    fit = sub.add_parser(
+        "fit",
+        help="decide whether a signed image fits a slot (oversized or misaligned)",
+        description=(
+            "Decide whether an image fits a slot by the repository's trailer model: the image plus the "
+            "trailer region against the slot size, the slot size and offset against the erase unit, the "
+            "length of a padded image and the alignment of its trailer magic. It is not an imgtool or "
+            "MCUboot decision and not a signature verification."
+        ),
+        epilog=FIT_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    fit.add_argument("file")
+    fit.add_argument("--slot-size", type=_positive_int, required=True, metavar="S", help="slot size in bytes")
+    fit.add_argument("--align", type=_alignment, metavar="N",
+                     help="alignment unit of the trailer; without it the trailer is not counted")
+    fit.add_argument("--slot-offset", type=_non_negative_int, metavar="O",
+                     help="offset of the slot in the flash, judged against the erase unit when given")
+    fit.add_argument("--erase-unit", type=_positive_int, default=DEFAULT_ERASE_UNIT, metavar="E",
+                     help=f"erase unit for the layout check (default {DEFAULT_ERASE_UNIT})")
+    fit.add_argument("--json", action="store_true", help="print the report as JSON")
     return parser
 
 
@@ -717,6 +875,10 @@ def main(argv=None):
         else:
             report = inspect_image(data)
             text = format_image(report, args.file)
+    elif args.command == "fit":
+        report = check_fit(data, args.slot_size, align=args.align, slot_offset=args.slot_offset,
+                           erase_unit=args.erase_unit)
+        text = format_fit(report, args.file)
     else:
         report = decode_trailer(data, args.align, slot_size=args.slot_size, running=args.running,
                                 check_header=args.check_header)

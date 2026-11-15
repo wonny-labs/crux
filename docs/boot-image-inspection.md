@@ -1,8 +1,8 @@
 # Boot image inspection: a tool to read MCUboot images and trailers
 
 > **Status:** A developer tool, not a Crux interface. `tests/target/inspect_boot_image.py` (bench tooling, beside the capture scripts) reads files and changes nothing; it has no stable contract and no support commitment.
-> **Verified:** By host tests on synthetic images and trailers built in memory ([`tests/build/test_boot_image_inspect.py`](../tests/build/test_boot_image_inspect.py)). The image header, trailer offsets, trailer magic and slot state names follow the repository's trailer model and the image state contract proposal; the TLV magics, the TLV entry layout and the hashed range are the author's reading of MCUboot's image format, with no repository record.
-> **Not verified:** The tool has never run on an image from a board or from the CI build, and no layout is checked against upstream MCUboot source here. A mistake that the records or the author's reading share with the tests would pass.
+> **Verified:** By host tests on synthetic images and trailers built in memory ([`tests/build/test_boot_image_inspect.py`](../tests/build/test_boot_image_inspect.py), and for `fit` [`tests/build/test_boot_image_fit.py`](../tests/build/test_boot_image_fit.py)). The image header, trailer offsets, trailer magic and slot state names follow the repository's trailer model and the image state contract proposal; the TLV magics, the TLV entry layout and the hashed range are the author's reading of MCUboot's image format, with no repository record.
+> **Not verified:** The tool has never run on an image from a board or from the CI build, `fit` has never been compared with what `imgtool` or MCUboot accept, and no layout is checked against upstream MCUboot source here. A mistake that the records or the author's reading share with the tests would pass.
 > **Read this first / then:** the [boot overview](boot-overview.md), then the [boot composition](boot-composition.md) page.
 
 ## What it is for
@@ -12,7 +12,7 @@
 
 It uses the Python standard library only. The tool needs nothing newer than about Python 3.8; its tests need Python 3.10 or later (`sys.stdlib_module_names`), and CI uses Python 3.12. It has no board access, no flashing and no key handling.
 
-## Two commands
+## Three commands
 
 ### `image`
 
@@ -31,6 +31,25 @@ The last line is `Result: digest ok`, `Result: digest MISMATCH` or `Result: stru
 A padded image (bytes after the TLV area to the end of the file) is reported with the number of trailing bytes. When the file ends with a trailer magic, the tool reports its alignment and decodes the trailer fields with the same rules as the `trailer` command. A note says if padding bytes are not `0xFF`.
 
 `--header-only` is for the slot 1 header check of the bench procedure (a 32-byte read of the slot): it accepts a short read of at least 4 bytes and reports only `image magic present` (the bytes `3d b8 f3 96`) or `no image`, with a remark when every byte read is `0xFF`. It exits 0 either way. A read of fewer than 4 bytes is a usage error.
+
+### `fit`
+
+```sh
+python3 tests/target/inspect_boot_image.py fit zephyr.signed.bin --slot-size 3145728 --align 8 --slot-offset 0x20000
+python3 tests/target/inspect_boot_image.py fit zephyr.signed.confirmed.bin --slot-size 3145728 --align 8 --json
+```
+
+It decides whether a signed image fits a slot, by the repository's trailer model, in five named checks:
+
+| Check | Fails when |
+| --- | --- |
+| `image` | The file is not a well-formed image with a matching digest (the `image` command's result). |
+| `layout` | The slot size, or the slot offset when `--slot-offset` is given, is not a multiple of the erase unit (`--erase-unit`, 64 KiB by default, which is the boundary rule of decision 17 and not the 4 KiB erase block of the devicetree of the [boot and update investigation](boot-update-investigation.md)). Reported as **misaligned**. |
+| `size` | The file is longer than the slot, or, with `--align N`, the image (header, payload, TLV areas) plus the trailer region is longer than the slot. The trailer region is the distance from the slot end to the `swap_info` byte of alignment `N`. Reported as **oversized**, with the number of bytes it is over by. Without `--align` the trailer is not counted and the row says so (`info`). |
+| `padding` | The image is padded (bytes follow its TLV area) and the file is not exactly the slot size. |
+| `trailer alignment` | The padded image's trailer magic is the one of another alignment than `--align`. Reported as **misaligned**. With no trailer magic, or no `--align`, the row is `info`. |
+
+The last line is `Result: fits` or `Result: does not fit`. The exit status is 0 for `fits`, 1 for `does not fit` and 2 for a usage error (the slot size is required). **This is the repository model's decision, not imgtool's or MCUboot's:** the trailer reach comes from the model and is not checked against upstream, and which `--align` of the model corresponds to the `--align 1` of the build's `imgtool` call is the open question stated in the `trailer` section below. The model's trailer reach (40 bytes at alignment 8) is smaller than the trailer allowance that `imgtool` makes for its own `--align 1` and sector count, so near the slot limit `fit` can say `fits` where `imgtool sign` refuses; that is Inference, not checked here. It is not a signature verification.
 
 ### `trailer`
 
@@ -58,9 +77,9 @@ A `swap_info` that disagrees with `image_ok` (a test request with `image_ok` set
 
 | Status | Meaning |
 | --- | --- |
-| 0 | `image`: the file parses and the digest matches, or `--header-only` ran. `trailer`: it decodes. |
-| 1 | The file parses but the digest does not match, or the structure is inconsistent (`image`); the magic is bad, a flag is neither `0x01` nor `0xFF`, a field is set under an unset magic, a running slot has no good magic, or the file is too short for the trailer (`trailer`). |
-| 2 | A usage error: a missing or unknown argument, an unreadable file, a `--header-only` read shorter than 4 bytes. |
+| 0 | `image`: the file parses and the digest matches, or `--header-only` ran. `trailer`: it decodes. `fit`: the image fits. |
+| 1 | The file parses but the digest does not match, or the structure is inconsistent (`image`); the magic is bad, a flag is neither `0x01` nor `0xFF`, a field is set under an unset magic, a running slot has no good magic, or the file is too short for the trailer (`trailer`); the image does not fit (`fit`). |
+| 2 | A usage error: a missing or unknown argument, an unreadable file, a `--header-only` read shorter than 4 bytes, no `--slot-size` for `fit`. |
 
 ## What it does not do
 
@@ -77,8 +96,8 @@ A `swap_info` that disagrees with `image_ok` (a test request with `image_ok` set
 
 | Exit | Cases |
 | --- | --- |
-| 2 | The build directory, `zephyr.signed.bin`, the MCUboot image, `imgtool.py` or the key file is missing; Python is not available (`CRUX_PYTHON`); the inspector cannot be started (shell status 126 or 127); `imgtool` ends in a traceback on `--help`, which means its requirements are not installed. The message says to run `scripts/test-boot-composition.sh` first or to install the requirements of `bootloader/mcuboot/scripts/requirements.txt`. |
-| 1 | A check fails: any value or size above, a disagreement between the inspector and `imgtool verify`, `imgtool` crashing while it verifies a file, a missing `zephyr.signed.confirmed.bin` (the Zephyr v4.4.2 erratum of the [boot and update investigation](boot-update-investigation.md)), or an image name that matches more than one file. |
+| 2 | The build directory, `zephyr.signed.bin`, the MCUboot image, `imgtool.py` or the key file is missing; Python is not available (`CRUX_PYTHON`); the inspector cannot be started (shell status 126 or 127); the control signing with the real slot size is refused (the arguments do not suit that `imgtool`); `imgtool` ends in a traceback on `--help`, which means its requirements are not installed. The message says to run `scripts/test-boot-composition.sh` first or to install the requirements of `bootloader/mcuboot/scripts/requirements.txt`. |
+| 1 | A check fails: any value or size above, a disagreement between the inspector and `imgtool verify`, `imgtool` crashing while it verifies a file, a missing `zephyr.signed.confirmed.bin` (the Zephyr v4.4.2 erratum of the [boot and update investigation](boot-update-investigation.md)), an image the inspector says does not fit the slot, an `imgtool sign` of the oversized check that crashes or that signs into a slot too small for the image and its trailer, or an image name that matches more than one file. |
 | 0 | Everything passed. If the public key could not be derived, the key hash row reads `info`, not `ok`, and the last line says `key hash NOT compared with the key`. |
 
 It finds the application's images only in the sysbuild directory `$build/zephyr/zephyr` (the first `zephyr` is the base name of `samples/controller/zephyr`, the second is sysbuild's output directory) with `find -maxdepth 1` for `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, so a stray copy deeper in the tree is not taken, and a name that matches more than one file fails, and the bootloader's image at `$build/mcuboot/zephyr/zephyr.bin`. It then checks:
@@ -87,6 +106,7 @@ It finds the application's images only in the sysbuild directory `$build/zephyr/
 | --- | --- |
 | `zephyr.signed.bin` | The inspector parses it and reads `digest ok`; header size `0x400`, load address `0x80000000`; file size is header plus image plus the TLV areas that the inspector reports, with no padding; `KEYHASH`, `SHA256` and `ECDSA_SIG` TLVs are present; the key hash is 32 bytes and equals the SHA-256 of the public key's DER `SubjectPublicKeyInfo` (or of its uncompressed point), derived from `root-ec-p256.pem` with `imgtool getpub -e pem` or, failing that, `openssl`. If neither can derive the key the check says so, compares only the length, and does not count the key hash as checked. `imgtool verify` must agree with the inspector, and both must accept: `digest ok` and a verified signature. A disagreement, or both refusing, fails (exit 1) and shows both outputs. If the public key could not be derived, the key hash row is `info` and the script says so on its last line. |
 | `zephyr.signed.confirmed.bin` | File size is the slot size 3,145,728 B; the inspector reads `digest ok`; the file ends with a trailer magic; with `--slot-size 3145728` the trailer decodes for at least one alignment of 1, 8, 16 and 32 to `RUNNING_CONFIRMED` with `--running` and to `PENDING_PERMANENT` without it, with `image_ok` set and `copy_done` unset. These two names are the rows of the proposal's [slot state table](plans/image-state-contract-proposal.md#slot-states) for a good magic, `image_ok` set and `copy_done` unset. `imgtool verify` on this padded file is printed as information only, because how it treats padding is not established here. |
+| Fit in the slot | `fit` on the signed and the confirmed image, with `--slot-size 3145728`, `--slot-offset 0x20000` and the alignment that the confirmed image's trailer magic carries, must read `fits`. With a slot as small as the signed image itself, `fit` must read `does not fit` (oversized) and `imgtool sign` of the build's unsigned `zephyr.bin` (`--header-size 0x400 --align 1 --version 0.0.0 --slot-size <small>`) must refuse, without a crash. A control with the real slot size must sign; if it does not, the arguments do not suit this `imgtool` and the script exits 2, not 1. Without `zephyr.bin` in the sysbuild directory the `imgtool sign` row reads `info`, not run. `imgtool`'s reaction to a misaligned layout is not asked: that row is `info`. |
 | `mcuboot/zephyr/zephyr.bin` | `image --header-only` reports `no image` and the full `image` command exits 1: MCUboot's own binary carries no image header. |
 | Changed bytes | A copy of the signed image with the byte at `0x300` (header padding) or `0x500` (payload) changed reads `digest MISMATCH` (exit 1) in the inspector, and `imgtool verify` refuses it too. |
 

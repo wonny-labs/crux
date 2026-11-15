@@ -66,5 +66,6 @@ The M7 configurations of [`scripts/test-controller.sh`](../scripts/test-controll
 ## Not verified
 
 - Booting: the ROM accepting the MCUboot layout, the jump into the application, the shared boot information, confirm and revert, and the padded image. They need a board.
-- Rejection of an oversized or misaligned image, and reproducibility of the bootloader and the signed output.
+- Rejection of an oversized or misaligned image by `imgtool` and MCUboot. The inspector's `fit` decision on synthetic images is a model decision ([boot image inspection](boot-image-inspection.md)), and a check against the real build output is prepared there and not wired into CI.
+- Reproducibility of the bootloader and the signed output.
 - The RT1170-EVK composition.

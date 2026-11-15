@@ -7,7 +7,8 @@
 # This script builds nothing, programs nothing, boots nothing and generates no key. It reads the build
 # directory of the RT1060 composition check ($repo/build/zephyr/boot-composition unless an argument names
 # another one) and writes only below $build/check_boot_images.tmp (changed copies of the signed image, the
-# inspector's JSON outputs and small helper files), which it removes again, also after a failure.
+# inspector's JSON outputs, the images that the oversized check signs with imgtool sign and small helper
+# files), which it removes again, also after a failure.
 # It is NOT wired into any workflow: a step in .github/workflows/zephyr.yml is a protected-file change
 # that needs the project owner's approval (proposal: docs/boot-image-inspection.md, "Check of the
 # CI-built images"). It has never run on a real build; the host tests in
@@ -17,9 +18,11 @@
 # Environment: CRUX_PYTHON (python3 by default), CRUX_WORKSPACE (the parent of the repository by default,
 # where bootloader/mcuboot is checked out, as in scripts/test-boot-composition.sh).
 # Exit status: 0 every check passed (a key hash that could not be compared is said so on the last line),
-# 1 a check failed (including a disagreement between the inspector and imgtool, a missing confirmed image
-# and an image name that is not exactly one file), 2 the build or a tool cannot be used: a missing build
-# directory, image, Python, imgtool or key, or imgtool without its requirements (a traceback on --help).
+# 1 a check failed (including a disagreement between the inspector and imgtool, a missing confirmed image,
+# an image that does not fit the slot, imgtool signing into a slot that is too small and an image name that
+# is not exactly one file), 2 the build or a tool cannot be used: a missing build directory, image, Python,
+# imgtool or key, imgtool without its requirements (a traceback on --help), or a control signing with the
+# real slot size that imgtool refuses.
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -368,6 +371,59 @@ PY
     rm -f "$modified"
     record "changed byte at $offset" ok 'inspector: digest MISMATCH, imgtool: refused'
 done
+
+# ---- (e) fit in the slot: oversized and misaligned -------------------------------------------
+# The inspector's `fit` command decides by the repository's trailer model whether an image and its
+# trailer region fit the slot, and whether the slot layout and a padded image's trailer are aligned.
+# The real images must fit the slot of the composition (3 MiB at 0x20000), with the alignment that the
+# confirmed image's trailer magic carries. Then the same image is offered to the inspector and to
+# imgtool sign with a slot that is too small: the inspector must say it does not fit, and imgtool must
+# refuse, without a crash. A control with the real slot size must sign, so that a refusal is not the
+# effect of arguments that imgtool cannot take. This checks the two tools on the build's own
+# input, not a boot result, and imgtool's reaction to a misaligned layout is not checked here.
+slot_offset=0x20000
+fit_align="$(jfield "$work/confirmed.json" padding.trailer_alignment)"
+for pair in "confirmed:$confirmed" "signed:$signed"; do
+    run_inspector "fit-${pair%%:*}" fit "${pair#*:}" --slot-size "$slot_size" --align "$fit_align" --slot-offset "$slot_offset" --json
+    [[ "$inspector_status" -eq 0 ]] || {
+        cat "$work/fit-${pair%%:*}.json" >&2
+        fail "the inspector says the ${pair%%:*} image does not fit the slot of $slot_size bytes at alignment $fit_align"
+    }
+done
+record 'fit: images in the slot' ok "signed and confirmed image fit $slot_size B at 0x20000, alignment $fit_align"
+
+run_inspector fit-over fit "$signed" --slot-size "$signed_size" --align "$fit_align" --erase-unit 1 --json
+[[ "$inspector_status" -eq 1 && "$(jfield "$work/fit-over.json" result)" == 'does not fit' ]] ||
+    fail "the inspector does not call the signed image oversized for a slot of $signed_size bytes (exit $inspector_status)"
+record 'oversized: inspector' ok "a slot of $signed_size B (the image itself) does not fit: the trailer needs $(jfield "$work/fit-over.json" over_by) B more"
+
+locate zephyr.bin
+unsigned="$located"
+if [[ -z "$unsigned" || ! -f "$unsigned" ]]; then
+    record 'oversized: imgtool sign' info "not run: no zephyr.bin in $app_dir"
+else
+    sign_status=0
+    sign_output=""
+    run_sign() {
+        sign_status=0
+        sign_output="$("${imgtool[@]}" sign -k "$key" --header-size 0x400 --align 1 --version 0.0.0 \
+            --slot-size "$1" "$unsigned" "$work/sign-$1.bin" 2>&1)" || sign_status=$?
+        if grep -q Traceback <<<"$sign_output"; then
+            fail "imgtool crashed instead of answering for a slot of $1 bytes: $sign_output"
+        fi
+    }
+    run_sign "$slot_size"
+    if [[ "$sign_status" -ne 0 ]]; then
+        printf 'boot image check: the control signing with the real slot size %s was refused (exit %s), so the arguments of this check do not suit this imgtool: %s\n' \
+            "$slot_size" "$sign_status" "$sign_output" >&2
+        exit 2
+    fi
+    run_sign "$signed_size"
+    [[ "$sign_status" -ne 0 ]] ||
+        fail "imgtool signed $unsigned into a slot of $signed_size bytes, which the inspector says is too small for the image and its trailer"
+    record 'oversized: imgtool sign' ok "refused a slot of $signed_size B; the control with $slot_size B signed"
+fi
+record 'misaligned layout' info 'decided by the inspector only (host tests); imgtool is not asked'
 
 printf 'Boot image check (the images of %s, nothing booted):\n' "$build"
 printf '  %s\n' "${summary[@]}"
