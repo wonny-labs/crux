@@ -256,6 +256,46 @@ class Sources(unittest.TestCase):
         self.assertNotRegex(text, r"printk\([^;]*password\s*[,)]")
         self.assertNotRegex(text, r'"[^"\n]{16,}"\s*[,;]\s*(?://|$)')
 
+    def test_every_public_header_included_has_its_target_linked(self):
+        # The module registers its libraries with the Zephyr link and leaves no include root for `app`: a header
+        # that src/ includes needs the public usage target that carries it.
+        targets = {"access.h": "access", "config_service.h": "config_service", "configuration.h": "configuration",
+                   "credential_store.h": "credential_store", "file_service.h": "file_service",
+                   "file_zephyr.h": "file_zephyr", "management_status.h": "mgmt_status",
+                   "network_settings.h": "network_settings", "reboot.h": "reboot",
+                   "security_event.h": "security_event", "system.h": "system", "time.h": "time",
+                   "tls_certificate.h": "tls_certificate", "tls_certificate_start.h": "tls_certificate",
+                   "web.h": "web"}
+        cmake = read("CMakeLists.txt")
+        link = cmake[cmake.index("target_link_libraries(app"):]
+        link = link[:link.index(")")]
+        for name in SOURCES:
+            if not name.endswith((".c", ".h")):
+                continue
+            for header in self.includes(name):
+                if header.startswith("crux/"):
+                    base = header[len("crux/"):]
+                    self.assertIn(base, targets, f"{name}: {header} has no target in this test's table")
+                    self.assertIn(f"crux::{targets[base]}", link, f"{name}: {header}")
+
+    def test_includes_helper_reads_headers_too(self):
+        self.assertIn("crux/credential_store.h", self.includes("composition.h"))
+
+    def test_file_area_names_its_root_and_configs_are_static(self):
+        text = strip_c_comments(read("src/composition.c"))
+        self.assertRegex(text, r"static const crux_file_area_t areas\[\] = \{\{[^}]*\.root = ROOT_FILES")
+        # Borrowed for the program's life (crux_file_service_start, crux_reboot_start, sessions): never a local.
+        self.assertRegex(text, r"static const crux_file_service_config_t file_config")
+        self.assertRegex(text, r"static const crux_reboot_config_t reboot")
+        self.assertRegex(text, r"static const crux_web_session_config_t sessions")
+        self.assertRegex(text, r"static const crux_web_config_t web")
+        self.assertRegex(text, r"static const crux_access_policy_t policy")
+
+    def test_listener_is_not_started_before_the_fingerprint_is_read(self):
+        text = strip_c_comments(read("src/composition.c"))
+        body = text[text.index("bool composition_services_start"):]
+        self.assertLess(body.index("crux_tls_certificate_fingerprint("), body.index("crux_web_start("))
+
     def test_boot_order_entropy_before_any_key(self):
         text = strip_c_comments(read("src/main.c"))
         first_read = text.index("crux_entropy_boot_check()")

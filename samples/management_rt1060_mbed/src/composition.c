@@ -278,7 +278,7 @@ bool composition_services_start(void)
         .names = {.common_name = "crux rt1060 management",
                   .dns_names = dns_names,
                   .dns_count = ARRAY_SIZE(dns_names),
-                  .ipv4 = ipv4_names,
+                  .ipv4 = (const uint8_t(*)[4])ipv4_names,
                   .ipv4_count = ARRAY_SIZE(ipv4_names)},
         .not_before_s = CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
         .validity_days = 0u,
@@ -292,7 +292,8 @@ bool composition_services_start(void)
         crux_network_settings_start_worker() != CRUX_NETWORK_OK) {
         return failed("network settings");
     }
-    const crux_file_service_config_t file_config = {
+    /* Borrowed by the service for the program's life: static. */
+    static const crux_file_service_config_t file_config = {
         .areas = areas,
         .area_count = ARRAY_SIZE(areas),
         .reserved_roots = reserved_roots,
@@ -322,6 +323,14 @@ bool composition_services_start(void)
     if (tls_credentials_register(CONFIG_CRUX_WEB_TLS_SEC_TAG) != 0) {
         return failed("tls credentials");
     }
+    /* Trust on first use: the user compares this with what the client shows. It is read before the
+     * listener starts, so a certificate that cannot be read never has a listener. */
+    char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
+    if (crux_tls_certificate_fingerprint(fingerprint) != CRUX_TLS_CERTIFICATE_OK) {
+        return failed("certificate fingerprint");
+    }
+    printk("MBED-MGMT certificate sha256=%s source=%s\n", fingerprint,
+           certificate_generated ? "generated" : "stored");
     static const crux_web_config_t web = {
         .authenticate = crux_web_session_authenticate,
         .request_deadline_ms = CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS,
@@ -331,14 +340,4 @@ bool composition_services_start(void)
         return failed("https listener");
     }
     return true;
-}
-
-bool composition_certificate_generated(void)
-{
-    return certificate_generated;
-}
-
-bool composition_certificate_fingerprint(char text[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE])
-{
-    return crux_tls_certificate_fingerprint(text) == CRUX_TLS_CERTIFICATE_OK;
 }

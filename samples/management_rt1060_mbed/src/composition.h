@@ -26,13 +26,9 @@ crux_credential_state_t composition_store_state_at_start(void);
 
 /* The services that need the store, Access and the events: the TLS certificate (the device key is
  * made here), network settings, the file service, reboot, the web session and management cores, the
- * certificate's registration with Zephyr's TLS credentials, and the HTTPS listener last. */
+ * certificate's registration with Zephyr's TLS credentials, the certificate's fingerprint on the
+ * console, and the HTTPS listener last. */
 bool composition_services_start(void);
-
-/* Whether the certificate was generated at this boot (always, on a RAM disk), and its SHA-256
- * fingerprint text. */
-bool composition_certificate_generated(void);
-bool composition_certificate_fingerprint(char text[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE]);
 
 #if defined(CONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT)
 /* TEST ONLY (first_account_test.c): creates the first account `admin` from the embedded password.

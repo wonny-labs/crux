@@ -94,6 +94,10 @@ run_build() {
     # The test form: a password file outside the repository, made here.
     local scratch password_file password
     scratch="$(mktemp -d)"
+    local inside="$repo/build/management-mbed-rt1060-inside-password"
+    # Whatever happens next, no copy of the test password stays behind.
+    # The paths are expanded now: the locals are gone when the script exits.
+    trap "rm -rf '$scratch' '$inside'" EXIT
     password_file="$scratch/password"
     (umask 077 && head -c 24 /dev/urandom | base64 | tr -d '\n' > "$password_file")
     password="$(cat "$password_file")"
@@ -125,11 +129,9 @@ run_build() {
         printf 'ok: %s is refused\n' "$label"
     }
     refuse 'the test form with no password file' 'needs the environment variable' -u CRUX_MBED_MGMT_PASSWORD_FILE
-    local inside="$repo/build/management-mbed-rt1060-inside-password"
     mkdir -p "$(dirname "$inside")"
     cp "$password_file" "$inside"
     refuse 'a password file inside the repository' 'inside the repository' "CRUX_MBED_MGMT_PASSWORD_FILE=$inside"
-    rm -f "$inside" "$password_file"
 }
 
 case "$mode" in static | all) run_static ;; esac

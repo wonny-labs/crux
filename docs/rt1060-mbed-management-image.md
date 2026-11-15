@@ -1,6 +1,6 @@
 # The management image for RT1060-EVK Rev B on the Mbed TLS profile
 
-Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What is verified is a cross-build and the static checks of its configuration; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
+Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board, and the cross-build has not run either.** What has run is the static Host checks of the image's text. A cross-build check exists (`scripts/test-management-mbed-rt1060.sh build`) and no workflow runs it yet; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
 
 It is a different image from the [bench image](rt1060-management-image-feasibility.md) of the Wolf profile. That image carries safety gates and **refuses to start by design**, and this one has none of them: see [what is different](#how-it-differs-from-the-bench-image).
 
@@ -63,7 +63,7 @@ Kconfig settings of the image: `CRUX_MBED_MGMT_IPV4_ADDRESS` (default `192.168.7
 Flashing is the team's, with the standard NXP or Zephyr tools: `west flash` with a runner that supports this board (`west flash --help` lists them), or the NXP tools. The board's boot-mode switches and the dedicated link are described in [networking physical preparation](networking-physical-preparation.md). This repository's programming driver and board guards belong to the bench image's approval path and do not cover this image.
 
 - Link: board `192.168.77.2/24` and the host `192.168.77.1/24` on one cable, unless you changed the Kconfig address.
-- Console: LPUART1 at 115,200 baud.
+- Console: LPUART1 at 115,200 baud. LPUART3 is left free for the Crux serial console that a later phase composes, so keep any other console off it.
 - Put the board's previous image back after the run, by your own method.
 
 ### Expected console lines
@@ -81,7 +81,7 @@ MBED-MGMT ready https://192.168.77.2:443/
 
 Without the test form, the fourth line is `MBED-MGMT no first account: this image has no serial setup step, so nobody can log in...`. Security events follow as Logging lines when someone logs in.
 
-A refusal prints one line that starts `MBED-MGMT refusing to start:` or `MBED-MGMT step failed: <name>`, and nothing after it runs. The refusals, in order: the first random read failed (no key or listener is made), the static address could not be set, a core service did not start, the first account could not be made, a service did not start, the certificate fingerprint was unavailable. **No `MBED-MGMT ready` line within a minute of power-up is a failure to report, not to retry blindly.**
+A failed step prints `MBED-MGMT step failed: <name>` and then one `MBED-MGMT refusing to start: ...` line, and nothing after it runs. The refusals, in order: the first random read failed (no key or listener is made, and only the refusal line prints), the static address could not be set, a core service did not start, the first account could not be made, a service did not start. The certificate's fingerprint is read before the listener starts, so an unreadable certificate is a failed step and the listener never starts. **No `MBED-MGMT ready` line within a minute of power-up is a failure to report, not to retry blindly.**
 
 ### What a team checks
 
@@ -144,7 +144,7 @@ Two pieces and three configuration files come from test directories, because no 
 | Item | State |
 | --- | --- |
 | The image's static rules: Mbed profile, no Wolf or SSH symbol, no bench symbol, the services selected, entropy before any key, the listener after the certificate, only the listed private includes, the test form off and absent from `prj.conf` | **Host**, `tests/build/test_management_mbed_rt1060_image.py` |
-| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | `scripts/test-management-mbed-rt1060.sh build`. No workflow runs it yet: see the pull request for the one step to add. |
+| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **Not run.** The check is `scripts/test-management-mbed-rt1060.sh build`; no workflow runs it yet (the pull request names the one step to add). Until it has run, treat a compile or link error as possible. |
 | Everything on the board: boot, the TRNG, the handshake and its time and memory, the stack of the HTTP thread (16,384 B, a first choice), the Mbed TLS heap (120,000 B, sized on `native_sim` for three clients), the network buffers (the bench's numbers), the generated key as the listener's credential, reboot, every client | **Not run** |
 | The Mbed TLS listener with the generated certificate on any target | Not run: the `native_sim` images of the Mbed profile serve the declared test certificate |
 

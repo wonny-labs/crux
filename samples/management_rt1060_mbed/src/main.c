@@ -60,14 +60,6 @@ static int image_main(void)
         printk("MBED-MGMT refusing to start: a service did not start\n");
         return 1;
     }
-    char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
-    if (!composition_certificate_fingerprint(fingerprint)) {
-        printk("MBED-MGMT certificate fingerprint unavailable\n");
-        return 1;
-    }
-    /* Trust on first use: the user compares this with what the browser shows. */
-    printk("MBED-MGMT certificate sha256=%s source=%s\n", fingerprint,
-           composition_certificate_generated() ? "generated" : "stored");
     printk("MBED-MGMT ready https://%s:%d/\n", CONFIG_CRUX_MBED_MGMT_IPV4_ADDRESS,
            CONFIG_CRUX_WEB_PORT);
     return 0;

@@ -74,7 +74,7 @@ set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES} ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES})
 target_sources(app PRIVATE ${route_sources})
 # The web lifecycle has no public header on main yet (ADR-0004 phase 1a PRs 4 and 5), so its two private
-# directories and the adapter's are the only private roots this image reaches.
+# directories are the only private roots this image names (the web adapter's comes with crux_web_adapter).
 target_include_directories(app PRIVATE "${CRUX_WEB_SESSION_DIR}" "${CRUX_WEB_MANAGEMENT_DIR}")
 # The public usage targets carry each service's include root: `app` names no component directory for them.
 target_link_libraries(app PRIVATE crux::access crux::credential_store crux::security_event crux::configuration
