@@ -16,6 +16,7 @@
 #include <crux/access.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +79,17 @@ typedef enum {
  */
 typedef crux_web_auth_t (*crux_web_authenticate_t)(const crux_web_request_head_t *head,
                                                    crux_access_session_t *session, void *context);
+
+/**
+ * The web server's fixed settings, which an image passes to the start call of its transport. The
+ * Zephyr one is crux_web_start() of <crux/web_zephyr.h>.
+ */
+typedef struct {
+    crux_web_authenticate_t authenticate; /**< NULL answers every non-public route with 503. */
+    void *authenticate_context;
+    uint32_t request_deadline_ms; /**< From the first callback to the last body byte. */
+    uint32_t handler_limit_ms;    /**< Declared time limit, counted when exceeded. */
+} crux_web_config_t;
 
 /**
  * A route's handler. The core has already compared the whole path and enforced the access class.
