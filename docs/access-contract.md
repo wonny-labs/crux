@@ -158,14 +158,14 @@ This is the one consequence that a reader should weigh. It follows from fail-clo
 
 So the accepted set is the SSH provider's set, not a per-profile set. Access does not ask a provider which types it can verify: that would be a new port in `access_port.h`, and nothing in this change needs one. On an image without SSH, such as the Mbed profile, the added key is stored and no login can use it. That is the same situation as before for a key of any type, and this change does not address it. It is listed as a decision for review below.
 
-**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare. A smaller default would shrink `CRUX_ACCESS_RECORD_SIZE_MAX`, which the credential store checks against its accounts record limit (`components/credential/access_store/credential_access_store.c`), and it would break a product that sets the macro and stores a record of the old size. That is a separate change.
+**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare. Lowering it is not needed for this change. Any value of 104 or more keeps every decodable record readable, because records are variable length and every key a record can hold is now Ed25519 (51 bytes) or P-256 (104 bytes). It would, however, change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
 
 ### Decisions for review (Issue #316)
 
 | # | Decision taken for lack of an answer | Recommendation | Impact if the owner decides otherwise |
 | --- | --- | --- | --- |
 | 1 | A stored record holding P-384 or P-521 stays malformed, so the whole store is unusable after an upgrade (above) | Keep, while no release exists. If a release carries Access before this is revisited, add a tolerant decoder that drops the key and emits an event | A separate change in `access_record.c`, with a record-version or event decision |
-| 2 | `CRUX_ACCESS_KEY_SIZE_MAX` stays 192 | Keep. Revisit with the record size when the store's limit is | Lower the default and `CRUX_ACCESS_RECORD_SIZE_MAX` follows |
+| 2 | `CRUX_ACCESS_KEY_SIZE_MAX` stays 192 | Keep for this change. A default of 104 or more would still read every decodable record, and would lower `CRUX_ACCESS_RECORD_SIZE_MAX` and per-account RAM | A separate change to the default, with the RAM saving measured |
 | 3 | Access does not depend on the profile: Ed25519 and P-256 blobs are accepted on the Mbed profile too, where no SSH provider exists to use them | Keep. A capability port would be a new private interface for no consumer | A provider declaration read by `crux_access_key_acceptable` |
 
 ## Declared limits
