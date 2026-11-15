@@ -82,7 +82,7 @@ Explain non-obvious type, enum, member and macro semantics with brief `/** ... *
 
 Review new or changed API declarations, documentation, implementation and focused tests together. Compare advertised outputs, errors, ownership, context and supported environments with actual behaviour. Record incompatible changes explicitly instead of treating documentation edits as API approval.
 
-Use existing format, dependency, build and test checks proportional to the change. `scripts/analyze-host.sh` needs its documented configured Host build and covers only its selected source files. Documentation-only changes need link and accuracy review, not unrelated hardware tests.
+Use existing format, dependency, build and test checks proportional to the change. `scripts/analyze-host.sh` needs its documented configured Host build and analyses the sources that the builds listed in `scripts/tidy-sources.conf` compile (see [static-analysis coverage](static-analysis-coverage.md)). Documentation-only changes need link and accuracy review, not unrelated hardware tests.
 
 ## Upstream guidance
 

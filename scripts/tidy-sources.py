@@ -176,6 +176,9 @@ def build_plan(repo, config, strict, primary=None, build_root=None):
             problems.append(f"cannot read {build}/compile_commands.json: {error}")
             continue
         plan.databases.append((build, sources))
+        if not sources:
+            warn.append(f"listed build {build} compiles no source under {', '.join(OWNED_ROOTS)}; "
+                        "its database may name paths outside this checkout")
         for source in sources:
             if not os.path.isfile(os.path.join(repo, source)):
                 problems.append(f"{build} compiles {source}, which does not exist in the tree (stale database)")

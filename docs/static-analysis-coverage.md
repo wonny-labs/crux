@@ -415,7 +415,7 @@ python3 scripts/tidy-sources.py run --report-only --jobs 4   # one clang-tidy-18
   not exist, and an exclusion that no listed build compiles. Without `--strict` the last three are
   warnings, so a developer who built only some consumers can still run the analysis.
 - **Report-only** (`run --report-only`) prints the counts per directory and per check and every
-  diagnostic, counted once per file, line and check, and exits 0 unless clang-tidy cannot start.
+  diagnostic, counted once per file, line, column and check, and exits 0 unless clang-tidy cannot start.
 - **Tests:** [tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py) runs in the existing
   `python3 -m unittest discover -s tests/build` step of `host.yml`. They use synthetic databases and a fake
   clang-tidy: a new source is picked up with no list edit, an exclusion needs a reason, a compiled source in
@@ -437,13 +437,17 @@ not merged):
   `build/file-consumers`, `logging-consumer`, `system-consumer`, `thread-only`, `sync-only`,
   `execution-firmware-host`, `execution-runtime-host` and `build/clangd` (a copy of one preset's database,
   now ignored with a reason).
-- The six builds that the proposal had guessed for the host job (`mgmt-services-string-limit`,
-  `mgmt-services-tsan`, `mgmt-services-consumer`, `ssh-cli-tsan`, `messaging-consumer`, `serial-consumer`) do
-  **not** exist there, so they are not listed. Their sources are not analysed, as before.
+- Three consumer builds of the host job existed but wrote no compile database, because their
+  `CMakeLists.txt` did not set `CMAKE_EXPORT_COMPILE_COMMANDS`: `messaging-consumer`, `serial-consumer` and
+  `mgmt-services-consumer`. Their sources (for example `tests/messaging_consumer/main.cpp`) were in no list. The
+  pull request sets the option in the three `CMakeLists.txt` files and lists the builds. The root builds
+  `mgmt-services-string-limit`, `mgmt-services-tsan` and `ssh-cli-tsan` also write no database, but they compile
+  only sources that `build/linux/debug` compiles. A consumer build added later without the option has the same
+  gap, and the check cannot see it: a build with no database is invisible to it (see "What is not covered").
 - 417 sources analysed in 9 builds, 21 failed, 57 diagnostics in 22 files (the 2026-11-09 measurement
   expected about 64: the missing builds hold the rest). By directory of the reported file: `tests/time` 18,
   `tests/file` 16, `tests/thread` 4, `components/queue` 3 (reported through the fixture `tests/queue/faults.c`),
-  `tests/networking` 3, `tests/queue` 3, `components/file_service` 1, `components/ssh` 1, and 9 in other
+  `tests/networking` 3, `tests/queue` 3, `components/file_service` 1, `components/ssh` 1, and 8 in other
   `tests/` directories. By check: `bugprone-reserved-identifier` 22, `bugprone-easily-swappable-parameters` 16,
   `bugprone-suspicious-memory-comparison` 5, `clang-analyzer-security.insecureAPI.strcpy` 4,
   `clang-analyzer-core.StackAddressEscape` 3, and six checks with 1 or 2.
@@ -505,6 +509,10 @@ require that name. `main` has no branch protection today, so none of these names
 
 ## What is not covered
 
+- A build that writes no compile database. The generator reads databases, so a source that only such a
+  build compiles is in no list and no check notices. Today these are the root builds of
+  `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh`, which compile only sources
+  that `build/linux/debug` also compiles. Every consumer build must set `CMAKE_EXPORT_COMPILE_COMMANDS`.
 - Zephyr and `native_sim` sources, the PSA composition and the boundary probes (above).
 - MISRA C and CERT C: no compliance claim exists, none is made. Dedicated analysers would need their
   own justification.
