@@ -161,7 +161,7 @@ Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_t
 
 #### The decision for the refusals with no event (#270)
 
-On 2026-11-14 the owner accepted a direction in the working chat of the Crux secure management session ("추천대로 모두 진행해줘", "proceed with all as recommended", after a recommendation: no event with a recorded reason for a refusal that is an ordinary client's behaviour or that stops before the port, and one new rate-limited event for a session's bound of open files or listings). The table below applies that direction to each row of the issue. **It is a proposal for independent review, row by row.** It changes no code and adds no identifier; the identifier of row 6, its class and its rate behaviour are decided in the pull request that implements it, together with the security event contract.
+On 2026-11-14 the owner accepted a direction in the working chat of the Crux secure management session ("추천대로 모두 진행해줘", "proceed with all as recommended", after a recommendation: no event with a recorded reason for a refusal that is an ordinary client's behaviour or that stops before the port, and one new rate-limited event for a session's bound of open files or listings). The table below applies that direction to each row of the issue. **It is a proposal that was reviewed independently, row by row (#411); the owner accepted the direction, not each row.** It changes no code and adds no identifier; the identifier of row 6, its class and its rate behaviour are decided in the pull request that implements it, together with the security event contract.
 
 | # | Refusal (the issue's row) | Decision | Reason recorded |
 | --- | --- | --- | --- |
@@ -179,7 +179,7 @@ On 2026-11-14 the owner accepted a direction in the working chat of the Crux sec
 | 12 | `SYMLINK`, `READLINK` and other requests with no handler | No event | No port call exists. The same separate decision |
 | 13 | A path of 256 bytes or more | No event | wolfSSH stops it before the port. The same separate decision |
 
-What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is met by this table once it is reviewed and merged; the criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
+What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is **not yet met**: the owner accepted the direction, not each row, so it needs the owner's decision on this table row by row, or a follow-up that records it. The criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
 
 ### Long paths
 

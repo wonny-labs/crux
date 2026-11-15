@@ -81,6 +81,10 @@ set(route_sources
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
 target_sources(app PRIVATE ${route_sources})
 
+# The product links crux::web itself: crux_web_assets() and crux_web_routes() give Crux's own sources what they
+# need and add no usage target to your target.
+target_link_libraries(app PRIVATE crux::web)
+
 # Your built frontend folder, with index.html at its top. Call it before crux_web_routes().
 crux_web_assets(app FOLDER ${CMAKE_SOURCE_DIR}/frontend/dist STYLE strict)
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${CMAKE_SOURCE_DIR}/reviewed-routes.txt)
@@ -150,7 +154,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_CONFIGURATION_CORE` | off | **Experimental.** Selected by the two above, with no prompt. With `CRUX_CONFIGURATION_SETTINGS_FILE` on it builds nothing. | Module |
 | `CRUX_NETWORK_SETTINGS` | off | **Experimental** (ADR-0004 phase 0, slice 3). Builds the network settings service and its check. Needs `CRUX_ACCESS` and `CRUX_CONFIG_SERVICE`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The apply port is the application's (ADR-0004 C3), declared in `<crux/network_settings_apply_port.h>`: an image without one does not link, unless the next symbol is set. Builds no serial command. | Module |
 | `CRUX_NETWORK_SETTINGS_NO_APPLY` | off | **Experimental.** The apply port that applies nothing and reports no running values, for `native_sim` and for an image whose application applies nothing. Do not set it where the application implements the port. | Module |
-| `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). | Module |
+| `CRUX_TLS_CERTIFICATE` | off | **Experimental** (slice 3). Builds the TLS certificate module, its X.509 encoder and its PSA ports. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. Registers nothing with Zephyr's TLS credentials: the application does (ADR-0004 C4). Starts nothing. Defines the portable target `crux::tls_certificate` for `<crux/tls_certificate.h>` and `<crux/tls_certificate_start.h>`, the header that carries the key (phase 1a). | Module |
 | `CRUX_FILE_SERVICE` | off | **Experimental** (slice 3). Builds the file service core. Needs `CRUX_ACCESS`. **Selects** `CRUX_SYNC`. | Module |
 | `CRUX_REBOOT` | off | **Experimental** (slice 3). Builds the reboot service, its sleep and its reset over `crux_system_reset()`. Needs `CRUX_ACCESS`, and the configuration refuses an image without `CRUX_SYSTEM`. **Selects** `CRUX_CONFIGURATION_CORE`, `CRUX_THREAD` and `CRUX_SYNC`. The policy is the application's. | Module |
 | `CRUX_WEB_SESSION` | off | **Experimental** (ADR-0004 phase 0, slice 4). Builds login, sessions and request forgery protection, with the password verification port over PSA Crypto. Needs `CRUX_ACCESS` and `CRUX_WEB`. **Selects** `CRUX_THREAD` and `CRUX_SYNC`. The login and logout routes are the application's to name (`CRUX_WEB_SESSION_ROUTES`). | Module |
@@ -287,7 +291,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 ### Registering a user key
 
-On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. The only code that calls `crux_access_account_add_key` outside Access and its tests is the test composition, which is test-only.
+On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. Only test code calls `crux_access_account_add_key` today; no product or image code does. The test composition's call is the example below.
 
 | Question | Answer, from `components/access/include/crux/access.h`, `components/access/src/access_accounts.c` and the test composition |
 | --- | --- |
@@ -344,9 +348,9 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Firefox and Chromium header capture, WinSCP | | By hand |
 | RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
 
-## Open owner decisions
+## Owner decisions
 
-Decisions that need the owner, with where each is recorded. Nothing here is decided by this guide.
+Decisions that need the owner and decisions the owner has already taken, with where each is recorded and its state. Nothing here is decided by this guide: a decided row records the owner's decision, and the issue holds the quote.
 
 | Decision | Recorded in | State |
 | --- | --- | --- |
@@ -360,7 +364,7 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Decided 2026-11-14: emit `ssh.auth_limit` and `ssh.host_key_missing` (option A), refusals before the first callback stay reserved (option B); built on the Host, pending review |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Decided 2026-11-14, option A with rate limiting; not implemented yet |
-| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table is a proposal in review, see [SFTP design](sftp-design.md#each-refusal-and-its-event) |
+| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table in the [SFTP design](sftp-design.md#each-refusal-and-its-event) was independently reviewed and merged as a proposal (#411); no event is implemented yet |
 | Passing the terminal flag to the SSH `exec` callback | [Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269) | Open |
 | Replacing the host key and printing its fingerprint | [wolfSSH provider](ssh-wolf-provider.md#decisions-for-review), decision 24 | Not built |
 | Safari: no issue tracks running firmware in it | [Web contract](web-contract.md#header-capture) | No issue yet |
