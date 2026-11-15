@@ -1,8 +1,8 @@
 # Boot composition for the RT1170-EVK (proposed, build only)
 
-> **Status:** Proposed starting values. Nothing here is adopted until the owner accepts the RT1170 design note, "RT1170-EVK boot composition: memory-map choices". The four board files and the check script exist so that a first CI build can test the values.
+> **Status:** Proposed starting values. Nothing here is adopted until the owner accepts the RT1170 design note, "RT1170-EVK boot composition: memory-map choices". The four board files and the check script exist so that a first CI build can test the values. The check runs in its own step of the runtime shard of the Zephyr workflow.
 > **Verified:** By host tests of file contents only (`tests/build/test_boot_composition_rt1170.py`): the files exist, both overlays declare the same retained region and trim OCRAM2 by exactly that region, the window values, and the script's argument set.
-> **Not verified:** Everything else. No build was run, no CI step exists, and nothing was booted. That the application builds for this board under sysbuild, and every RT1170 boot ROM, XMCD, OTFAD, HAB and fuse behaviour, are open.
+> **Not verified:** Everything else. The CI step exists but has not passed yet, so the composition is still not verified by build, and nothing was booted. The first run may fail on the memory map, which is expected information for correcting the starting values. That the application builds for this board under sysbuild, and every RT1170 boot ROM, XMCD, OTFAD, HAB and fuse behaviour, are open.
 > **Read this first / then:** the [boot overview](boot-overview.md), then the [boot composition](boot-composition.md) page of the RT1060-EVK Rev B, which is the recipe this page copies.
 
 This page is the RT1170-EVK counterpart of [boot composition](boot-composition.md) (work package WP1a of [issue #296](https://github.com/wonny-labs/crux-pilot/issues/296), RT1170 build-only evidence of M8). It does not change that page or the RT1060-EVK files. Statements carry the labels **Verified by build**, **Verified on source** (read in the named Zephyr source tree, as in the boot and update investigation), **Inference** and **Not verified**. No statement about the RT1170 on this page is Verified by build.
@@ -23,7 +23,7 @@ west build --sysbuild -b 'mimxrt1170_evk@A//cm7' <app> -d <build> -- \
   -D<image>_EXTRA_DTC_OVERLAY_FILE=<crux>/zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A/app.overlay
 ```
 
-[`scripts/test-boot-composition-rt1170.sh`](../scripts/test-boot-composition-rt1170.sh) builds this set (Linux only, build directory `build/zephyr/boot-composition-rt1170`), checks the MCUboot configuration, signs, runs `imgtool verify` with the public test key and checks that a key of another type and two modified images are refused, without a Python traceback. It never programs a board and never generates a key. It has never run.
+[`scripts/test-boot-composition-rt1170.sh`](../scripts/test-boot-composition-rt1170.sh) builds this set (Linux only, build directory `build/zephyr/boot-composition-rt1170`), checks the MCUboot configuration, signs, runs `imgtool verify` with the public test key and checks that a key of another type and two modified images are refused, without a Python traceback. It never programs a board and never generates a key. It runs in CI in its own step of the `runtime` shard of the Zephyr workflow, separate from the RT1060 step. It has not passed yet: the composition is still **Not verified** by build until the first run passes, and that run may fail on the memory map, which is expected information for correcting the starting values.
 
 ## Starting values and their basis
 
@@ -45,7 +45,7 @@ Where the files differ from the RT1060 files only by these values, the construct
 | --- | --- | --- |
 | Starting values | The owner has not accepted the design note's values. | Recommendation in the note: accept them as starting values. |
 | D2 | **Application.** The controller sample has no RT1170 board configuration. | The script builds the controller sample and passes no board configuration. Whether that builds under sysbuild is Not verified. `CRUX_BOOT_RT1170_APP` replaces the application directory without a script edit, for example by a small Zephyr sample, if the controller sample needs more than a board `.conf`. |
-| D3 | **CI placement.** | No CI step runs the script. A separate step or job, not inside the RT1060 step, keeps an RT1170 failure from hiding an RT1060 result. Adding it changes `.github/workflows/zephyr.yml`, a protected path, and needs the owner's approval. A test in `tests/build/test_boot_composition_rt1170.py` asserts that the step is absent and must be changed with it. |
+| D3 | **CI placement.** | The script runs in its own step of the `runtime` shard of `.github/workflows/zephyr.yml`, placed after the RT1060 step, so that an RT1170 failure does not hide an RT1060 result. The change to that protected path is additive, and tests in `tests/build/test_boot_composition_rt1170.py` check the step and that no line of the workflow was removed or reordered. The first run may fail on the memory map. |
 | D4 | **Script.** | A second script reuses every check, so no existing protected file is edited. A parameter of `scripts/test-boot-composition.sh` is the alternative and is the owner's decision. |
 
 ### Memory table of the Zephyr board document (Not verified)

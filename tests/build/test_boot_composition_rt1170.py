@@ -10,6 +10,8 @@ directory without west or PyYAML. No build ran for this board.
 from pathlib import Path
 import os
 import re
+import subprocess
+import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -159,6 +161,17 @@ class PageTest(unittest.TestCase):
             for label in re.findall(r"Verified\s+(?:by|on)\s+\w+|Unverified", body):
                 self.assertTrue(label.startswith(defined[:2]), f"{path.name}: {label}")
 
+    def test_the_page_and_the_files_say_that_the_ci_step_exists_but_nothing_is_verified_by_build(self):
+        page = read(PAGE)
+        self.assertNotIn("no CI step exists", page)
+        self.assertNotIn("No CI step runs the script", page)
+        self.assertIn("runtime shard", page)
+        self.assertIn("may fail on the memory map", page)
+        self.assertIn("until the first run passes", page)
+        for text in (read(SCRIPT), *(read(BOARD_DIR / n) for n in FILES)):
+            self.assertNotIn("No CI step runs it yet", text)
+            self.assertNotIn("Nothing was built or run for this board", text)
+
     def test_the_padded_slot_clause_has_its_own_label(self):
         row = next(l for l in read(PAGE).splitlines() if l.startswith("| Slots"))
         self.assertIn("**Inference**", row)
@@ -240,22 +253,105 @@ class BuildCheckTest(unittest.TestCase):
         # `west build` runs after `cd "$workspace"`, and a value of `.` would name the image `.`.
         lines = self.code.splitlines()
         exists = next(i for i, l in enumerate(lines) if '[[ -d "$app" ]]' in l)
-        absolute = next(i for i, l in enumerate(lines) if 'app="$(cd "$app" && pwd)"' in l)
+        absolute = next(i for i, l in enumerate(lines) if 'app="$(CDPATH= cd -- "$app" && pwd)"' in l)
         named = next(i for i, l in enumerate(lines) if 'image="$(basename "$app")"' in l)
         self.assertLess(exists, absolute)
         self.assertLess(absolute, named)
+
+    def test_the_application_path_resolution_ignores_cdpath(self):
+        # With CDPATH set, a bare `cd` may print the directory and resolve it elsewhere.
+        self.assertIn('app="$(CDPATH= cd -- "$app" && pwd)"', self.code)
+
+    def test_the_application_path_resolution_gives_an_absolute_path_with_cdpath_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "other" / "app").mkdir(parents=True)
+            (Path(tmp) / "cwd" / "app").mkdir(parents=True)
+            line = next(l for l in self.code.splitlines() if 'app="$(CDPATH= cd' in l).strip()
+            result = subprocess.run(
+                ["bash", "-c", f'{line}; printf %s "$app"'],
+                cwd=Path(tmp) / "cwd", env={**os.environ, "app": "app", "CDPATH": str(Path(tmp) / "other")},
+                capture_output=True, text=True, check=True,
+            )
+            self.assertEqual(str((Path(tmp) / "cwd" / "app").resolve()), str(Path(result.stdout).resolve()))
+            self.assertTrue(result.stdout.startswith("/"))
 
     def test_the_script_is_linux_only(self):
         self.assertIn('uname -s', self.code)
         self.assertIn("exit 2", self.code)
 
 
+def workflow_steps(text):
+    """Return the steps of the workflow as (name, [field lines]) in order, comments dropped."""
+    steps = []
+    for line in text.splitlines():
+        if line.startswith("      - name: "):
+            steps.append((line[len("      - name: "):], []))
+        elif steps and line.startswith("        ") and not line.lstrip().startswith("#"):
+            steps[-1][1].append(line)
+    return steps
+
+
+RT1060_STEP = "Build, sign and check the MCUboot RAM load composition (software-only)"
+
+
 class WorkflowTest(unittest.TestCase):
-    def test_the_workflow_does_not_run_the_rt1170_check_yet(self):
-        # The CI step is open point D3 and `.github/workflows/zephyr.yml` is a protected path.
-        # THIS TEST MUST BE CHANGED, to require the step, when the owner approves the CI step.
-        text = read(ZEPHYR_WORKFLOW)
-        self.assertNotIn("test-boot-composition-rt1170", text)
+    """The CI step was approved by the owner (open point D3, "all as recommended", 15 November 2026)."""
+
+    def setUp(self):
+        self.text = read(ZEPHYR_WORKFLOW)
+        self.steps = workflow_steps(self.text)
+        self.names = [name for name, _ in self.steps]
+
+    def test_the_rt1170_check_runs_in_its_own_runtime_step(self):
+        matches = [(n, f) for n, f in self.steps if "scripts/test-boot-composition-rt1170.sh" in "\n".join(f)]
+        self.assertEqual(1, len(matches), "exactly one step runs the RT1170 check")
+        name, fields = matches[0]
+        self.assertIn("RT1170", name)
+        self.assertEqual(
+            [
+                "        if: matrix.shard == 'runtime'",
+                "        working-directory: crux-pilot",
+                "        run: scripts/test-boot-composition-rt1170.sh",
+            ],
+            fields,
+        )
+
+    def test_the_rt1170_step_follows_the_rt1060_step_and_precedes_the_twister_evidence(self):
+        # The workflow has another step with RT1170 in its name, the cross-build, which runs earlier.
+        rt1170 = next(n for n in self.names if "RT1170" in n and "MCUboot RAM load" in n)
+        self.assertLess(self.names.index(RT1060_STEP), self.names.index(rt1170))
+        self.assertLess(self.names.index(rt1170), self.names.index("Collect Twister evidence"))
+        # Nothing sits between the two boot composition steps.
+        self.assertEqual(self.names.index(RT1060_STEP) + 1, self.names.index(rt1170))
+
+    def test_the_rt1060_step_is_unchanged(self):
+        fields = dict(self.steps)[RT1060_STEP]
+        self.assertEqual(
+            [
+                "        if: matrix.shard == 'runtime'",
+                "        working-directory: crux-pilot",
+                "        run: scripts/test-boot-composition.sh",
+            ],
+            fields,
+        )
+
+    def test_the_change_to_the_workflow_only_adds_lines(self):
+        # Every line of the workflow at the point where this branch left origin/main is still
+        # present, in the same order. This guards the additive CI change of this branch. It is
+        # skipped when git or origin/main is not available, as in a shallow checkout.
+        try:
+            base = subprocess.run(
+                ["git", "merge-base", "origin/main", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True
+            ).stdout.strip()
+            old = subprocess.run(
+                ["git", "show", f"{base}:.github/workflows/zephyr.yml"],
+                cwd=REPO, capture_output=True, text=True, check=True,
+            ).stdout
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("origin/main is not available")
+        new_lines = iter(self.text.splitlines())
+        for line in old.splitlines():
+            self.assertTrue(any(line == candidate for candidate in new_lines), f"removed or reordered: {line!r}")
 
 
 if __name__ == "__main__":

@@ -8,8 +8,10 @@
 #
 # STATUS: the board files under zephyr/boot/boards/mimxrt1170_evk_mimxrt1176_cm7_A hold PROPOSED
 # STARTING VALUES from the RT1170 design note "RT1170-EVK boot composition: memory-map choices".
-# They are not adopted, and this script has never run: the first CI build is expected to correct
-# values. No CI step runs it yet (open point D3).
+# They are not adopted. The script runs in its own step of the runtime shard of the Zephyr
+# workflow, separate from the RT1060 step (open point D3). It has not passed yet, so the
+# composition is Not verified by build, and the first run may fail on the memory map; that is
+# information for correcting the starting values.
 #
 # OPEN POINT D2, the application: the controller sample samples/controller/zephyr has no RT1170
 # board configuration (samples/controller/zephyr/boards holds only RT1060 and native_sim files).
@@ -54,7 +56,7 @@ fi
 [[ -d "$app" ]] || fail "the application directory does not exist: $app"
 # West runs from the workspace, so a relative path is made absolute here, which also keeps a
 # value such as "." from becoming the image name.
-app="$(cd "$app" && pwd)"
+app="$(CDPATH= cd -- "$app" && pwd)"
 image="$(basename "$app")"
 for name in mcuboot.conf mcuboot.overlay app.conf app.overlay; do
     [[ -f "$files/$name" ]] || fail "$files/$name is missing"
