@@ -1,18 +1,11 @@
 /**
  * @file
- * @brief Status and configuration routes of the management web server.
+ * @brief What the web management module keeps private: the body size and the counters.
  *
- * Internal to Crux, like crux_web_session.h: a composition compiles these sources with the web core
- * and names web_management_routes.c to crux_web_routes(). The routes call the status and
- * configuration services with the session that the web core found, and add nothing to what those
- * services decide:
- *
- * - GET /api/v1/status lists the status items this session may see.
- * - GET /api/v1/config lists the configuration parameters this session may see.
- * - GET and PUT /api/v1/config/{name} read and update one parameter, in memory.
- * - POST /api/v1/config/save queues a save on one bounded worker, and the list reports its outcome.
- *
- * The account routes are those of crux_web_session.h. The routes are described in openapi.yaml, the
+ * Internal to Crux, like crux_web_session.h: a project never sees this header. The start calls and
+ * the save query are public, in <crux/web_management.h>, which this header includes and which also
+ * lists the routes. A composition compiles these sources with the web core and names
+ * web_management_routes.c to crux_web_routes(). The routes are described in openapi.yaml, the
  * management API specification, and docs/web-management-apis.md holds their design.
  */
 #ifndef CRUX_WEB_MANAGEMENT_H
@@ -20,6 +13,7 @@
 
 #include "crux_web_adapter.h"
 
+#include <crux/web_management.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -42,27 +36,6 @@ typedef struct {
     uint32_t saves_busy;     /**< Saves refused because one was queued or running. */
     uint32_t saves_finished; /**< Saves the worker ended, whatever their result. */
 } crux_web_management_stats_t;
-
-/**
- * Reset the save state and take the lock and signal of the worker. After the services have
- * started, before crux_web_start(), and on one thread.
- *
- * @retval CRUX_WEB_ERR_FAILED The lock or the worker's signal could not be created.
- */
-crux_web_result_t crux_web_management_init(void);
-
-/** Start the one worker thread that runs configuration saves, at low priority. */
-crux_web_result_t crux_web_management_start_worker(void);
-
-/**
- * Whether a configuration save is queued or running, for a service that must not cut one short,
- * such as the reboot service's wait. Takes no session and records nothing. A lock that does not
- * come in time reads as pending, the safe answer. Before crux_web_management_init() there is no
- * save to wait for.
- *
- * @return True while a save that a session queued has not ended.
- */
-bool crux_web_management_save_pending(void);
 
 /** A snapshot of the counters. */
 void crux_web_management_stats_get(crux_web_management_stats_t *stats);

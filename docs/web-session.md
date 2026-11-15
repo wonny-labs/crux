@@ -2,7 +2,7 @@
 
 Status: merged in [PR #278](https://github.com/wonny-labs/crux-pilot/pull/278) for Issue #186. Nothing here has run on a board. #186's own test image uses plain HTTP, and the sessions have since run over HTTPS on both TLS profiles in [the services image](native-composition-242.md) and in the [browser runs of #220](e2e-native-220.md). Host and `native_sim` results are interim results, and physical evidence stays tracked apart.
 
-Owner: `components/web`. Internal header `components/web/session/crux_web_session.h`, for a composition only, like
+Owner: `components/web`. The settings type, the start calls and the authentication function are public in `<crux/web_session.h>` (target `crux::web_session`, ADR-0004 phase 1a, Experimental). The rest, the counters and token sizes, is in the internal header `components/web/session/crux_web_session.h`, for a composition only, like
 `crux_web_adapter.h`. Sources in `components/web/session/`, listed by `sources.cmake`. Ports on PSA Crypto in
 `components/web/ports/psa/web_session_psa.c`.
 

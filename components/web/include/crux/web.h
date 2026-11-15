@@ -56,6 +56,30 @@ typedef enum {
 typedef struct crux_web_request crux_web_request_t;
 
 /**
+ * What the server parsed of a request, for an authentication function. The type is opaque here: its
+ * fields belong to the transport adapter, and an image takes the function that reads them from the
+ * web session module (<crux/web_session.h>) and hands it to crux_web_start().
+ */
+typedef struct crux_web_request_head crux_web_request_head_t;
+
+/** The outcome of checking a request's credentials. */
+typedef enum {
+    CRUX_WEB_AUTH_OK = 0,          /**< The session is set. */
+    CRUX_WEB_AUTH_NO_SESSION,      /**< 401 unauthorized. */
+    CRUX_WEB_AUTH_CSRF_REJECTED,   /**< 403 csrf_rejected. */
+    CRUX_WEB_AUTH_ORIGIN_REJECTED, /**< 403 origin_rejected. */
+    CRUX_WEB_AUTH_NOT_READY        /**< 503 not_ready. */
+} crux_web_auth_t;
+
+/**
+ * Finds the session of a request, on the server thread, and may not block. It runs for every route
+ * that is not public, before the body is read and the access class is checked, and it owns the CSRF
+ * and Origin rules and the idle timer.
+ */
+typedef crux_web_auth_t (*crux_web_authenticate_t)(const crux_web_request_head_t *head,
+                                                   crux_access_session_t *session, void *context);
+
+/**
  * A route's handler. The core has already compared the whole path and enforced the access class.
  *
  * @param session The caller's session. Its value is zero on a public route, which every crux_access
