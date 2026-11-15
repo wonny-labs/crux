@@ -13,7 +13,8 @@ crux_web_routes(app SOURCES src/routes.c ZEPHYR_RESOURCES REVIEWED reviewed-rout
 # needs the Access core and its store, which a product composition brings.
 include(${CRUX_ROOT}/components/web/session/sources.cmake)
 # The PSA ports need a PSA provider, which the Mbed TLS profile has.
-add_library(crux_web_session_compile OBJECT ${CRUX_WEB_SESSION_SOURCES} ${CRUX_WEB_SESSION_ROUTES})
+add_library(crux_web_session_compile OBJECT ${CRUX_WEB_SESSION_SOURCES} ${CRUX_WEB_SESSION_ROUTES}
+  ${CRUX_WEB_SESSION_EVENTS})
 if(CONFIG_MBEDTLS)
   target_sources(crux_web_session_compile PRIVATE ${CRUX_WEB_SESSION_PSA_PORT})
 endif()
@@ -21,7 +22,8 @@ target_include_directories(crux_web_session_compile PRIVATE ${CRUX_WEB_SESSION_D
   ${CRUX_ROOT}/components/web/src ${CRUX_ROOT}/components/web/adapter ${CRUX_ROOT}/components/web/include
   ${CRUX_ROOT}/components/access/include ${CRUX_ROOT}/components/access/adapter
   ${CRUX_ROOT}/components/base/include ${CRUX_ROOT}/components/sync/include
-  ${CRUX_ROOT}/components/thread/include ${CRUX_ROOT}/components/time/include)
+  ${CRUX_ROOT}/components/thread/include ${CRUX_ROOT}/components/time/include
+  ${CRUX_ROOT}/components/security_event/include)
 target_compile_definitions(crux_web_session_compile PRIVATE
   CRUX_WEB_BODY_BUFFER=${CONFIG_CRUX_WEB_BODY_BUFFER}u)
 target_link_libraries(crux_web_session_compile PRIVATE zephyr_interface crux_service_priority_placement)

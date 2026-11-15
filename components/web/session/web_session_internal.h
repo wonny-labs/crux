@@ -3,6 +3,7 @@
 #define CRUX_WEB_SESSION_INTERNAL_H
 
 #include "crux_web_session.h"
+#include "web_session_event_port.h"
 #include "web_session_port.h"
 
 #include <crux_access_adapter.h>
@@ -26,6 +27,17 @@
 #ifndef CRUX_WEB_SESSION_WORKER_WAIT_MS
 /* How often the worker wakes with nothing signalled, to end attempts that expired. */
 #define CRUX_WEB_SESSION_WORKER_WAIT_MS 1000u
+#endif
+
+#ifndef CRUX_WEB_SESSION_FORGERY_EVENTS
+/* Refusals of one kind reported to the event port in one window. Two kinds, so at most twice this
+ * many in a window, and twice as many across the edge of two windows, which is 12 records of the
+ * 24 that the ring admits as routine by default. */
+#define CRUX_WEB_SESSION_FORGERY_EVENTS 3u
+#endif
+#ifndef CRUX_WEB_SESSION_FORGERY_WINDOW_MS
+/* How long a window lasts, by the web clock. The count restarts when a window ends. */
+#define CRUX_WEB_SESSION_FORGERY_WINDOW_MS 60000u
 #endif
 
 /* A password as the attempt holds it: one byte more than crux_access accepts, so that a longer one
@@ -56,6 +68,15 @@ size_t web_session_table_count(void);
 
 /* Whether head's Origin is the one this server accepts, compared whole. */
 bool web_session_origin_accepted(const crux_web_request_head_t *head);
+
+/* What a request was refused for. */
+typedef enum { WEB_REFUSAL_CSRF, WEB_REFUSAL_ORIGIN } web_refusal_t;
+
+/* Reports a request refused for its Origin or its CSRF token to the event port, unless this kind
+ * already used its share of the window, which forgery_suppressed counts. session is the request's
+ * session, or zero when there is none yet. Server thread only. */
+void web_session_report_refusal(web_refusal_t kind, const crux_web_request_head_t *head,
+                                crux_access_session_t session);
 
 /* What an attempt was for. */
 typedef enum { WEB_ATTEMPT_LOGIN, WEB_ATTEMPT_CHANGE } web_attempt_kind_t;
@@ -110,6 +131,7 @@ bool web_session_work_once(void);
 void web_session_attempts_expire(void);
 void web_session_count_busy(void);
 void web_session_count_session(void);
+void web_session_count_forgery_suppressed(void);
 
 /* A JSON object of string members, each named once. Anything else in the body is malformed. */
 typedef struct {
