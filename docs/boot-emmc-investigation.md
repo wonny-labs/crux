@@ -1,14 +1,19 @@
 # eMMC boot and update feasibility for the boot platform
 
+> **Status:** Investigation. This is a desk investigation of eMMC boot and update feasibility. It makes no eMMC support claim and adds no M8 or M9 exit criterion. The project owner decides what to adopt.
+> **Verified:** Source and documents only. Zephyr, MCUboot and `hal_nxp` source was read at pinned revisions, and Linux, U-Boot and mmc-utils source and public vendor documents were read. The RT1060 reference manual (Rev. 3) was read in a third-party-hosted copy. The evidence is in [docs/evidence/boot-emmc/](evidence/boot-emmc/README.md), whose README lists the files and their limits. No build was run.
+> **Not verified:** No build, hardware, fuse or debugger operation was run, so nothing is shown for a real eMMC device. The reference manual copy was not compared with the `nxp.com` document, and the JEDEC eMMC standard could not be read. The pins in the record are Zephyr v4.4.0, while `main` now pins v4.4.2 (the cited files are identical at both).
+> **Read this first / then:** [boot-composition.md](boot-composition.md) for the current build recipe, [plans/secure-boot-development-plan.md](plans/secure-boot-development-plan.md) for the plan and [plans/emmc-reliance-design.md](plans/emmc-reliance-design.md) for the M14 design, then the Purpose and Summary sections of this page (Purpose and scope, Answers in brief).
+
 | Field | Value |
 | --- | --- |
 | Issue | [#298](https://github.com/wonny-labs/crux-pilot/issues/298) "Investigate eMMC boot and update feasibility for the boot platform" |
-| Status | **Draft. Desk results only.** No build, hardware, fuse or debugger operation was run. Nothing in this record is adopted. It makes no eMMC support claim. It adds no M8 or M9 exit criterion. |
+| Status | **A merged desk record whose conclusions are not adopted unless the owner decided so.** Desk results only. No build, hardware, fuse or debugger operation was run. It makes no eMMC support claim. It adds no M8 or M9 exit criterion. |
 | Pinned upstream | The pins named in [#141](https://github.com/wonny-labs/crux-pilot/issues/141): Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`, `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. **`main` now pins Zephyr v4.4.2** (`dccb09599635bdff17633fa7e9dab014b91dce90`) with MCUboot `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` and `hal_nxp` `7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0`. Every Zephyr, MCUboot and `hal_nxp` file cited (rows P) was compared at both sets of pins and is identical. The Linux, U-Boot, mmc-utils and vendor rows cite one revision each. |
 | crux-pilot read | `main` at `3e0a5d7` |
-| Related records | The #141 decision record is in Draft PR [#151](https://github.com/wonny-labs/crux-pilot/pull/151) (branch `docs/boot-update-investigation`). The M14 design is [emmc-reliance-design.md](plans/emmc-reliance-design.md). |
+| Related records | The #141 record is [boot-update-investigation.md](boot-update-investigation.md) (merged 7 November 2026). The M14 design is [emmc-reliance-design.md](plans/emmc-reliance-design.md). |
 | Evidence | [docs/evidence/boot-emmc/](evidence/boot-emmc/README.md) |
-| Reference manual source | **This revision of the record (after the first review round) reads the RT1060 Reference Manual Rev. 3, 07/2021, in a third-party-hosted copy** (`www.pjrc.com`, SHA-256 in the evidence). It was downloaded with the owner's approval in chat on 7 November 2026. It has **not** been compared with the `nxp.com` document. The same manual text is reported independently in PR [#302](https://github.com/wonny-labs/crux-pilot/pull/302), the #299 record (evidence row B-84 and others). |
+| Reference manual source | **This revision of the record (after the first review round) reads the RT1060 Reference Manual Rev. 3, 07/2021, in a third-party-hosted copy** (`www.pjrc.com`, SHA-256 in the evidence). It was downloaded with the project owner's approval on 7 November 2026. It has **not** been compared with the `nxp.com` document. The same manual text is reported independently in the bootloader update record [boot-bootloader-update-investigation.md](boot-bootloader-update-investigation.md) (#299, merged 7 November 2026; evidence row B-84 and others). |
 
 ## Purpose and scope
 
@@ -142,7 +147,7 @@ load with a NOR slot is in [Effect on #141](#effect-on-141).
 
 Manual rows R1 to R12 are in
 [vendor-documents.md](evidence/boot-emmc/vendor-documents.md#rt1060-reference-manual-rev-3-third-party-copy) (Rev. 3,
-third-party-hosted copy, not compared with `nxp.com`). PR [#302](https://github.com/wonny-labs/crux-pilot/pull/302) reports
+third-party-hosted copy, not compared with `nxp.com`). The bootloader update record ([boot-bootloader-update-investigation.md](boot-bootloader-update-investigation.md), #299) reports
 more rows of the same manual for the #299 questions, and this record does not repeat them.
 
 | Point | Result | Label |
@@ -194,7 +199,7 @@ more rows of the same manual for the #299 questions, and this record does not re
 
 | Point | Result | Label |
 | --- | --- | --- |
-| SDRAM start-up in Zephyr | The EVK board enables the DCD and SDRAM by default. The DCD in the boot header programs clocks and the SEMC. The EVK board dtsi has no `semc` reference and `soc.c` does not initialise the SEMC. The board build warns that a RAM base in SDRAM without a DCD may not boot. | Verified on pinned source (P10 to P12). DCD content: [#141 Stage 3 D7](https://github.com/wonny-labs/crux-pilot/pull/151). |
+| SDRAM start-up in Zephyr | The EVK board enables the DCD and SDRAM by default. The DCD in the boot header programs clocks and the SEMC. The EVK board dtsi has no `semc` reference and `soc.c` does not initialise the SEMC. The board build warns that a RAM base in SDRAM without a DCD may not boot. | Verified on pinned source (P10 to P12). DCD content: [#141 Stage 3 D7](boot-update-investigation.md). |
 | DCD in the vendor documents | The DCD is optional, "usually" for SDRAM or DDR, found through the IVT. `elftosb` places it at `0x40` after the IVT offset. | V3, V7 |
 | DCD and the image copy | For SD and MMC boot the ROM copies the first 4 KB into internal RAM, checks the IVT, performs a DCD check, and after a successful DCD extraction takes the destination from the boot data and copies the image. The DCD may write the SEMC registers, which the manual names for SDRAM, and is at most 1,768 bytes. In Closed and Open configuration alike the DCD is processed if present. | Verified by public vendor document, reference manual copy (R3, R8, R10). That the DCD writes run before the copy is an Inference from this order. |
 | ROM and the SD/MMC controller | The ROM configures the IOMUX from the bus-width fuse, resets the uSDHC, identifies the card at about 400 kHz, sends CMD0, switches bus width and frequency for MMC and selects the boot partition with a switch command. The USDHC port is chosen by fuse or GPIO override. | R5, R6 |
@@ -218,7 +223,7 @@ Two points that matter for the design, both Inference. The DCD write order in st
   and copies the image (R3). So SDRAM can be the destination if the DCD in the first 4 KB brings it up, provided the DCD writes run before the copy (Inference). The first 4 KB must hold
   the IVT, the DCD and the boot data (R3), and the DCD is limited to 1,768 bytes (R10). That the Zephyr EVK DCD fits and
   works for an SD or eMMC image was not checked. Linking the first stage into on-chip RAM avoids the dependency. The #141
-  trial links the RAM-load MCUboot into OCRAM2 for a different reason, the load-window clash with SDRAM (#141 Stage 5, in PR #151).
+  trial links the RAM-load MCUboot into OCRAM2 for a different reason, the load-window clash with SDRAM (#141 Stage 5, in [boot-update-investigation.md](boot-update-investigation.md)).
 - **The ROM probably leaves the card pointed at the boot partition it selected.** The ROM selects the boot partition with a switch
   command (R1). A stage that did not reset the card would read that partition. Zephyr's initialisation sends CMD0 and power
   cycles the card where the board allows it (P14, E18), and the Linux and U-Boot code treats CMD0 as returning to the user
@@ -235,7 +240,7 @@ Two points that matter for the design, both Inference. The DCD write order in st
 | Design | The M14 design covers a data file system on the eMMC user area. Boot partitions, RPMB, reliable write and a bootloader that reads the file system are out of scope. The boot path is left to #141 and M8. | Verified in repository ([design](plans/emmc-reliance-design.md), D8, open items) |
 | Flush defect and correction | At the pin, a disk sync does not flush the eMMC cache. A build-local correction (`patches/zephyr/mmc-cache-flush.patch`) is on `main`. | Verified in repository. Defect: Verified on pinned source (E17). |
 | Simulator and replay | An eMMC simulator and a power-cut replay on FatFs are on `main`. Their record says every result is an observation of the simulator's model, and none of it is evidence about power loss on an eMMC device. FatFs fails the file-replacement workload in every model, which the record traces to its rename order. | Verified in repository ([replay record](evidence/emmc-reliance/replay-fatfs/README.md)) |
-| Reliance Edge | The adapter, the replay on Reliance Edge and the invariants the design is built to assert are **not on `main`**. The tree has the design and plan documents, an optional `reliance-edge` project in `west.yml` (group `crux-reliance`, off by default), and a replay runner that rejects `--fs reliance` with an error. `patches/zephyr/README.md` says the adapter does not exist yet. Issue #253 is open. | Verified in repository. No result exists. |
+| Reliance Edge | The adapter, the replay on Reliance Edge and the invariants the design is built to assert are **not on `main`**. The tree has the design and plan documents, an optional `reliance-edge` project in `west.yml` (group `crux-reliance`, off by default), and a replay runner that rejects `--fs reliance` with an error. `patches/zephyr/README.md` says the adapter does not exist yet. Issue #253 (the adapter) was open at `3e0a5d7`. | Verified in repository. No result exists. |
 
 ### What a passing store would show, and what it would not
 
@@ -287,7 +292,7 @@ recommended. This record proposes no hardware operation. Each one needs its own 
 
 ## Effect on #141
 
-#141 is a Draft and is not adopted. These are effects on its wording and recommendations, for the owner. Neither record's
+The #141 record ([boot-update-investigation.md](boot-update-investigation.md)) is merged, and its status line reads Draft: it adopts nothing beyond the owner decisions it lists. These are effects on its wording and recommendations, for the owner. Neither record's
 status changes.
 
 | #141 point | Effect |
@@ -334,7 +339,7 @@ status changes.
 | Item | How it was done |
 | --- | --- |
 | Source access | `gh api` and `raw.githubusercontent.com` for the pinned revisions of Zephyr, MCUboot and `hal_nxp`, at both sets of pins. Nothing was cloned and no dependency checkout was touched. |
-| Documents | Public NXP and SPSDK pages. Four pages of the RT1060 Manufacturing Guide were read in full text by the author. **Chapter 9 of the RT1060 Reference Manual Rev. 3 was read by the author in a third-party-hosted copy, downloaded with the owner's approval on 7 November 2026, as locally extracted text (tables partly garbled).** Other documents were read through a summarising fetch or local text extraction by research subagents, and the evidence files say which. |
+| Documents | Public NXP and SPSDK pages. Four pages of the RT1060 Manufacturing Guide were read in full text by the author. **Chapter 9 of the RT1060 Reference Manual Rev. 3 was read by the author in a third-party-hosted copy, downloaded with the project owner's approval on 7 November 2026, as locally extracted text (tables partly garbled).** Other documents were read through a summarising fetch or local text extraction by research subagents, and the evidence files say which. |
 | Linux, U-Boot, mmc-utils | Fetched at the revisions named in the evidence. The key rows were re-read by the author. |
 | Repository | `git show` and file reads at `3e0a5d7`. |
 | Builds, tools, hardware | None. |
