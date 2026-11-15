@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Record of a measurement, for the owner's decision. It adopts nothing.** Which backend MCUboot uses is plan decision D9, taken under [ADR-0006](../decisions/0006-cryptographic-dependency-policy.md) by the project owner. |
+| Status | **Record of a measurement. The owner decided on 15 November 2026 at about 19:31 UTC: option A of section 6, MCUboot keeps its bundled tinycrypt in the M8 composition, and PSA is not adopted** (owner quote and the open follow-up are in the D9 row of the [plan](secure-boot-development-plan.md#6-decisions-the-owner-needs-to-make)). The measurements and the text of sections 1 to 7 are as written before the decision and are not changed. Which backend MCUboot uses was plan decision D9, taken under [ADR-0006](../decisions/0006-cryptographic-dependency-policy.md) by the project owner. |
 | Date | 15 November 2026 |
 | Work package | Phase 1 of the [secure boot development plan](secure-boot-development-plan.md), decision D9 ("with a size and boot-time build comparison") |
 | Builds on | [Boot composition](../boot-composition.md) (RT1060-EVK Rev B, RAM load with revert, ECDSA P-256), the [boot and update investigation](../boot-update-investigation.md) (#141) |
