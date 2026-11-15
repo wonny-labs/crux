@@ -55,20 +55,23 @@ An alternative that this record does not recommend: **option 2 alone**, if the o
 
 ## The owner's decision
 
-The decision is recorded in the secure boot development plan, section 6, decision D3. The row's wording, as the plan has it:
+The decision is recorded in the secure boot development plan, section 6, decision D3. The row is copied below unchanged, in the plan's own table form:
 
-> D3 eMMC validation hardware. Recommendation: EVKB with an eMMC adapter for software, a product-class board for ROM boot (#298 "Hardware needed"). #298 did not recommend third-party adapters, because none was shown to work with the RT1060; recommending one departs from it, for software-only testing of the stack and the user area with no ROM-boot claim. Needed before: Issue D. **Owner, 15 November 2026: approved as recommended. No claim that an adapter works with the RT1060 is made, and buying hardware is the owner's.**
+| # | Decision | Recommendation | Needed before |
+| --- | --- | --- | --- |
+| D3 | eMMC validation hardware | EVKB with an eMMC adapter for software, a product-class board for ROM boot (#298 "Hardware needed"). #298 did not recommend third-party adapters, because none was shown to work with the RT1060; recommending one departs from it, for software-only testing of the stack and the user area with no ROM-boot claim | Issue D **Owner, 15 November 2026: approved as recommended. No claim that an adapter works with the RT1060 is made, and buying hardware is the owner's.** |
 
 The plan records how the owner's answer reached it: the owner answered "5~11번도 추천대로 승인" (approved as recommended, for the items numbered 5 to 11 in the secure boot session's list) at about 17:29 UTC on 15 November 2026, and the secure boot session mapped those numbers to D1 and D3 to D8. The answer was relayed second-hand to the session that edited the plan's table. The plan states that each answer approves the recommendation as the table words it, and nothing more: **no hardware purchase or operation, no key, no fuse operation and no tag is approved by any row.** This record adds no decision of its own.
 
-What the decision covers, and what it does not:
+What the decision covers, and what it does not. The left column keeps to the D3 wording above. Framing that comes from #441 and #298 and is not part of that wording is listed after the table.
 
-| Covered | Not covered |
+| Covered by the D3 wording | Not covered |
 | --- | --- |
-| The order: adapter on the EVKB first, product-class board second | Which adapter, which eMMC part, and who buys them |
-| That the adapter route is for software-only testing, with no ROM-boot claim | Any claim that an adapter works with the RT1060 |
-| That this issue is the D3 decision and does not wait for D2 (#441 Dependencies) | The adoption of the flash-API driver (D2, not adopted) |
-| | Any hardware task, power fixture, fuse operation or physical gate (each needs its own approval) |
+| An eMMC adapter on the EVKB for software-only testing of the stack and the user area, and a product-class board for ROM boot | Which adapter or part is bought, and when |
+| No ROM-boot claim for the adapter route, and no claim that an adapter works with the RT1060 | The adoption of the flash-API driver (D2, not adopted) |
+| Buying hardware is the owner's | Any hardware task, power fixture, fuse operation or physical gate (each needs its own approval) |
+
+Framing from other records, **not part of the D3 wording**: the order "adapter first, product-class board second" is #441 Scope item 3 and the "Option for a first, partial step" of #298, which the plan's recommendation text points to. That this issue is the D3 decision and does not wait for D2 is #441 "Dependencies".
 
 ## What remains open
 
