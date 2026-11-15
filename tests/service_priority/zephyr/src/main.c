@@ -51,6 +51,7 @@ static int expected(crux_service_thread_t which)
         [CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER] = 10,
         [CRUX_SERVICE_THREAD_WEB_SESSION_WORKER] = 11,
         [CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER] = 14,
+        [CRUX_SERVICE_THREAD_CLI_CONSOLE] = 8,
     };
     return placed[which];
 #else
@@ -87,6 +88,7 @@ ZTEST(service_priority, test_settings_are_the_kconfig_values)
                   expected(CRUX_SERVICE_THREAD_WEB_SESSION_WORKER));
     zassert_equal(CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY,
                   expected(CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER));
+    zassert_equal(CONFIG_CRUX_CLI_CONSOLE_PRIORITY, expected(CRUX_SERVICE_THREAD_CLI_CONSOLE));
 }
 
 ZTEST(service_priority, test_unknown_identifier_changes_nothing)

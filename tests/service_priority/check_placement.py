@@ -25,6 +25,8 @@ WORKERS = (
      "CRUX_SERVICE_THREAD_WEB_SESSION_WORKER", "CRUX_WEB_SESSION_WORKER_PRIORITY"),
     ("components/web/management/web_management_save.c",
      "CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER", "CRUX_WEB_MANAGEMENT_WORKER_PRIORITY"),
+    ("components/cli/ports/zephyr/cli_serial_start.c",
+     "CRUX_SERVICE_THREAD_CLI_CONSOLE", "CRUX_CLI_CONSOLE_PRIORITY"),
 )
 # Today's priority of a LOW-class Crux Thread worker on Zephyr: 6 - CRUX_THREAD_PRIORITY_LOW.
 WORKER_DEFAULT = "6"

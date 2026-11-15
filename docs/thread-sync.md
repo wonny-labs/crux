@@ -139,11 +139,12 @@ Decision P3 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-cru
 | Network settings service worker | `crux_network_settings_start_worker()` | 6, `LOW` | `CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY` | 6 |
 | Web session login worker | `crux_web_session_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY` | 6 |
 | Web management save worker | `crux_web_management_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY` | 6 |
+| Serial console thread | `crux_cli_serial_start()` of `<crux/cli_zephyr.h>` (phase 1b, Experimental) | 6, `LOW` | `CONFIG_CRUX_CLI_CONSOLE_PRIORITY` | 6 |
 | SSH listener | the SSH provider's start, a native `k_thread` | `K_LOWEST_APPLICATION_THREAD_PRIO`, which is `CONFIG_NUM_PREEMPT_PRIORITIES - 1` (14 at Zephyr's default of 15) | `CONFIG_CRUX_SSH_LISTENER_PRIORITY` | -1, the same |
 | SSH connection workers, up to `CONFIG_CRUX_SSH_MAX_CONNECTIONS` | the listener, one per connection, native `k_thread`s | The same | `CONFIG_CRUX_SSH_WORKER_PRIORITY` | -1, the same |
 | A product's own Crux Thread workers (existing users) | `crux_thread_create()` | 4, 5 or 6 by class | None: the class decides | — |
 
-The command line's serial console runs on the thread that the composition calls `crux_cli_console_run()` from, and SSH commands run on their connection's worker. A status read runs on its caller's thread. None of them creates a thread. The web adapter's HTTP server thread is Zephyr's: it runs at the lowest preemptive priority, or cooperatively with `CONFIG_NET_TC_THREAD_COOPERATIVE` (see [Web sessions](web-session.md)), and Crux has no setting for it. Zephyr's network, logging and work queue threads are set by Zephyr's own Kconfig. The product's map lists them too.
+SSH commands run on their connection's worker, and a status read runs on its caller's thread; neither creates a thread. The command line's serial console runs on its own thread, the Serial console thread row above, when a product starts it with `crux_cli_serial_start()`; without that call the console runs on the thread that a composition calls `crux_cli_console_run()` from. The web adapter's HTTP server thread is Zephyr's: it runs at the lowest preemptive priority, or cooperatively with `CONFIG_NET_TC_THREAD_COOPERATIVE` (see [Web sessions](web-session.md)), and Crux has no setting for it. Zephyr's network, logging and work queue threads are set by Zephyr's own Kconfig. The product's map lists them too.
 
 **Values.** Each setting is a Zephyr preemptive priority, from 0 to `CONFIG_NUM_PREEMPT_PRIORITIES - 1`, where a lower number runs first. The two SSH settings also take -1, their default, which keeps `K_LOWEST_APPLICATION_THREAD_PRIO` and so follows `CONFIG_NUM_PREEMPT_PRIORITIES`. Kconfig cannot subtract, so each range ends at `CONFIG_NUM_PREEMPT_PRIORITIES`, the idle thread's priority. A value above the range or below it fails Kconfig, and the idle priority itself fails a `BUILD_ASSERT` in `components/service_priority` or in the SSH provider. Cooperative (negative) priorities are refused, as Crux's workers have always been preemptible and Thread promises no cooperative threads. Thread itself still requires more than six preemptive levels for its 4/5/6 mapping, whatever these settings are.
 
@@ -163,6 +164,7 @@ CONFIG_CRUX_REBOOT_WORKER_PRIORITY=10
 CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY=10
 CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY=11
 CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY=11
+CONFIG_CRUX_CLI_CONSOLE_PRIORITY=11
 CONFIG_CRUX_SSH_LISTENER_PRIORITY=12
 CONFIG_CRUX_SSH_WORKER_PRIORITY=13
 ```
