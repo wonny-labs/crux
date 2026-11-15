@@ -59,6 +59,8 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
     *out = (crux_serial_t){1, 1};
     return CRUX_OK;
 }
+/* Implements the public crux_serial_write signature. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t crux_serial_write(crux_serial_t handle, const void *data, size_t size,
                                 uint32_t timeout, size_t *count)
 {
@@ -71,6 +73,8 @@ crux_status_t crux_serial_write(crux_serial_t handle, const void *data, size_t s
     phase_ns = 1;
     return CRUX_OK;
 }
+/* Implements the public crux_serial_read signature. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t crux_serial_read(crux_serial_t handle, void *data, size_t size, uint32_t timeout,
                                size_t *count)
 {

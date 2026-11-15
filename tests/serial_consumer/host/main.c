@@ -1,3 +1,4 @@
+// NOLINTNEXTLINE(bugprone-reserved-identifier): feature-test macro, the name is fixed by POSIX
 #define _XOPEN_SOURCE 600
 #include "controller.h"
 #include "runtime.h"
