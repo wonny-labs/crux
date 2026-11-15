@@ -5,6 +5,9 @@
 # published public test key, which sysbuild uses when no key argument is given. Images signed
 # with it must never be programmed to a board.
 #
+# Run outside CI it changes the local workspace: it adds +crux-boot to manifest.group-filter and
+# pip-installs the MCUboot requirements into $CRUX_PYTHON (python3 by default).
+#
 # It builds the argument set of the page as published: the group route (no -DEXTRA_ZEPHYR_MODULES
 # for MCUboot) and no key argument. The M7 reference composition is not touched.
 set -euo pipefail

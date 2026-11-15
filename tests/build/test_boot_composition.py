@@ -39,7 +39,7 @@ class BoardFilesTest(unittest.TestCase):
         # The #141 trial and the WP1a build used these contents. Changing one needs a new build
         # result, so a difference must be a deliberate edit of this test as well.
         for name, trial in FILES.items():
-            self.assertEqual(read(TRIAL / trial), read(BOARD_DIR / name), f"{name} differs from {trial}")
+            self.assertEqual((TRIAL / trial).read_bytes(), (BOARD_DIR / name).read_bytes(), f"{name} differs from {trial}")
 
     def test_mcuboot_executes_from_sdram_and_shares_boot_information(self):
         config = read(BOARD_DIR / "mcuboot.conf")
