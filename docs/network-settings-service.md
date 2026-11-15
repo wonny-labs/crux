@@ -14,7 +14,7 @@ The routes are in `components/web/management/web_management_network.c` and are d
 | Part | State | Evidence |
 | --- | --- | --- |
 | The checks of the specification, the address text and the check key | **Built** | Host, with vectors shared with the TypeScript client, an oracle, and 250,000 random pairs of sets |
-| Boot: load, decide, apply through a private port, fall back | **Built** | Host, on the real Configuration mechanism and the fake provider |
+| Boot: load, decide, apply through the product's port, fall back | **Built** | Host, on the real Configuration mechanism and the fake provider |
 | The service: state, request, save in three phases, recovery, events | **Built** | Host, on the real Access core and the real Configuration service |
 | A save cut by a power loss between any two writes | **Built as a test**, with the fake provider | Host: 4 starting states, 6 cut points, 2 ways of cutting |
 | Another session's `config.save` landing in the middle of a set | **Built as a test** | Host, through a wrapped `try_update` |
@@ -44,15 +44,17 @@ flowchart TB
     service -->|"crux_access_check"| access["crux::access"]
     service -->|"try_read, try_update, save_local"| cfg["crux::config_service"]
     cfg --> mech["crux::configuration"] --> store["Provider, or the no-provider port"]
-    service -->|"private port"| port["apply, running: native code of the composition"]
+    service -->|"public port header"| port["apply, running: native code of the product"]
     service -->|"private port"| events["security events"]
     boot["Boot, before the services start"] --> service
     boot -->|"crux_config_load"| mech
     boot --> port
 ```
 
-`crux_netif` stays read-only and no native type reaches a public header. The apply port is
-`components/network_settings/src/network_settings_port.h`, which no consumer includes.
+`crux_netif` stays read-only and no native type reaches a public header. The apply port is the public
+`<crux/network_settings_apply_port.h>` (Experimental; ADR-0004 decision C3): two declarations,
+`crux_network_settings_port_apply` and `crux_network_settings_port_running`, that the product implements with its own
+native code. The event port stays private in `components/network_settings/src/network_settings_port.h`.
 
 ## The five parameters
 
@@ -338,7 +340,7 @@ There is no Configuration provider on the target. A composition selects `crux_co
 | Item | Where |
 | --- | --- |
 | Boot order: Access, the Configuration provider, `crux_network_settings_boot()`, `crux_config_service_start()` on a table that holds `crux_network_settings_entries()`, `crux_network_settings_start()`, `crux_network_settings_start_worker()` | `crux/network_settings.h` |
-| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | `network_settings_port.h`, private |
+| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
 | A provider of the event port: `crux_network_settings_security_events` | The same |
 | `network.read` and `network.write` in the roles that may see and change the address, and no role with `network.private` | The product's policy |
 | `crux_cli_init()` with `crux_network_settings_cli_commands()`, on a serial console | `crux/network_settings_cli.h` |

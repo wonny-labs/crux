@@ -3,8 +3,9 @@
 # only under CONFIG_CRUX_NETWORK_SETTINGS, which needs CONFIG_CRUX_ACCESS and CONFIG_CRUX_CONFIG_SERVICE.
 #
 # The apply port is the application's (ADR-0004 C3): the core calls crux_network_settings_port_apply() and
-# crux_network_settings_port_running() from src/network_settings_port.h, and an application that applies
-# settings to an interface implements them. With CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY the module builds the
+# crux_network_settings_port_running(), declared in the public
+# <crux/network_settings_apply_port.h>, and an application that applies settings to an interface
+# implements them. With CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY the module builds the
 # port that applies nothing (src/network_settings_no_apply.c) instead, for native_sim and for an image whose
 # application applies nothing. The two must not be combined: an application's own port would then define
 # the same symbols twice.

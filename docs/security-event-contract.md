@@ -19,7 +19,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`, `web.csrf_rejected` (a refused CSRF token or `Origin`: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)), `ssh.auth_limit` and `ssh.host_key_missing` ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317)). The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed` and `web.csrf_rejected` (a refused CSRF token or `Origin`: [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)). The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), on the Host only. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
 | Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
@@ -263,8 +263,8 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0602 | `web.certificate_replaced` | C | M11, the [TLS certificate](tls-certificate.md), #190 |
 | 0x0603 | `web.certificate_rejected` | R | The [TLS certificate](tls-certificate.md), #190 |
 | 0x0604 | `web.certificate_unusable` | C | The [TLS certificate](tls-certificate.md), #190: the stored certificate refused at start, so nothing is served |
-| 0x0700 | `ssh.auth_limit` | R | M12 |
-| 0x0701 | `ssh.host_key_missing` | C | M12 |
+| 0x0700 | `ssh.auth_limit` | R | SSH access adapter, #317: a connection ended at `max_auth_attempts` |
+| 0x0701 | `ssh.host_key_missing` | C | SSH access adapter, #317: the credential store could not supply the host key |
 | 0x0800 | `network.changed` | C | Network settings service |
 | 0x0801 | `network.save_failed` | C | Network settings service |
 | 0x0802 | `network.saved_ignored` | C | Network settings service |
@@ -311,6 +311,30 @@ line, and the file service's provider leaves out the file names that its port pa
 | File `NAME_REJECTED` | `file.name_rejected` | `INVALID` | The same | The same | The area |
 | File `STORAGE_FAILED` | `file.storage_failed` | `LIMIT` for a full medium, otherwise `FAILED` | The same | The same | The area |
 
+### From the SSH adapter port
+
+Added by #317, on the owner's decision of 2026-11-14 (option A for the two identifiers, option B for refusals before a callback).
+The provider is `components/ssh/access/crux_ssh_security_events.c`, a thin translation as for the ports above. It records no
+user, because the adapter knows only what a client claimed, and no subject.
+
+| Port event | Identifier | Result | `user` | `channel`, `source` | `subject` | When |
+| --- | --- | --- | --- | --- | --- | --- |
+| `AUTH_LIMIT` | `ssh.auth_limit` | `LIMIT` | None | 3, and the peer as Access keys it: an IPv4 address or an IPv6 /64. No source if the address cannot be read. | None | Once, when a connection ends because it used `max_auth_attempts`, after the attempt that reached the limit. Not for a client that leaves, a login, the login timer or a stop. |
+| `HOST_KEY_MISSING` | `ssh.host_key_missing` | `FAILED` | None | 3, no source | None | `crux_ssh_host_key_load()` returned `CRUX_ERR_NOT_READY`: the store is not ready, or could not generate, save or parse the key. Not for a bad argument. |
+
+`ssh.host_key_missing` is a class-C record, so it is admitted when the ring is nearly full, and the adapter does not limit it:
+every failed call of `crux_ssh_host_key_load()` records one. The compositions in this repository call it once at start and give up
+when it fails (`crux_native_management_ssh_start()`, `crux_mgmt_rt1060_ssh_start()`, and the provider test image), so each boot
+records at most one. A composition that retried the load in a loop would repeat the record on every attempt and could use up the
+change-class reserve, so it should pause or cap its attempts. A report of a type that the provider does not know is recorded as
+`event.unknown` with the result `FAILED`.
+
+**Reserved: refusals before a first callback.** The provider refuses RSA, DSA, other curves, security keys, certificates, an
+empty, overlong or NUL-holding name, and a malformed key blob before any callback ([the SSH provider record](ssh-wolf-provider.md#decision-22-the-trade-off)).
+Each one stays unemitted, and no identifier is assigned, until the provider can report it. Two cases are visible meanwhile: such a
+refusal counts as an attempt, so the one that reaches `max_auth_attempts` is followed by `ssh.auth_limit`; and a provider's
+refusal of a connection past `max_connections` reaches no callback and leaves no event.
+
 ## Decisions for review
 
 The owner could not be asked. Each is the narrow choice, and a changed choice is small while nothing depends on it.
@@ -337,6 +361,9 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | 18 | Build settings | `RING`, `RESERVE`, `DRAIN_BURST` and `DRAIN_PAUSE_MS` are CMake cache values. `LOCK_MS`, `DRAIN_WAIT_MS` and the stack size are macros with defaults. | A composition sizes the ring and reserve, and matches the burst and its pause to its log buffer. The rest keep the proposal's defaults. |
 | 19 | The fake's rules | Field, identifier and project table rules are the real source. Ring, reserve and drain are not modelled, and a test asks for a drop. | A consumer's tests then hold on the core, and it stays small. |
 | 20 | `native_sim` | Covered for tests by the [`native_sim` management composition](native-management-composition.md) and the [services image](native-composition-242.md). A target is not attempted. | Gate decision G-B approved contract work with fakes and Host tests here. The compositions came later and show the drain's counts, and nothing on a wire. |
+| 21 | `ssh.auth_limit` result and fields | `LIMIT`, with channel 3 and the peer's source, and no user or subject | The limit is a declared bound. The adapter has only a claimed name, which is not a known account, so no user is recorded. |
+| 22 | `ssh.host_key_missing` is reported by `crux_ssh_host_key_load()` | It reports a failure of the store to supply a key, and not a key that the provider's `start()` then refuses as unusable | The load is the adapter's own step and the one place that knows the key is missing. A key that `start()` refuses is the provider's result, and the composition already sees it. A follow-up could report it. |
+| 23 | An image with no event core | Links `crux_ssh_access_events_none.c`, which drops the SSH reports | The test images of the provider and the settings probe have nothing to record on. An image that selects `CONFIG_CRUX_SSH` links the real provider, so a missing core fails at link time. |
 
 ## What is built, faked and untested
 
@@ -346,7 +373,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | Never real | Time's realtime provider, which is the controlled `memory` one even in `integration`. Access's crypto and storage ports in the Host suites, which are `tests/access/fake_ports.c`. The `native_sim` compositions use the PSA ports and the credential store instead. |
 | Controlled in every suite but `integration`, `public_fake` and `fake_cases` | Through linker wraps: the monotonic clock, unless a case asks for the real one, the Time snapshot, `crux_log_write`, `crux_is_in_isr`, and failures of Sync and Thread creation. The signal and the pause pass through and are counted, and a case can change what a wait reports. |
 | Stubbed in `conformance`, `ring`, `ring_small`, `drain`, `time_cases`, `init`, `concurrency` and `public_core` | `crux_access_check`, from `tests/security_event/access_check_stub.c`, which answers what a case sets. These suites do not link Access. |
-| Untested | Anything on a target, and anything on Zephyr or `native_sim` beyond the [test compositions](native-management-composition.md), which show the drain's counts and nothing on a wire. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
+| Untested | The wolfSSH provider's report of the limit, and the SSH records in an image that runs: both need `native_sim`, which no workflow runs for SSH. Anything on a target, and anything on Zephyr or `native_sim` beyond the [test compositions](native-management-composition.md), which show the drain's counts and nothing on a wire. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
 
 ## What is not known
 
