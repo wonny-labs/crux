@@ -96,6 +96,25 @@ These checks are the team's to run and record. None has run.
 | Wrong password | One wrong password, then the right one | A refusal, then success. Six wrong passwords put the right one inside a delay window. |
 | Reboot | `POST /api/v1/system/reboot` with a session of `administrator` | The board restarts and the boot lines come again, with a new certificate and an empty store. |
 
+## What depends on the board
+
+The image is written for **RT1060-EVKB Rev B** (`mimxrt1060_evk@B//qspi`) and refuses to configure for any other board target. The SoC part is the i.MX RT1062, which a product board shares. This table says what is the SoC's and what is the EVKB's, so that a team with its own RT1062 board knows what to change. Nothing here has run on any board.
+
+| Part | Where it is set | SoC (RT1062) or board | A product board with an RT1062 changes |
+| --- | --- | --- | --- |
+| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's, and the RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on that board | Board | The check and the provider's `depends on`, or a board file that this repository does not have |
+| Entropy | The TRNG (`zephyr,entropy = &trng`, `ENTROPY_MCUX_TRNG`), the fail-closed correction and the boot check | **SoC** | Nothing, unless the board's devicetree changes the chosen entropy node |
+| Device ID for the credential store | `CONFIG_HWINFO` | **SoC** (the unique ID) | Nothing |
+| Flash part and boot | QSPI NOR, XIP from `0x60000000`, the boot header of the board files | Board (the flash part, its size and the boot-mode switches) | The board's flash configuration and boot data |
+| RAM | All RAM of this configuration is the 32 MB SDRAM (`zephyr,sram = &sdram0`): the RAM disk, the Mbed TLS heap, the stacks and the network buffers sit there, and every size is chosen for that | Board | A board with on-chip RAM only must re-size all of them: 512 KiB for the RAM disk alone is most of the on-chip RAM of an RT1062 |
+| Console and logging | `target.overlay`: Crux Logging and `printk` on LPUART1 at 115,200 baud. LPUART3 is left free for the Crux serial console of a later phase | Board (which pins and which UART the board brings out) | `target.overlay`: the UART node and its speed |
+| Ethernet | `samples/controller/zephyr/m3-network.overlay` (the ENET MAC with a fixed local MAC address, the PHY monitor by polling because the PHY interrupt line is dropped, and the EVKB's LED removed because its GPIO is the PHY reset), `CONFIG_ETH_NXP_ENET_RX_BUFFERS` and the buffer counts of `prj.conf` | Board (the PHY part, its reset and interrupt lines, the MAC address) | The overlay for the product's PHY, MAC address and reset pin. The MAC address in that file is a fixed local one: give each unit its own |
+| Static address | `CONFIG_CRUX_MBED_MGMT_IPV4_ADDRESS` and `_NETMASK` | Image setting | Both, for the product's network |
+| Storage | A RAM disk (`ram_disk.overlay`), nothing persists. The SD card and eMMC are not used and the card driver is off | Board | A product that needs accounts and keys to survive a reset needs a non-volatile File provider (microSD or eMMC compositions exist in the repository and are separate, not composed here), and a decision about confidentiality of the store |
+| Watchdog and reset | The `crux-watchdog0` alias to `wdog0` in `target.overlay`, used by Crux System and the reboot route | SoC peripheral, board alias | The alias, if the board uses another watchdog |
+
+A product also replaces what this image leaves to it: the first-account step, its own frontend folder, the certificate names, the roles and the permission policy in `composition.c`, and the sizes that a run on its own board measures.
+
 ## Entropy
 
 The image makes every key from the i.MX RT TRNG through Zephyr's entropy driver, and from nothing else. The rules, each enforced:
