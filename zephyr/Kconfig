@@ -422,7 +422,10 @@ menuconfig CRUX_WEB
     help
       The private adapter over the Zephyr HTTP server, for routes defined with crux/web.h. HTTPS
       only, unless a native_sim test asks otherwise. A composition starts it, and provides the
-      Access core. See docs/web-contract.md.
+      Access core. The module defines the composition target crux::web_zephyr for
+      <crux/web_zephyr.h> (Experimental), which declares crux_web_start(): a composition
+      interface, not a portable usage target, and a native-free consumer is rejected if it links
+      it. See docs/web-contract.md.
 
 if CRUX_WEB
 

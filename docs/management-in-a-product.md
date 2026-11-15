@@ -135,7 +135,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 
 | Symbol | Default | What it sets | Read by |
 | --- | --- | --- | --- |
-| `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. | Module |
+| `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. Defines the composition target `crux::web_zephyr` for `<crux/web_zephyr.h>` (ADR-0004 phase 1a, Experimental), which declares `crux_web_start()`; the target is rejected in a portable consumer. | Module |
 | `CRUX_WEB_PORT` | 443 | Listening port, or 0 for an ephemeral one | Adapter |
 | `CRUX_WEB_BACKLOG` | 4 | Connections the listening socket queues | Adapter |
 | `CRUX_WEB_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Adapter |
