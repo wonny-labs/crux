@@ -76,7 +76,8 @@ typedef struct {
 } crux_ssh_config_t;
 
 /**
- * Callbacks into Crux. start() copies this structure, and every member is required.
+ * Callbacks into Crux. start() copies this structure, and every member is required except
+ * auth_limit, which may be NULL.
  *
  * Every callback runs on the thread of its connection, never with a provider lock held, and may
  * block that thread only. Pointers it receives are borrowed for the call, unless stated otherwise.
@@ -176,6 +177,15 @@ typedef struct {
      * connection that never authenticated has no attachment and gets no call.
      */
     void (*connection_closed)(void *context, crux_ssh_attachment_t *attachment);
+
+    /**
+     * A connection ended before it logged in because it reached max_auth_attempts. It runs once
+     * for that connection, on its thread, after the callback of the refused attempt that reached
+     * the limit, so a connection that logged in, left, timed out or was refused for any other
+     * reason never gets it. It only reports: the connection ends whatever the callback does, and no
+     * attachment exists. May be NULL, and then the provider reports nothing.
+     */
+    void (*auth_limit)(void *context, const crux_ssh_peer_t *peer);
 } crux_ssh_callbacks_t;
 
 /**

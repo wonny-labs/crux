@@ -10,8 +10,9 @@ list(TRANSFORM CRUX_NETWORK_SETTINGS_SOURCES PREPEND "${CMAKE_CURRENT_LIST_DIR}/
 set(CRUX_NETWORK_SETTINGS_SOURCES "${CRUX_NETWORK_SETTINGS_SOURCES}" CACHE INTERNAL
     "Portable network settings sources")
 
-# The core calls the private ports in src/network_settings_port.h: the apply port, which is private
-# native code, and the event port. No provider is linked here, so that an image links only once a
+# The core calls the apply port, which the product implements and
+# <crux/network_settings_apply_port.h> declares, and the private event port in
+# src/network_settings_port.h. No provider is linked here, so that an image links only once a
 # composition chooses one, as for the Configuration service. The fakes in tests/network_settings are
 # a test composition that exists only when Crux builds its own tests.
 add_library(crux_network_settings_core STATIC ${CRUX_NETWORK_SETTINGS_SOURCES})

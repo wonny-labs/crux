@@ -2,13 +2,13 @@
 
 Status: **procedure from [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) (accepted 14 November 2026)**, written 14 November 2026. First applied in the [review of Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1](dependency-review-mbed-tls-4.1.1.md). It is a procedure, not a promise to consumers, and it changes after the first reviews show gaps.
 
-A dependency review is a short written decision, for one pinned dependency and one trigger, on whether a known vulnerability or a newer release matters to what Crux builds, and what Crux does about it. It is not an audit of the dependency. It is the review that [`docs/credential-store.md`](credential-store.md) names where it says "not assessed".
+A dependency review is a short written decision, for one pinned dependency and one trigger, on whether a known vulnerability or a newer release matters to what Crux builds, and what Crux does about it. It is not an audit of the dependency. It is the review that [`docs/credential-store.md`](credential-store.md) named where it said "not assessed", which the [FatFs review](dependency-review-fatfs-r0.16.md) has since answered.
 
 ## Scope
 
 **Crypto first:** `mbedtls` and `tf-psa-crypto`, the three wolf projects (`wolfssl`, `wolfssh`, `wolfpsa`), Zephyr's `modules/mbedtls` glue, and Crux's entropy replacement (`scripts/prepare-mbedtls-entropy.py`), which depends on the pin.
 
-**Other dependencies that would need the same review.** FatFs (the first open case), littlefs, Reliance Edge, and the wolf projects once the Wolf profile moves. `hal_nxp` and MCUboot are candidates too. This guide decides none of them: each is the owner's decision, and the order recommended in ADR-0006 puts FatFs after the crypto pair.
+**Other dependencies that would need the same review.** FatFs (reviewed in the [second record](dependency-review-fatfs-r0.16.md), with a pin move waiting for the owner's decision), littlefs, Reliance Edge, and the wolf projects once the Wolf profile moves. `hal_nxp` and MCUboot are candidates too. This guide decides none of them: each is the owner's decision, and the order recommended in ADR-0006 puts FatFs after the crypto pair.
 
 ## When to run it
 
