@@ -401,6 +401,10 @@ static bool admit_name(connection_t *connection, const char *user, size_t user_l
     } else if ((connection->bound_name_length != user_length ||
                 memcmp(connection->bound_name, user, kept) != 0) &&
                !has_fault(CRUX_SSH_FAKE_FAULT_NAME_CHANGE_ALLOWED)) {
+        /* A defect: a name change ends the connection, and is reported as the limit. */
+        if (has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_NAME_CHANGE)) {
+            report_auth_limit(connection);
+        }
         end_connection(connection);
         return false;
     }
@@ -618,6 +622,10 @@ static bool client_key_login(int id, const char *user, const char *algorithm, co
         return false;
     }
     if (!complete_key_login(connection, name, type, key, key_length)) {
+        /* A defect: a refusal from key_verified is reported as the limit, whatever the count. */
+        if (has_fault(CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_VERIFIED_REFUSAL)) {
+            report_auth_limit(connection);
+        }
         if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_VERIFIED_REFUSAL)) {
             count_failure(connection);
         }

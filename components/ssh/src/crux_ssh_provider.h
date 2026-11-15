@@ -180,10 +180,12 @@ typedef struct {
 
     /**
      * A connection ended before it logged in because it reached max_auth_attempts. It runs once
-     * for that connection, on its thread, after the callback of the refused attempt that reached
-     * the limit, so a connection that logged in, left, timed out or was refused for any other
-     * reason never gets it. It only reports: the connection ends whatever the callback does, and no
-     * attachment exists. May be NULL, and then the provider reports nothing.
+     * for that connection, on its thread, after the refused attempt that reached the limit. If a
+     * callback handled that attempt, it has returned. If the provider refused the attempt before
+     * any callback, as it does an RSA key, there was none. A connection that logged in, left, timed
+     * out or was ended for any other reason never gets this call. It only reports: the connection
+     * ends whatever the callback does, and no attachment exists. May be NULL, and then the provider
+     * reports nothing.
      */
     void (*auth_limit)(void *context, const crux_ssh_peer_t *peer);
 } crux_ssh_callbacks_t;

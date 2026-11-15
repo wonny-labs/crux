@@ -81,6 +81,9 @@ static const expectation_t expectations[] = {
     {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_REPORTED_TWICE, "auth_limit_is_reported_at_the_limit"},
     {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_WRONG_PEER, "auth_limit_is_reported_at_the_limit"},
     {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_ANY_END, "auth_limit_is_not_reported_for_other_ends"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_NAME_CHANGE, "auth_limit_is_not_reported_for_other_ends"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_VERIFIED_REFUSAL,
+     "auth_limit_is_not_reported_for_other_ends"},
 };
 
 static crux_ssh_fake_fault_t active_fault;

@@ -1,0 +1,50 @@
+[
+  {
+    "name": "private_include_directory",
+    "file": "app/CMakeLists.txt",
+    "old": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\n",
+    "new": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\ntarget_include_directories(app PRIVATE ${CRUX_DIR}/components/system/ports/zephyr)\n",
+    "expect": "include:",
+    "because": "the private directory of the System Zephyr provider on the include path"
+  },
+  {
+    "name": "private_header_in_the_shell",
+    "file": "app/src/main.c",
+    "old": "#include <crux/system.h>\n",
+    "new": "#include <crux/system.h>\n#include \"system_zephyr.h\"\n",
+    "expect": "headers:",
+    "because": "a private header of the System provider in a product source"
+  },
+  {
+    "name": "frozen_header_in_the_shell",
+    "file": "app/src/main.c",
+    "old": "#include <crux/system.h>\n",
+    "new": "#include <crux/system.h>\n#include <crux/thread.h>\n",
+    "expect": "headers:",
+    "because": "a frozen header, which is not one of the three public headers of the consumer"
+  },
+  {
+    "name": "target_without_a_crux_name",
+    "file": "app/CMakeLists.txt",
+    "old": "target_link_libraries(app PRIVATE crux::system)",
+    "new": "target_link_libraries(app PRIVATE crux::system crux_system_zephyr)",
+    "expect": "link: crux_system_zephyr",
+    "because": "the provider target, which has no crux:: name"
+  },
+  {
+    "name": "wrap_of_the_binding_seam",
+    "file": "app/CMakeLists.txt",
+    "old": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\n",
+    "new": "target_compile_options(app PRIVATE -Wall -Wextra -Werror)\ntarget_link_options(app PRIVATE -Wl,--wrap=crux_watchdog_zephyr_device)\n",
+    "expect": "wrap: crux_watchdog_zephyr_device",
+    "because": "a link-time wrap of the System binding seam, which is how Crux's own tests substitute the device"
+  },
+  {
+    "name": "frozen_symbol_in_prj_conf",
+    "file": "app/prj.conf",
+    "old": "CONFIG_CRUX_SYSTEM=y\n",
+    "new": "CONFIG_CRUX_SYSTEM=y\nCONFIG_CRUX_THREAD=y\n",
+    "expect": "symbol in prj.conf: CRUX_THREAD=y",
+    "because": "a Thread symbol that System does not need and a product does not name"
+  }
+]

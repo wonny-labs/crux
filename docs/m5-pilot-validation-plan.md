@@ -1,5 +1,7 @@
 # M5 Pilot validation and completion plan
 
+> **Status: historical.** Plan of platform milestone M5 (issues #25 to #30; not the Time Pilot's M5), kept as written. For the current state see [Component readiness](component-readiness.md) and the [decision records](decisions/README.md).
+
 **Status:** Proposed for human review. This plan does not approve a public API, hardware operation, PR merge or issue closure. Prepared against `main` `2b33fbc` after the Thread/Sync structural refactor. The current GitHub Issues #25–#30 and their existing acceptance criteria remain authoritative.
 
 ## Objective and completion boundary
