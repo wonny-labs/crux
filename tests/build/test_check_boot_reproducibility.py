@@ -76,6 +76,7 @@ sys.exit(2)
 FAKE_COMPOSITION = '''#!/usr/bin/env bash
 set -euo pipefail
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pwd >>"$dir/cwds"
 count_file="$dir/runs"
 count="$(cat "$count_file" 2>/dev/null || echo 0)"
 count=$((count + 1))
@@ -97,8 +98,9 @@ class ScriptShape(unittest.TestCase):
         self.assertTrue(SCRIPT.stat().st_mode & 0o111, "the script is not executable")
         self.assertTrue(self.script.startswith("#!/usr/bin/env bash\n"))
 
-    def test_the_script_sits_in_tests_target_and_not_under_scripts(self):
-        self.assertEqual(REPO / "tests/target", SCRIPT.parent)
+    def test_the_script_is_not_under_scripts_and_has_its_comparison_tool_beside_it(self):
+        self.assertTrue(SCRIPT.is_file())
+        self.assertFalse((REPO / "scripts" / SCRIPT.name).exists())
         self.assertTrue((SCRIPT.parent / "compare_boot_builds.py").is_file())
         self.assertFalse(list((REPO / "scripts").glob("*reproduc*")))
 
@@ -123,7 +125,8 @@ class ScriptShape(unittest.TestCase):
     def test_the_page_exists_and_names_the_limits(self):
         page = PAGE.read_text(encoding="utf-8")
         for text in ("Not verified", "tests/target/check_boot_reproducibility.sh", "NOT wired",
-                     "same path", "stage8-reproducibility-and-signing.md"):
+                     "same path", "stage8-reproducibility-and-signing.md", "issues/296",
+                     "directory that the composition command writes"):
             self.assertIn(text, page)
 
 
@@ -255,6 +258,14 @@ class BehaviourTest(unittest.TestCase):
         self.assertEqual("2", (command.parent / "runs").read_text())
         self.assertIn("Result: reproducible", done.stdout)
         self.assertTrue(Path(str(build) + ".first").is_dir())
+
+    def test_build_runs_the_command_from_the_repository_root(self):
+        # The real composition command finds the repository with git rev-parse, which depends on the
+        # current directory.
+        command, build = self.fake_command([self.a, self.b])
+        self.run_script("--build", build, env_extra={"CRUX_COMPOSITION_COMMAND": str(command)}, expect=0)
+        cwds = (command.parent / "cwds").read_text().split()
+        self.assertEqual([str(REPO.resolve())] * 2, [str(Path(c).resolve()) for c in cwds])
 
     def test_build_fails_when_the_two_runs_differ_in_an_unsigned_binary(self):
         different = helpers.write_build(self.root / "d", signed_bin=self.sig_a, app=helpers.APP_BIN + b"\0")

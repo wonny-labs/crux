@@ -197,7 +197,7 @@ class SignedImageTest(CompareBase):
         write_build(self.b, signed_bin=signed(SIG_A, key=b"another fake key, also not a key!!"))
         report = compare.compare_builds(self.a, self.b)
         self.assertFalse(report["ok"])
-        self.assertIn("TLV", self.rows(report)[APP_SIGNED]["detail"])
+        self.assertIn("TLVs other than the signature", self.rows(report)[APP_SIGNED]["detail"])
 
     def test_a_signed_image_that_does_not_parse_fails(self):
         write_build(self.a)
@@ -275,6 +275,176 @@ def inspector_distance(align, field):
     return base.inspector.trailer_distances(align)[field]
 
 
+def signed_with(tlvs, payload=PAYLOAD):
+    """A signed-looking image whose unprotected TLVs are exactly `tlvs` (list of (type, value))."""
+    prot = b""
+    header = base.HEADER.pack(base.IMAGE_MAGIC, 0x80000000, 0x400, 0, len(payload), 0, 1, 2, 3, 4, 0)
+    header += bytes(0x400 - len(header))
+    import hashlib
+    digest = hashlib.sha256(header + payload + prot).digest()
+    entries = [(kind, digest if value == "digest" else value) for kind, value in tlvs]
+    return header + payload + prot + base.tlv_area(base.UNPROT_MAGIC, entries)
+
+
+
+
+def standard_tlvs(signature):
+    import hashlib
+    return [(base.KEYHASH, hashlib.sha256(base.FAKE_KEY).digest()), (base.SHA256_TLV, "digest"),
+            (base.ECDSA_SIG, signature)]
+
+
+class UncomparedBytesTest(CompareBase):
+    """Bytes outside the parsed parts must not slip through as an equivalent signature difference."""
+
+    def padded_pair(self, change):
+        image = signed(SIG_A)
+        a = confirmed(image)
+        b = bytearray(a)
+        change(b, len(image))
+        write_build(self.a, signed_bin=image, confirmed_bin=a)
+        write_build(self.b, signed_bin=image, confirmed_bin=bytes(b))
+        return compare.compare_builds(self.a, self.b)
+
+    def test_a_changed_padding_byte_before_the_trailer_is_not_reproducible(self):
+        def change(data, image_len):
+            data[image_len + 100] = 0x00
+        report = self.padded_pair(change)
+        self.assertFalse(report["ok"])
+        row = self.rows(report)[APP_CONFIRMED]
+        self.assertEqual("differs", row["status"])
+        self.assertIn("tail", row["detail"])
+        self.assertNotIn("only the ECDSA_SIG TLV differs", row["detail"])
+
+    def test_a_changed_tail_without_a_trailer_magic_is_not_reproducible(self):
+        image = signed(SIG_A)
+        a = bytearray(b"\xff" * SLOT)
+        a[:len(image)] = image
+        b = bytearray(a)
+        b[SLOT - 40] = 0x01  # where a trailer field would sit
+        write_build(self.a, signed_bin=image, confirmed_bin=bytes(a))
+        write_build(self.b, signed_bin=image, confirmed_bin=bytes(b))
+        report = compare.compare_builds(self.a, self.b)
+        self.assertFalse(report["ok"])
+        self.assertEqual("differs", self.status(report, APP_CONFIRMED))
+
+    def test_unpadded_images_with_different_extra_trailing_bytes_are_not_reproducible(self):
+        image = signed(SIG_A)
+        write_build(self.a, signed_bin=image + b"\x01\x02\x03", confirmed_bin=confirmed(image))
+        write_build(self.b, signed_bin=image + b"\x01\x02\x04", confirmed_bin=confirmed(image))
+        report = compare.compare_builds(self.a, self.b)
+        self.assertFalse(report["ok"])
+        self.assertEqual("differs", self.status(report, APP_SIGNED))
+
+    def test_the_extra_bytes_of_the_longer_signature_in_a_padded_image_must_be_erased(self):
+        # The shorter signature leaves two more padding bytes in build B. They must be 0xFF.
+        a = confirmed(signed(SIG_A))
+        b = bytearray(confirmed(signed(SIG_B)))
+        end = len(signed(SIG_B))
+        b[end] = 0x00
+        write_build(self.a, signed_bin=signed(SIG_A), confirmed_bin=a)
+        write_build(self.b, signed_bin=signed(SIG_B), confirmed_bin=bytes(b))
+        report = compare.compare_builds(self.a, self.b)
+        self.assertFalse(report["ok"])
+        self.assertEqual("differs", self.status(report, APP_CONFIRMED))
+
+    def test_a_pure_signature_difference_in_a_padded_image_is_still_equivalent(self):
+        a = confirmed(signed(SIG_A))
+        b = confirmed(signed(SIG_B))
+        write_build(self.a, signed_bin=signed(SIG_A), confirmed_bin=a)
+        write_build(self.b, signed_bin=signed(SIG_B), confirmed_bin=b)
+        report = compare.compare_builds(self.a, self.b)
+        self.assertTrue(report["ok"], report)
+        self.assertEqual("equivalent", self.status(report, APP_CONFIRMED))
+
+
+class SignatureConstraintTest(CompareBase):
+    def build_pair(self, tlvs_a, tlvs_b):
+        write_build(self.a, signed_bin=signed_with(tlvs_a))
+        write_build(self.b, signed_bin=signed_with(tlvs_b))
+        return compare.compare_builds(self.a, self.b)
+
+    def test_an_image_without_a_signature_tlv_is_not_reproducible(self):
+        report = self.build_pair(standard_tlvs(SIG_A), standard_tlvs(SIG_A)[:2])
+        self.assertFalse(report["ok"])
+        row = self.rows(report)[APP_SIGNED]
+        self.assertEqual("differs", row["status"])
+        self.assertIn("signature TLV count", row["detail"])
+
+    def test_an_image_with_two_signature_tlvs_is_not_reproducible(self):
+        report = self.build_pair(standard_tlvs(SIG_A), standard_tlvs(SIG_A) + [(base.ECDSA_SIG, SIG_B)])
+        self.assertFalse(report["ok"])
+        self.assertIn("signature TLV count", self.rows(report)[APP_SIGNED]["detail"])
+
+    def test_a_signature_of_a_very_different_length_is_not_reproducible(self):
+        report = self.build_pair(standard_tlvs(SIG_A), standard_tlvs(bytes(range(200)) + bytes(100)))
+        self.assertFalse(report["ok"])
+        self.assertIn("signature length", self.rows(report)[APP_SIGNED]["detail"])
+
+    def test_an_empty_signature_is_not_reproducible(self):
+        report = self.build_pair(standard_tlvs(SIG_A), standard_tlvs(b""))
+        self.assertFalse(report["ok"])
+        self.assertIn("signature length", self.rows(report)[APP_SIGNED]["detail"])
+
+    def test_a_signature_tlv_at_another_position_is_not_reproducible(self):
+        tlvs = standard_tlvs(SIG_A)
+        moved = [tlvs[2], tlvs[0], tlvs[1]]
+        report = self.build_pair(tlvs, moved)
+        self.assertFalse(report["ok"])
+        self.assertIn("signature position", self.rows(report)[APP_SIGNED]["detail"])
+
+    def test_signature_lengths_within_two_bytes_are_accepted(self):
+        report = self.build_pair(standard_tlvs(SIG_A), standard_tlvs(SIG_A[:-2] + b"\x01\x02"[:0]))
+        self.assertTrue(report["ok"], report)
+        self.assertEqual("equivalent", self.status(report, APP_SIGNED))
+
+    def test_a_changed_reserved_byte_of_another_tlv_entry_is_not_reproducible(self):
+        # The reserved byte of a TLV entry is in no parsed value. With a different signature as well,
+        # an equivalent row would be a false claim.
+        a, b = signed(SIG_A), bytearray(signed(SIG_B))
+        keyhash_entry = len(b) - len(base.tlv_area(base.UNPROT_MAGIC, [
+            (base.KEYHASH, bytes(32)), (base.SHA256_TLV, bytes(32)), (base.ECDSA_SIG, SIG_B)]))
+        b[keyhash_entry + 4 + 1] = 0x01  # the reserved byte of the first entry
+        write_build(self.a, signed_bin=a)
+        write_build(self.b, signed_bin=bytes(b))
+        report = compare.compare_builds(self.a, self.b)
+        self.assertFalse(report["ok"])
+        row = self.rows(report)[APP_SIGNED]
+        self.assertEqual("differs", row["status"])
+        self.assertIn("unprotected TLV area", row["detail"])
+        self.assertNotIn("only the ECDSA_SIG TLV differs", row["detail"])
+
+    def test_a_changed_reserved_byte_of_the_signature_entry_is_not_reproducible(self):
+        a, b = signed(SIG_A), bytearray(signed(SIG_B))
+        sig_entry = len(b) - len(SIG_B) - 4
+        b[sig_entry + 1] = 0x01
+        write_build(self.a, signed_bin=a)
+        write_build(self.b, signed_bin=bytes(b))
+        report = compare.compare_builds(self.a, self.b)
+        self.assertFalse(report["ok"])
+        self.assertIn("signature entry", self.rows(report)[APP_SIGNED]["detail"])
+
+
+class ToolFailureTest(CompareBase):
+    def test_an_unexpected_exception_is_a_usage_error_not_a_verdict(self):
+        write_build(self.a)
+        write_build(self.b)
+        original = compare.compare_builds
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("boom")
+        compare.compare_builds = boom
+        self.addCleanup(setattr, compare, "compare_builds", original)
+        import contextlib
+        import io
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            status = compare.main([str(self.a), str(self.b)])
+        self.assertEqual(2, status)
+        self.assertIn("boom", err.getvalue())
+        self.assertNotIn("Result:", out.getvalue())
+
+
 class CommandTest(CompareBase):
     def run_main(self, *args):
         import contextlib
@@ -349,8 +519,9 @@ class ToolShapeTest(unittest.TestCase):
                 names.add(node.module.split(".")[0])
         self.assertEqual(set(), names - set(sys.stdlib_module_names))
 
-    def test_the_tool_sits_in_tests_target_not_under_scripts(self):
-        self.assertEqual(REPO / "tests/target", SCRIPT.parent)
+    def test_the_tool_is_not_under_scripts(self):
+        self.assertTrue(SCRIPT.is_file())
+        self.assertFalse((REPO / "scripts" / SCRIPT.name).exists())
         self.assertFalse(list((REPO / "scripts").glob("*compare*boot*")))
 
 

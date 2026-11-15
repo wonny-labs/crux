@@ -20,7 +20,7 @@ stays authoritative (tests/target/check_boot_reproducibility.sh runs it). Two bu
 say nothing about another container, host, SDK installation or date.
 
 Exit status: 0 reproducible, 1 not reproducible, 2 usage error (an unreadable directory, the same
-directory twice).
+directory twice) or an unexpected failure of the tool itself.
 """
 import argparse
 import importlib.util
@@ -86,29 +86,63 @@ def compare_unsigned(artifact, a, b):
                 f"{_first_difference(a, b)}")
 
 
+MAX_SIGNATURE_LENGTH_DIFFERENCE = 2  # the DER length of an ECDSA P-256 signature varies by a byte or two
+UNCONFIRMED_NOTE = (
+    "at Zephyr v4.4.2 RAM load with revert implies a confirmed image (the erratum of the boot and update "
+    "investigation), so builds without one are not the composition of docs/boot-composition.md"
+)
+
+
 def _parts(data, report):
-    """The parts of a parsed signed image that must reproduce, and the signature TLV."""
+    """The parts of a parsed signed image that must reproduce, the signature TLVs and the tail."""
     header = report["header"]
     hdr_size, img_size = header["hdr_size"], header["img_size"]
     prot = report["protected_tlv"]
     unprot = report["unprotected_tlv"]
     payload_end = hdr_size + img_size
     protected = data[payload_end:payload_end + prot["total_length"]] if prot["present"] else b""
-    tlvs = [(t["type"], t["value_hex"]) for t in unprot["tlvs"] if t["type"] != SIGNATURE_TLV]
-    signature = [t["value_hex"] for t in unprot["tlvs"] if t["type"] == SIGNATURE_TLV]
-    padding = report["padding"]
-    trailer = None
-    if padding["trailer_alignment"] is not None:
-        reach = max(inspector.trailer_distances(padding["trailer_alignment"]).values())
-        trailer = (padding["trailer_alignment"], data[len(data) - reach:])
+    tlvs = unprot["tlvs"]
+    others = [(t["type"], t["value_hex"]) for t in tlvs if t["type"] != SIGNATURE_TLV]
+    signatures = [(index, t["length"], t["value_hex"]) for index, t in enumerate(tlvs)
+                  if t["type"] == SIGNATURE_TLV]
+    area_start = unprot["offset"] + 4  # after the TLV area's magic and length
+    area_end = unprot["offset"] + unprot["total_length"]
+    # The unprotected area without the signature entry, byte for byte: this covers the type, the reserved
+    # byte and the value of every other entry, which the parsed values would not.
+    kept, cursor = b"", area_start
+    entry_header = []
+    for entry in tlvs:
+        if entry["type"] == SIGNATURE_TLV:
+            kept += data[cursor:entry["offset"]]
+            cursor = entry["offset"] + 4 + entry["length"]
+            entry_header.append(data[entry["offset"]:entry["offset"] + 2])  # type and reserved byte
+    kept += data[cursor:area_end]
+    tail = data[area_end:]
     return {
         "header": data[:hdr_size],
         "payload": data[hdr_size:payload_end],
         "protected TLVs": protected,
-        "TLVs other than the signature": tlvs,
-        "trailer": trailer,
-        "padded": padding["padded"],
-    }, signature
+        "TLVs other than the signature": others,
+        "bytes of the unprotected TLV area other than the signature entry": kept,
+        "type and reserved byte of the signature entry": entry_header,
+        "padded": report["padding"]["padded"],
+    }, signatures, tail
+
+
+def _tail_difference(tail_a, tail_b):
+    """None when the tails agree up to the extra leading bytes that a shorter signature leaves.
+
+    The two tails are lined up from the end of the file, where the padding and the trailer sit. The
+    longer one may have extra bytes in front, and they must be erased (0xFF).
+    """
+    common = min(len(tail_a), len(tail_b))
+    if common and tail_a[len(tail_a) - common:] != tail_b[len(tail_b) - common:]:
+        return "the tail after the TLV areas (padding and trailer) differs"
+    longer = tail_a if len(tail_a) > len(tail_b) else tail_b
+    extra = longer[:len(longer) - common]
+    if any(byte != 0xFF for byte in extra):
+        return "the tail after the TLV areas (padding and trailer) has non-erased bytes where the other build has the longer signature's room"
+    return None
 
 
 def compare_signed(artifact, a, b, strict_signature=False, optional=False):
@@ -122,16 +156,28 @@ def compare_signed(artifact, a, b, strict_signature=False, optional=False):
         if not report["ok"]:
             return _row(artifact, "differs",
                         f"the image of build {name} does not parse with a matching digest: {report['result']}")
-    parts_a, signature_a = _parts(a, reports["A"])
-    parts_b, signature_b = _parts(b, reports["B"])
+    parts_a, signatures_a, tail_a = _parts(a, reports["A"])
+    parts_b, signatures_b, tail_b = _parts(b, reports["B"])
     differing = [name for name in parts_a if parts_a[name] != parts_b[name]]
+    if len(signatures_a) != 1 or len(signatures_b) != 1:
+        differing.append(f"signature TLV count (build A {len(signatures_a)}, build B {len(signatures_b)}; "
+                         "each image needs exactly one ECDSA_SIG TLV)")
+    else:
+        (position_a, length_a, value_a), (position_b, length_b, value_b) = signatures_a[0], signatures_b[0]
+        if position_a != position_b:
+            differing.append(f"signature position (TLV {position_a} and {position_b})")
+        if (abs(length_a - length_b) > MAX_SIGNATURE_LENGTH_DIFFERENCE or length_a == 0 or length_b == 0):
+            differing.append(f"signature length ({length_a} and {length_b} bytes; at most "
+                             f"{MAX_SIGNATURE_LENGTH_DIFFERENCE} bytes apart and not empty)")
     padded = parts_a["padded"] or parts_b["padded"]
     if padded and len(a) != len(b):
         differing.append("padded length")
+    tail_problem = _tail_difference(tail_a, tail_b)
+    if tail_problem:
+        differing.append(tail_problem)
     if differing:
         return _row(artifact, "differs",
-                    "differs in " + ", ".join(differing)
-                    + f" (sizes {len(a)} and {len(b)})")
+                    "differs in " + "; ".join(differing) + f" (sizes {len(a)} and {len(b)})")
     detail = f"{SIGNATURE_DETAIL}; sizes {len(a)} and {len(b)}"
     if strict_signature:
         return _row(artifact, "equivalent", f"{detail}; the strict option requires byte-identical images")
@@ -154,6 +200,8 @@ def compare_builds(dir_a, dir_b, image="zephyr", strict_signature=False):
     rows.append(compare_signed(signed, *both(signed), strict_signature=strict_signature))
     confirmed = f"{app_dir}/zephyr.signed.confirmed.bin"
     rows.append(compare_signed(confirmed, *both(confirmed), strict_signature=strict_signature, optional=True))
+    if rows[-1]["status"] == "absent":
+        rows[-1]["detail"] += f"; {UNCONFIRMED_NOTE}"
 
     bad = {"differs", "missing"}
     ok = all(row["status"] not in bad for row in rows)
@@ -217,7 +265,11 @@ def main(argv=None):
         print("error: the two arguments are the same directory, which is not a comparison of two builds",
               file=sys.stderr)
         return 2
-    report = compare_builds(a, b, image=args.image, strict_signature=args.strict_signature)
+    try:
+        report = compare_builds(a, b, image=args.image, strict_signature=args.strict_signature)
+    except Exception as error:  # a crash of the tool is not a verdict on the builds
+        print(f"error: the comparison failed unexpectedly: {error}", file=sys.stderr)
+        return 2
     print(json.dumps(report, indent=2) if args.json else format_report(report))
     return 0 if report["ok"] else 1
 

@@ -28,7 +28,8 @@
 # Exit status: 0 reproducible and both signed images verify, 1 not reproducible, imgtool refuses or crashes
 # on a signed image, 2 the inputs or a tool cannot be used (a missing directory, Python, imgtool or key,
 # imgtool without its requirements, the same directory twice, a failing composition command, an existing
-# BUILD_DIR.first).
+# BUILD_DIR.first). The composition command runs from the repository root; BUILD_DIR must be the directory
+# that it writes (scripts/test-boot-composition.sh always writes $repo/build/zephyr/boot-composition).
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -91,12 +92,12 @@ if [[ "$build_mode" -eq 1 ]]; then
     [[ -x "$command_path" ]] || missing "the composition command is not executable: $command_path"
     [[ ! -e "$build_a" ]] || missing "$build_a exists already; remove it first, so that an old build is not compared"
     status=0
-    "$command_path" || status=$?
+    (cd "$repo" && "$command_path") || status=$?
     [[ "$status" -eq 0 ]] || missing "the composition command $command_path failed (exit $status) on the first run"
     [[ -d "$build_b" ]] || missing "the composition command left no build directory at $build_b"
     mv "$build_b" "$build_a"
     status=0
-    "$command_path" || status=$?
+    (cd "$repo" && "$command_path") || status=$?
     [[ "$status" -eq 0 ]] || missing "the composition command $command_path failed (exit $status) on the second run"
     [[ -d "$build_b" ]] || missing "the composition command left no build directory at $build_b on the second run"
 else
