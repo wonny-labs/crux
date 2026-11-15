@@ -11,6 +11,7 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 1. [Choosing an API](choosing-an-api.md): the developer rule that says where each kind of product code goes (Zephyr directly, a Crux service, or plain C in the product's own domain).
 2. [Architecture overview](architecture.md): the three layers of a product, the component ownership rules and the capability inventory.
 3. [Product Composition Guide](product-composition.md): how a product repository composes, versions and releases Crux. There is no Crux release or tag yet.
+   If the product targets a board that this repository has not worked with, read [Porting Crux to a new board](porting-to-a-new-board.md) next: the test ladder, what to review, a checklist and a first-board-run outline.
 4. [Build and Integration Guide](build.md): setup, builds and external applications.
 5. [Component readiness](component-readiness.md): per component, which environments and which evidence exist, and what is missing.
 6. If the product needs remote management over HTTPS, the command line or SFTP: [Secure management in a product](management-in-a-product.md), then the contracts it links.
@@ -63,7 +64,7 @@ The documentation link check does not read the folders `plans/`, `history/`, `ev
 
 Everything else in `docs/` is maintained. The groups are:
 
-- **Orientation and guides:** [architecture](architecture.md), [choosing an API](choosing-an-api.md), [build and integration](build.md), [product composition](product-composition.md), [component readiness](component-readiness.md), [composition interface rules](composition-interfaces.md), [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md).
+- **Orientation and guides:** [architecture](architecture.md), [choosing an API](choosing-an-api.md), [build and integration](build.md), [product composition](product-composition.md), [porting to a new board](porting-to-a-new-board.md), [component readiness](component-readiness.md), [composition interface rules](composition-interfaces.md), [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md).
 - **Decisions:** [decision records](decisions/README.md) and the [research notes](research/platform-direction-review.md) behind them.
 - **Contracts and designs:** see below.
 - **Investigations, feasibility reports and physical gates:** the boot pages ([boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.

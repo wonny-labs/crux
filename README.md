@@ -101,7 +101,6 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | Architecture, components and API contracts | [Architecture overview and capability inventory](docs/architecture.md) |
 | Setup, builds, external applications and debugging | [Build and Integration Guide](docs/build.md) |
 | Composing, versioning and releasing a product on Crux | [Product Composition Guide](docs/product-composition.md) |
-| Bringing a product up on a new board | [Porting Crux to a new board](docs/porting-to-a-new-board.md) |
 | Test commands and qualification procedures | [Test guide](tests/README.md) |
 | Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
 | Where to start, which pages are current or historical, terms and milestones | [Documentation index](docs/README.md) |

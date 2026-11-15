@@ -29,7 +29,7 @@ Crux components are portable C17 behind public contracts. The platform compositi
 
 ## 2. Prerequisites and the test ladder
 
-**Prerequisites.** Docker and the Dev Container of [Build and Integration Guide](build.md#development-environment), a pinned west workspace, and the pinned Zephyr SDK, through `scripts/bootstrap-zephyr.sh --install-sdk`. The Zephyr revision is pinned in [`west.yml`](../west.yml) (v4.4.2, `dccb09599635`). A different Zephyr gives a CMake warning and no Crux evidence applies to that build ([Zephyr baseline gate](product-composition.md#zephyr-baseline-gate)); the patches of section 3.3 check the exact source of that pin and refuse to configure on another.
+**Prerequisites.** Docker and the Dev Container of [Build and Integration Guide](build.md#development-environment), a pinned west workspace, and the pinned Zephyr SDK, through `scripts/bootstrap-zephyr.sh --install-sdk`. The Zephyr revision is pinned in [`west.yml`](../west.yml) (v4.4.2, `dccb09599635`). A different Zephyr gives a CMake warning and no Crux evidence applies to that build ([Zephyr baseline gate](product-composition.md#zephyr-baseline-gate)); each patch of section 3.3, when enabled, checks the exact source of that pin and refuses to configure if the file differs.
 
 Climb one rung at a time. A rung does not include the ones below it, and a pass on one says nothing about the next ([AGENTS.md](../AGENTS.md#validation-and-evidence), [README](../README.md#development-and-target-environments)).
 
@@ -37,10 +37,10 @@ Climb one rung at a time. A rung does not include the ones below it, and a pass 
 | --- | --- | --- | --- | --- |
 | 0. Host | Portable C and the product's domain, on Linux with fakes | `scripts/bootstrap-host.sh`, `scripts/check-host.sh`, `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh`, `scripts/check-format.sh`, `scripts/analyze-host.sh`, `scripts/check-dependencies.sh`; the template's `check_domain_includes.py` ([README](../templates/product/README.md#zones-and-the-domain-include-check)) | Logic, contracts, sanitizer-clean behaviour of the portable code, include boundaries | Anything about Zephyr, a driver, timing or memory on the target |
 | 1. `native_sim` | The product or a Crux test image on Zephyr's simulated board | `scripts/check-zephyr-smoke.sh`, `scripts/test-controller.sh`, `scripts/test-execution.sh`, `scripts/test-system.sh`, `scripts/test-mgmt-services.sh`, `scripts/test-native-composition.sh`, `scripts/test-consumer-system.sh` and the other `scripts/test-*.sh` of [tests/README.md](../tests/README.md) | Zephyr API use, Kconfig and devicetree selection, service composition, with the host TCP stack and a test entropy source | Target drivers, timing, entropy quality, persistence, memory use. `native_sim` has no board file for your board |
-| 2. Cross-build | The same sources compiled and linked for the target | `CRUX_BOARD_TARGET='<your target>' scripts/check-zephyr-smoke.sh` (adds a Zephyr Hello World for the board), `scripts/test-product-template.sh '<your target>'`, `scripts/test-zephyr-time.sh '<your target>'`; the per-component scripts hard-code the RT1060 or RT1170 target, so for them copy the `west build` line, not the script | That the selection configures, links and fits the memory map. Reports of size ([section 3.6](#36-memory-budget)) | That the image boots, that a peripheral works, that anything fits at run time |
+| 2. Cross-build | The same sources compiled and linked for the target | `CRUX_BOARD_TARGET='<your target>' scripts/check-zephyr-smoke.sh` (adds a Zephyr Hello World for the board), `scripts/test-product-template.sh '<your target>'`, `scripts/test-zephyr-time.sh '<your target>'`, `scripts/build-target.sh '<your target>'` (builds the Time sample and records provenance and `rom_report`); the per-component scripts hard-code the RT1060 or RT1170 target, so for them copy the `west build` line, not the script | That the selection configures, links and fits the memory map. Reports of size ([section 3.6](#36-memory-budget)) | That the image boots, that a peripheral works, that anything fits at run time |
 | 3. First board run | A signed-off procedure ([section 5](#5-checklist-and-first-board-run)) | None for a new board. The repository's board tooling is specific to the RT1060-EVK Rev B ([section 4](#4-worked-examples)) | One run of one image on one board, as far as its log shows | Other boards, other cards, endurance, timing under load |
 
-Build only is the default. Programming, resetting, debug attach, fuse or boot-mode changes are separate steps with their own approval in every project that uses this repository ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)); do the same in yours.
+Build only is the default. Programming, resetting, debug attach, fuse or boot-mode changes are separate steps with their own approval in this repository ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)); do the same in your project.
 
 ## 3. Step by step
 
@@ -60,7 +60,7 @@ west init -l product-x && west update && west crux-pins
 west build -b '<your target>' -d product-x/build/app product-x/app
 ```
 
-The template is its own west manifest repository. It imports `crux-pilot`, so Zephyr and the allowlisted modules come at the revisions Crux pins ([Product Composition Guide](product-composition.md#composition)). It has a domain (plain C, no Zephyr), an execution shell (`app/`) and `prj.conf` with `CONFIG_CRUX_TIME=y`. Board-specific files go next to the application under `boards/` (`<board>.conf`, `<board>.overlay`) or in `-DEXTRA_CONF_FILE` and `-DEXTRA_DTC_OVERLAY_FILE`, as `samples/controller/zephyr/boards/` does. Keep the domain free of board names: `check_domain_includes.py --product .` enforces the include rules in CI. For versioning, locks and release records, use [`RELEASE.md`](../templates/product/RELEASE.md) and the [release flow](product-composition.md#release).
+The template is its own west manifest repository. It imports `crux-pilot`, so Zephyr and the allowlisted modules come at the revisions Crux pins ([Product Composition Guide](product-composition.md#composition)). It has a domain (plain C, no Zephyr), an execution shell (`app/`) and `prj.conf` with `CONFIG_CRUX_TIME=y`. Board-specific files go next to the application under `boards/` (`<board>.conf`, `<board>.overlay`) or in `-DEXTRA_CONF_FILE` and `-DEXTRA_DTC_OVERLAY_FILE`, as `samples/controller/zephyr/boards/` does. Keep the domain free of board names: `check_domain_includes.py --product .` checks the include rules; run it in the product's own CI. For versioning, locks and release records, use [`RELEASE.md`](../templates/product/RELEASE.md) and the [release flow](product-composition.md#release).
 
 State of the template: its own build is E3 on the RT1060 target, and nothing ran on a board ([readiness row](component-readiness.md)). No Crux release tag exists, so the template follows `main` until you pin a revision.
 
@@ -70,19 +70,19 @@ Select only the Crux components the product needs. For each, the [readiness tabl
 
 **Console and serial.**
 
-- The Zephyr console and shell are Zephyr's: set `zephyr,console` and `zephyr,shell-uart` in the board or overlay.
-- **Crux Logging** needs `zephyr,log-uart` chosen, exactly one enabled UART, 115200 baud 8N1, no flow control, and refuses sharing the UART with Serial, a shell or other owners. The binding accepts only `native_sim` and the RT1060 LPUART1: `components/logging/ports/zephyr/logging_binding.c`.
+- The Zephyr console and shell are Zephyr's: set `zephyr,console` and `zephyr,shell-uart` in the board or overlay. An image that has `CONFIG_CRUX_CLI`, `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH` and is not marked as a development image must have no Zephyr shell ([shell rule](management-in-a-product.md#security-assumptions)).
+- **Crux Logging** needs `zephyr,log-uart` chosen, exactly one enabled UART, 115200 baud 8N1, no flow control, and refuses sharing the UART with Serial, a shell or other owners (on the RT1060 it may share the console only when output goes through Logging alone). The binding accepts only `native_sim` and the RT1060 LPUART1: `components/logging/ports/zephyr/logging_binding.c`.
 - **Crux Serial** needs a dedicated `crux-serial0` UART alias and accepts only `native_sim` and the RT1060 LPUART3: `components/serial/ports/zephyr/serial_binding.c`. Serial is frozen for new product code; use Zephyr's UART API in the shell instead ([Choosing an API](choosing-an-api.md#frozen-for-new-product-code-thread-sync-queue-and-serial)).
 
-**Crux bindings that name a board.** These refuse your board with a compile error until the source changes. Treat each as a design change to Crux (read [CONTRIBUTING.md](../CONTRIBUTING.md) and raise it first), not as a setting:
+**Crux bindings that name a board.** The System, Serial, Logging and FatFs rows refuse your board with a compile error until the source changes; the others only constrain what you can select. Treat a change to any of them as a design change to Crux (read [CONTRIBUTING.md](../CONTRIBUTING.md) and raise it first), not as a setting:
 
 | Component | Where | What it accepts today |
 | --- | --- | --- |
 | System (watchdog, reset cause, reset) | `components/system/ports/zephyr/system_binding.c`, `CMakeLists.txt` | `native_sim`, and the RT1060 `wdog0` at `0x400b8000` on Rev B. Any other board: `#error "Crux System unsupported Zephyr board"` |
 | Logging, Serial | files above | As above |
-| File on FatFs | `components/file/ports/zephyr/file_native.c`, `zephyr/Kconfig` (`CRUX_FILE_FATFS_RT1060*`) | The RT1060 Rev B QSPI board only |
-| File on Reliance Edge | `zephyr/Kconfig` (`CRUX_FILE_RELIANCE_EDGE`) | Its help text says it works on any board that has the file system. No board other than the RT1060 has been built with it |
-| GPIO, I2C, SPI | `components/*/ports/zephyr/*_binding.c` | Resource selected by an alias (`crux-gpio0`, `crux-i2c0`, `crux-spi0`). The RT1170 review shows cross-builds with overlays and no pin or bus evidence ([integration gaps](rt1170-evk-a1-feasibility.md#crux-integration-gaps)) |
+| File on FatFs | `components/file/ports/zephyr/file_native.c`, `zephyr/Kconfig` (`CRUX_FILE_FATFS_RT1060*`) | `native_sim` (test simulator selections), and for a real medium the RT1060 Rev B QSPI board only |
+| File on Reliance Edge | `zephyr/Kconfig` (`CRUX_FILE_RELIANCE_EDGE`) | Its help text says it works on any board that has the file system. No hardware target other than the RT1060 has been built with it (link only). It also runs on `native_sim` against a test-only eMMC simulator |
+| GPIO, I2C, SPI | `components/gpio/ports/zephyr/gpio_binding.c`, `components/i2c/ports/zephyr/i2c_port_zephyr.c`, `components/spi/ports/zephyr/spi_port_zephyr.c` | Resource selected by an alias (`crux-gpio0`, `crux-i2c0`, `crux-spi0`). The RT1170 review shows cross-builds with overlays and no pin or bus evidence ([integration gaps](rt1170-evk-a1-feasibility.md#crux-integration-gaps)) |
 
 **Clock and time.** Crux Time on Zephyr uses the system clock and needs no RTC. An RTC source is optional (`CONFIG_CRUX_TIME_RTC`, the `rtc` alias, `zephyr/Kconfig`). An RTC-backed run exists only for earlier Time code ([readiness, `time` row](component-readiness.md)).
 
@@ -124,7 +124,7 @@ For a new board, these are the points that depend on the board:
 
 ### 3.5 Secure boot composition
 
-[Boot composition](boot-composition.md) is the recipe: MCUboot built with sysbuild, RAM load with revert, ECDSA P-256 signature, for the RT1060-EVK Rev B. **It is build-only. Nothing was programmed or booted, and a successful build does not show that the boot loader accepts the image** ([not verified list](boot-composition.md#not-verified)).
+Start with the [boot overview](boot-overview.md), which gives the phases and what is merged. [Boot composition](boot-composition.md) is the recipe: MCUboot built with sysbuild, RAM load with revert, ECDSA P-256 signature, for the RT1060-EVK Rev B. **It is build-only. Nothing was programmed or booted, and a successful build does not show that the boot loader accepts the image** ([not verified list](boot-composition.md#not-verified)).
 
 What a new board needs:
 
@@ -149,7 +149,7 @@ Read the sizes from your own build, then compare with the recorded ones:
 | `scripts/record-build-provenance.py` | Needs `rom.json` and `ram.json` from those reports; it records the image hash and `firmware_identity` ([Identity](product-composition.md#identity)) |
 | [Boot composition outputs](boot-composition.md#what-the-build-produces) | MCUboot Flash and RAM, signed image size, slot size, for RT1060 |
 | [RT1060 management image report](rt1060-management-image-feasibility.md#result) | The large case: Flash and SDRAM of the integrated HTTPS, SSH and SFTP image, and the stack findings. These are compile and link figures |
-| [Limits at a glance](management-in-a-product.md#limits-at-a-glance) | Heap for three TLS clients, worker stacks, session slots. `native_sim` or source figures, none measured on a target |
+| [Limits at a glance](management-in-a-product.md#limits-at-a-glance) | Heap for three TLS clients, session slots (worker stacks are in the [Kconfig section](management-in-a-product.md#kconfig)). `native_sim` or source figures, none measured on a target |
 | [RT1170 recorded identification](rt1170-evk-a1-feasibility.md#recorded-build-identification) | Image size of the M3-only candidate on that board |
 | [Priority map and pools](thread-sync.md#priority-map-of-crux-threads) | Crux thread priorities, pool counts and stack settings |
 
@@ -175,7 +175,7 @@ The three Zephyr patches that grew out of this board (MDIO, MMC flush, entropy) 
 
 ### RT1170-EVK Rev A (`mimxrt1170_evk@A/mimxrt1176/cm7`)
 
-A **desk and cross-build** scope only, recorded in [the RT1170 review](rt1170-evk-a1-feasibility.md): the controller sample's M3-only candidate configures and links in CI (`scripts/test-m3-rt1170.sh`), with its image identification recorded. It is not a supported or qualified target. No board, probe or serial adapter was touched. System, Serial, Logging and Netif are not enabled for it because their bindings accept only the RT1060 and `native_sim`; GPIO, I2C and SPI cross-build with overlays and no pin evidence. Boot mode, recovery from a bad image and the fitted flash part are source assumptions. Read the review as the template for the desk work of a port: board defaults, integration gaps per component, boot and recovery, recorded limits. A design note for this board may exist as a separate proposal; nothing here depends on it.
+A **desk and cross-build** scope only, recorded in [the RT1170 review](rt1170-evk-a1-feasibility.md): the controller sample's M3-only candidate configures and links in CI (`scripts/test-m3-rt1170.sh`), with its image identification recorded. It is not a supported or qualified target. No board, probe or serial adapter was touched. System, Serial and Logging are not enabled for it because their bindings accept only the RT1060 and `native_sim`. Netif has no board check, but the M3-only candidate does not enable it and no network evidence exists for this board; GPIO, I2C and SPI cross-build with overlays and no pin evidence. Boot mode, recovery from a bad image and the fitted flash part are source assumptions. Read the review as the template for the desk work of a port: board defaults, integration gaps per component, boot and recovery, recorded limits.
 
 ## 5. Checklist and first board run
 
