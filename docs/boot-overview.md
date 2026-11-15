@@ -3,7 +3,7 @@
 > **Status:** Orientation page, current on 15 November 2026. It decides nothing. Decisions are in the pages it points to, each with its status.
 > **Verified:** What is merged and built (section 4), by build in CI; the evidence is in the [boot composition](boot-composition.md) page and the [WP1a evidence record](evidence/boot-composition/wp1a-evidence.md).
 > **Not verified:** Everything that needs a board. No boot experiment has run on any board: no signed image has been booted, no unsigned, wrong-key or modified image has been shown to be refused by the boot ROM or MCUboot, and no confirm, revert or update has run.
-> **Read this first / then:** this page, then the [boot composition](boot-composition.md) page for the current recipe, then the [secure boot development plan](plans/secure-boot-development-plan.md) for phases and open decisions.
+> **Read this first / then:** this page, then the [secure boot and update review](secure-boot-and-update-review.md) for what exists and what is open, the [boot composition](boot-composition.md) page for the current recipe, the [secure boot development plan](plans/secure-boot-development-plan.md) for phases and open decisions, and the [board test procedure](secure-boot-board-test-procedure.md) before any bench work.
 
 ## 1. What this means for Crux
 
@@ -35,6 +35,8 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 
 | Question | Page |
 | --- | --- |
+| I review secure boot and update for a product: what exists, what is verified, what is open? | [Secure boot and update review](secure-boot-and-update-review.md) |
+| I run the bench tests on a board: how, with which expected results? | [Secure boot board test procedure](secure-boot-board-test-procedure.md) (not yet run) |
 | How do I build an image with MCUboot for the RT1060-EVK Rev B, and what does CI check? | [Boot composition](boot-composition.md) |
 | Why RAM load with revert, which update modes exist, what did the trial builds show? | [Boot and update investigation](boot-update-investigation.md) |
 | Can the bootloader itself be updated or recovered in the field? | [Updating or recovering a deployed bootloader](boot-bootloader-update-investigation.md) |
