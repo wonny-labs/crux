@@ -285,7 +285,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 ### Registering a user key
 
-On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. The only code that calls `crux_access_account_add_key` outside Access and its tests is the test composition, which is test-only.
+On 2026-11-14 the owner decided [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) as option C: **now, a product registers SSH user keys itself, and this section says how; a command-line command and a web API that do it come later, only when a consumer needs one.** No such command or route exists today. Only test code calls `crux_access_account_add_key` today; no product or image code does. The test composition's call is the example below.
 
 | Question | Answer, from `components/access/include/crux/access.h`, `components/access/src/access_accounts.c` and the test composition |
 | --- | --- |
@@ -342,9 +342,9 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Firefox and Chromium header capture, WinSCP | | By hand |
 | RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
 
-## Open owner decisions
+## Owner decisions
 
-Decisions that need the owner, with where each is recorded. Nothing here is decided by this guide.
+Decisions that need the owner and decisions the owner has already taken, with where each is recorded and its state. Nothing here is decided by this guide: a decided row records the owner's decision, and the issue holds the quote.
 
 | Decision | Recorded in | State |
 | --- | --- | --- |
@@ -358,7 +358,7 @@ Decisions that need the owner, with where each is recorded. Nothing here is deci
 | Emitting the SSH security events | [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) | Decided 2026-11-14: emit `ssh.auth_limit` and `ssh.host_key_missing` (option A), refusals before the first callback stay reserved (option B); built on the Host, pending review |
 | How a product registers an SSH user key | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) | Decided 2026-11-14, option C: the product registers keys itself ([how](#registering-a-user-key)); a command and a web API only when a consumer needs one |
 | Events for a refused CSRF token or `Origin` | [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319) | Decided 2026-11-14, option A with rate limiting; not implemented yet |
-| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table is a proposal in review, see [SFTP design](sftp-design.md#each-refusal-and-its-event) |
+| Events for file operations refused with no identifier | [Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270) | Direction accepted 2026-11-14; the row-by-row table in the [SFTP design](sftp-design.md#each-refusal-and-its-event) was independently reviewed and merged as a proposal (#411); no event is implemented yet |
 | Passing the terminal flag to the SSH `exec` callback | [Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269) | Open |
 | Replacing the host key and printing its fingerprint | [wolfSSH provider](ssh-wolf-provider.md#decisions-for-review), decision 24 | Not built |
 | Safari: no issue tracks running firmware in it | [Web contract](web-contract.md#header-capture) | No issue yet |
