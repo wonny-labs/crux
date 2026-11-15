@@ -65,6 +65,24 @@ def port_sources(component):
             for path in re.findall(r"^\s*([\w./-]+\.c)\s*\)?\s*$", text, re.MULTILINE)]
 
 
+# Phase 1a (ADR-0004; the owner approved the target names on 2026-11-15): the one alias that each of these port directories
+# defines for its portable target. Every other alias is still refused. The definitions are held to the
+# real guards by tests/build/test_service_usage_targets.py.
+PHASE_1A_ALIASES = {
+    "configuration": "add_library(crux::configuration ALIAS crux_configuration)",
+    "config_service": "add_library(crux::config_service ALIAS crux_config_service)",
+    "network_settings": "add_library(crux::network_settings ALIAS crux_network_settings)",
+    "mgmt_status": "add_library(crux::mgmt_status ALIAS crux_mgmt_status)",
+    "file_service": "add_library(crux::file_service ALIAS crux_file_service)",
+    "reboot": "add_library(crux::reboot ALIAS crux_reboot)",
+}
+
+
+def without_phase_1a_aliases(text, component):
+    """Remove the one alias that this component's port directory may define."""
+    return text.replace(PHASE_1A_ALIASES.get(component, "\0"), "")
+
+
 class KconfigTest(unittest.TestCase):
     def test_every_new_symbol_exists(self):
         blocks = kconfig_blocks()
@@ -298,7 +316,7 @@ class Slice2CMakeTest(unittest.TestCase):
         for symbol, (component, directory, _skipped) in SLICE2_DIRECTORIES.items():
             text = (REPO / "components" / component / directory / "CMakeLists.txt").read_text()
             self.assertNotRegex(text.upper(), r"WOLF", symbol)
-            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+            self.assertNotRegex(without_phase_1a_aliases(text, component), r"add_library\(crux::", symbol)
 
     def test_the_configuration_core_is_left_to_the_settings_file_selection_when_it_is_on(self):
         text = (REPO / "components/configuration/ports/zephyr/core/CMakeLists.txt").read_text()
@@ -391,7 +409,7 @@ class Slice3CMakeTest(unittest.TestCase):
                 # tests/build/test_tls_certificate_public.py holds its definition.
                 text = text.replace("add_library(crux::tls_certificate ALIAS crux_tls_certificate)", "")
             self.assertNotRegex(text.upper(), r"WOLF", symbol)
-            self.assertNotRegex(text, r"add_library\(crux::", symbol)
+            self.assertNotRegex(without_phase_1a_aliases(text, component), r"add_library\(crux::", symbol)
 
 
 # Slice 4: the web session and web management cores. The route sources stay the application's: it names
