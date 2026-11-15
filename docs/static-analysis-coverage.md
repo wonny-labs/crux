@@ -453,7 +453,7 @@ not merged):
   `clang-analyzer-core.StackAddressEscape` 3, and six checks with 1 or 2.
 - Fixed in code (15): the memory comparisons (field-wise), the `strcpy` calls (bounded copies, and one
   unbounded copy in a test fake now aborts on an over-long name), the widening multiplications, one pointer
-  cast, and the stack-address global of `tests/queue/faults.c`. Suppressed (47 with the serial consumer's 5): 22 linker `--wrap` names and
+  cast, and the stack-address global of `tests/queue/faults.c`. Suppressed (42): 22 linker `--wrap` names and
   feature-test macros, 16 swappable-parameter findings whose signature is fixed by an API, and four others.
   Two of the suppressions are in production code (`crux_file_service_port_event` and
   `crux_ssh_sftp_rename`, signatures fixed by their ports).
