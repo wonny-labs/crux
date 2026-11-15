@@ -142,7 +142,7 @@ The model is `tests/build/test_file_zephyr_boundary.py` (a small CMake project r
 | The A symbol set with `CONFIG_WATCHDOG=n`, or with a refused native owner such as `WDT_SHELL` | the existing checks (`CMakeLists.txt:9-20`) still fire first |
 | The fixture adds `-I components/system/ports/zephyr`, or includes `system_zephyr.h` | a private header (T1 refuses the path; without the path the header is not found) |
 | The fixture adds `-Wl,--wrap=crux_watchdog_zephyr_device` | T2 (refused today by the name) |
-| The fixture adds `-Wl,--wrap=sys_reboot` | T2 once the guard rule of S6 exists. Today it is accepted |
+| The fixture adds `-Wl,--wrap=crux_system_probe` (any `crux_` symbol) | T2 once the guard rule of S6 exists. A wrap of a Zephyr symbol such as `sys_reboot` is accepted on purpose (S6 leaves a product's own wraps alone) |
 | The A symbol is set and `CONFIG_NATIVE_SIM_REBOOT` is forced off (only if S5 chooses the select) | the Kconfig assignment mismatch. If it does not fail, the run-time case below ends with status 1 and the scenario reports it |
 
 On a board other than `native_sim`, a symbol that the A symbol selects (`NATIVE_SIM_REBOOT` exists only inside the native_sim Kconfig, **Inference** from the pin's `boards/native/native_sim/Kconfig`) may raise a Kconfig warning before the configure error fires. The tests assert the failure and the symbol name, not which line fired first.
