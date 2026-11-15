@@ -192,10 +192,15 @@ class AuthenticationTypes(unittest.TestCase):
 
     def test_a_public_user_cannot_read_a_field_of_the_request_head(self):
         result = compile_source("#include <crux/web.h>\n"
-                                "int main(const crux_web_request_head_t *head) { return head->host != 0; }\n",
+                                "int read_host(const crux_web_request_head_t *head) { return head->host != 0; }\n",
                                 ROOTS)
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stderr, r"incomplete|member")
+        # The same line compiles against the adapter header, so the failure is the opaque type.
+        result = compile_source('#include "crux_web_adapter.h"\n'
+                                "int read_host(const crux_web_request_head_t *head) { return head->host != 0; }\n",
+                                [WEB / "adapter", *ROOTS])
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_the_adapter_header_still_compiles_with_the_fields(self):
         result = compile_source('#include "crux_web_adapter.h"\n'

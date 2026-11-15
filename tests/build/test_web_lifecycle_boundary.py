@@ -85,6 +85,10 @@ ESCAPES = {
         escape_on_app(WEB / "management"), "Web internal header reachable", "CruxWebBoundary.cmake"),
     "the web assets directory on the include path": (
         escape_on_app(WEB / "assets"), "Web internal header reachable", "CruxWebBoundary.cmake"),
+    "the adapter directory spelled through a sibling and ..": (
+        escape_on_app(f"{WEB}/session/../adapter"), "Web internal header reachable", "CruxWebBoundary.cmake"),
+    "the adapter directory with a trailing slash": (
+        escape_on_app(f"{WEB}/adapter/"), "Web internal header reachable", "CruxWebBoundary.cmake"),
     "the web component directory, from which adapter/ resolves": (
         escape_on_app(WEB), "Web internal header reachable", "CruxWebBoundary.cmake"),
     "the composition-only adapter target": (

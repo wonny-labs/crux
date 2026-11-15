@@ -320,7 +320,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | Item | Where |
 | --- | --- |
 | Compile `CRUX_WEB_MANAGEMENT_SOURCES`, name `CRUX_WEB_MANAGEMENT_ROUTES` to `crux_web_routes(... SOURCES ...)`, and give `REVIEWED` the lines of `components/web/reviewed-routes.txt` | `components/web/management/sources.cmake` |
-| Start the status and configuration services before the server, then `crux_web_management_init()`, then `crux_web_management_start_worker()` | `crux_web_management.h` |
+| Start the status and configuration services before the server, then `crux_web_management_init()`, then `crux_web_management_start_worker()` | `crux/web_management.h` |
 | Link `crux::config_service`, `crux::mgmt_status`, `crux::sync` and `crux::thread` | The composition |
 | A `config.save` permission in the roles that may save, and the table's permissions in the roles that may see each parameter | The product's policy |
 | Keep validators quick | The service's contract |
