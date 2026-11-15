@@ -407,8 +407,8 @@ python3 scripts/tidy-sources.py run --report-only --jobs 4   # one clang-tidy-18
 - **Three kinds of line** in the configuration: `build` (analyse this database), `ignore-build` (a
   database that is deliberately not analysed, with a reason) and `exclude` (one explicit compiled source,
   with a reason). Today there is one `exclude`, the compile-fail probe `tests/reboot/probe/nodiscard_probe.c`,
-  and two `ignore-build` globs, `build/*-boundary` (probes that must fail to compile) and `build/zephyr/*`
-  (not part of the host design).
+  and three `ignore-build` lines: `build/clangd` (a copy of a preset database), `build/*-boundary` (probes that
+  must fail to compile) and `build/zephyr/*` (not part of the host design).
 - **What fails.** An exclusion without a reason, a pattern instead of a path, or a path that does not exist;
   a database that names a source missing from the tree; and, with `--strict` (CI), a compile database below
   `build/` that is neither listed nor ignored (its sources would be in no list), a listed build that does
