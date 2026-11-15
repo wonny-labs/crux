@@ -41,8 +41,10 @@ if(TARGET crux_security_event_fake)
         -UNDEBUG)
     add_test(NAME Web.session_events_provider COMMAND web_session_events_provider)
     set_tests_properties(Web.session_events_provider PROPERTIES TIMEOUT 60)
-    # scripts/test-web.sh and scripts/test-web-session.sh build a fixed list of targets and then run
-    # every Web.* test, so a test outside the list would be "Not Run". Building web_session_json builds
-    # these too, until the lists name them.
-    add_dependencies(web_session_json web_session_events web_session_events_provider)
+    add_dependencies(web_session_json web_session_events_provider)
 endif()
+
+# scripts/test-web.sh and scripts/test-web-session.sh build a fixed list of targets and then run every
+# Web.* test, so a test outside the list would be "Not Run". Building web_session_json builds these too,
+# until the lists name them. web_session_events needs no event core, so it is outside the condition above.
+add_dependencies(web_session_json web_session_events)

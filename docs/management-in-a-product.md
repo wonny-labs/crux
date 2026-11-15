@@ -236,7 +236,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | Malformed request, header dropped by the capture, `Transfer-Encoding: chunked`, a body on `GET` | `400 bad_request`, connection closed | No | [Web contract](web-contract.md#answering-early) |
 | Field errors on an update | `400 invalid_field` with a field and a reason | No | [Management APIs](web-management-apis.md) |
 | No valid session | `401 unauthorized` | Log in | [Web session](web-session.md) |
-| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No. A refused token or `Origin` with a session leaves a rate-limited `web.csrf_rejected` or `web.origin_rejected` event. | [Web session](web-session.md) |
+| No permission, a rejected CSRF token or `Origin`, a poll without `X-Crux-Request` | `403 permission_denied`, `csrf_rejected` or `origin_rejected` | No. A refused token or `Origin` with a session, or a login with a refused `Origin`, leaves a rate-limited `web.csrf_rejected` or `web.origin_rejected` event. | [Web session](web-session.md) |
 | Unknown or hidden item | `404 not_found` | No | [Web contract](web-contract.md) |
 | Body over the route's limit | `413 payload_too_large`, closed | No | [Web contract](web-contract.md#answering-early) |
 | Login attempt inside a delay window | `429 retry_later` on the poll, with `Retry-After` | After `Retry-After`, with a new attempt | [Web session](web-session.md) |
