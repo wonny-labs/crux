@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Settings of the RT1060-EVK Rev B management image on the Mbed TLS profile (docs/rt1060-mbed-management-image.md).
+mainmenu "Crux management image, RT1060-EVK Rev B, Mbed TLS profile"
+
+config CRUX_MBED_MGMT_IPV4_ADDRESS
+	string "Static IPv4 address of the board"
+	default "192.168.77.2"
+	help
+	  The one address of the Ethernet interface. The image has no DHCP and no IPv6. The default is the dedicated
+	  bench link of docs/networking-physical-preparation.md: the board is 192.168.77.2 and the host 192.168.77.1.
+	  The text is also the address that the generated certificate names.
+
+config CRUX_MBED_MGMT_IPV4_NETMASK
+	string "Netmask of the static address"
+	default "255.255.255.0"
+
+config CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT
+	bool "TEST ONLY: first account from a password file embedded in the image"
+	default n
+	help
+	  Off by default, and it must stay off in anything but a bench build. The image has no serial setup step (the
+	  serial console is composed in no image), so without this form the image starts with no account and nobody can
+	  log in. With it, the build reads a password from the file that the environment variable
+	  CRUX_MBED_MGMT_PASSWORD_FILE names (outside every git work tree, 16 to 128 printable characters, no trailing
+	  newline), embeds the bytes in the image as plaintext in read-only data, and creates the account `admin`
+	  with the role `administrator` at every boot, because the RAM disk keeps nothing. A product does not do this:
+	  it creates its first account in a serial setup step that this repository does not yet compose.
+
+source "Kconfig.zephyr"

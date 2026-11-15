@@ -46,7 +46,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
 | `GET /api/v1/events`, web file upload and download, a browser console | Not built. | [Security event contract](security-event-contract.md), [Issue #188](https://github.com/wonny-labs/crux-pilot/issues/188), [Issue #204](https://github.com/wonny-labs/crux-pilot/issues/204) |
-| A board | Nothing ran on one. | Every document above |
+| A board | Nothing ran on one. A Mbed-profile image for RT1060-EVK Rev B that is meant to run there (HTTPS only, a test-only first account, a RAM disk) is built and cross-built, not run: [RT1060 Mbed management image](rt1060-mbed-management-image.md). | Every document above |
 
 ## Steps
 
@@ -346,7 +346,7 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Browser cases against firmware (`e2e-mbed`, `e2e-wolf`) | | **Local only.** No workflow runs them. |
 | Browser cases on the mock, the Angular example, the specification lint | `web.yml` | |
 | Firefox and Chromium header capture, WinSCP | | By hand |
-| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board |
+| RT1060-EVKB | Compiles in CI for some parts (the web adapter on Mbed, the PSA ports) | Nothing runs on a board. `scripts/test-management-mbed-rt1060.sh build` cross-builds the [Mbed management image](rt1060-mbed-management-image.md) and has no workflow step yet. |
 
 ## Owner decisions
 
