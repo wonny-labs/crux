@@ -24,10 +24,10 @@ static bool same_attempt(const crux_image_attempt_t *a, const crux_image_attempt
 
 static void test_crc(void)
 {
-    CASE("CRC-32 of the standard check string");
-    CHECK_INT(0xCBF43926u, proto_crc32((const uint8_t *)"123456789", 9));
-    CASE("CRC-32 of nothing");
-    CHECK_INT(0, proto_crc32((const uint8_t *)"", 0));
+    CASE("P1 CRC-32 of the standard check string");
+    CHECK(proto_crc32((const uint8_t *)"123456789", 9) == 0xCBF43926u);
+    CASE("P1 CRC-32 of nothing");
+    CHECK(proto_crc32((const uint8_t *)"", 0) == 0);
 }
 
 static void test_round_trip(void)
@@ -39,7 +39,7 @@ static void test_round_trip(void)
         {1, {1, 2, 3, 4}, false},
     };
     for (size_t i = 0; i < sizeof(attempts) / sizeof(attempts[0]); i++) {
-        CASE("round trip");
+        CASE("P1 round trip");
         uint8_t buffer[PROTO_ATTEMPT_SIZE];
         crux_image_attempt_t decoded = {9, {9, 9, 9, 9}, false};
         CHECK_INT(PROTO_CODEC_OK, proto_attempt_encode(&attempts[i], buffer, sizeof(buffer)));
@@ -47,7 +47,7 @@ static void test_round_trip(void)
         CHECK(same_attempt(&attempts[i], &decoded));
     }
 
-    CASE("layout is fixed: little endian, 16 bytes");
+    CASE("P1 layout is fixed: little endian, 16 bytes");
     uint8_t buffer[PROTO_ATTEMPT_SIZE];
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_encode(&sample, buffer, sizeof(buffer)));
     static const uint8_t expected_head[12] = {1, 1, 2, 3, 0x05, 0x04, 0x04, 0x03, 0x02, 0x01, 1, 0};
@@ -63,14 +63,14 @@ static void test_arguments(void)
 {
     uint8_t buffer[PROTO_ATTEMPT_SIZE];
     crux_image_attempt_t decoded;
-    CASE("encode arguments");
+    CASE("P1 encode arguments");
     CHECK_INT(PROTO_CODEC_ERR_ARGUMENT, proto_attempt_encode(NULL, buffer, sizeof(buffer)));
     CHECK_INT(PROTO_CODEC_ERR_ARGUMENT, proto_attempt_encode(&sample, NULL, sizeof(buffer)));
     CHECK_INT(PROTO_CODEC_ERR_SIZE, proto_attempt_encode(&sample, buffer, sizeof(buffer) - 1));
-    CASE("encode of a slot that does not exist");
+    CASE("P1 encode of a slot that does not exist");
     crux_image_attempt_t bad_slot = {2, {1, 0, 0, 0}, false};
     CHECK_INT(PROTO_CODEC_ERR_FIELD, proto_attempt_encode(&bad_slot, buffer, sizeof(buffer)));
-    CASE("decode arguments");
+    CASE("P1 decode arguments");
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_encode(&sample, buffer, sizeof(buffer)));
     CHECK_INT(PROTO_CODEC_ERR_ARGUMENT, proto_attempt_decode(NULL, sizeof(buffer), &decoded));
     CHECK_INT(PROTO_CODEC_ERR_ARGUMENT, proto_attempt_decode(buffer, sizeof(buffer), NULL));
@@ -120,14 +120,14 @@ static void test_truncation(void)
 
     /* The record cut at byte N, for each N, as a shorter stored length. */
     for (size_t n = 0; n < PROTO_ATTEMPT_SIZE; n++) {
-        CASE("truncated at byte N, shorter length");
+        CASE("P1 truncated at byte N, shorter length");
         crux_image_attempt_t decoded;
         CHECK_INT(PROTO_CODEC_ERR_SIZE, proto_attempt_decode(good, n, &decoded));
     }
 
     /* The record cut at byte N on a medium that reads erased flash (0xFF) after the cut. */
     for (size_t n = 0; n < PROTO_ATTEMPT_SIZE; n++) {
-        CASE("truncated at byte N, erased tail");
+        CASE("P1 truncated at byte N, erased tail");
         uint8_t torn[PROTO_ATTEMPT_SIZE];
         crux_image_attempt_t decoded;
         memset(torn, 0xFF, sizeof(torn));
@@ -140,7 +140,7 @@ static void test_truncation(void)
 
     /* The same with a zero tail, which a controller that clears the page first would read. */
     for (size_t n = 0; n < PROTO_ATTEMPT_SIZE; n++) {
-        CASE("truncated at byte N, zero tail");
+        CASE("P1 truncated at byte N, zero tail");
         uint8_t torn[PROTO_ATTEMPT_SIZE];
         crux_image_attempt_t decoded;
         memset(torn, 0x00, sizeof(torn));
@@ -151,7 +151,7 @@ static void test_truncation(void)
         CHECK(proto_attempt_decode(torn, sizeof(torn), &decoded) != PROTO_CODEC_OK);
     }
 
-    CASE("the whole record, cut at its end, still decodes");
+    CASE("P1 the whole record, cut at its end, still decodes");
     crux_image_attempt_t decoded;
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_decode(good, sizeof(good), &decoded));
 }
@@ -162,10 +162,10 @@ static void test_corruption(void)
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_encode(&sample, good, sizeof(good)));
     static const uint8_t flips[] = {0x01, 0x10, 0x80, 0xFF};
 
-    /* Any change of any one byte is rejected, whatever the byte and the change. */
+    /* Four XOR patterns at each byte are rejected. CRC-32 catches every single-byte error. */
     for (size_t n = 0; n < PROTO_ATTEMPT_SIZE; n++) {
         for (size_t f = 0; f < sizeof(flips); f++) {
-            CASE("corrupted at byte N");
+            CASE("P1 corrupted at byte N");
             uint8_t bad[PROTO_ATTEMPT_SIZE];
             crux_image_attempt_t decoded;
             memcpy(bad, good, sizeof(bad));
@@ -192,13 +192,13 @@ static void test_torn_record_means_no_attempt(void)
     uint8_t good[PROTO_ATTEMPT_SIZE];
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_encode(&attempt, good, sizeof(good)));
 
-    CASE("intact record gives REVERTED");
+    CASE("P1 intact record gives REVERTED");
     crux_image_attempt_t decoded;
     CHECK_INT(PROTO_CODEC_OK, proto_attempt_decode(good, sizeof(good), &decoded));
     CHECK_INT(CRUX_IMAGE_OUTCOME_REVERTED, crux_image_outcome(&record, &decoded));
 
     for (size_t n = 0; n < PROTO_ATTEMPT_SIZE; n++) {
-        CASE("record cut at byte N gives no attempt and the outcome NONE");
+        CASE("P1 record cut at byte N gives no attempt and the outcome NONE");
         uint8_t torn[PROTO_ATTEMPT_SIZE];
         memset(torn, 0xFF, sizeof(torn));
         memcpy(torn, good, n);

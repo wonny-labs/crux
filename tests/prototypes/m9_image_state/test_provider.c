@@ -55,7 +55,12 @@ typedef struct {
 
 static void test_slot_states_not_running(void)
 {
-    /* S1 to S6 and S12: the slot that is not running (the second table's non-R rows). */
+    /*
+     * The slot that is not running: the non-R rows of the proposal's slot-state table. That table
+     * has 11 rows and the proposal says 12 cases, so the numbering is the prototype's: S1 to S6
+     * are the rows, S11 is magic bad and S12 is a flag outside set and unset (the two causes of
+     * the table's one INVALID row). S7 to S10 are the running-slot rows and follow below.
+     */
     static const state_row_t rows[] = {
         {"S1 header invalid, trailer good",
          {false, {0, 0, 0, 0}, MAGIC_GOOD, SET, SET},
@@ -92,9 +97,17 @@ static void test_slot_states_not_running(void)
         {"P3 magic unset with a flag outside",
          {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, INVALID_FLAG, UNSET},
          CRUX_IMAGE_SLOT_INVALID},
+        /* image_ok set with magic unset: a request would make it PENDING_PERMANENT, so INVALID. */
         {"P3 magic unset with image_ok set",
          {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, SET, UNSET},
-         CRUX_IMAGE_SLOT_STAGED},
+         CRUX_IMAGE_SLOT_INVALID},
+        {"P3 magic unset with image_ok and copy_done set",
+         {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, SET, SET},
+         CRUX_IMAGE_SLOT_INVALID},
+        /* copy_done set with magic unset: a request would make it TRIED, erased at the reset. */
+        {"P3 magic unset with copy_done set only",
+         {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, UNSET, SET},
+         CRUX_IMAGE_SLOT_INVALID},
     };
     for (crux_image_slot_t running = 0; running < CRUX_IMAGE_SLOT_COUNT; running++) {
         crux_image_slot_t other = (crux_image_slot_t)(1u - running);
@@ -192,6 +205,63 @@ static void test_slot_states_running(void)
             CHECK_INT(rows[i].expected, record.slot_state_at_start[running]);
         }
     }
+}
+
+static void test_argument_order(void)
+{
+    /* P6: before any start, argument errors come first for the getters, and the started check
+     * comes first for request_test. */
+    crux_image_boot_record_t record;
+    crux_image_slot_info_t info;
+    CASE("P6 before start: getters check their arguments first");
+    arrange(0, NULL);
+    CHECK_INT(CRUX_IMAGE_ERR_INVALID_ARGUMENT, crux_image_boot_record_get(NULL));
+    CHECK_INT(CRUX_IMAGE_ERR_INVALID_ARGUMENT, crux_image_slot_get(0, NULL));
+    CHECK_INT(CRUX_IMAGE_ERR_INVALID_ARGUMENT, crux_image_slot_get(2, &info));
+    CHECK_INT(CRUX_IMAGE_ERR_INVALID_ARGUMENT, crux_image_slot_get(255, &info));
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_boot_record_get(&record));
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_slot_get(0, &info));
+
+    CASE("P6 before start: request_test is not ready, even for a slot that does not exist");
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_request_test(2));
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_request_test(0));
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_request_test(1));
+
+    CASE("P6 after start: a slot that does not exist is refused before the running-slot check");
+    CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
+    CHECK_INT(CRUX_IMAGE_ERR_INVALID_ARGUMENT, crux_image_request_test(2));
+    CHECK_INT(CRUX_IMAGE_ERR_ACTIVE_SLOT, crux_image_request_test(0));
+    CHECK_INT(0, fake_write_count());
+}
+
+static void test_read_failure(void)
+{
+    /* P2: start fails if reading either slot fails, the running slot or the inactive one. */
+    for (crux_image_slot_t failing = 0; failing < CRUX_IMAGE_SLOT_COUNT; failing++) {
+        CASE("P2 start fails when reading a slot fails");
+        arrange(0, NULL);
+        fake_fail_slot_read(failing, true);
+        CHECK_INT(CRUX_IMAGE_ERR_IO, crux_image_start());
+        CHECK_INT(CRUX_IMAGE_ERR_NOT_READY, crux_image_confirm());
+        fake_fail_slot_read(failing, false);
+        CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
+    }
+
+    /* After start, a failing read is reported by the live calls and writes nothing. */
+    CASE("P2 live calls report a failing read");
+    proto_slot_view_t staged = view(true, V110, PROTO_MAGIC_UNSET, UNSET, UNSET);
+    arrange(0, &staged);
+    CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
+    crux_image_slot_info_t info;
+    fake_fail_slot_read(1, true);
+    CHECK_INT(CRUX_IMAGE_ERR_IO, crux_image_slot_get(1, &info));
+    CHECK_INT(CRUX_IMAGE_ERR_IO, crux_image_request_test(1));
+    CHECK_INT(0, fake_write_count());
+    fake_fail_slot_read(1, false);
+    fake_fail_slot_read(0, true);
+    CHECK_INT(CRUX_IMAGE_ERR_IO, crux_image_confirm());
+    CHECK_INT(CRUX_IMAGE_ERR_IO, crux_image_request_test(1));
+    CHECK_INT(0, fake_write_count());
 }
 
 static void test_start(void)
@@ -385,20 +455,26 @@ static void test_request(void)
     fake_slot_put(1, &headless);
     expect_no_write_request(1, CRUX_IMAGE_ERR_NO_IMAGE);
 
-    /* R5: older, equal and newer than the running 1.0.0 image. */
+    /* R5: older, equal and newer than the running 1.0.0 image, whose build number is `build`. */
     static const struct {
         const char *name;
+        uint32_t running_build;
         crux_image_version_t version;
         crux_image_result_t expected;
     } versions[] = {
-        {"R5 older revision", {0, 9, 9, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
-        {"R5 older major", {0, 255, 65535, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
-        {"R5 equal", {1, 0, 0, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
-        {"R5 equal, higher build", {1, 0, 0, 999}, CRUX_IMAGE_ERR_NOT_NEWER},
-        {"R5 newer revision", {1, 0, 1, 0}, CRUX_IMAGE_OK},
-        {"R5 newer minor", {1, 1, 0, 0}, CRUX_IMAGE_OK},
-        {"R5 newer major, lower minor", {2, 0, 0, 0}, CRUX_IMAGE_OK},
-        {"R5 newer, lower build", {1, 0, 1, 0}, CRUX_IMAGE_OK},
+        {"R5 older revision", 0, {0, 9, 9, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
+        {"R5 older major", 0, {0, 255, 65535, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
+        {"R5 equal", 0, {1, 0, 0, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
+        {"R5 equal, higher build", 0, {1, 0, 0, 999}, CRUX_IMAGE_ERR_NOT_NEWER},
+        {"R5 equal, lower build", 10, {1, 0, 0, 0}, CRUX_IMAGE_ERR_NOT_NEWER},
+        {"R5 newer revision", 0, {1, 0, 1, 0}, CRUX_IMAGE_OK},
+        {"R5 newer minor", 0, {1, 1, 0, 0}, CRUX_IMAGE_OK},
+        {"R5 newer major, lower minor", 0, {2, 0, 0, 0}, CRUX_IMAGE_OK},
+        {"R5 newer revision, lower build than the running image", 10, {1, 0, 1, 0}, CRUX_IMAGE_OK},
+        {"R5 older revision, higher build than the running image",
+         10,
+         {0, 9, 9, 999},
+         CRUX_IMAGE_ERR_NOT_NEWER},
     };
     for (crux_image_slot_t running = 0; running < CRUX_IMAGE_SLOT_COUNT; running++) {
         for (size_t i = 0; i < sizeof(versions) / sizeof(versions[0]); i++) {
@@ -406,6 +482,11 @@ static void test_request(void)
             proto_slot_view_t candidate =
                 view(true, versions[i].version, PROTO_MAGIC_UNSET, UNSET, UNSET);
             arrange(running, &candidate);
+            proto_slot_view_t current =
+                view(true, (crux_image_version_t){1, 0, 0, versions[i].running_build}, MAGIC_GOOD,
+                     SET, SET);
+            fake_slot_put(running, &current);
+            proto_provider_reset();
             CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
             CHECK_INT(versions[i].expected,
                       crux_image_request_test((crux_image_slot_t)(1u - running)));
@@ -425,12 +506,20 @@ static void test_request(void)
         {"R6 invalid trailer",
          {true, {1, 1, 0, 0}, PROTO_MAGIC_BAD, UNSET, UNSET},
          CRUX_IMAGE_SLOT_INVALID},
+        /* P3: a request must never create PENDING_PERMANENT (I2), so these are not STAGED. */
+        {"R6 P3 magic unset, image_ok set (a request would be permanent)",
+         {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, SET, UNSET},
+         CRUX_IMAGE_SLOT_INVALID},
+        {"R6 P3 magic unset, copy_done set (a request would read TRIED)",
+         {true, {1, 1, 0, 0}, PROTO_MAGIC_UNSET, UNSET, SET},
+         CRUX_IMAGE_SLOT_INVALID},
     };
     for (crux_image_slot_t running = 0; running < CRUX_IMAGE_SLOT_COUNT; running++) {
         for (size_t i = 0; i < sizeof(refused) / sizeof(refused[0]); i++) {
             CASE(refused[i].name);
             arrange(running, &refused[i].slot);
             CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
+            CHECK_INT(refused[i].expected, state_of((crux_image_slot_t)(1u - running)));
             expect_no_write_request((crux_image_slot_t)(1u - running), CRUX_IMAGE_ERR_SLOT_STATE);
         }
     }
@@ -543,7 +632,7 @@ static void test_busy(void)
      * The proposal has one internal lock and ERR_BUSY after a bounded wait. A single thread cannot
      * wait, so the prototype reports ERR_BUSY at once when a call arrives inside another (P5).
      */
-    CASE("BUSY re-entry during a request");
+    CASE("P5 BUSY re-entry during a request");
     proto_slot_view_t staged = view(true, V110, PROTO_MAGIC_UNSET, UNSET, UNSET);
     arrange(0, &staged);
     CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
@@ -554,7 +643,7 @@ static void test_busy(void)
     CHECK_INT(CRUX_IMAGE_ERR_BUSY, hook_request_result);
     CHECK_INT(CRUX_IMAGE_ERR_BUSY, hook_confirm_result);
     CHECK_INT(2, fake_write_count());
-    CASE("BUSY the lock is released after the call");
+    CASE("P5 BUSY the lock is released after the call");
     CHECK_INT(CRUX_IMAGE_OK, crux_image_confirm());
 }
 
@@ -578,6 +667,8 @@ void run_provider_tests(void)
     test_slot_states_not_running();
     test_slot_states_running();
     test_start();
+    test_argument_order();
+    test_read_failure();
     test_request();
     test_confirm();
     test_busy();

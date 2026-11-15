@@ -119,7 +119,13 @@ crux_image_result_t proto_slot_state_derive(bool is_running, const proto_slot_vi
         return CRUX_IMAGE_OK;
     }
     if (view->magic == PROTO_MAGIC_UNSET) {
-        *state = CRUX_IMAGE_SLOT_STAGED;
+        /*
+         * STAGED needs an erased trailer. With image_ok set, a request that writes the magic would
+         * make the slot PENDING_PERMANENT, which this contract never creates (I2). With copy_done
+         * set it would read TRIED and be erased at the next reset. Prototype choice P3: INVALID.
+         */
+        bool erased = view->image_ok == PROTO_FLAG_UNSET && view->copy_done == PROTO_FLAG_UNSET;
+        *state = erased ? CRUX_IMAGE_SLOT_STAGED : CRUX_IMAGE_SLOT_INVALID;
         return CRUX_IMAGE_OK;
     }
     if (view->image_ok == PROTO_FLAG_SET) {

@@ -34,6 +34,6 @@ add_executable(image_state_proto_tests
     image_state_fake.c
     attempt_codec.c
 )
-target_compile_options(image_state_proto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+target_compile_options(image_state_proto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME ImageStatePrototype.Host COMMAND image_state_proto_tests)
 set_tests_properties(ImageStatePrototype.Host PROPERTIES TIMEOUT 30)

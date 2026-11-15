@@ -30,7 +30,7 @@ Or without CMake:
 
 ```sh
 cd tests/prototypes/m9_image_state
-cc -std=c17 -Wall -Wextra -Wpedantic -Werror -UNDEBUG -o /tmp/image_state_proto_tests *.c
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror -o /tmp/image_state_proto_tests *.c
 /tmp/image_state_proto_tests
 ```
 
@@ -55,7 +55,7 @@ The run prints every failing check with its case name, and ends with the number 
 
 | Proposal case | Where |
 | --- | --- |
-| S1 to S12 (slot-state table, both running slots) | `test_provider.c`, `test_slot_states_*` |
+| S1 to S12 (slot-state table, both running slots; the numbering is explained in the notes) | `test_provider.c`, `test_slot_states_*` |
 | B1 to B4 (start: missing key, mode, bootloader version, twice) | `test_provider.c`, `test_start` |
 | R1 to R8 (request: inactive slot, running slot, on trial, empty, version, stale trailer, repeat, write order and failure) | `test_provider.c`, `test_request`; R8 cuts also in `test_scenarios.c` |
 | C1 to C3 (confirm: running slot only, twice, write failure) | `test_provider.c`, `test_confirm`; a lost confirm in `test_scenarios.c` |

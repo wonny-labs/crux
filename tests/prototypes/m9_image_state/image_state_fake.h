@@ -38,6 +38,8 @@ fake_write_op_t fake_write_op(size_t index);
 crux_image_slot_t fake_write_slot(size_t index);
 /* The nth write (counted from this call, 1 is the next one) fails with an I/O error, once. */
 void fake_fail_nth_write(size_t n);
+/* While set, reading the trailer or header of the slot fails with an I/O error. */
+void fake_fail_slot_read(crux_image_slot_t slot, bool fails);
 /* Called at the start of every write, so that a test can re-enter the provider. */
 void fake_set_write_hook(void (*hook)(void));
 /* The bootloader's copy_done write fails (it only logs this) when set. */

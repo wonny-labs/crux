@@ -26,6 +26,7 @@ static size_t log_count;
 static size_t writes_until_failure;
 static void (*write_hook)(void);
 static bool copy_done_write_fails;
+static bool read_fails[CRUX_IMAGE_SLOT_COUNT];
 
 void fake_init(void)
 {
@@ -44,6 +45,7 @@ void fake_init(void)
     writes_until_failure = 0;
     write_hook = NULL;
     copy_done_write_fails = false;
+    memset(read_fails, 0, sizeof(read_fails));
     proto_provider_reset();
 }
 
@@ -105,6 +107,11 @@ void fake_fail_nth_write(size_t n)
     writes_until_failure = n;
 }
 
+void fake_fail_slot_read(crux_image_slot_t slot, bool fails)
+{
+    read_fails[slot] = fails;
+}
+
 void fake_set_write_hook(void (*hook)(void))
 {
     write_hook = hook;
@@ -143,6 +150,9 @@ bool proto_port_shared_data_get(proto_shared_data_t *out)
 
 crux_image_result_t proto_port_slot_read(crux_image_slot_t slot, proto_slot_view_t *view)
 {
+    if (read_fails[slot]) {
+        return CRUX_IMAGE_ERR_IO;
+    }
     *view = slots[slot];
     return CRUX_IMAGE_OK;
 }

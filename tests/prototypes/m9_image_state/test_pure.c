@@ -98,7 +98,10 @@ static void test_outcome(void)
         CASE("O1 no attempt");
         crux_image_boot_record_t record = make_record(running, true, CRUX_IMAGE_SLOT_EMPTY);
         CHECK_INT(CRUX_IMAGE_OUTCOME_NONE, crux_image_outcome(&record, NULL));
+        CASE("P9 NULL record");
+        crux_image_attempt_t some = {running, {1, 2, 3, 5}, true};
         CHECK_INT(CRUX_IMAGE_OUTCOME_NONE, crux_image_outcome(NULL, NULL));
+        CHECK_INT(CRUX_IMAGE_OUTCOME_NONE, crux_image_outcome(NULL, &some));
 
         /* O2: the attempted image runs. The build number does not count. */
         for (int confirmed = 0; confirmed < 2; confirmed++) {
@@ -125,14 +128,14 @@ static void test_outcome(void)
 
         /* O4 to O7: the attempted slot is not the running one. */
         for (size_t i = 0; i < sizeof(outcome_rows) / sizeof(outcome_rows[0]); i++) {
-            CASE("O4-O7 attempt on the other slot");
+            CASE("O4-O7 P9 attempt on the other slot");
             record = make_record(running, true, outcome_rows[i].state);
             crux_image_attempt_t attempt = {other, {2, 0, 0, 0}, outcome_rows[i].requested};
             CHECK_INT(outcome_rows[i].expected, crux_image_outcome(&record, &attempt));
         }
 
         /* An attempt that names a slot that does not exist is no attempt (prototype choice, P9). */
-        CASE("attempt on a slot that does not exist");
+        CASE("P9 attempt on a slot that does not exist");
         record = make_record(running, true, CRUX_IMAGE_SLOT_EMPTY);
         crux_image_attempt_t bad = {2, {2, 0, 0, 0}, true};
         CHECK_INT(CRUX_IMAGE_OUTCOME_NONE, crux_image_outcome(&record, &bad));

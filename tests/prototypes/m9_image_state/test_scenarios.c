@@ -50,7 +50,7 @@ static void stage_update(crux_image_attempt_t *attempt)
 
 static void test_full_update(void)
 {
-    CASE("N1 full update: test, confirm, reset, the new image stays");
+    CASE("N1-like full update: test, confirm, reset, the new image stays");
     crux_image_attempt_t attempt;
     stage_update(&attempt);
     CHECK_INT(CRUX_IMAGE_SLOT_STAGED, state_of(1));
@@ -76,7 +76,7 @@ static void test_full_update(void)
     CHECK_INT(CRUX_IMAGE_OUTCOME_CONFIRMED, outcome_for(&attempt));
     CHECK_INT(CRUX_IMAGE_SLOT_STANDBY_CONFIRMED, state_of(0));
 
-    CASE("N1 and the next update goes back to slot 0");
+    CASE("N1-like and the next update goes back to slot 0");
     fake_stage(0, (crux_image_version_t){1, 2, 0, 0});
     CHECK_INT(CRUX_IMAGE_OK, crux_image_request_test(0));
     CHECK_INT(CRUX_IMAGE_OK, reset_board_and_start());
