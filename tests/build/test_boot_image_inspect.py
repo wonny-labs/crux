@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Check scripts/inspect-boot-image.py on synthetic MCUboot images and slot trailers.
+"""Check tests/target/inspect_boot_image.py on synthetic MCUboot images and slot trailers.
 
-Every input is built in memory from the repository's own records of the format: the image
-header and the digest in `tests/native/emmc_trailer/trailer_model.py` (ModelImage), the trailer
-offsets and magic in the same file (Layout), the slot states in
-`docs/plans/image-state-contract-proposal.md` (Slot states) and the offsets that
-`scripts/test-boot-composition.sh` changes (0x300 in the header padding, 0x500 in the payload).
-Nothing here is an image from a board or from a build, and nothing is compared with MCUboot's
-source: a layout error that the repository's records share with these tests would pass.
+Every input is built in memory. The image header, the trailer offsets and the trailer magic come
+from the repository's own model in `tests/native/emmc_trailer/trailer_model.py` (ModelImage, Layout),
+the slot states from `docs/plans/image-state-contract-proposal.md` (Slot states), and the offsets
+0x300 (header padding) and 0x500 (payload) from `scripts/test-boot-composition.sh`. The TLV info
+magics, the TLV entry layout and the hashed range have no repository record: they are the author's
+reading of MCUboot's image format, and these tests only repeat that reading. Nothing here is an image
+from a board or from a build, and nothing is compared with MCUboot's source: an error that the
+records or the author's reading share with these tests would pass.
 The tests use the standard library only, like the tool.
 """
 import ast
@@ -25,7 +26,7 @@ import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts/inspect-boot-image.py"
+SCRIPT = REPO / "tests/target/inspect_boot_image.py"
 MODEL = REPO / "tests/native/emmc_trailer/trailer_model.py"
 
 IMAGE_MAGIC = 0x96F3B83D
@@ -270,6 +271,34 @@ class ImageTest(unittest.TestCase):
         image = bytearray(build_image(protected=[(0x50, bytes(4))]))
         struct.pack_into("<H", image, 0x400 + 0x600, UNPROT_MAGIC)
         self.assertEqual("structure inconsistent", inspector.inspect_image(bytes(image))["result"])
+
+    def test_a_hdr_size_smaller_than_the_header_is_inconsistent(self):
+        image = bytearray(build_image())
+        struct.pack_into("<H", image, 8, 16)
+        report = inspector.inspect_image(bytes(image))
+        self.assertEqual("structure inconsistent", report["result"])
+        self.assertTrue(any("hdr_size" in e for e in report["errors"]))
+
+    def test_a_protect_tlv_size_that_differs_from_the_area_length_is_inconsistent(self):
+        image = bytearray(build_image(protected=[(0x50, bytes(4))]))
+        struct.pack_into("<H", image, 10, 16)  # protect_tlv_size, the area says 12
+        report = inspector.inspect_image(bytes(image))
+        self.assertEqual("structure inconsistent", report["result"])
+        self.assertTrue(any("protect_tlv_size" in e for e in report["errors"]))
+
+    def test_a_protected_magic_with_protect_tlv_size_zero_is_inconsistent(self):
+        image = bytearray(build_image())
+        struct.pack_into("<H", image, 0x400 + 0x600, PROT_MAGIC)
+        report = inspector.inspect_image(bytes(image))
+        self.assertEqual("structure inconsistent", report["result"])
+        self.assertTrue(any("protect_tlv_size is 0" in e for e in report["errors"]))
+
+    def test_a_protected_tlv_running_past_its_area_is_inconsistent(self):
+        image = bytearray(build_image(protected=[(0x50, bytes(4))]))
+        struct.pack_into("<H", image, 0x400 + 0x600 + 4 + 2, 200)  # the entry length
+        report = inspector.inspect_image(bytes(image))
+        self.assertEqual("structure inconsistent", report["result"])
+        self.assertTrue(any("beyond" in e for e in report["errors"]))
 
     def test_an_unpadded_image_has_no_trailing_bytes(self):
         padding = inspector.inspect_image(build_image())["padding"]
@@ -517,6 +546,27 @@ class TrailerTest(unittest.TestCase):
         self.assertEqual(512, report["magic"]["alignment_hint"])
         self.assertFalse(report["ok"])
 
+    def test_a_magic_that_only_shares_the_tail_is_not_called_the_magic_of_that_alignment(self):
+        # '08 00' + the shared tail is not the good magic for alignment 8, which is the old one.
+        self.assertIsNone(inspector.identify_magic(struct.pack("<H", 8) + inspector.MAGIC_TAIL))
+        self.assertEqual(8, inspector.identify_magic(MAGIC_ALIGN_8))
+        self.assertEqual(512, inspector.identify_magic(inspector.magic_for(512)))
+        data = bytearray(trailer_bytes(self.SLOT, 8))
+        data[-16:] = struct.pack("<H", 8) + inspector.MAGIC_TAIL
+        report = inspector.decode_trailer(bytes(data), 8)
+        self.assertEqual("bad", report["magic"]["state"])
+        self.assertIsNone(report["magic"]["alignment_hint"])
+
+    def test_a_running_slot_with_a_bad_image_ok_is_invalid(self):
+        report = self.decode(8, image_ok=0x05, running=True)
+        self.assertEqual("INVALID", report["slot_state"])
+        self.assertFalse(report["ok"])
+
+    def test_a_not_running_slot_with_unset_magic_and_a_bad_flag_is_invalid_not_staged(self):
+        report = self.decode(8, magic="unset", copy_done=0x05)
+        self.assertEqual("INVALID", report["slot_state"])
+        self.assertFalse(report["ok"])
+
     def test_the_old_magic_is_recognised_as_alignment_8(self):
         data = trailer_bytes(self.SLOT, 8)
         report = inspector.decode_trailer(data, 512)
@@ -602,6 +652,16 @@ class CliTest(TempFiles):
         status, out, _ = self.cli("image", self.write(build_image(magic=0xDEADBEEF)))
         self.assertEqual(1, status)
         self.assertIn("structure inconsistent", out)
+
+    def test_the_image_text_surfaces_the_errors_and_warnings_of_the_decoded_trailer(self):
+        image = build_image()
+        trailer = trailer_bytes(0x4000, 8, image_ok=1, swap_info=2)  # test request with image_ok set
+        status, out, _ = self.cli("image", self.write(image + trailer[len(image):]))
+        self.assertEqual(0, status)
+        self.assertIn("Warning: swap_info says test request but image_ok is set", out)
+        trailer = trailer_bytes(0x4000, 8, image_ok=0x05)
+        status, out, _ = self.cli("image", self.write(image + trailer[len(image):]))
+        self.assertIn("ERROR: image_ok is bad", out)
 
     def test_the_text_output_shows_the_key_hash_and_a_shortened_signature(self):
         status, out, _ = self.cli("image", self.write(build_image()))
@@ -691,22 +751,24 @@ class CliTest(TempFiles):
 
     def test_usage_errors_exit_2(self):
         path = self.write(b"\xff" * 64)
+        missing = str(Path(self._dir.name) / "missing.bin")
+        # (arguments, text that only the script can print on stderr)
         cases = [
-            (),
-            ("image",),
-            ("image", str(Path(self._dir.name) / "missing.bin")),
-            ("trailer", path),
-            ("trailer", path, "--align", "0"),
-            ("trailer", path, "--align", "eight"),
-            ("trailer", path, "--align", "8", "--slot-size", "-1"),
-            ("trailer", str(Path(self._dir.name) / "missing.bin"), "--align", "8"),
-            ("unknown", path),
+            ((), "usage: inspect_boot_image.py"),
+            (("image",), "usage: inspect_boot_image.py"),
+            (("trailer", path), "usage: inspect_boot_image.py"),
+            (("trailer", path, "--align", "0"), "usage: inspect_boot_image.py"),
+            (("trailer", path, "--align", "eight"), "usage: inspect_boot_image.py"),
+            (("trailer", path, "--align", "8", "--slot-size", "-1"), "usage: inspect_boot_image.py"),
+            (("unknown", path), "usage: inspect_boot_image.py"),
+            (("image", missing), "error: cannot read"),
+            (("trailer", missing, "--align", "8"), "error: cannot read"),
         ]
-        for args in cases:
+        for args, text in cases:
             with self.subTest(args=args):
                 status, _, err = self.cli(*args)
                 self.assertEqual(2, status)
-                self.assertTrue(err.strip())
+                self.assertIn(text, err)
 
     def test_help_states_the_limits(self):
         for args in (("--help",), ("image", "--help"), ("trailer", "--help")):
@@ -716,6 +778,7 @@ class CliTest(TempFiles):
                 self.assertIn("digest check only and NOT a signature verification", out)
                 self.assertIn("imgtool verify", out)
                 self.assertIn("not checked against upstream", out)
+                self.assertIn("author's reading of MCUboot's image format", out)
 
     def test_main_returns_the_status_in_process(self):
         status, out, _ = run_main(["image", self.write(build_image())])

@@ -7,24 +7,24 @@
   trailer <file>  decode the MCUboot trailer at the end of a slot dump or of a padded image
 
 The standard library only, and no access to a board, a key or a flash tool. The format notes in
-this file come from the repository's records, not from MCUboot's source:
+this file come from two sources of different strength, and none of it is checked against MCUboot's
+source:
 
-* Image header, 32 bytes, little endian: magic 0x96f3b83d, load_addr, hdr_size (u16), protect_tlv_size
-  (u16), img_size, flags, version (major u8, minor u8, revision u16, build_num u32) and 4 reserved bytes.
-  Source: `ModelImage` in tests/native/emmc_trailer/trailer_model.py. The header is followed by padding up
-  to hdr_size, then img_size bytes of payload.
-* TLV areas: an info header (magic u16, total length u16 including the info header) and entries (type
-  u8, one pad byte, length u16, value). The protected area (magic 0x6908, protect_tlv_size bytes) comes
-  first when the header says it exists, then the unprotected area (magic 0x6907). The repository does not
-  record these magics or the entry layout; they, and what MCUboot hashes (the header up to hdr_size, the
-  payload and the protected TLV area), are the author's reading of MCUboot's image format and are the
-  least checked part of this tool. docs/evidence/boot-update/stage1-pinned-source-findings.md (B50) only
-  says that the image copy covers header, payload, protected TLVs and TLVs.
-* Trailer: at the end of a slot, the 16-byte magic, then image_ok, copy_done and swap_info, each one
-  alignment unit below the previous one. Source: `Layout` in trailer_model.py (boot_magic_off,
-  boot_image_ok_off, boot_copy_done_off, boot_swap_info_off) and the trailer-replay record in
-  docs/evidence/boot-emmc/trailer-replay/README.md.
-* Slot state names: docs/plans/image-state-contract-proposal.md, "Slot states".
+* Records in this repository (the repository's trailer model). Image header, 32 bytes, little endian:
+  magic 0x96f3b83d, load_addr, hdr_size (u16), protect_tlv_size (u16), img_size, flags, version (major
+  u8, minor u8, revision u16, build_num u32) and 4 reserved bytes: `ModelImage` in
+  tests/native/emmc_trailer/trailer_model.py. Trailer: at the end of a slot, the 16-byte magic, then
+  image_ok, copy_done and swap_info, each one alignment unit below the previous one: `Layout` in the same
+  file (boot_magic_off, boot_image_ok_off, boot_copy_done_off, boot_swap_info_off) and the trailer-replay
+  record in docs/evidence/boot-emmc/trailer-replay/README.md. Slot state names:
+  docs/plans/image-state-contract-proposal.md, "Slot states".
+* The author's reading of MCUboot's image format, with no record in this repository. The TLV info
+  magics (0x6908 protected, 0x6907 unprotected, each followed by a u16 total length that includes the
+  info header), the TLV entry layout (type u8, one pad byte, length u16, value), the placement of the
+  protected area before the unprotected one, and the hashed range (the header up to hdr_size, the
+  payload and the protected TLV area) are this reading. ModelImage has no TLVs.
+  docs/evidence/boot-update/stage1-pinned-source-findings.md (B50) only says that the RAM copy of the
+  image covers header, payload, protected TLVs and TLVs.
 
 Exit status: 0 when the input decodes (and, for an image, the digest matches), 1 when it parses but is
 inconsistent or the digest does not match, 2 for a usage error or an unreadable file.
@@ -74,8 +74,9 @@ SIGNATURE_NOTE = (
     "not checked. `imgtool verify` stays authoritative."
 )
 LAYOUT_NOTE = (
-    "The layouts are taken from the repository's records of MCUboot's format and are not checked "
-    "against upstream source in this repository's tests."
+    "The header and trailer layouts follow the repository's trailer model; the TLV magics, the TLV entry "
+    "layout and the hashed range are the author's reading of MCUboot's image format. Both parts are "
+    "still not checked against upstream source here."
 )
 EPILOG = (
     "image reports a digest check only and NOT a signature verification: `imgtool verify` stays "
@@ -105,13 +106,17 @@ def magic_for(align):
 
 
 def identify_magic(magic):
-    """The alignment that a 16-byte trailer magic belongs to, or None if it is not a known magic."""
+    """The alignment for which a 16-byte trailer magic is the good magic, or None.
+
+    A hint only when magic is exactly magic_for(alignment), so the shared tail behind the alignment of 8
+    (which has its own magic) is not taken for a magic.
+    """
     magic = bytes(magic)
     if magic == MAGIC_ALIGN_8:
         return 8
-    if len(magic) == MAGIC_SIZE and magic[2:] == MAGIC_TAIL:
+    if len(magic) == MAGIC_SIZE:
         align = read_u16(magic, 0)
-        if align:
+        if 0 < align <= MAX_ALIGN and magic == magic_for(align):
             return align
     return None
 
@@ -550,6 +555,10 @@ def format_image(report, name="image"):
             lines.append(f"  image_ok {trailer['image_ok']['state']}, copy_done {trailer['copy_done']['state']}, "
                          f"swap_info {trailer['swap_info']['state']}: {trailer['slot_state']} "
                          f"({trailer['state_description']})")
+            for error in trailer["errors"]:
+                lines.append(f"ERROR: {error}")
+            for warning in trailer["warnings"]:
+                lines.append(f"Warning: {warning}")
     else:
         lines.append("Trailer magic at the end of the file: none")
     for error in report["errors"]:
@@ -633,7 +642,7 @@ def _alignment(text):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog="inspect-boot-image.py",
+        prog="inspect_boot_image.py",
         description=(
             "Inspect an MCUboot image or a slot trailer. A developer tool, not a Crux interface: no "
             "board, key or flash access."
