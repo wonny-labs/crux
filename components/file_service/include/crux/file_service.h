@@ -3,6 +3,9 @@
  * @brief Declared file areas, with permissions, limits and bounded transfers, for management
  * channels.
  *
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Thread context only. crux_file_service_start() must return before any other operation starts.
  * Every operation except crux_file_service_resolve() can wait on storage, so a server runs them on
  * a worker or session thread, and no operation promises a time bound. Buffers are borrowed for the
