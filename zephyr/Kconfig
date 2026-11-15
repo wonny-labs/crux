@@ -643,8 +643,10 @@ config CRUX_WEB_SESSION
       Builds login, sessions and request forgery protection, with the password verification port over
       PSA Crypto. The login and logout routes are not built here: the application names
       CRUX_WEB_SESSION_ROUTES of components/web/session/sources.cmake to crux_web_routes(), so a route
-      that is not named is not in the table. It starts nothing and adds no crux:: target and no public
-      header: the application calls crux_web_session_init() and starts the worker.
+      that is not named is not in the table. It starts nothing: the application calls
+      crux_web_session_init() and starts the worker. The module defines the portable target
+      crux::web_session for <crux/web_session.h> (Experimental), ordinary service API and not a
+      composition interface.
 
 config CRUX_WEB_MANAGEMENT
     bool "Crux web management (Experimental)"
@@ -658,7 +660,8 @@ config CRUX_WEB_MANAGEMENT
       Builds the JSON of the status and configuration routes and the save worker, and, with
       CONFIG_CRUX_NETWORK_SETTINGS, the JSON of the network routes. The routes are not built here: the
       application names the CRUX_WEB_MANAGEMENT_*_ROUTES sources that it wants to crux_web_routes(). It
-      starts nothing and adds no crux:: target and no public header.
+      starts nothing. The module defines the portable target crux::web_management for
+      <crux/web_management.h> (Experimental), ordinary service API and not a composition interface.
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
