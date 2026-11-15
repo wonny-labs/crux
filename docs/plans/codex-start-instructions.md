@@ -1,4 +1,4 @@
-# Original Codex Start Instructions (M0–M1; superseded)
+# Original start instructions (M0–M1; superseded)
 
 Status: historical record. Start instructions for an automated coding agent, an execution handoff for the Time Pilot milestones M0–M1, which are complete; kept as a record and superseded as its own title says.
 
