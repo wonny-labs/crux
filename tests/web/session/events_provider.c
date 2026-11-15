@@ -109,10 +109,14 @@ static void test_no_user_and_no_source(void)
     CHECK(crux_security_event_get_stats(&stats) == CRUX_OK && stats.invalid_fields == 0u);
 }
 
+/* A value that is in no enumerator, read through a volatile so that no analysis takes it for a
+ * constant cast to the enum, which is not what the provider is handed in a failing image. */
+static volatile unsigned unmapped_type = 99u;
+
 /* A type that the table does not map is a failure of unknown kind, and never a success. */
 static void test_unknown_type(void)
 {
-    crux_web_session_event_t event = report_of((crux_web_session_event_type_t)99);
+    crux_web_session_event_t event = report_of((crux_web_session_event_type_t)unmapped_type);
     const crux_security_event_record_t *record;
 
     security_event_fake_reset();

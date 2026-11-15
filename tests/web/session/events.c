@@ -6,6 +6,8 @@
 
 #define WINDOW CRUX_WEB_SESSION_FORGERY_WINDOW_MS
 #define SHARE CRUX_WEB_SESSION_FORGERY_EVENTS
+/* Both kinds' shares, as a size_t, which is what the count of reports is. */
+#define BOTH_SHARES ((size_t)2u * SHARE)
 
 static void expect_error(const fake_reply_t *reply, int status, const char *code)
 {
@@ -173,20 +175,20 @@ static void test_flood_is_bounded(void)
     }
     CHECK(session_events_count_of(CRUX_WEB_SESSION_EVENT_ORIGIN_REJECTED) == SHARE);
     CHECK(session_events_count_of(CRUX_WEB_SESSION_EVENT_CSRF_REJECTED) == SHARE);
-    CHECK(session_events_count() == 2u * SHARE);
+    CHECK(session_events_count() == BOTH_SHARES);
     crux_web_session_stats_get(&stats);
     CHECK(stats.forgery_suppressed == 2u * (100u - SHARE));
 
     /* The window runs from the first report. One millisecond short of it, nothing more is said. */
     session_clock_advance(WINDOW - 1u);
     expect_error(post(&jar, SESSION_TEST_ORIGIN, "wrong"), 403, "csrf_rejected");
-    CHECK(session_events_count() == 2u * SHARE);
+    CHECK(session_events_count() == BOTH_SHARES);
     /* And at its end the share is new. */
     session_clock_advance(1u);
     for (unsigned count = 0; count < 10u; ++count) {
         expect_error(post(&jar, SESSION_TEST_ORIGIN, "wrong"), 403, "csrf_rejected");
     }
-    CHECK(session_events_count_of(CRUX_WEB_SESSION_EVENT_CSRF_REJECTED) == 2u * SHARE);
+    CHECK(session_events_count_of(CRUX_WEB_SESSION_EVENT_CSRF_REJECTED) == BOTH_SHARES);
     CHECK(session_events_count_of(CRUX_WEB_SESSION_EVENT_ORIGIN_REJECTED) == SHARE);
     /* A new init starts every window again. */
     {
