@@ -25,7 +25,8 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 3. The [decision records](decisions/README.md) for the platform-wide decisions in force, and the capability contract of the component you change (the `*-contract.md` pages listed under [Contracts and designs](#contracts-and-designs)).
 4. [Build and Integration Guide](build.md) and the [test guide](../tests/README.md) for the commands and the checks that apply.
 5. For secure boot, firmware update or the management services, the two board test procedures: [secure boot](secure-boot-board-test-procedure.md) and [secure management](secure-management-board-test-procedure.md). Neither has been run on a board, and neither approves a board operation.
-6. [AGENTS.md](../AGENTS.md) if an AI agent works on the change (see the [glossary](#concepts-glossary)).
+6. For boot work, the developer pages beside the boot overview: [taking the boot composition to an RT1062 product board](boot-porting-rt1062.md), the [boot image inspection](boot-image-inspection.md) tool and the [boot reproducibility check](boot-reproducibility.md). The two tools are developer tools, not Crux interfaces, and the reproducibility check is not wired into CI.
+7. [AGENTS.md](../AGENTS.md) if an AI agent works on the change (see the [glossary](#concepts-glossary)).
 
 ### A reviewer or manager
 
@@ -33,6 +34,7 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 2. The [decision records](decisions/README.md): what has been decided and by whom.
 3. [Component readiness](component-readiness.md): the state of each component, with the evidence level behind it.
 4. The two review packages: the [secure boot and update review](secure-boot-and-update-review.md) (start with the [boot overview](boot-overview.md)) and the [secure management review guide](secure-management-review.md). Each says what exists, what was verified and by which means, and what is still open.
+   The boot pages that follow the review are guidance and tools: the [RT1062 porting guide](boot-porting-rt1062.md), the [boot image inspection](boot-image-inspection.md) and the [boot reproducibility check](boot-reproducibility.md). Each opens with a status block that says what was verified and what was not; none reports a boot on a board.
 5. The [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [issues](https://github.com/wonny-labs/crux-pilot/issues) for delivery status. Documents in this repository describe contracts and recorded evidence, not the current schedule.
 
 ## Who to ask
@@ -70,7 +72,7 @@ Everything else in `docs/` is maintained. The groups are:
 - **Orientation and guides:** [architecture](architecture.md), [choosing an API](choosing-an-api.md), [build and integration](build.md), [product composition](product-composition.md), [porting to a new board](porting-to-a-new-board.md), [component readiness](component-readiness.md), [composition interface rules](composition-interfaces.md), [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md).
 - **Decisions:** [decision records](decisions/README.md) and the [research notes](research/platform-direction-review.md) behind them.
 - **Contracts and designs:** see below.
-- **Investigations, feasibility reports and physical gates:** the boot pages (start with the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md); then [boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)), the eMMC and microSD pages, the `rt1060-*` pages, the [secure management review guide](secure-management-review.md), [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
+- **Investigations, feasibility reports and physical gates:** the boot pages (start with the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md); then [boot composition](boot-composition.md), [boot and update](boot-update-investigation.md), [eMMC boot](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md), and the developer pages [RT1062 porting](boot-porting-rt1062.md), [image inspection](boot-image-inspection.md) and [reproducibility](boot-reproducibility.md)), the eMMC and microSD pages, the `rt1060-*` pages, the [secure management review guide](secure-management-review.md), [RT1170-EVK feasibility](rt1170-evk-a1-feasibility.md) (a software-only record; the RT1170-EVK is set aside for now, see the [boot overview](boot-overview.md)) and the dependency reviews. They record what a study found and which of its options were taken; read each page's own status line.
 
 ## Contracts and designs
 
@@ -142,4 +144,4 @@ Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.
 
 ## Status and limits
 
-Crux is not production-qualified and is not an installable SDK. Its components have different readiness. No Crux release or tag exists. No physical-board evidence exists for the secure management services. The [README](../README.md#status-and-limits) states the limits in full.
+Crux is not production-qualified and is not an installable SDK. Its components have different readiness. No Crux release or tag exists. No physical-board evidence exists for the secure management services. The RT1170-EVK is set aside for now: its pages are software-only records, and the first board is the RT1060-EVK Rev B. Static analysis is clang-tidy with [`.clang-tidy`](../.clang-tidy) mostly over an explicit list of paths in `scripts/analyze-host.sh`; [static-analysis coverage](static-analysis-coverage.md) measures what that covers and proposes a way to cover every compiled source, a proposal that is not adopted. The [README](../README.md#status-and-limits) states the limits in full.
