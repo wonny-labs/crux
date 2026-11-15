@@ -155,7 +155,7 @@ static size_t put_ssh_string(uint8_t *out, const void *text, size_t length)
 }
 
 /* A well-formed ECDSA blob of the named type, with an uncompressed point of the given size. */
-static size_t ecdsa_blob_of(uint8_t *blob, const char *type, const char *curve, size_t point_size)
+static size_t ecdsa_blob_of(uint8_t *blob, const char *type, size_t point_size, const char *curve)
 {
     uint8_t point[CRUX_ACCESS_KEY_SIZE_MAX];
     memset(point, 0x42, sizeof(point));
@@ -180,24 +180,23 @@ static size_t record_with_key(const uint8_t *good, size_t key_length_at, const u
 /* A store that an earlier revision saved can hold a P-384 or P-521 key, which is no longer a type
  * Access accepts (#316). The record is then malformed as a whole, so the store reads as unusable
  * and no account can log in, as for any other malformed record. */
-static void legacy_key_type_cases(const uint8_t *good, size_t good_length, size_t key_length_at)
+static void legacy_key_type_cases(const uint8_t *good, size_t key_length_at)
 {
     uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
     uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
-    CHECK(good_length < sizeof(record));
 
     /* The control: the same record shape holding the accepted P-256 type loads. */
-    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", "nistp256", 65);
+    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 65, "nistp256");
     size_t length = record_with_key(good, key_length_at, blob, used, record);
     access_fake_reset();
     crux_access_test_reset();
     access_fake_store_set_record(record, length);
     CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
 
-    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp384", "nistp384", 97);
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp384", 97, "nistp384");
     length = record_with_key(good, key_length_at, blob, used, record);
     expect_record_unusable(record, length);
-    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp521", "nistp521", 133);
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp521", 133, "nistp521");
     length = record_with_key(good, key_length_at, blob, used, record);
     expect_record_unusable(record, length);
 }
@@ -276,7 +275,8 @@ static void malformed_record_cases(void)
     access_fake_store_set_record(good, length);
     CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
 
-    legacy_key_type_cases(good, length, key_length_at);
+    CHECK(length < CRUX_ACCESS_RECORD_SIZE_MAX);
+    legacy_key_type_cases(good, key_length_at);
 }
 
 /* --- 64-bit time --- */
