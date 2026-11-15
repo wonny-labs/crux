@@ -43,6 +43,14 @@ jobs:
         run: ./scripts/test-logging.sh --host-only
       - name: System consumers
         run: ./scripts/test-system.sh --host-only
+      - name: Messaging and Serial consumers
+        run: |
+          ./scripts/test-messaging.sh --host-only
+          ./scripts/test-serial.sh --host-only
+      - name: Management services consumer
+        run: |
+          cmake -S tests/mgmt_services_consumer -B build/mgmt-services-consumer -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build/mgmt-services-consumer --target mgmt_services_consumer_c mgmt_services_consumer_cpp
       - name: Databases
         if: always()
         run: find build -name compile_commands.json | sort
