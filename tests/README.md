@@ -89,6 +89,11 @@ and trailer inspector and its slot fit decision, on synthetic images built in me
 of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See
 [boot reproducibility](../docs/boot-reproducibility.md).
 
+`tests/build/test_check_boot_config.py` holds the checks of `scripts/check-boot-config.py`, which reads the resolved `.config` of the
+MCUboot image and the application of the boot composition and fails unless both are built for RAM load with revert and the
+build-number comparison is off (image-state rows I5 and Q9). It runs on fixture files in `tests/build/fixtures/boot-config/`. The
+script is not wired into a workflow yet: it reads the build that `scripts/test-boot-composition.sh` writes.
+
 `tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
 size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
 result is in [the comparison record](../docs/plans/mcuboot-crypto-backend-comparison.md).
