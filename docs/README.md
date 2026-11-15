@@ -45,14 +45,14 @@ Most pages in `docs/` describe the current implementation or a current decision.
 | --- | --- |
 | [`implementation-status.md`](implementation-status.md) | Acceptance and execution status of the Time Pilot milestones M0 to M5. Last evidence update 2026-10-17. Not the current platform status |
 | [`baseline.md`](baseline.md) | Frozen build and physical evidence of the original Time Pilot, with exact commands and results |
-| [`m2-physical-verification.md`](m2-physical-verification.md) | Plan and authorisation record for the first physical Flash, reset and UART verification (Pilot M2) |
-| [`m3-validation.md`](m3-validation.md) | Closed execution and hardware-validation record of Pilot M3 |
-| [`m5-pilot-validation-plan.md`](m5-pilot-validation-plan.md) | Validation and completion plan of Pilot M5 |
+| [`m2-physical-verification.md`](m2-physical-verification.md) | Plan and authorisation record for the first physical Flash, reset and UART verification of the reference controller's execution (early platform milestone M2) |
+| [`m3-validation.md`](m3-validation.md) | Closed execution and hardware-validation record of early platform milestone M3 |
+| [`m5-pilot-validation-plan.md`](m5-pilot-validation-plan.md) | Validation and completion plan of early platform milestone M5 (issues #25 to #30) |
 | [`execution-profile.md`](execution-profile.md) | Investigation that selected the reference controller's execution model |
 | [`physical-verification-plan.md`](physical-verification-plan.md) | Unexecuted plan, never an approval, for physical checks of GPIO, I2C and SPI. Component readiness still cites its open items |
 | [`flash-safety-poc.md`](flash-safety-poc.md) | Isolated proof of concept for Flash safety. Not an adopted driver or layout |
 | [`storage-pilot-software-handoff.md`](storage-pilot-software-handoff.md) | Storage handoff of the Pilot, superseded as the selected storage direction |
-| `plans/` | Implementation plans and proposals that were completed or superseded |
+| `plans/` | Plans, designs and proposals. Many are completed or superseded, some are still active, so read each file's own status line |
 | `history/` | Superseded proposals and snapshots |
 | `evidence/` | Frozen validation records and review artefacts. They are kept as recorded and are not guidance |
 | `superpowers/plans/` | Execution plans of earlier work, kept as development records |
@@ -98,7 +98,7 @@ Two numbering schemes exist, and they are separate:
 - **Pilot milestones M0 to M5** belong to the original Time Pilot plan. They are historical. Their acceptance identifiers, such as `M5-03`, appear in `baseline.md`, `implementation-status.md` and the Pilot plans. They do not describe the current platform.
 - **Platform milestones** are the GitHub milestones of this repository, for example M4 for storage and configuration services, M8 for the boot platform and M11 for HTTPS web management. They reuse some numbers of the Pilot milestones. The [milestone list](https://github.com/wonny-labs/crux-pilot/milestones) is the source for their scope and status.
 
-When a page says "M5" without more, check its date and its neighbours: a page that cites `docs/baseline.md` or a Pilot plan means the Pilot milestone.
+When a page says "M2", "M3" or "M5" without more, check its date and its neighbours: a page that cites `docs/baseline.md` or a Pilot plan means the Pilot milestone, and a page that cites issue numbers (for example the pages named above for issues #6 to #12 and #25 to #30) means the early platform milestone of that number, not the Pilot's.
 
 ## Stability tiers
 
