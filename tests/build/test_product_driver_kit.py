@@ -22,12 +22,15 @@ DRIVER = TEMPLATE / "drivers/sensor/example_temp"
 BINDING = TEMPLATE / "dts/bindings/sensor/vnd,example-temp.yaml"
 BOARD = TEMPLATE / "boards/vnd/example_rt1062"
 TESTS = TEMPLATE / "tests/drivers/sensor/example_temp"
+KIT_README = TEMPLATE / "drivers/README.md"
+LINK_PROBE = REPO / "tests/product_template_link"
 
 # Every file that a team copies with the template and that the kit adds to it.
 KIT_FILES = (
     "zephyr/module.yml",
     "CMakeLists.txt",
     "Kconfig",
+    "drivers/README.md",
     "drivers/CMakeLists.txt",
     "drivers/Kconfig",
     "drivers/sensor/CMakeLists.txt",
@@ -375,6 +378,32 @@ class ScriptTest(unittest.TestCase):
         self.assertTrue(os.access(SCRIPT, os.X_OK))
 
 
+class LinkProbeTest(unittest.TestCase):
+    """The probe that tests the static library finding of the template README."""
+
+    def test_the_probe_links_one_adapter_three_ways(self):
+        text = code(LINK_PROBE / "CMakeLists.txt")
+        for variant in ("app_sources", "plain_static", "module_library"):
+            with self.subTest(variant=variant):
+                self.assertIn(f'PROBE_VARIANT STREQUAL "{variant}"', text)
+        self.assertIn("add_library(probe_queue_adapter STATIC", text)
+        self.assertIn("zephyr_library_named(probe_queue_module)", read(LINK_PROBE / "module/CMakeLists.txt"))
+        self.assertTrue((LINK_PROBE / "module/zephyr/module.yml").is_file())
+
+    def test_the_adapter_makes_the_four_calls_of_the_reported_failure(self):
+        text = read(LINK_PROBE / "src/queue_adapter.c")
+        for call in ("k_msgq_init", "k_msgq_put", "k_msgq_get", "k_msgq_purge"):
+            with self.subTest(call=call):
+                self.assertIn(call + "(", text)
+
+    def test_the_script_builds_every_variant_and_expects_only_the_plain_library_to_fail(self):
+        text = read(SCRIPT)
+        self.assertIn('probe="$repo/tests/product_template_link"', text)
+        self.assertIn("for variant in app_sources plain_static module_library; do", text)
+        self.assertIn("undefined reference to .k_msgq_init", text)
+        self.assertIn('-DZEPHYR_EXTRA_MODULES="$probe/module"', text)
+
+
 class GuideTest(unittest.TestCase):
     def setUp(self):
         self.text = read(GUIDE)
@@ -466,16 +495,23 @@ class PointerTest(unittest.TestCase):
     def test_the_readme_points_to_the_guide(self):
         self.assertIn("docs/writing-a-product-driver.md", read(REPO / "README.md"))
 
-    def test_the_template_readme_points_to_the_guide_and_describes_the_module(self):
+    def test_the_template_readme_points_to_the_kit_and_the_guide(self):
         text = read(TEMPLATE / "README.md")
+        self.assertIn("(drivers/README.md)", text)
+        self.assertIn("writing-a-product-driver.md", text)
+
+    def test_the_kit_readme_describes_the_module(self):
+        text = read(KIT_README)
         self.assertIn("writing-a-product-driver.md", text)
         for name in ("zephyr/module.yml", "drivers/", "dts/bindings/", "boards/", "tests/"):
             with self.subTest(name=name):
                 self.assertIn(name, text)
 
-    def test_the_template_readme_records_the_static_library_finding(self):
-        text = read(TEMPLATE / "README.md")
+    def test_the_guide_records_the_static_library_finding_and_its_probe(self):
+        text = read(GUIDE)
         self.assertIn("zephyr_library_named", text)
+        self.assertIn("--whole-archive", text)
+        self.assertIn("tests/product_template_link", text)
 
     def test_contributing_is_not_part_of_this_change(self):
         # CONTRIBUTING.md is a protected file and the approval does not cover it. The guide is

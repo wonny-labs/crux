@@ -6,3 +6,5 @@
 zephyr_library_named(product_example_temp)
 zephyr_library_sources(example_temp.c)
 zephyr_library_sources_ifdef(CONFIG_EMUL_EXAMPLE_TEMP example_temp_emul.c)
+# Owned code uses the repository warning policy, privately: the flags do not reach Zephyr.
+zephyr_library_compile_options(-Wall -Wextra -Werror)

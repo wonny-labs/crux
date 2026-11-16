@@ -97,4 +97,35 @@ for suite in suites:
                            f'{suite["platform"]}: {suite.get("status")}, runnable {suite.get("runnable")}')
     print(f'Hardware scenario built, not run, on {suite["platform"]}')
 PY
+
+# The template README records an adapter that called kernel message queue functions and failed to
+# link as a plain STATIC library. This probe links the same kind of adapter three ways for
+# native_sim and checks the outcome that the driver guide states for each. Build only.
+probe="$repo/tests/product_template_link"
+for variant in app_sources plain_static module_library; do
+    probe_build="$repo/build/zephyr/product-template-link-$variant"
+    probe_log="$probe_build.log"
+    mkdir -p "$(dirname "$probe_log")"
+    set +e
+    (cd "$workspace" && west build -p always -b native_sim -d "$probe_build" "$probe" -- \
+        -DPROBE_VARIANT="$variant" -DZEPHYR_EXTRA_MODULES="$probe/module") >"$probe_log" 2>&1
+    probe_status=$?
+    set -e
+    if [[ "$variant" == plain_static ]]; then
+        if ((probe_status == 0)) || ! grep -Eq "undefined reference to .k_msgq_init" "$probe_log"; then
+            cat "$probe_log" >&2
+            printf 'Link probe %s: expected a link failure on k_msgq_init, got status %d.\n' \
+                "$variant" "$probe_status" >&2
+            exit 1
+        fi
+        printf 'Link probe %s: fails to link with an undefined k_msgq_init, as expected.\n' "$variant"
+    else
+        if ((probe_status != 0)); then
+            cat "$probe_log" >&2
+            printf 'Link probe %s: the build failed with status %d.\n' "$variant" "$probe_status" >&2
+            exit 1
+        fi
+        printf 'Link probe %s: links.\n' "$variant"
+    fi
+done
 printf 'Product template built for %s. No flash, reset, or hardware command was run.\n' "$board"

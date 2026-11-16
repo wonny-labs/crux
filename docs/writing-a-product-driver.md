@@ -2,7 +2,7 @@
 
 **Status: developer guidance, not a contract.** It describes how a product repository holds its own board, its own Zephyr drivers and devicetree bindings, and their tests. It adds no Crux interface and no Crux device model. The kit it describes is the Zephyr module in [`templates/product/`](../templates/product/README.md), written against **Zephyr v4.4** (Crux pins v4.4.2, see [`west.yml`](../west.yml)).
 
-What has run: CI builds the example driver and runs its unit tests on `native_sim` (`scripts/test-product-template.sh`), and builds its hardware scenario for two boards without running it. Nothing of the kit has run on a board. The example part is fictional.
+What runs: `scripts/test-product-template.sh`, which Crux's Zephyr CI runs, builds the example driver and runs its unit tests on `native_sim`, and builds its hardware scenario for two boards without running it. Nothing of the kit has run on a board. The example part is fictional.
 
 ## What this guide covers, and what it leaves to Zephyr
 
@@ -38,6 +38,8 @@ The template is the repository root. Paths are relative to it, and every path ex
 | `boards/vnd/example_rt1062` | The product's board, `boards/<vendor>/<board>` |
 | `tests/drivers/sensor/example_temp/testcase.yaml` | The tests of the driver and the Twister scenarios that select them |
 | `app/`, `domain/` | The application and the domain of the [template](../templates/product/README.md), unchanged by the kit |
+
+The kit's own overview, with the commands to run its tests from a product workspace, is [`templates/product/drivers/README.md`](../templates/product/drivers/README.md).
 
 ## The module file
 
@@ -179,7 +181,18 @@ The board is not a variant added with `board: extend:`. A variant keeps the name
 
 ## Static libraries and kernel objects
 
-The [template README](../templates/product/README.md#check-the-whole-product-repository) records that an adapter built as a `STATIC` library failed to link in one product with undefined references to kernel message queue functions. The kit's driver is a `zephyr_library_named` library, and `zephyr_library_named` creates a Zephyr library, which Zephyr links with the kernel. The README records what was found when the cause was tried.
+The [template README](../templates/product/README.md#check-the-whole-product-repository) records that an adapter built as a `STATIC` library failed to link in one product with undefined references to `k_msgq_init` and other kernel message queue functions, while `k_thread` calls in the same file linked, and that the cause was not understood.
+
+The cause is the order of Zephyr's link line (Zephyr v4.4, top-level `CMakeLists.txt` and `cmake/linker/ld/target.cmake`). Zephyr links its own libraries, `app` included, inside `--whole-archive`, and then the kernel archive outside it. The linker takes from the kernel archive only the members that something linked before it refers to. A plain CMake `STATIC` library that `app` links is a dependency of `app`, so CMake places it after those items, after the kernel archive. A kernel function that only this library calls, such as `k_msgq_init` in a small image, is then never taken from the archive and stays undefined. `k_thread` functions are referenced by the kernel itself, so they are linked anyway.
+
+Two forms do not have the problem:
+
+- **A `zephyr_library_named` library of a Zephyr module**, such as the kit's driver. Zephyr adds it to its own libraries, inside `--whole-archive`, before the kernel archive.
+- **Sources of the `app` target** (`target_sources(app PRIVATE ...)`), the workaround that the template README gives.
+
+`zephyr_library_named` called from an application's own `CMakeLists.txt` is not the first form: Zephyr warns that in application mode the library is not treated as a Zephyr library.
+
+The probe `tests/product_template_link` tests this. `scripts/test-product-template.sh` links the same adapter, which makes the four message queue calls of the report, in the three ways for `native_sim`, and requires that the plain `STATIC` library fails on an undefined `k_msgq_init` and the other two link. The probe covers `native_sim` only; the report also named the RT1060-EVKB cross-build, which has the same link line.
 
 ## Zephyr versions
 
