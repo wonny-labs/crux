@@ -14,7 +14,9 @@ import tempfile
 import unittest
 
 try:
-    import yaml  # west depends on it. The host CI job installs neither.
+    # west depends on it. The Host CI job runs python3 from a venv that holds only cmake, ninja and
+    # clang-format, so it has neither, and no CI job installs west for this file.
+    import yaml
 except ImportError:
     yaml = None
 
@@ -36,10 +38,13 @@ PREFIX = "acmeco"
 PUBLIC_BASE = "https://github.com/wonny-labs/"
 INTERNAL_BASE = "https://git.example/scm/acme/"
 UPSTREAM_BASE = "https://github.com/zephyrproject-rtos/"
-# A remote's url-base has no trailing slash, so the prefixes have none either.
-ALLOWED_URL_PREFIXES = (PUBLIC_BASE.rstrip("/"), INTERNAL_BASE.rstrip("/"),
-                        "https://github.com/zephyrproject-rtos")
+ALLOWED_BASES = (PUBLIC_BASE, INTERNAL_BASE, UPSTREAM_BASE)
 SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def allowed_url(url):
+    """A remote's url-base has no trailing slash, so accept a base exactly or anything below it."""
+    return any(url == base.rstrip("/") or url.startswith(base) for base in ALLOWED_BASES)
 
 
 def load_pins():
@@ -87,7 +92,7 @@ class OrganisationManifestStructureTest(unittest.TestCase):
         for path in (ORG_MANIFEST, PRODUCT_MANIFEST, MODULE_CI_MANIFEST):
             for url in re.findall(r"https?://[^\s\"')>]+", path.read_text()):
                 with self.subTest(path=path.name, url=url):
-                    self.assertTrue(url.startswith(ALLOWED_URL_PREFIXES), url)
+                    self.assertTrue(allowed_url(url), url)
             self.assertNotRegex(path.read_text(), r"git@|ssh://")
 
 
@@ -115,11 +120,22 @@ class HardwareModuleStructureTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertIn(key, text)
 
-    def test_cmake_wiring_names_its_libraries(self):
+    def test_cmake_wiring_adds_drivers_and_shows_named_libraries_as_a_comment_until_a_driver_moves_in(self):
         self.assertIn("add_subdirectory(drivers)", (MODULE / "CMakeLists.txt").read_text())
         drivers = (MODULE / "drivers/CMakeLists.txt").read_text()
-        self.assertIn("zephyr_library_named(", drivers)
-        self.assertNotRegex(drivers, r"(?m)^\s*zephyr_library\(\)")
+        named = [line for line in drivers.splitlines() if "zephyr_library_named(" in line]
+        self.assertTrue(named, "the example block names its library")
+        for line in named:
+            with self.subTest(line=line):
+                self.assertTrue(line.lstrip().startswith("#"), "no driver yet, so the block is a comment")
+        active = [line for line in drivers.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+        self.assertEqual(active, [], "the module builds no library until the first driver arrives")
+
+    def test_url_check_refuses_a_lookalike_owner(self):
+        self.assertTrue(allowed_url("https://github.com/wonny-labs"))
+        self.assertTrue(allowed_url("https://github.com/wonny-labs/crux-pilot"))
+        self.assertFalse(allowed_url("https://github.com/wonny-labs-other/crux-pilot"))
+        self.assertFalse(allowed_url("https://git.example/scm/acme-other"))
 
     def test_kconfig_sources_the_driver_menu(self):
         self.assertIn('rsource "drivers/Kconfig"', (MODULE / "Kconfig").read_text())

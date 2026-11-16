@@ -16,9 +16,13 @@ manifest:
       url-base: https://git.example/scm/acme
 
   projects:
-    # Test against the organisation's current baseline. Move this pin when
-    # acme-manifest moves its Crux or Zephyr pin, and run this CI again
-    # before the products take the new baseline.
+    # Test against the organisation's current baseline: follow acme-manifest
+    # at main, so this CI picks up each Crux or Zephyr pin the organisation
+    # has already moved. To test a new Crux pin before the organisation
+    # moves, on a module branch either set revision to a branch of
+    # acme-manifest that carries the new pin, or add a crux-pilot entry with
+    # its url, the new revision and "import: true" above this one (an entry here
+    # beats the imported one). Do not merge either into the module's main.
     - name: acme-manifest
       remote: acme
       revision: main
