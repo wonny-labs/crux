@@ -315,6 +315,19 @@ class CiProposalTest(unittest.TestCase):
         self.assertRegex(self.section, r"(?i)owner")
         self.assertRegex(self.section, r"(?i)protected")
 
+    def test_the_page_gives_one_recommendation_for_the_placement(self):
+        # The older section advised a job of its own; the proposal recommends the runtime shard. The page
+        # must not hold both.
+        self.assertNotIn("better placed in its own job or shard", self.page)
+        self.assertEqual(1, self.page.count("tests/target/check_boot_reproducibility.sh --build\n"))
+
+    def test_the_claims_that_are_not_read_from_a_record_are_not_labelled_verified(self):
+        paragraph = next(l for l in self.section.splitlines() if l.startswith("**Cost, measured.**"))
+        verified, _, rest = paragraph.partition("**Inference**")
+        self.assertIn("43898428480", verified)
+        self.assertNotIn("separate job costs more", verified)
+        self.assertIn("separate job costs more", rest)
+
     def test_no_workflow_runs_the_reproducibility_check(self):
         # The task is a proposal, not a heavy job: the check stays out of every workflow.
         for workflow in (REPO / ".github/workflows").glob("*.yml"):

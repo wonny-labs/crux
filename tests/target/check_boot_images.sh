@@ -11,7 +11,7 @@
 # files), which it removes again, also after a failure.
 # scripts/test-boot-composition.sh calls it on its own build, so the runtime shard of CI runs it; that edit
 # of a protected file is pending the project owner's approval (docs/boot-image-inspection.md, "Check of the
-# CI-built images"). It has never run on a real build until that CI run; the host tests in
+# CI-built images"). It has never run on a real build; the first CI run of that change is its first. The host tests in
 # tests/build/test_check_boot_images.py run it against a synthetic build tree and a fake imgtool only.
 #
 # Usage: tests/target/check_boot_images.sh [build-dir]

@@ -33,15 +33,9 @@ It then runs `imgtool verify` with the public test key on the signed image of ea
 
 It will settle whether two builds of the committed composition in one container reproduce by the definition above, which Stage 8 showed only for an older trial tree. It will not settle path independence (unless run with two checkouts), another container or host, the effect of a changed SDK or MCUboot revision, or anything about booting. A pass says nothing about MCUboot's behaviour.
 
-## Proposed workflow step (needs the owner's approval; see also the proposal at the end of this page)
+## Proposed workflow step (needs the owner's approval)
 
-The tools touch no protected path. Running the check in CI still means editing `.github/workflows/zephyr.yml`, a protected file (`AGENTS.md`, protected paths). That change has **not** been approved and stays a proposal. Two sysbuilds take about twice the time of the composition step, so the step is better placed in its own job or shard than inside the `runtime` shard. The step text, for the owner's decision:
-
-```yaml
-      - name: Check that two builds of the MCUboot RAM load composition reproduce (software-only)
-        working-directory: crux-pilot
-        run: tests/target/check_boot_reproducibility.sh --build
-```
+The tools touch no protected path. Running the check in CI means editing `.github/workflows/zephyr.yml` or `scripts/`, which are protected paths (`AGENTS.md`). That change has **not** been approved and stays a proposal. Its placement, cost and step text are in [the proposal at the end of this page](#proposal-comparing-two-real-builds-in-ci), which replaces the earlier advice of a job of its own.
 
 Until the step is wired and has run, reproducibility of the committed composition stays **Not verified**.
 
@@ -51,7 +45,7 @@ Labels: **Verified** (read from a CI record or a file in this repository), **Inf
 
 **Nothing is wired.** This section proposes; it adds no job, step or script call, and no workflow or script runs `check_boot_reproducibility.sh`. Any of the options below edits a protected path (`.github/workflows/zephyr.yml`, or `scripts/`), so each needs the owner's explicit approval before it is made.
 
-**Cost, measured.** **Verified** from the CI run 43898428480 (`zephyr.yml` on `main`, 16 November 2026, read with `gh run view --json jobs`): the composition step of the `runtime` shard ran from 15:55:45 to 15:56:47 UTC, about 62 s, inside a job of about 19 minutes. The step runs `west update mcuboot`, `pip install` and one pristine sysbuild (`-p always`) on a workspace that the earlier steps had prepared. The older sentence of this page that two sysbuilds "take about twice the time of the composition step, so the step is better placed in its own job" assumed a larger step; at 62 s a separate job costs more (runner start, workspace bootstrap) than the second build itself. **Not verified:** that this one run is typical, and the time of the first run without a warm cache.
+**Cost, measured.** **Verified** from the CI run 43898428480 (`zephyr.yml` on `main`, 16 November 2026, read with `gh run view --json jobs`): the composition step of the `runtime` shard ran from 15:55:45 to 15:56:47 UTC, about 62 s, inside a job of about 19 minutes. The step runs `west update mcuboot`, `pip install` and one pristine sysbuild (`-p always`) on a workspace that the earlier steps had prepared. **Inference:** the earlier advice of this page, that two sysbuilds "take about twice the time of the composition step, so the step is better placed in its own job", assumed a larger step, and at 62 s a separate job probably costs more (runner start, workspace bootstrap) than the second build itself. **Not verified:** that this one run is typical, and the time of the first run without a warm cache.
 
 | Option | What runs | Extra time (**Inference**) | What it would show | What it would not show |
 | --- | --- | --- | --- | --- |
@@ -59,7 +53,7 @@ Labels: **Verified** (read from a CI record or a file in this repository), **Inf
 | B. As A, but compare the build of the existing step with one new build | A small change to `check_boot_reproducibility.sh` (a mode that takes the first build as given) and one extra composition run | About 1 to 1.5 minutes | The same as A | The same as A |
 | C. As A with a second checkout at another path | A second clone and workspace, or the build directory of a copy, compared with `check_boot_reproducibility.sh BUILD_A BUILD_B` | More: a second workspace and clone, so probably 3 to 5 minutes and more disk | The same as A, and whether the output depends on the build path (the ELF files do; the images should not) | The same as A except path independence |
 
-Two further costs are **Inference**: the composition script now also runs the build configuration check and the image check ([boot image inspection](boot-image-inspection.md)) in each run, so a repetition repeats them (a few seconds); and a reproducibility failure of the signed image's signature alone is expected and tolerated by the definition above, so only a difference in a header, payload, TLV other than the signature, trailer or an unsigned binary fails.
+One further cost is **Inference**: the composition script now also runs the build configuration check and the image check ([boot image inspection](boot-image-inspection.md)) in each run, so a repetition repeats them (a few seconds). A difference in the signed image's signature alone is expected and tolerated by the definition above, so only a difference in a header, payload, TLV other than the signature, trailer or an unsigned binary fails.
 
 **Recommendation (Inference):** option A as the first step, in the `runtime` shard, because it needs no new script and costs a few minutes; option B if the time matters; option C only if path independence is wanted as a claim. The step text would be:
 
