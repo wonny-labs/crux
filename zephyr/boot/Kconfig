@@ -1,5 +1,6 @@
 config CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM
 	bool "Move the FlexSPI configuration object to the XIP memory (candidate, #165)"
+	depends on CRUX_PILOT_MODULE && MEMC_MCUX_FLEXSPI
 	default n
 	help
 	  Candidate for issue #165. Not built, Not verified, not for merge. Experimental.
@@ -17,5 +18,5 @@ config CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM
 	  nothing else in the matrix (see docs/plans/mcuboot-flexspi-write-path-closure.md,
 	  proposed in PR #491, not yet on main).
 
-	  The build refuses the symbol without CONFIG_FLASH, CONFIG_FLASH_MCUX_FLEXSPI_XIP
-	  and CONFIG_CODE_DATA_RELOCATION.
+	  Kconfig hides the symbol without MEMC_MCUX_FLEXSPI, and the build refuses it without
+	  CONFIG_FLASH, CONFIG_FLASH_MCUX_FLEXSPI_XIP and CONFIG_CODE_DATA_RELOCATION.

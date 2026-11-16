@@ -34,6 +34,7 @@ class SymbolTest(unittest.TestCase):
         body = match.group(1)
         self.assertIn("bool", body)
         self.assertIn("default n", body)
+        self.assertIn("depends on CRUX_PILOT_MODULE && MEMC_MCUX_FLEXSPI", body)
         self.assertIn("Not built", body)
 
     def test_the_module_kconfig_sources_the_boot_file(self):
@@ -75,6 +76,7 @@ class FragmentTest(unittest.TestCase):
                 "CONFIG_" + SYMBOL: "y",
                 "CONFIG_FLASH": "y",
                 "CONFIG_CODE_DATA_RELOCATION": "y",
+                "CONFIG_MEMC_MCUX_FLEXSPI": "y",
                 "CONFIG_FLASH_MCUX_FLEXSPI_XIP": "y",
                 "CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM": "ITCM",
             }
@@ -93,10 +95,13 @@ class FragmentTest(unittest.TestCase):
             "CONFIG_" + SYMBOL: "y",
             "CONFIG_FLASH": "y",
             "CONFIG_CODE_DATA_RELOCATION": "y",
+            "CONFIG_MEMC_MCUX_FLEXSPI": "y",
             "CONFIG_FLASH_MCUX_FLEXSPI_XIP": "y",
             "CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM": "ITCM",
         }
-        for missing in ("CONFIG_FLASH_MCUX_FLEXSPI_XIP", "CONFIG_FLASH", "CONFIG_CODE_DATA_RELOCATION"):
+        for missing in (
+            "CONFIG_FLASH_MCUX_FLEXSPI_XIP", "CONFIG_FLASH", "CONFIG_CODE_DATA_RELOCATION", "CONFIG_MEMC_MCUX_FLEXSPI"
+        ):
             variables = {k: v for k, v in complete.items() if k != missing}
             result = self.run_fragment(**variables)
             self.assertNotEqual(0, result.returncode, missing)

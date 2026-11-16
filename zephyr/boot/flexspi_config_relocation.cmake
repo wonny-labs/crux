@@ -10,8 +10,9 @@
 # -fdata-sections to give the object a section of its own (Zephyr's default, not checked in a
 # build). It moves no other object.
 if(CONFIG_CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM)
-    if(NOT CONFIG_FLASH OR NOT CONFIG_FLASH_MCUX_FLEXSPI_XIP OR NOT CONFIG_CODE_DATA_RELOCATION)
-        message(FATAL_ERROR "CONFIG_CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM needs CONFIG_FLASH, "
+    if(NOT CONFIG_MEMC_MCUX_FLEXSPI OR NOT CONFIG_FLASH OR NOT CONFIG_FLASH_MCUX_FLEXSPI_XIP
+       OR NOT CONFIG_CODE_DATA_RELOCATION)
+        message(FATAL_ERROR "CONFIG_CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM needs CONFIG_MEMC_MCUX_FLEXSPI, CONFIG_FLASH, "
                             "CONFIG_FLASH_MCUX_FLEXSPI_XIP and CONFIG_CODE_DATA_RELOCATION: the "
                             "relocation it asks for is the one that the FlexSPI XIP driver already "
                             "uses for its code")
