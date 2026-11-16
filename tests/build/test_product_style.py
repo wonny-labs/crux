@@ -27,9 +27,10 @@ GUIDELINE_HEADING = "## Zephyr and driver code in a product repository"
 HARDWARE_HEADING = "### Hardware integration tests"
 COMPLIANCE_CHECKS = [
     "Checkpatch", "ClangFormat", "DevicetreeBindings", "DevicetreeLinting", "BoardYml",
-    "YAMLLint", "GitLint", "Nits", "KeepSorted", "CMakeStyle", "LicenseAndCopyrightCheck",
+    "YAMLLint", "Gitlint", "Nits", "KeepSorted", "CMakeStyle", "LicenseAndCopyrightCheck",
     "DeviceAPI", "DeviceMmioCheck", "Kconfig",
 ]
+PRODUCT_ROOT_PLACEHOLDER = "<PRODUCT_ROOT>"
 GIT_ENV = {
     "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
     "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid",
@@ -191,6 +192,43 @@ class StyleFilesTest(unittest.TestCase):
             self.assertIn(directory, header_filter.group(1))
         self.assertIn("WarningsAsErrors", product)
 
+    def header_filter(self):
+        product = (STYLE / ".clang-tidy").read_text()
+        return re.search(r"^HeaderFilterRegex:\s*'(.*)'", product, re.MULTILINE).group(1)
+
+    def test_the_header_filter_is_anchored_to_a_marked_product_root_placeholder(self):
+        pattern = self.header_filter()
+        self.assertTrue(pattern.startswith("^" + PRODUCT_ROOT_PLACEHOLDER + "/"), pattern)
+        comment = "\n".join(line for line in (STYLE / ".clang-tidy").read_text().splitlines()
+                            if line.startswith("#"))
+        self.assertIn(PRODUCT_ROOT_PLACEHOLDER, comment)
+        self.assertIn("absolute path", comment)
+
+    def test_the_header_filter_matches_product_headers_and_no_zephyr_crux_or_build_header(self):
+        # clang-tidy searches the header's full path with the regex (llvm::Regex::match), as re.search does.
+        root = "/ws/product"
+        effective = re.compile(self.header_filter().replace(PRODUCT_ROOT_PLACEHOLDER, re.escape(root)))
+        for path in ("/ws/product/app/src/main.h", "/ws/product/drivers/sensor/x.h",
+                     "/ws/product/domain/product_port.h", "/ws/product/include/product/api.h",
+                     "/ws/product/tests/unit/fake.h"):
+            self.assertIsNotNone(effective.search(path), path)
+        for path in ("/ws/zephyr/include/zephyr/kernel.h", "/ws/build/zephyr/include/generated/x.h",
+                     "/ws/crux-pilot/components/gpio/include/crux/gpio.h",
+                     "/ws/zephyr/drivers/sensor/bme280/bme280.h", "/ws/zephyr/tests/lib/x.h",
+                     "/ws/product/build/zephyr/include/generated/autoconf.h",
+                     "/ws/product/modules/vendor/include/x.h", "/ws/other/product/app/x.h"):
+            self.assertIsNone(effective.search(path), path)
+
+    def test_an_unedited_placeholder_reports_no_header_at_all(self):
+        unedited = re.compile(self.header_filter())
+        for path in ("/ws/zephyr/include/zephyr/kernel.h", "/ws/product/app/src/main.h"):
+            self.assertIsNone(unedited.search(path), path)
+
+    def test_the_kit_files_carry_an_spdx_line(self):
+        for name in (".clang-format", ".clang-tidy", "check-format.sh", "check-patch.sh", "check-includes.sh"):
+            head = (STYLE / name).read_text().splitlines()[:3]
+            self.assertIn("# SPDX-License-Identifier: Apache-2.0", head, name)
+
     def test_the_checkpatch_wrapper_runs_zephyrs_tool_and_does_not_copy_it(self):
         self.assertEqual([], [path for path in TEMPLATE.rglob("*") if path.name == "checkpatch.pl"])
         text = (STYLE / "check-patch.sh").read_text()
@@ -244,6 +282,17 @@ class FormatWrapperTest(unittest.TestCase):
         self.assertEqual(0, self.call(root).returncode)
         style = [arg for arg in self.log.read_text().splitlines() if arg.startswith("--style")]
         self.assertEqual([f"--style=file:{STYLE / '.clang-format'}"], style)
+
+    def test_without_a_root_style_file_the_kit_copy_also_overrides_a_nested_one(self):
+        # clang-format applies --style=file:PATH to every file, so a driver's own .clang-format counts only
+        # once the product root has its copy. The README and the kit's .clang-format say so.
+        root = self.product({"drivers/up/a.c": "int a;\n", "drivers/up/.clang-format": "UseTab: Always\n"})
+        self.assertEqual(0, self.call(root).returncode)
+        style = [arg for arg in self.log.read_text().splitlines() if arg.startswith("--style")]
+        self.assertEqual([f"--style=file:{STYLE / '.clang-format'}"], style)
+        for path in (STYLE / "README.md", STYLE / ".clang-format"):
+            text = " ".join(path.read_text().split())
+            self.assertIn("only once the copy is at the product root", text, path.name)
 
     def test_a_repository_without_c_files_passes_and_runs_nothing(self):
         root = self.product({"notes.txt": "text\n"})
@@ -478,6 +527,20 @@ class GuidelineTest(unittest.TestCase):
         self.assertIn("not verified", text.lower())
         self.assertIn("-m", text)
 
+    def test_the_compliance_note_says_what_it_reads_and_writes(self):
+        text = " ".join(section(GUIDELINES, "### Zephyr compliance checks out of tree").split())
+        self.assertNotIn("from the working directory only", text)
+        self.assertIn("then `$HOME`, then `.scripts`", text)
+        self.assertIn("dts_linter.patch", text)
+        self.assertIn("only for a check that fails or warns", text)
+        self.assertIn("Gitlint (`-m` is case-insensitive)", text)
+        self.assertNotIn("GitLint", text)
+
+    def test_the_binding_and_logging_rules_match_zephyr(self):
+        text = " ".join(self.text.split())
+        self.assertIn("`<compatible>-<bus>.yaml`", text)
+        self.assertIn("LOG_MODULE_DECLARE", text)
+
     def test_the_new_text_has_no_broken_local_link(self):
         self.assertEqual([], broken_local_links(GUIDELINES, GUIDELINES.read_text()))
 
@@ -505,6 +568,14 @@ class HardwarePathTest(unittest.TestCase):
         self.assertIn("harness_config", text)
         self.assertIn("fixture", text)
         self.assertIn("built", text)
+
+    def test_it_says_where_the_device_control_tool_has_run_as_the_proposal_does(self):
+        text = " ".join(self.text.split())
+        self.assertNotIn("has run only against fake transports (", text)
+        for phrase in ("fake transports", "scripted tools", "pseudo-terminal"):
+            self.assertIn(phrase, text)
+        self.assertIn("Real pyserial on one disposable pseudo-terminal",
+                      (REPO / "docs/test-foundation-proposal.md").read_text())
 
     def test_it_offers_no_twister_device_testing_run_as_a_safe_route(self):
         lowered = self.text.lower()
