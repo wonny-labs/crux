@@ -145,13 +145,14 @@ The bench image, its declaration, its refusal and its tools are not changed.
 
 ## Taken from tests, and private roots
 
-Two pieces and three configuration files come from test directories, because no public form exists yet. A new one fails `tests/build/test_management_mbed_rt1060_image.py`.
+One piece and two configuration files come from test directories, because no public form exists yet. A new one fails `tests/build/test_management_mbed_rt1060_image.py`.
 
 | Taken | From | Why |
 | --- | --- | --- |
-| The locks of the Mbed profile's core (`crux_tf_psa_threading.c`, the user configuration) | `tests/native/management_composition/composition/tf_psa_threading` | The module refuses `CONFIG_CRUX_ACCESS` without them and has no option for them; a later phase decides how a product gets them |
-| The Mbed profile, the PSA settings and the locks configuration | `tests/native/tls_offload_probe/mbed.conf`, `tests/native/management_composition/profile-psa.conf` and `mbed-threading.conf` | The settings the `native_sim` images run |
+| The Mbed profile and the PSA settings | `tests/native/tls_offload_probe/mbed.conf` and `tests/native/management_composition/profile-psa.conf` | The settings the `native_sim` images run |
 | The boot check of the random source | `tests/zephyr/entropy_boot` | One `CRUX-ENTROPY` line and a stop on failure |
+
+The locks of the Mbed profile's core are **not** taken from tests any more. The module provides them under `CONFIG_CRUX_PSA_THREADING` (**Experimental**, [ADR-0001](decisions/0001-application-boundary-and-api-stability.md) Decision 4), and this image's `prj.conf` sets it. The option turns on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` through `CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE` and builds the locks on `k_mutex` and `k_condvar`, as the `native_sim` images ran them. It is not run on a board and shows no absence of a race ([PSA qualification](psa-crypto-qualification.md)).
 
 | Private root | Why it remains |
 | --- | --- |

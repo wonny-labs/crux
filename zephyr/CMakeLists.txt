@@ -162,6 +162,18 @@ if(CONFIG_CRUX_WEB)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
 endif()
 
+# The locks of TF-PSA-Crypto's core (Experimental). The option sets CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE to the
+# module's header, so a product that names another file there cannot also take these locks.
+if(CONFIG_CRUX_PSA_THREADING)
+    if(NOT "${CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE}" STREQUAL "crux_tf_psa_user_config.h")
+        message(FATAL_ERROR "CONFIG_CRUX_PSA_THREADING provides the locks through "
+                            "crux_tf_psa_user_config.h, but CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE is "
+                            "'${CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE}': leave one of the two out")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/psa_threading"
+        "${CMAKE_CURRENT_BINARY_DIR}/psa_threading")
+endif()
+
 # ADR-0004 phase 0: Access, the credential store and the security events, which are wired to each
 # other, so one symbol builds the three. Off by default, and an image without the symbol is unchanged.
 # Each library is registered with the Zephyr link. The portable targets crux::access,
@@ -175,8 +187,8 @@ if(CONFIG_CRUX_ACCESS)
     endif()
     if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the locks that the Mbed profile's core calls "
-                            "(CONFIG_TF_PSA_CRYPTO_USER_CONFIG): see "
-                            "tests/native/management_composition/mbed-threading.conf")
+                            "(CONFIG_TF_PSA_CRYPTO_USER_CONFIG): set CONFIG_CRUX_PSA_THREADING=y, or "
+                            "give the core locks of your own through CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE")
     endif()
     if(NOT TARGET crux::file)
         message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs a Crux File provider for the credential store's "

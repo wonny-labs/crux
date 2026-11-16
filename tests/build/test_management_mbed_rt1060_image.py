@@ -28,7 +28,7 @@ TRANSITIONAL_INCLUDES = {
 TEST_ONLY_INCLUDES = {"crux_access_adapter.h"}
 # Test code of this repository that the image takes by path, because no public form exists yet.
 SHARED_FROM_TESTS = {
-    "tests/native/management_composition",  # the profile files and the locks glue of the Mbed core
+    "tests/native/management_composition",  # profile-psa.conf (the locks are the module's CONFIG_CRUX_PSA_THREADING)
     "tests/native/tls_offload_probe/mbed",  # mbed.conf only
     "tests/zephyr/entropy_boot",
 }
@@ -68,8 +68,7 @@ class Layout(unittest.TestCase):
 class Profile(unittest.TestCase):
     def setUp(self):
         profile_files = [REPO / "tests/native/tls_offload_probe/mbed.conf",
-                         REPO / "tests/native/management_composition/profile-psa.conf",
-                         REPO / "tests/native/management_composition/mbed-threading.conf"]
+                         REPO / "tests/native/management_composition/profile-psa.conf"]
         text = read("prj.conf") + "\n" + "\n".join(path.read_text() for path in profile_files)
         self.conf = "\n".join(active_lines(text))
 
@@ -133,8 +132,11 @@ class Cmake(unittest.TestCase):
         self.assertRegex(self.cmake, r"FATAL_ERROR")
 
     def test_profile_files_are_the_mbed_ones(self):
-        for name in ("tls_offload_probe/mbed.conf", "profile-psa.conf", "mbed-threading.conf"):
+        for name in ("tls_offload_probe/mbed.conf", "profile-psa.conf"):
             self.assertIn(name, self.cmake)
+        # The locks are the module's public option, set in prj.conf: no test fragment carries them.
+        self.assertNotIn("mbed-threading.conf", self.cmake)
+        self.assertIn("CONFIG_CRUX_PSA_THREADING=y", read("prj.conf"))
         self.assertNotIn("wolf.conf", self.cmake)
         self.assertNotIn("wolf-ssh", self.cmake)
 
@@ -222,7 +224,7 @@ class Sources(unittest.TestCase):
         return set(re.findall(r'#include\s+[<"]([^>"]+)[>"]', read("src/" + name)))
 
     def test_include_discipline(self):
-        local = set(SOURCES) | {"entropy_boot.h", "crux_tf_psa_threading.h"}
+        local = set(SOURCES) | {"entropy_boot.h"}
         system = {"errno.h", "stdbool.h", "stddef.h", "stdint.h", "string.h", "stdio.h", "ff.h"}
         for name in SOURCES:
             if not name.endswith(".c"):

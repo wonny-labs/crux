@@ -10,9 +10,8 @@
 # Build it with the Mbed profile, as tests/native/cli_console/run.sh does:
 #   -DEXTRA_CONF_FILE=../tls_offload_probe/mbed.conf;../management_composition/profile-psa.conf;../management_composition/mbed-threading.conf
 #
-# What it reaches by include path: the TF-PSA-Crypto locks of the Mbed profile, which come from the
-# management composition's test glue (as in tests/native/management_module), until a later phase decides
-# how a product obtains them.
+# The TF-PSA-Crypto locks of the Mbed profile come from the module (CONFIG_CRUX_PSA_THREADING,
+# Experimental), set by mbed-threading.conf above.
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
@@ -32,9 +31,8 @@ if(fixture_conf MATCHES "CONFIG_CRUX_(THREAD|SYNC|TIME)[A-Z_]*=")
     message(FATAL_ERROR "prj.conf must not name a CONFIG_CRUX_THREAD, CONFIG_CRUX_SYNC or CONFIG_CRUX_TIME symbol: the service symbol selects them")
 endif()
 
-set(glue "${CRUX_ROOT}/tests/native/management_composition/composition/tf_psa_threading")
-target_sources(app PRIVATE src/main.c "${glue}/crux_tf_psa_threading.c")
-zephyr_include_directories("${glue}")
+# The locks of the Mbed profile's core come from the module (CONFIG_CRUX_PSA_THREADING, set by mbed-threading.conf).
+target_sources(app PRIVATE src/main.c)
 target_link_libraries(app PRIVATE crux::access crux::credential_store crux::security_event crux::cli
     crux::cli_zephyr crux::file_zephyr crux::time)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
