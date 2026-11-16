@@ -10,11 +10,18 @@ BUILD_ASSERT(DT_PROP_LEN(LOG_SELECTION, uarts) == 1, "Crux Logging requires exac
 #define LOG_UART DT_PHANDLE_BY_IDX(LOG_SELECTION, uarts, 0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(LOG_UART, okay), "Crux Logging UART must be enabled");
 #if defined(CONFIG_SOC_MIMXRT1062)
-/* Any board with the RT1062 SoC, the EVKB included: any enabled LPUART, accepted by SoC and
- * devicetree, not by board name, with the mode, owner and CSI checks below. Other pin
- * conflicts are board facts that Crux does not check; reviewing them is the product's duty.
- * Accepted is not qualified. */
+#if defined(CONFIG_BOARD_MIMXRT1060_EVK) && DT_NODE_EXISTS(DT_NODELABEL(lpuart1))
+/* The revision-B EVKB keeps its bounded LPUART1 profile, as its evidence has it. */
+#define TARGET_UART                                                                                \
+    (DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart) && DT_SAME_NODE(LOG_UART, DT_NODELABEL(lpuart1)))
+#elif defined(CONFIG_BOARD_MIMXRT1060_EVK)
+#define TARGET_UART 0
+#else
+/* Any other board with the RT1062 SoC: any enabled LPUART, accepted by SoC and devicetree,
+ * not by board name, with the mode and owner checks below. Crux checks no pin conflict on
+ * such a board; reviewing its pins is the product's duty. Accepted is not qualified. */
 #define TARGET_UART DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart)
+#endif
 #else
 #define TARGET_UART 0
 #endif
@@ -59,13 +66,6 @@ REJECT_OWNER(DT_CHOSEN(zephyr_bt_uart), "Crux Logging conflicts with Bluetooth U
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(m2_hci_bt_uart)) && defined(CONFIG_BT_HCI)
 REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Logging conflicts with Bluetooth UART");
-#endif
-/* The pin rule of Crux Serial, on the same SoC labels: LPUART3 shares GPIO_AD_B1_06/07 with
- * CSI on the EVKB. It also refuses a board whose LPUART3 pins do not collide with CSI. */
-#if DT_NODE_EXISTS(DT_NODELABEL(lpuart3)) && DT_NODE_EXISTS(DT_NODELABEL(csi))
-#if DT_SAME_NODE(LOG_UART, DT_NODELABEL(lpuart3)) && DT_NODE_HAS_STATUS(DT_NODELABEL(csi), okay)
-#error "Crux Logging on LPUART3 conflicts with enabled CSI (the EVKB pin rule of Crux Serial)"
-#endif
 #endif
 
 const struct device *crux_log_zephyr_device(void)
