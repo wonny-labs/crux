@@ -2,7 +2,7 @@
 
 > **Status:** A status page, not a decision and not a plan. It records what HAB-related work the repository holds on 16 November 2026, what is not started, and what each kind of next step needs. It adopts nothing and approves nothing.
 > **Verified:** The repository contents named below, by reading them. The offline structure checker ([`tests/target/check_hab_structure.py`](../tests/target/check_hab_structure.py)) by host tests on synthetic images ([`tests/build/test_hab_structure.py`](../tests/build/test_hab_structure.py)).
-> **Not verified:** Any HAB behaviour on a board, any HAB signing tool run, any real HAB-signed image, and the layouts the checker assumes (they are the author's reading of public descriptions and of the repository's records, see [Evidence labels](#evidence-labels)). **No HAB result of any kind exists in this repository.**
+> **Not verified:** Any HAB behaviour on a board, that any signature is valid, that the boot ROM accepts any image, and that SPSDK accepts a Zephyr-built image with an FCB and an IVT. The checker's layouts are the author's reading of public descriptions and of the repository's records; they agree with the output of SPSDK 3.13.0 on a plain synthetic binary (see [Software signing test](#software-signing-test-throwaway-keys-no-board)), which is not a vendor reference image. **No board result and no signature verification of any kind exists in this repository.**
 > **Read this first / then:** the [boot overview](boot-overview.md), then the [secure boot development plan](plans/secure-boot-development-plan.md) (sections 3, 4 and 6), then the [HAB open-configuration plan](plans/hab-open-configuration-plan.md) for the proposed next steps.
 
 ## In one paragraph
@@ -24,20 +24,21 @@ Labels follow the boot records: Verified on pinned source, Verified by build, Ve
 | Issues [#440](https://github.com/wonny-labs/crux-pilot/issues/440), [#296](https://github.com/wonny-labs/crux-pilot/issues/296), [#309](https://github.com/wonny-labs/crux-pilot/issues/309) | #440: sign the eMMC first-stage image for HAB in open configuration (planning item). #296: its acceptance criteria include a HAB-signed bootloader build for the NOR layout and a recorded root-of-trust decision. #309: the boot ROM serial downloader check on the EVKB (hardware, not run). All three were open on 16 November 2026. | Planning items. Publishing them authorises no investigation, implementation, hardware or fuse operation. |
 | WP1a build check ([boot composition](boot-composition.md)) | Builds MCUboot and the controller sample and signs the **application** with a public test key using MCUboot's `imgtool`. Build-only. | This is MCUboot signing, not HAB signing. It writes no CSF and uses no HAB tool. |
 | [Boot image inspector](boot-image-inspection.md) | Reads MCUboot image headers, TLVs and trailers. | MCUboot's format only. It does not read an IVT, a DCD or a CSF. |
-| HAB structure checker (this change) | [`tests/target/check_hab_structure.py`](../tests/target/check_hab_structure.py): IVT position and header, boot data, DCD pointer and header, CSF pointer and header, for NOR (IVT at `0x1000`) and SD or eMMC (IVT at `0x400`), against a declared CSF presence. See [How to run the checker](#how-to-run-the-checker). | Structure only. Never run on a real image. A pass is not a signature verification. |
-| SPSDK download approval | The owner gave approval for the SPSDK download under #141 A2 (recorded 2 November 2026). | Not used: no SPSDK result is in any record. CST and the Secure Provisioning tool have no approval. |
+| HAB structure checker | [`tests/target/check_hab_structure.py`](../tests/target/check_hab_structure.py): IVT position and header, boot data, DCD pointer and header, CSF pointer and header, for NOR (IVT at `0x1000`) and SD or eMMC (IVT at `0x400`), against a declared CSF presence. See [How to run the checker](#how-to-run-the-checker). | Structure only. Has read only images that SPSDK 3.13.0 wrote from synthetic input, never a vendor reference image or a board image. A pass is not a signature verification. |
+| Software signing test | [`tests/build/test_hab_signing.py`](../tests/build/test_hab_signing.py) with its own workflow ([`hab-signing.yml`](../.github/workflows/hab-signing.yml)): generates throwaway keys in a temporary directory, signs a synthetic image with a pinned SPSDK for the NOR and the SD/eMMC layouts and runs the structure checker. See the section below. | Software only. No board, fuse or stored key. Not a signature verification. |
+| SPSDK approvals | The SPSDK download was approved under #141 A2 (recorded 2 November 2026). On 16 November 2026 the owner approved throwaway keys for this test under the conditions quoted [below](#software-signing-test-throwaway-keys-no-board). | CST and the Secure Provisioning tool have no approval. |
 | Public-source tooling research | A desk summary of the public NXP tooling for RT1060 secure boot (SPSDK `nxpimage hab`, `sdphost`, `blhost`, CST, Secure Provisioning, the flashloader). It sits outside the repository; the plan's section 7 and the [HAB open-configuration plan](plans/hab-open-configuration-plan.md) carry what they use. | Public pages, summarising fetches; nothing was installed or run. |
 
 ## Not started
 
-None of the following exists: a HAB signing step or script; a BD or YAML description of a HAB image; a CSF; any key, certificate or SRK table (throwaway or other); a run of SPSDK `nxpimage hab`, `sdphost`, `blhost` or CST; a CI step for any of them; a first-stage image for the NOR layout that carries a CSF; an eMMC first-stage image (plan issue B) to sign; a HAB event read; an SRK hash in any fuse; a closed configuration. No fuse operation on the RT1060-EVKB is recorded in the repository. No board result about HAB exists.
+None of the following exists: a HAB signing step for the real first-stage image; a stored key, certificate or SRK table of any kind (the signing test creates and deletes its own); a run of `sdphost`, `blhost` or CST; a first-stage image for the NOR layout that carries a CSF; an eMMC first-stage image (plan issue B) to sign; a HAB event read; an SRK hash in any fuse; a closed configuration. No fuse operation on the RT1060-EVKB is recorded in the repository. No board result about HAB exists.
 
 ## What a next step needs
 
 | Kind | Examples | Needs |
 | --- | --- | --- |
 | **Board-free, no key** | The structure checker (done, this change); a plan for signing and for the hardware block ([HAB open-configuration plan](plans/hab-open-configuration-plan.md)); a licence review of the tools; fixtures and checks for the layouts of the SDP-download variant. | Nothing beyond the task's approval. |
-| **Board-free, with throwaway keys** | Generating development keys; building a HAB-signed first-stage image offline; `nxpimage hab parse` of the result; running the structure checker on it; the question whether SPSDK accepts a Zephyr image with an FCB and an IVT (A14). | Explicit owner approval to generate throwaway development keys, to install and run the pinned tool, and where they are held. **Not given.** Keys stay outside every repository. |
+| **Board-free, with throwaway keys** | The software signing test (below; approved for temporary, per-run keys only); signing the real first-stage image; the question whether SPSDK accepts a Zephyr image with an FCB and an IVT (A14). | Per-run keys in a temporary directory for the test: approved on 16 November 2026, with the conditions below. Persistent throwaway keys and signing the real first-stage image: **not approved**. Keys stay outside every repository. |
 | **Board, open configuration, no fuse write** | A HAB event read; the ROM serial downloader check (#309), which may share a session with it (#141 owner decision 8); showing that the ROM runs an image that carries a CSF in open configuration. | A separately approved hardware task with a verified target, probe and setup, a custody arrangement for the board and a stop rule. **Not given.** The RT1060-EVKB is open and stays open. |
 | **Board, closed configuration** | Programming SRK hash fuses, setting SEC_CONFIG, a flashloader signed under the device's SRK, revocation, debug lockdown, a hardware anti-rollback counter. | A decision on D1 (which the owner approved as "plan for it in production") turned into a product fuse plan, key custody and a signing ceremony, and a board that may be locked ([#141 decision 11](boot-update-investigation.md) defers a dedicated board). No fuse operation is approved. **Phase 5; not started.** |
 
@@ -70,15 +71,34 @@ These statements are cited from the records above and carry their labels there.
 | The SPSDK device data for the RT1060 is an alias chain (Verified by public vendor document, B-15); that its memory map is wrong for the RT1060, because it disagrees with the manual, is Inference. | Mixed, as stated | B-15, B-16 |
 | What HAB event data the serial downloader returns in open configuration with a blank SRK hash. | Not verified | B-11, #141 A13 |
 
+## Software signing test (throwaway keys, no board)
+
+**Approval and its limits.** "추천 범위로 구현해줬으면 하는데" (project owner, in the Secure Boot chat, 16 November 2026 about 17:55 UTC, answering a list that included the approval of throwaway HAB development keys generated in a temporary folder outside every repository, a signing test with the structure checker in CI, discarded after the test and never committed; relayed second-hand by the Secure Boot session). It covers only keys that the test creates in a temporary directory at run time, outside every repository, never reused, deleted afterwards and never committed. It does not cover a persistent key set, a key on any other host, hardware, a fuse or SRK hash write, a closed configuration, production or reusable keys, or CST. The words come second-hand, not from the owner directly.
+
+**What the test does** (`tests/build/test_hab_signing.py`, run by `.github/workflows/hab-signing.yml` and skipped elsewhere unless SPSDK is installed): `nxpcrypto pki-tree hab` creates an RSA-3072 tree with four SRKs; `nxpcrypto rot export` writes the SRK table; `nxpimage hab export` signs a synthetic application for the NOR layout (start `0x60000000`, IVT `0x1000`) and the SD/eMMC layout (start `0x80000000`, IVT `0x400`); the structure checker reads the result as a bare container and as a device image. Controls: an unsigned export declared signed, and a copy with the csf pointer zeroed, are rejected.
+
+**Dependency decision (stated plainly).** A new pinned CI test dependency, SPSDK 3.13.0, licence BSD-3-Clause on PyPI as read; the licences of its binary dependencies are Not verified. SPSDK and its 51 dependencies are pinned in [`tests/target/hab-constraints.txt`](../tests/target/hab-constraints.txt) without hashes. Cost: a separate workflow, run only when the test, the checker, the pin files or the workflow change; about one minute of virtual-environment installation and about 20 seconds of test time. Nothing in `host.yml` or `zephyr.yml` changed.
+
+**What a first run of the pinned tool showed** (author's local run on a Mac with SPSDK 3.13.0, then the same test in CI; the CI result is recorded in the pull request):
+
+| Observation | Label |
+| --- | --- |
+| `nxpimage hab export` writes a bare HAB container whose IVT is at file offset 0; the device image is that container behind `ivtOffset` bytes (the `bootable-image` layout of B-15). The boot data length counts those bytes, which are not in the file. The checker has a `--layout container` mode for this. | Verified by command (local run of SPSDK 3.13.0 on synthetic input) |
+| The IVT header word reads `d1 00 20 40` (tag `0xD1`, big-endian length 32, version `0x40`); the boot data sits at self plus `0x20`; the boot data start equals self minus the IVT offset; the CSF header reads tag `0xD4`, version `0x42` and a big-endian length of 80 bytes. These agree with the checker's reading. | Verified by command for SPSDK output only; not compared with a vendor reference image or the ROM |
+| The CSF header length (80 bytes) covers the commands. The reserved region after it is larger (`0x2000` in the NOR run), so the checker's "CSF length" is the declared command length, not the size of the whole region. | Verified by command; what the rest of the region holds is Not verified |
+| `nxpimage hab verify` of 3.13.0 reported success for a copy with one payload byte changed. It is therefore not a signature check in this use; neither is the structure checker. | Verified by command (manual trial); why it passes is Not verified |
+| SPSDK accepted a plain binary for `mimxrt1060` in both layouts. Whether it accepts a Zephyr-built image with an FCB and an IVT is not tested. | Verified by command; A14 stays Not verified |
+
 ## How to run the checker
 
 ```sh
 python3 tests/target/check_hab_structure.py check first-stage.bin --medium nor --csf absent
+python3 tests/target/check_hab_structure.py check container.bin --medium nor --layout container --csf present
 python3 tests/target/check_hab_structure.py check first-stage.bin --medium emmc --csf present --dcd present --json
 python3 -m unittest tests/build/test_hab_structure.py
 ```
 
-`--medium` sets the expected IVT offset (`nor` `0x1000`, `sd` and `emmc` `0x400`). `--csf` is required: the image is declared to carry a CSF or not, and the checker fails when the csf pointer disagrees. `--dcd` is optional and declares the DCD the same way. The checks:
+`--medium` sets the expected IVT offset (`nor` `0x1000`, `sd` and `emmc` `0x400`). `--layout` is `image` (default: a device image) or `container` (a bare HAB container with the IVT at file offset 0, as `nxpimage hab export` writes it). `--csf` is required: the image is declared to carry a CSF or not, and the checker fails when the csf pointer disagrees. `--dcd` is optional and declares the DCD the same way. The checks:
 
 | Check | Fails when |
 | --- | --- |
