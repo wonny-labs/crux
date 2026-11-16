@@ -185,3 +185,30 @@ changes, automatic recovery, comprehensive runtime compatibility, production
 security and concurrent-load/long-run performance qualification. Physical link
 loss, routing, MAC/PHY behaviour and target resource/timing results remain pending
 unless identified physical evidence is separately accepted.
+
+## Tuning and limits for products
+
+This section is guidance. It restates the profile above and adds no option, function or
+promise. Zephyr citations are to the pinned v4.4.2 (the `west.yml` revision). The same facts hold
+in v4.4.0, where the `sockets_inet.c` lines are three lower, the `tcp.c` lines are one higher and
+`Kconfig.tcp` is identical.
+
+| Question | Answer | Source |
+| --- | --- | --- |
+| Which socket options does the profile cover? | One: `getsockopt(SOL_SOCKET, SO_ERROR)`, read once after a connect. `setsockopt` is not in the profile, and "arbitrary flags/options" are excluded | [Socket profile](#socket-profile) table (Connect outcome row), and the Excluded list at the end of the previous section |
+| How long does a closed TCP socket hold its context? | After a normal close, the side that sends the first FIN waits in TIME_WAIT for `CONFIG_NET_TCP_TIME_WAIT_DELAY` milliseconds, default 1500. The context stays allocated meanwhile | `subsys/net/ip/Kconfig.tcp:44-47`; `subsys/net/ip/tcp.c:2647-2654` (the timer), `:3726-3751` (close sends FIN and enters FIN_WAIT_1), `:3611` (TIME_WAIT state). The contract's 1500 ms and its settling time are in the [previous section](#configurations-assumptions-and-unsupported-scope) |
+| Can a product set that delay? | Yes, as a Kconfig value in the product's configuration, for example `CONFIG_NET_TCP_TIME_WAIT_DELAY=<milliseconds>`. Crux's Kconfig and CMake do not set it. Crux's qualification used 1500, so another value has no Crux evidence. Zephyr's help text names the trade-off: a long delay holds resources, a short one allows delayed packets to reach a reused port pair | `subsys/net/ip/Kconfig.tcp:44-60`; [Configurations](#configurations-assumptions-and-unsupported-scope) |
+| Does `SO_LINGER` change how a socket closes? | No. Zephyr accepts `setsockopt(SOL_SOCKET, SO_LINGER)`, returns 0 and ignores it ("for compatibility purposes only"). A zero-linger abortive close, which sends a reset instead of FIN, is therefore not available through it | `subsys/net/lib/sockets/sockets_inet.c:2593-2595` |
+| Is `SO_KEEPALIVE` available? | Only with `CONFIG_NET_TCP_KEEPALIVE=y`, which has no default and so is off, and only on a TCP socket. Otherwise `setsockopt` fails with ENOPROTOOPT. `TCP_KEEPIDLE`, `TCP_KEEPINTVL` and `TCP_KEEPCNT` need the same symbol; their defaults are 7200 s, 75 s and 9 probes | `Kconfig.tcp:171-200`; `sockets_inet.c:2597-2611`, `:2639-2654`, `:2945-2946` |
+
+**A product that needs abortive close or keepalive** calls Zephyr's socket API directly, in its own
+adapter. Zephyr calls belong in adapters ([Choosing an API](choosing-an-api.md): Question 1; [route
+1 of the composition rules](composition-interfaces.md)), and the profile deliberately publishes
+standard interfaces without wrapper functions (see [Boundary and composition](#boundary-and-composition)).
+No Crux wrapper for options is planned. Crux does not qualify those calls: the product owns their
+tests, and the adapter's use of options outside this profile does not extend the profile.
+
+**Not verified.** None of this was run. The citations are source reads of Zephyr, and the TIME_WAIT
+behaviour on the wire, the effect of a changed delay on the RT1060 build and the `setsockopt`
+declarations available to an adapter under the product's POSIX options were not tested. Whether a
+reset can be sent some other way through Zephyr was not investigated.
