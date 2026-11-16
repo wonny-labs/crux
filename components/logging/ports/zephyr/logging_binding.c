@@ -9,19 +9,9 @@
 BUILD_ASSERT(DT_PROP_LEN(LOG_SELECTION, uarts) == 1, "Crux Logging requires exactly one UART");
 #define LOG_UART DT_PHANDLE_BY_IDX(LOG_SELECTION, uarts, 0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(LOG_UART, okay), "Crux Logging UART must be enabled");
-#if defined(CONFIG_BOARD_MIMXRT1060_EVK)
-/* The EVKB, and a board: extend: variant of it, which keeps the name: only the reviewed LPUART1. */
-#if DT_NODE_EXISTS(DT_NODELABEL(lpuart1))
+#if defined(CONFIG_BOARD_MIMXRT1060_EVK) && DT_NODE_EXISTS(DT_NODELABEL(lpuart1))
 #define TARGET_UART                                                                                \
     (DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart) && DT_SAME_NODE(LOG_UART, DT_NODELABEL(lpuart1)))
-#else
-#define TARGET_UART 0
-#endif
-#elif defined(CONFIG_SOC_MIMXRT1062)
-/* Another board with the RT1062 SoC: any enabled LPUART, with the mode and owner checks
- * below. Pin conflicts with other peripherals are board facts that Crux does not check;
- * reviewing them is the product's duty. Accepted is not qualified. */
-#define TARGET_UART DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart)
 #else
 #define TARGET_UART 0
 #endif
@@ -39,10 +29,9 @@ BUILD_ASSERT(DT_PROP(LOG_UART, current_speed) == 115200 &&
 BUILD_ASSERT(DT_CHILD_NUM_STATUS_OKAY(LOG_UART) == 0, "Crux Logging rejects UART child consumers");
 #define REJECT_OWNER(node, message) BUILD_ASSERT(!DT_SAME_NODE(LOG_UART, node), message)
 #if DT_HAS_CHOSEN(zephyr_console) && defined(CONFIG_UART_CONSOLE)
-#if defined(CONFIG_SOC_MIMXRT1062)
-/* Pinned native UART backend requires UART_CONSOLE. On the RT1062 SoC the
- * inert Console prerequisite may share the logging UART only under the
- * Logging-only routing conditions below, which are about the Console, not the board. */
+#if defined(CONFIG_BOARD_MIMXRT1060_EVK)
+/* Pinned native UART backend requires UART_CONSOLE. Only this qualified
+ * target may compile its inert Console prerequisite on the logging UART. */
 BUILD_ASSERT(!DT_SAME_NODE(LOG_UART, DT_CHOSEN(zephyr_console)) ||
                  (IS_ENABLED(CONFIG_LOG_PRINTK) && !IS_ENABLED(CONFIG_STDOUT_CONSOLE) &&
                   !IS_ENABLED(CONFIG_CONSOLE_HANDLER) && !IS_ENABLED(CONFIG_CONSOLE_SUBSYS) &&

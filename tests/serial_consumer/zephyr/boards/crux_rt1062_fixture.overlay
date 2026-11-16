@@ -1,0 +1,4 @@
+/* Fictional compile-only RT1062 board (tests/zephyr/board_fixture): Serial on LPUART3, whose
+ * board pins (GPIO_B0_08/09) are not the EVKB's. The board console stays on LPUART1. */
+/ { aliases { crux-serial0 = &lpuart3; }; };
+&lpuart3 { status = "okay"; current-speed = <115200>; };

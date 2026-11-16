@@ -178,3 +178,13 @@ for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyp
     }
     echo "RT1060 File compile check refused on $other, as intended"
 done
+
+# A board with its own name and the RT1062 SoC: the fictional compile-only fixture
+# (tests/zephyr/board_fixture) must select the same check by SoC and devicetree, and compile the
+# File object. Only that object is built: nothing is linked, and the fixture is never programmed.
+fixture="$repo/build/zephyr/file-rt1060-fixture"
+(cd "$workspace" && west build -p always --cmake-only -b crux_rt1062_fixture -d "$fixture" \
+    "$repo/tests/zephyr/file_fatfs_compile" -- -DBOARD_ROOT="$repo/tests/zephyr/board_fixture")
+grep -qx 'CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK=y' "$fixture/zephyr/.config"
+cmake --build "$fixture" --target crux_file_target_compile_only
+echo "RT1060 File compile check built on the fictional board crux_rt1062_fixture"

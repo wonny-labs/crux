@@ -34,10 +34,7 @@ bool crux_watchdog_zephyr_running(void)
     return false;
 }
 #endif
-#elif defined(CONFIG_SOC_MIMXRT1062)
-/* Any board with the RT1062 SoC, the EVKB included: accepted by SoC and devicetree,
- * not by board name. The asserts below still require the SoC's WDOG1. Accepted is
- * not qualified: how the watchdog reset is wired on a board is not checked here. */
+#elif defined(CONFIG_BOARD_MIMXRT1060_EVK)
 #if !DT_NODE_EXISTS(DT_ALIAS(crux_watchdog0))
 #error "Crux System requires explicit crux-watchdog0 selection"
 #elif !DT_NODE_HAS_STATUS(DT_ALIAS(crux_watchdog0), okay)
@@ -63,5 +60,5 @@ bool crux_watchdog_zephyr_running(void)
 }
 #endif
 #else
-#error "Crux System unsupported SoC or watchdog resource"
+#error "Crux System unsupported Zephyr board"
 #endif

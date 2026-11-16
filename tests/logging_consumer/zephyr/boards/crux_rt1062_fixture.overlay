@@ -1,11 +1,14 @@
 /* Fictional compile-only RT1062 board (tests/zephyr/board_fixture): Logging on
- * LPUART2, a UART that is not the EVKB's LPUART1. The board's console stays on
- * LPUART1, so Logging is the only owner of LPUART2. */
+ * LPUART2, a UART that is not the EVKB's LPUART1, and Serial on LPUART3, as the
+ * EVKB composition has it. The board's console stays on LPUART1, so Logging is the
+ * only owner of LPUART2. */
 / {
     chosen { zephyr,log-uart = &logging_uarts; };
+    aliases { crux-serial0 = &lpuart3; };
     logging_uarts: logging-uarts {
         compatible = "zephyr,log-uart";
         uarts = <&lpuart2>;
     };
 };
 &lpuart2 { status = "okay"; current-speed = <115200>; parity = "none"; };
+&lpuart3 { status = "okay"; current-speed = <115200>; };

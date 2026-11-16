@@ -1,0 +1,12 @@
+/* Fictional compile-only RT1062 board (tests/zephyr/board_fixture): an SD card slot on USDHC1,
+ * as a custom board with an i.MX RT1062 would declare it. scripts/test-file-rt1060-compile.sh
+ * configures this check for the board and compiles the File object only. */
+&usdhc1 {
+    status = "okay";
+
+    sdmmc {
+        compatible = "zephyr,sdmmc-disk";
+        disk-name = "SD";
+        status = "okay";
+    };
+};

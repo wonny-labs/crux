@@ -7,7 +7,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 # A fictional, compile-only board with its own name and the RT1062 SoC: it stands for a
 # custom board with an i.MX RT1062 (tests/zephyr/board_fixture, no hardware). Its app
-# overlay puts Logging on LPUART2 and leaves the board console on LPUART1.
+# overlay puts Logging on LPUART2, Serial on LPUART3, and leaves the board console on LPUART1.
 FIXTURE_BOARD_ROOT = REPO / 'tests/zephyr/board_fixture'
 FIXTURE_BOARD = 'crux_rt1062_fixture'
 
@@ -53,9 +53,11 @@ class LoggingCompositionTest(unittest.TestCase):
             'evkb_input': ('', 'CONFIG_CONSOLE_SUBSYS=y\nCONFIG_CONSOLE_GETCHAR=y\n',
                            'shared Console requires Logging-only routing'),
             'evkb_positive': ('', '', None),
-            # The EVKB stays at the reviewed LPUART1: another LPUART is still refused there.
-            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n',
-                             'unsupported UART resource'),
+            # Any enabled LPUART of the RT1062 SoC, the EVKB included, with the mode and owner checks.
+            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n', None),
+            # Serial's CSI rule, carried into Logging: LPUART3 shares GPIO_AD_B1_06/07 with CSI on the EVKB.
+            'evkb_lpuart3_csi': ('&logging_uarts { uarts = <&lpuart3>; };\n&csi { status = "okay"; };',
+                                 'CONFIG_CRUX_SERIAL=n\n', 'Logging on LPUART3 conflicts with enabled CSI'),
             'positive': ('', '', None),
             # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
             # with the same mode and owner checks.
@@ -70,6 +72,9 @@ class LoggingCompositionTest(unittest.TestCase):
                                   'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
                                   'status = "okay"; }; };\n&logging_uarts { uarts = <&log_emul>; };', '',
                                   'unsupported UART resource'),
+            # The CSI rule names SoC labels, so it also refuses a board whose LPUART3 pins do not collide.
+            'custom_csi': ('&logging_uarts { uarts = <&lpuart3>; };\n&csi { status = "okay"; };',
+                           'CONFIG_CRUX_SERIAL=n\n', 'Logging on LPUART3 conflicts with enabled CSI'),
         }
         selected = os.environ.get('CRUX_LOGGING_COMPOSITION_CASE')
         if selected and selected not in cases:
