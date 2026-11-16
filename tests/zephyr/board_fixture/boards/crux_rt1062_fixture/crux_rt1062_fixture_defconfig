@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Fictional, compile-only test board (see board.yml). No external flash, no boot
+# header and no execute-in-place: the tests configure and compile Crux libraries
+# only, and never link or program an image for this board.
+CONFIG_XIP=n
+CONFIG_NXP_IMXRT_BOOT_HEADER=n
+CONFIG_SERIAL=y
+CONFIG_CONSOLE=y
+CONFIG_UART_CONSOLE=y
