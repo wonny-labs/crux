@@ -323,10 +323,10 @@ class CiProposalTest(unittest.TestCase):
 
     def test_the_claims_that_are_not_read_from_a_record_are_not_labelled_verified(self):
         paragraph = next(l for l in self.section.splitlines() if l.startswith("**Cost, measured.**"))
-        verified, _, rest = paragraph.partition("**Inference**")
+        verified, _, rest = paragraph.partition("**Inference:**")
         self.assertIn("43898428480", verified)
-        self.assertNotIn("separate job costs more", verified)
-        self.assertIn("separate job costs more", rest)
+        self.assertNotIn("separate job probably costs more", verified)
+        self.assertIn("separate job probably costs more", rest)
 
     def test_no_workflow_runs_the_reproducibility_check(self):
         # The task is a proposal, not a heavy job: the check stays out of every workflow.
