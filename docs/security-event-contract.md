@@ -26,7 +26,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
 | Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
 | Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
-| Target | Not implemented. See [What is not known](#what-is-not-known). |
+| Target | Compiled and linked, drained to Crux Logging on LPUART1, in the Mbed management image (`samples/management_rt1060_mbed`), which `psa-crypto.yml` cross-builds on each pull request and push to `main`, and in the RT1060-EVKB bench image (`tests/zephyr/management_rt1060_compile`, `target.conf`, one local cross-build), which refuses to start. Nothing has run on a target. See [What is not known](#what-is-not-known). |
 | Persistence | None, by decision E5. A reset loses the ring. |
 
 ## Structure
