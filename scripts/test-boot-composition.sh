@@ -146,7 +146,7 @@ CRUX_PYTHON="$python" CRUX_WORKSPACE="$workspace" "$repo/tests/target/check_boot
 # image. The documented composition is not expected to be clean, so this never fails the check and has no
 # --strict. A pass of the check would show the absence of the edges it looks for, not closure of the #22 matrix
 # (docs/plans/mcuboot-flexspi-write-path-closure.md, section 5.1). A run that cannot start says so. It weakens
-# and removes none of the checks above. Approved by the owner on 2026-11-16 (Secure Boot session chat).
+# and removes none of the checks above. Relayed owner approval of 2026-11-16, about 20:01 UTC (Secure Boot session chat); see PR #495.
 sdk_bin="${ZEPHYR_SDK_INSTALL_DIR:-}/gnu/arm-zephyr-eabi/bin"
 [[ -x "$sdk_bin/arm-zephyr-eabi-objdump" ]] || sdk_bin="${ZEPHYR_SDK_INSTALL_DIR:-}/arm-zephyr-eabi/bin"
 if [[ -x "$sdk_bin/arm-zephyr-eabi-objdump" && -f "$build/mcuboot/zephyr/zephyr.elf" ]]; then
