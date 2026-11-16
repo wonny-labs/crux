@@ -244,6 +244,11 @@ class IvtHeader(Base):
         self.assertTrue(report["ok"])
         self.assertEqual("warn", self.status(report, "entry"))
 
+    def test_entry_outside_the_image_range_warns(self):
+        report = self.check(build_image("nor", entry=0x10000000))
+        self.assertTrue(report["ok"])
+        self.assertEqual("warn", self.status(report, "entry_range"))
+
     def test_reserved_words_nonzero_warn(self):
         report = self.check(build_image("nor", reserved1=1, reserved2=2))
         self.assertTrue(report["ok"])
@@ -368,10 +373,26 @@ class CsfDeclaration(Base):
         image = build_image("nor", csf=True, csf_ptr=0x60001000)
         self.assertFails(self.check(image, csf="present"), "regions")
 
-    def test_csf_outside_the_boot_data_range_is_a_note(self):
+    def test_csf_outside_the_boot_data_range_warns_without_failing(self):
         report = self.check(build_image("nor", csf=True, bd_length=0x3000), csf="present")
         self.assertTrue(report["ok"], json.dumps(report, indent=1))
-        self.assertEqual("info", self.status(report, "csf_range"))
+        self.assertEqual("warn", self.status(report, "csf_range"))
+
+    def test_dcd_overlapping_the_boot_data_fails(self):
+        image = build_image("nor", dcd_ptr=0x60000000 + 0x1020)
+        self.assertFails(self.check(image), "regions")
+
+    def test_dcd_pointing_into_the_fcb_fails(self):
+        image = build_image("nor", dcd_ptr=0x60000000 + 0x100)
+        self.assertFails(self.check(image), "regions")
+
+    def test_sd_and_emmc_negative_cases(self):
+        for medium in ("sd", "emmc"):
+            with self.subTest(medium=medium):
+                self.assertFails(self.check(build_image(medium), medium, "present"), "csf")
+                self.assertFails(self.check(build_image(medium, csf=True), medium, "absent"), "csf")
+                self.assertFails(self.check(build_image(medium, ivt_tag=0x00), medium), "ivt")
+                self.assertFails(self.check(build_image(medium, bd_length=0x400), medium), "boot_data")
 
     def test_csf_content_is_not_parsed(self):
         report = self.check(build_image("nor", csf=True), csf="present")

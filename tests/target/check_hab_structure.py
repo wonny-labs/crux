@@ -187,6 +187,8 @@ def check_hab_structure(data, medium, csf, dcd=None):
         return offset, None
 
     regions = [("ivt", ivt_offset, ivt_offset + IVT_SIZE)]
+    if medium == "nor":
+        regions.append(("fcb", 0, FCB_SIZE))
 
     # Boot data and self pointer.
     bd = report["boot_data"]
@@ -235,6 +237,10 @@ def check_hab_structure(data, medium, csf, dcd=None):
         else:
             add("plugin", "warn", f"plugin flag {plugin}, expected 0 or 1")
 
+    if entry != 0 and start is not None and length_bd and not start <= entry < start + length_bd:
+        add("entry_range", "warn", f"the entry pointer {_hex(entry)} is outside the image range "
+                                   f"[{_hex(start)}, {_hex(start + length_bd)}); a RAM-loaded image may "
+                                   "legitimately differ")
     if length_bd and 0 < length_bd <= size:
         if length_bd == size:
             add("image_length", "ok", f"the boot data length equals the file size ({size} bytes)")
@@ -316,8 +322,10 @@ def check_hab_structure(data, medium, csf, dcd=None):
                 else:
                     add("csf", "ok", f"CSF header at offset {_hex(csf_offset)}, length {csf_length}")
                     if length_bd and csf_offset >= length_bd:
-                        add("csf_range", "info", f"the CSF starts at offset {_hex(csf_offset)}, outside the "
-                                                 f"first boot data length {_hex(length_bd)}")
+                        add("csf_range", "warn", f"the CSF starts at offset {_hex(csf_offset)}, outside the "
+                                                 f"boot data length {_hex(length_bd)}; the ROM copies only "
+                                                 "that many bytes on SD and eMMC, so this CSF may never be "
+                                                 "loaded (Inference). It does not decide the verdict")
                     elif length_bd:
                         add("csf_range", "ok", "the CSF lies inside the boot data length")
 

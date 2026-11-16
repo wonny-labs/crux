@@ -30,7 +30,7 @@ Labels follow the boot records: Verified on pinned source, Verified by build, Ve
 
 ## Not started
 
-None of the following exists: a HAB signing step or script; a BD or YAML description of a HAB image; a CSF; any key, certificate or SRK table (throwaway or other); a run of SPSDK `nxpimage hab`, `sdphost`, `blhost` or CST; a CI step for any of them; a first-stage image for the NOR layout that carries a CSF; an eMMC first-stage image (plan issue B) to sign; a HAB event read; an SRK hash in any fuse; a closed configuration. The RT1060-EVKB has had no fuse operation. No board result about HAB exists.
+None of the following exists: a HAB signing step or script; a BD or YAML description of a HAB image; a CSF; any key, certificate or SRK table (throwaway or other); a run of SPSDK `nxpimage hab`, `sdphost`, `blhost` or CST; a CI step for any of them; a first-stage image for the NOR layout that carries a CSF; an eMMC first-stage image (plan issue B) to sign; a HAB event read; an SRK hash in any fuse; a closed configuration. No fuse operation on the RT1060-EVKB is recorded in the repository. No board result about HAB exists.
 
 ## What a next step needs
 
@@ -67,7 +67,7 @@ These statements are cited from the records above and carry their labels there.
 | With blank SRK hash fuses, open configuration can at best show that a CSF was processed and which checks failed, not a passing authentication. | Not verified for the RT1060 | #141 stage 3 A13; B-69 |
 | A signed first stage in open configuration adds checking and reporting but no root of trust. | Inference | B-69 |
 | Whether SPSDK accepts a Zephyr image that already has an FCB and an IVT, and whether it fully replaces the legacy CST for the RT1060. | Not verified | #141 stage 3 A14, B6 |
-| The SPSDK device data for the RT1060 is an alias chain; its memory map disagrees with the manual. | Inference | B-16 |
+| The SPSDK device data for the RT1060 is an alias chain (Verified by public vendor document, B-15); that its memory map is wrong for the RT1060, because it disagrees with the manual, is Inference. | Mixed, as stated | B-15, B-16 |
 | What HAB event data the serial downloader returns in open configuration with a blank SRK hash. | Not verified | B-11, #141 A13 |
 
 ## How to run the checker
@@ -90,7 +90,7 @@ python3 -m unittest tests/build/test_hab_structure.py
 | `csf` | The declaration and the csf pointer disagree; or the pointer is outside the file; or the region has no CSF header (tag `0xD4`), for example a reserved empty region; or its length runs beyond the file. |
 | `regions` | The IVT, boot data, DCD and CSF regions overlap. |
 
-`fcb` (NOR only, the tag `FCFB` at offset 0), `entry`, `reserved`, `plugin`, `image_length` and `csf_range` report as `ok`, `info` or `warn` and never decide the verdict. The last line is `Result: structure consistent` or `Result: structure inconsistent`; the exit status is 0, 1, and 2 for a usage error or an unreadable file.
+`fcb` (NOR only, the tag `FCFB` at offset 0; the FCB region also takes part in the overlap check), `entry`, `entry_range`, `reserved`, `plugin`, `image_length` and `csf_range` (a CSF that starts beyond the boot data length warns, because the ROM may never load it) report as `ok`, `info` or `warn` and never decide the verdict. The last line is `Result: structure consistent` or `Result: structure inconsistent`; the exit status is 0, 1, and 2 for a usage error or an unreadable file.
 
 The checker does not verify a signature, a certificate, an SRK table or a key, does not parse DCD or CSF commands, reads no vendor tool output and cannot say what the ROM or HAB would decide. It complements [`inspect_boot_image.py`](boot-image-inspection.md), which reads MCUboot's format, and shares no code with it. A first run on an image built by a real tool is the next check; until then a pass is a result about the checker as much as about the image. It is not wired into CI.
 
