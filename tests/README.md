@@ -809,7 +809,8 @@ the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script. Its composition test also
 configures and compiles the Serial library on the fictional RT1062 board of
 `tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
-the mode, owner, resource and CSI checks still refuse there.
+the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging
 
@@ -818,8 +819,9 @@ Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
 Its composition test also configures and compiles the Logging library on
 `tests/zephyr/board_fixture`, a fictional compile-only board with its own name and
-the RT1062 SoC: Logging on LPUART2 builds next to Serial on LPUART3, and the mode, owner,
-resource and CSI checks still refuse. That fixture is no hardware and no evidence for any real board.
+the RT1062 SoC: Logging on LPUART2 builds next to Serial on LPUART3, and the mode, owner and
+resource checks still refuse. On the revision-B EVKB, Logging stays at LPUART1: LPUART3 is
+still refused. That fixture is no hardware and no evidence for any real board.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 

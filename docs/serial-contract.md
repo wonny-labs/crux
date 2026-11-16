@@ -30,15 +30,16 @@ Logical port 0 must be explicitly bound by native composition. Linux binds once
 before concurrent use and checks native TTY identity/exclusivity; Zephyr binds
 `crux-serial0` and rejects missing/unsupported static resources and known Console,
 Shell, UART Logging, management and Bluetooth owners at build time. Only native_sim
-UART emulators and enabled LPUART (`nxp,lpuart`) nodes on a board with the RT1062 SoC
-are admitted, the RT1060-EVKB LPUART3 candidate among them; any other board is
-accepted by the SoC and the devicetree only and is not qualified. UART sharing is
+UART emulators, the RT1060-EVKB LPUART3 candidate (the EVKB admits no other UART) and,
+on any other board with the RT1062 SoC, enabled LPUART (`nxp,lpuart`) nodes are admitted;
+such a board is accepted by the SoC and the devicetree only and is not qualified. UART sharing is
 unsupported and is not required for M5. `CRUX_SERIAL_PROVIDER` defaults to `host`
 or `zephyr` in the respective native composition; other or empty selections fail
 configuration. Host dynamic TTY binding remains a runtime bootstrap responsibility.
 Direct unregistered native clients violate this composition rule.
 The EVKB candidate uses LPUART3, retaining LPUART1 diagnostics, and rejects an
-enabled CSI conflict. Electrical pin/connector suitability remains unverified.
+enabled CSI conflict (on the EVK, CSI shares pins with LPUART3 and LPUART8; LPUART8 is
+not admitted). Pin conflicts on another board are the product's to review. Electrical pin/connector suitability remains unverified.
 
 Initial resources: one port, Zephyr 256-byte RX and TX rings, Host at most
 256-byte staging/commit chunks plus independent kernel TTY queues. Requests map
