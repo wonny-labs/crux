@@ -84,6 +84,8 @@ what the checker covers and what it does not.
 and trailer inspector and its slot fit decision, on synthetic images built in memory. They need no key, board or west workspace. See
 [boot image inspection](../docs/boot-image-inspection.md).
 
+`tests/build/test_hab_structure.py` holds the checks of `tests/target/check_hab_structure.py`, the offline structure check of the IVT, boot data, DCD and CSF pointers of a first-stage image, on synthetic images built in memory. They need no key, board, vendor tool or west workspace, and the checker verifies no signature. See the [HAB status page](../docs/boot-hab-status.md).
+
 `tests/build/test_compare_boot_builds.py` and `tests/build/test_check_boot_reproducibility.py` hold the checks of
 `tests/target/compare_boot_builds.py` and `tests/target/check_boot_reproducibility.sh`, the comparison of two builds
 of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See
@@ -92,7 +94,7 @@ of the boot composition, on fake build trees, a fake imgtool and a fake composit
 `tests/build/test_check_boot_config.py` holds the checks of `scripts/check-boot-config.py`, which reads the resolved `.config` of the
 MCUboot image and the application of the boot composition and fails unless both are built for RAM load with revert and the
 build-number comparison is off (image-state rows I5 and Q9). It runs on fixture files in `tests/build/fixtures/boot-config/`. The
-script is not wired into a workflow yet: it reads the build that `scripts/test-boot-composition.sh` writes.
+script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the edit of that protected script is pending the owner's approval); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
 
 `tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
 size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
