@@ -98,3 +98,5 @@ An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exce
 4. A lock would live in the shell. This example needs none, because the snapshot is one value.
 
 `main()` stands in for the callbacks of a service, so the example needs no extra Crux component. A real handler calls the same adapter and does nothing more. It is an example, not a framework: replace the stand-in port with a driver, and replace the one command with the product's own.
+
+Format, patch-style and include checks that run from a product root are in [style/README.md](style/README.md).
