@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
 # Check that the C and C++ sources of a product repository match its .clang-format.
 # Run it from anywhere inside the repository: it uses the Git top level. It reads the
 # product's own .clang-format, and falls back to the copy beside this script when the
-# product root has none. It formats nothing: it only reports. Crux's scripts/check-format.sh
+# product root has none. That fallback is passed as --style=file:, which applies to every file
+# and overrides a nested .clang-format, so copy the file to the root before relying on one.
+# It formats nothing: it only reports. Crux's scripts/check-format.sh
 # does the same for the Crux repository and works in any repository too, but it
 # reads whatever .clang-format that repository has.
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
 # Run Zephyr's checkpatch on the C lines that a Git range changes in a product repository.
@@ -55,8 +56,9 @@ if git -C "$repo" diff --quiet --no-ext-diff "$base" "$head" -- '*.c' '*.h'; the
     exit 0
 fi
 
-# checkpatch reads .checkpatch.conf from the current directory, so run it from the product
-# root: a product's own .checkpatch.conf applies, and Zephyr's does not.
+# checkpatch uses the first .checkpatch.conf it finds in the current directory, then $HOME,
+# then .scripts. Run it from the product root: a product's own file applies, else a user's
+# ~/.checkpatch.conf, and Zephyr's does not.
 cd "$repo"
 git diff --no-ext-diff --no-color "$base" "$head" -- '*.c' '*.h' |
     perl "$ZEPHYR_BASE/scripts/checkpatch.pl" --no-tree --no-signoff --types "$types" -

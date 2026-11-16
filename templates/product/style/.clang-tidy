@@ -1,6 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+#
 # Product copy of Crux's clang-tidy selection. The check list equals Crux's, and a test compares
-# the two. Only the header filter differs: it names the directories of a product repository, so
-# that headers of Zephyr, Crux and the SDK are not reported. Copy this file to the product root.
+# the two. Only the header filter differs. Copy this file to the product root.
+#
+# Edit the header filter before use: replace <PRODUCT_ROOT> with the absolute path of the product
+# repository, with any regex metacharacter in it escaped (for example /work/product). clang-tidy
+# searches a header's full path with this regex, and a Zephyr compile database names headers by
+# absolute path. Anchored to the root, the filter reports headers under app/, domain/, drivers/,
+# include/ and tests/ of the product only, and not those of Zephyr, Crux, the SDK or a build
+# directory, whose paths also contain include/, drivers/ or tests/. Left unedited, it matches no
+# header, so only the source files themselves are reported. A path that differs per checkout can be
+# passed instead on the command line, which overrides this file:
+#   clang-tidy -p build --header-filter="^$(git rev-parse --show-toplevel)/(app|domain|drivers|include|tests)/" ...
 #
 # clang-tidy needs a compile database. A Zephyr build writes compile_commands.json when
 # CMAKE_EXPORT_COMPILE_COMMANDS is on. Crux does not provide one for a product, and nobody has run
@@ -20,5 +31,5 @@ Checks: >-
   portability-*,
   readability-identifier-naming
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/(app|domain|drivers|include|tests)/.*'
+HeaderFilterRegex: '^<PRODUCT_ROOT>/(app|domain|drivers|include|tests)/'
 FormatStyle: file
