@@ -1,0 +1,24 @@
+# Product copy of Crux's clang-tidy selection. The check list equals Crux's, and a test compares
+# the two. Only the header filter differs: it names the directories of a product repository, so
+# that headers of Zephyr, Crux and the SDK are not reported. Copy this file to the product root.
+#
+# clang-tidy needs a compile database. A Zephyr build writes compile_commands.json when
+# CMAKE_EXPORT_COMPILE_COMMANDS is on. Crux does not provide one for a product, and nobody has run
+# these checks on Zephyr driver sources here, so expect to tune the list for them.
+# readability-identifier-naming has no options, so it reports nothing, as in Crux's own file: the
+# naming rules of docs/coding-guidelines.md are not enforced by this file.
+#
+# Keep the C17 enum ABI and explicitly length-checked C library calls; these two
+# generic checks flag the language/library form rather than a project defect.
+Checks: >-
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  performance-*,
+  -performance-enum-size,
+  portability-*,
+  readability-identifier-naming
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(app|domain|drivers|include|tests)/.*'
+FormatStyle: file

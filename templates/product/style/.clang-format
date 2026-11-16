@@ -1,0 +1,15 @@
+# Product copy of the format settings of the Crux template sources: LLVM with Linux brace
+# placement, 4-space indent, 100 columns. The sources of this template conform to it, and a test
+# compares its settings with Crux's own .clang-format, so the two cannot drift apart unnoticed.
+#
+# Copy this file to the root of the product repository. Zephyr itself formats with tabs. A driver
+# that is meant for upstream Zephyr should use Zephyr's own .clang-format instead: put it in that
+# driver's directory, where clang-format finds it first. See docs/coding-guidelines.md in Crux.
+BasedOnStyle: LLVM
+BreakBeforeBraces: Linux
+IndentWidth: 4
+ColumnLimit: 100
+SortIncludes: CaseSensitive
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+IndentExternBlock: NoIndent
