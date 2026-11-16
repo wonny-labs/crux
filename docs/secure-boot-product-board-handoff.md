@@ -57,7 +57,7 @@ Take the full list and the reasons from the [validation target record](plans/emm
 | Composition recipe and the EVKB composition files (the model for a product's four files) | [boot composition](boot-composition.md), `zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/` | **Verified by build** (CI, EVKB only). A product writes its own four files in its own repository. |
 | Porting guide: what carries over, what to re-derive per board, the eMMC variant, a twelve-step checklist | [boot-porting-rt1062.md](boot-porting-rt1062.md) | Guidance. No product board was built. The check script is wired to the EVKB; a product board needs a second or a parameterised script. |
 | Bench procedure for the EVKB, as the model of a product's procedure | [secure boot board test procedure](secure-boot-board-test-procedure.md) | Written and **not yet run**. Every expected result is a prediction. |
-| Bench runbook and kit | Pull request #492 (open, not merged) | Not on `main`. Not relied on here. |
+| Bench runbook and kit | [Secure boot bench session kit](secure-boot-bench-session.md) and the [kit README](../tests/target/boot-bench/README.md) (merged, #492) | Proposal, not run. Its tools passed host tests against a fake J-Link and synthetic files only (the kit's own statement). EVKB-specific: wrapper addresses, regions and file names are fixed for the EVKB QSPI layout, so a product needs its own. |
 | Device-control tool: one lock per board, gated reset and flash, raw console, an evidence directory per run | [`tools/device_control/README.md`](../tools/device_control/README.md), [board image profiles](board-image-profiles.md) | Internal, never run against hardware. A new board needs a profile and a target identity, and none exists for a product board. Its flags record a reference and are not authority. |
 | Image checkers: MCUboot image inspector with the `fit` decision, the HAB structure checker, the boot configuration check, the two-build reproducibility comparison | [boot image inspection](boot-image-inspection.md), [HAB status](boot-hab-status.md), [`scripts/check-boot-config.py`](../scripts/check-boot-config.py), [boot reproducibility](boot-reproducibility.md) | **Verified by command** on synthetic inputs only; never run on a real image of a product. Not interfaces. |
 | Evidence format | [Board test procedure, sections 8 and 9](secure-boot-board-test-procedure.md), section 7 below | Described, not used yet. |
@@ -185,7 +185,7 @@ Open questions about the procedures, checkers and records go to the Crux maintai
 - That the EVKB procedure's steps carry over to a product's probe, flash and supply, and that an eMMC product's procedure, which does not exist, can follow the same shape.
 - That the boot ROM boots an eMMC with a Zephyr-laid-out header, where the first stage sits in a boot partition, and that a flashloader programs an eMMC on the RT1060.
 - Any claim about a one-time-programmable field beyond what the public tool sources say; the JEDEC eMMC standard was not read.
-- That the pull requests named by number (#491 and #493 for issue #165, and #492) have the state given here: it is the state known on 16 November 2026, not re-read.
+- That the pull requests named by number (#491 and #493 for issue #165) have the state given here: it is the state known on 16 November 2026, not re-read.
 
 ## Method
 

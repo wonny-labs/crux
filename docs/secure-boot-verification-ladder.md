@@ -34,7 +34,7 @@ What exists today at each level (Verified in repository, as recorded on 15 and 1
 | L0 | Yes: the composition builds, signs and verifies with the public test key in CI (**Verified by build**). Offline checkers exist: the [image inspector](boot-image-inspection.md), the [HAB structure checker](boot-hab-status.md), the [reproducibility comparison](boot-reproducibility.md) and the boot configuration check. The checkers have run on synthetic inputs only. |
 | L1 | Partly: the eMMC simulator and the FatFs and Reliance Edge power-cut replays run on `native_sim` (**Verified by command**). No MCUboot code has run on `native_sim`. |
 | L2 | Yes, for MCUboot's trailer sequences on modelled cache behaviours: all 566,692 cases kept the safety properties when slots sit on native-unit boundaries (**Verified by command, models only**; [replay record](evidence/boot-emmc/trailer-replay/README.md)). |
-| L3 | **No boot result.** Earlier physical work on the EVKB ran other images, not MCUboot ([baseline](baseline.md)). The first bench session is prepared in the [board test procedure](secure-boot-board-test-procedure.md) and a bench runbook and kit (#492, open, not merged) and has not been run. |
+| L3 | **No boot result.** Earlier physical work on the EVKB ran other images, not MCUboot ([baseline](baseline.md)). The first bench session is prepared in the [board test procedure](secure-boot-board-test-procedure.md) and the [bench session kit](secure-boot-bench-session.md) (merged, #492) and has not been run. |
 | L4 | No. No adapter, no target, no result. |
 | L5 | No. No product-class board is available to this repository. |
 
@@ -204,7 +204,7 @@ The product team's final verification covers what only L5 proves: ROM boot of th
 | Decision D2 (adopt the eMMC flash-API driver) and the first-stage issue for eMMC | Not decided; the driver is a Draft (#435) |
 | An L4 adapter, and a product-class board available to the product team | Not chosen; board support outside this repository |
 | The role of crux-controller as second consumer and holder of the transports | Inference from the owner's sessions; not a recorded decision here |
-| States of the pull requests named by number (#435, #459, #491, #493, #492, #494, #496) | As known on 16 November 2026, not re-read |
+| States of the pull requests named by number (#435, #459, #491, #493, #494, #496) | As known on 16 November 2026, not re-read |
 
 ## Method
 
