@@ -315,11 +315,47 @@ class CommandLineTest(unittest.TestCase):
 
 
 class WiringTest(unittest.TestCase):
-    # The check is not wired into scripts/test-boot-composition.sh in this change: that protected edit waits for
-    # an explicit approval of its own (see the pull request).
-    def test_the_composition_script_is_not_edited_by_this_change(self):
-        code = (REPO / "scripts/test-boot-composition.sh").read_text()
-        self.assertNotIn("check-flexspi-closure", code)
+    """The composition script runs the check in report mode after its other checks (owner approval of 2026-11-16)."""
+
+    def setUp(self):
+        text = (REPO / "scripts/test-boot-composition.sh").read_text()
+        self.code = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
+
+    def position(self, text):
+        index = self.code.find(text)
+        self.assertNotEqual(-1, index, text)
+        return index
+
+    def test_the_composition_script_runs_the_check_in_report_mode_only(self):
+        self.assertIn("check-flexspi-closure.py", self.code)
+        self.assertNotIn("--strict", self.code)
+
+    def test_the_report_cannot_fail_the_composition_check(self):
+        call = self.code[self.position("check-flexspi-closure.py") :]
+        line_end = call.index("fi\n")
+        block = call[:line_end]
+        self.assertIn("||", block)
+        self.assertNotIn("fail ", block)
+        self.assertNotIn("exit", block)
+
+    def test_the_report_runs_after_the_existing_checks_and_before_the_final_line(self):
+        call = self.position("check-flexspi-closure.py")
+        self.assertGreater(call, self.position("check_boot_images.sh"))
+        self.assertGreater(call, self.position("check-boot-config.py"))
+        self.assertGreater(call, self.position("expect_refused"))
+        self.assertLess(call, self.position("Boot composition: MCUboot"))
+
+    def test_the_existing_checks_are_all_still_there(self):
+        for needle in (
+            "check-boot-config.py",
+            "check_boot_images.sh",
+            "the boot image check failed",
+            "the boot build configuration check failed",
+            "slot_size=3145728",
+            "expect_refused",
+            "CONFIG_BOOT_RAM_LOAD_REVERT=y",
+        ):
+            self.assertIn(needle, self.code)
 
     def test_the_script_has_no_forbidden_word_of_the_composition_check(self):
         code = (SCRIPT).read_text()
