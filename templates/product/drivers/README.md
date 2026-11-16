@@ -15,7 +15,7 @@ Paths below are relative to the root of the product repository.
 | Unit tests | `tests/drivers/sensor/example_temp/src/emul_test.c` | The driver against its emulator on `native_sim`, with bus errors injected through the bus emulator's `mock_api` and a wrong part identifier |
 | Hardware scenario | `tests/drivers/sensor/example_temp/src/hardware_test.c` | A scenario gated on the Twister fixture `example_temp_wired`. A stub: the part is fictional |
 
-The part, the board and the flash configuration are examples. Replace them with the product's own. When you rename the product, rename `product-x` in `zephyr/module.yml` as well as in `west.yml`: the tests find the driver folder through the module name.
+The part, the board and the flash configuration are examples. Replace them with the product's own. When you rename the product, rename `product-x` in `zephyr/module.yml` as well as in `west.yml`: the tests find the driver folder through the module name, and so does `ZEPHYR_PRODUCT_X_MODULE_DIR` in the `CMakeLists.txt` of the tests.
 
 Run the unit tests on `native_sim`, which needs Linux (the Dev Container). In a workspace whose manifest repository is the product, west finds the module. From any other workspace, name it:
 

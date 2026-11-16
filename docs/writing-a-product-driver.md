@@ -82,7 +82,7 @@ The skeleton is `drivers/sensor/example_temp/example_temp.c`. Its parts, in the 
 #define DT_DRV_COMPAT vnd_example_temp
 ```
 
-`DT_DRV_COMPAT` is the compatible with every non-alphanumeric character turned into an underscore. The `DT_INST_*` macros need it, and it must come before the Zephyr headers.
+`DT_DRV_COMPAT` is the compatible with every non-alphanumeric character turned into an underscore. The `DT_INST_*` macros need it, and it must be defined before the first `DT_INST_*` use; defining it first in the file is the convention.
 
 ```c
 static DEVICE_API(sensor, example_temp_api) = {
@@ -110,7 +110,7 @@ zephyr_library_sources(example_temp.c)
 zephyr_library_sources_ifdef(CONFIG_EMUL_EXAMPLE_TEMP example_temp_emul.c)
 ```
 
-Use `zephyr_library_named` and give the library a name of its own that starts with the product's. An unnamed `zephyr_library()` takes its name from the path of the folder, which clashes when two modules hold a folder of the same name. See [Static libraries](#static-libraries-and-kernel-objects) for a finding about libraries built another way.
+Use `zephyr_library_named` and give the library a name of its own that starts with the product's. An unnamed `zephyr_library()` takes its name from the path of the folder relative to `ZEPHYR_BASE` (`cmake/modules/extensions.cmake`), so the name depends on where the module is checked out, is long, and changes with the workspace layout; it is also what shows up in build output and link errors. A fixed name that starts with the product's name is stable and easy to search for. See [Static libraries](#static-libraries-and-kernel-objects) for a finding about libraries built another way.
 
 ```kconfig
 config EXAMPLE_TEMP
@@ -133,7 +133,7 @@ Zephyr's driver pages cover what the example leaves out: power management, inter
 
 ## The emulator and the unit tests
 
-An emulator is a model of the part behind Zephyr's bus emulator. The kit's is `drivers/sensor/example_temp/example_temp_emul.c`, modelled on `drivers/sensor/f75303/f75303_emul.c` of Zephyr. It is built only with `CONFIG_EMUL_EXAMPLE_TEMP`, which needs `CONFIG_EMUL`, so no firmware image contains it. It answers only the transfers that the driver makes and refuses any other, so a driver change that adds a transfer shows up in the tests.
+An emulator is a model of the part behind Zephyr's bus emulator. The kit's is `drivers/sensor/example_temp/example_temp_emul.c`, modelled on `drivers/sensor/f75303/f75303_emul.c` of Zephyr. It is built only with `CONFIG_EMUL_EXAMPLE_TEMP`, which needs `CONFIG_EMUL`. `CONFIG_EMUL` has no board or test dependency in Zephyr, so only the test configurations of this kit enable it; a product keeps it out of its firmware configurations. It answers only the transfers that the driver makes and refuses any other, so a driver change that adds a transfer shows up in the tests.
 
 The tests are `tests/drivers/sensor/example_temp/src/emul_test.c`. They use four tools, each in one place of the file:
 
@@ -196,7 +196,7 @@ The probe `tests/product_template_link` tests this. `scripts/test-product-templa
 
 ## Zephyr versions
 
-This guide and the kit are written against Zephyr v4.4. Crux expects to move its pin to the next long-term-support release, 4.6, when it exists; the move is a change of its own ([ADR-0001](decisions/0001-application-boundary-and-api-stability.md), change 2). A product that follows the pin does the same. When it moves:
+This guide and the kit are written against Zephyr v4.4. Crux plans to move its pin to Zephyr 4.6 when it is released (planned, not decided or dated; see [ADR-0006](decisions/0006-cryptographic-dependency-policy.md)); the move is a change of its own. A product that follows the pin does the same. When it moves:
 
 - Re-run the kit's tests: they are the check that the example still builds and passes with the new tree.
 - Read the Zephyr migration guides for each release between the two, for the classes that your drivers use. The sensor API and the board model have both changed in recent releases.
