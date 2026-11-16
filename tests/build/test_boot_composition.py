@@ -189,6 +189,15 @@ class BuildCheckWiringTest(unittest.TestCase):
         self.assertLess(self.position("check_boot_images.sh"), report)
         self.assertLess(self.position("check-boot-config.py"), report)
 
+    def test_the_config_check_header_says_who_calls_it_and_that_the_edit_is_approved(self):
+        header = read(REPO / "scripts/check-boot-config.py").split('"""')[1]
+        self.assertIn("scripts/test-boot-composition.sh calls it", header)
+        self.assertIn("approved by the project owner on 2026-11-16", header)
+        self.assertNotIn("pending", header)
+
+    def test_the_tests_readme_does_not_call_the_wiring_pending(self):
+        self.assertNotIn("pending the owner's approval", read(REPO / "tests/README.md"))
+
     def test_no_existing_check_of_the_script_was_dropped(self):
         # The wiring is additive (belt and braces with the inline greps, as the proposal recommends).
         for line in (
@@ -212,7 +221,10 @@ class BuildCheckWiringTest(unittest.TestCase):
         for name in ("docs/boot-image-inspection.md", "docs/boot-overview.md", "docs/boot-composition.md",
                      "docs/secure-boot-and-update-review.md"):
             text = read(REPO / name)
-            self.assertIn("pending the owner's approval", text, name)
+            # The owner approved the protected-path edits on 2026-11-16 (#489); the pages say so and no
+            # longer say that the approval is pending.
+            self.assertIn("approved by the owner on 2026-11-16", text, name)
+            self.assertNotIn("pending the owner's approval", text, name)
             # The reproducibility check is still unwired, so only the image check's statements are refused.
             self.assertNotIn("check against the real build output is prepared there and not wired into CI", text, name)
             self.assertNotIn("`imgtool sign` is prepared and not wired", text, name)

@@ -187,11 +187,12 @@ class ScriptShape(unittest.TestCase):
         self.assertIn("scripts/test-boot-composition.sh", self.code)
 
     def test_the_script_says_who_calls_it_and_that_it_has_not_run_on_a_real_build(self):
-        # It was "NOT wired into any workflow"; scripts/test-boot-composition.sh calls it now (the edit
-        # waits for the owner's approval), so the header names the caller and keeps the other statement.
+        # It was "NOT wired into any workflow"; scripts/test-boot-composition.sh calls it now (the owner
+        # approved the edit on 2026-11-16), so the header names the caller and keeps the other statement.
         header = "\n".join(l for l in self.script.splitlines() if l.startswith("#"))
         self.assertRegex(header, r"scripts/test-boot-composition\.sh calls it")
-        self.assertRegex(header, r"pending the project owner's approval")
+        self.assertRegex(header, r"approved by the project owner on 2026-11-16")
+        self.assertNotRegex(header, r"pending the project owner")
         self.assertRegex(header, r"never run on a real build")
 
     def test_the_script_names_the_v442_erratum_for_a_missing_confirmed_image(self):
@@ -214,7 +215,8 @@ class ScriptShape(unittest.TestCase):
         self.assertIn("Check of the CI-built images", page)
         self.assertIn("tests/target/check_boot_images.sh", page)
         self.assertRegex(page, r"Called by `scripts/test-boot-composition\.sh`")
-        self.assertRegex(page, r"pending the owner's approval")
+        self.assertRegex(page, r"approved by the owner on 2026-11-16")
+        self.assertNotRegex(page, r"pending the owner's approval")
         self.assertRegex(page, r"never run on a real build")
 
 
