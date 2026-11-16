@@ -503,9 +503,12 @@ config CRUX_PSA_THREADING
     depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
-      release, and the release notes list the change. Off by default, and nothing changes in an image
-      that leaves it off, including every image on the Wolf profile (the symbol depends on the Mbed
-      provider, and nothing selects or implies it).
+      release, and the release notes list the change. Off by default, and no behaviour changes in an
+      image that leaves it off, including every image on the Wolf profile (the symbol depends on the
+      Mbed provider, and nothing selects or implies it). One thing is added: the module redefines the
+      Mbed TLS symbol CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE with a typed default, so an image with
+      this module and without the Mbed TLS module has that symbol, empty, in its .config. Nothing
+      reads it there.
 
       Turns on MBEDTLS_THREADING_C and MBEDTLS_THREADING_ALT in TF-PSA-Crypto's user configuration
       and builds the locks of the core on k_mutex and k_condvar. They are registered at POST_KERNEL
