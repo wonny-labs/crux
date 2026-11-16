@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Fictional, compile-only test board (see board.yml). The peripherals come from
- * the RT1062 SoC files; the board adds only memory choices, a console on LPUART1
- * and pin groups for LPUART1 and LPUART2. The pins are valid SoC pin functions,
+ * the RT1062 SoC files; the board adds only memory choices, the system timer, a
+ * console on LPUART1 and pin groups for LPUART1 and LPUART2. The pins are valid SoC pin functions,
  * not taken from any board schematic.
  */
 
@@ -21,6 +21,11 @@
 		zephyr,dtcm = &dtcm;
 		zephyr,console = &lpuart1;
 	};
+};
+
+/* The SoC file leaves the system timer disabled; the kernel tick needs it. */
+&systick {
+	status = "okay";
 };
 
 &pinctrl {
