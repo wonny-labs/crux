@@ -208,6 +208,99 @@ What differs is the mapping:
 The selection works on any board that has the file system and excludes the other File selections.
 The run on `native_sim` is a software result, and no physical-board result exists for it.
 
+## Recipes for consumers
+
+This section is guidance. It restates the contract above and adds no function, option or
+promise. Where it states a limit, the source is named.
+
+### Append
+
+File has no append call or open mode ([the list of excluded operations](#file-alternatives-and-recommendation)).
+Appending is the three existing calls in this order, on a handle that the caller alone uses:
+
+1. `crux_file_open(name, CRUX_FILE_READ_WRITE, &file)` for an existing file. A missing file gives
+   `CRUX_FILE_ERR_NOT_FOUND` (`tests/native/file_fatfs/main.c:252`). Do not reach for
+   `CRUX_FILE_CREATE_REPLACE` first: it truncates an existing file. After NOT_FOUND, and only when
+   no other code can create the same name meanwhile, open it with `CREATE_REPLACE`. Same-file
+   conflicts are the caller's to serialise, except that a writer excludes every other handle on its
+   name (INVALID_STATE for the second open).
+2. `crux_file_size(file, &size)`. The size includes unsynced writes, and the call leaves the
+   position where it was.
+3. `crux_file_seek(file, size)`. EOF itself is a valid offset (`tests/native/file_fatfs/main.c:529`).
+   A larger offset gives `CRUX_FILE_ERR_OUT_OF_RANGE` and a sparse extension is not supported
+   (`components/file/ports/linux/file_linux.c:158-170`, `components/file/ports/zephyr/file_native.c:326-352`).
+4. `crux_file_write(file, data, length, &transferred)`, then `crux_file_sync(file)` where the data
+   must reach the medium.
+
+Rules for the result. `transferred` is mandatory and set to zero before dispatch. A short write
+returns `CRUX_FILE_PARTIAL`, and an explicit no-space error returns `CRUX_FILE_ERR_NO_SPACE`.
+Accepted bytes are not rolled back, so after either result the file is longer by `transferred`.
+Read the size again and seek again before retrying, and do not retry the whole record blindly.
+`crux_file_sync()` returning OK acknowledges the provider's flush and not power-loss safety, and no
+atomic update is promised, so a cut during an append can leave a partial last record. A log format
+that lets a reader ignore an incomplete tail is the product's own design, and this contract says
+nothing more about it.
+
+### Pool size and handle budget
+
+- Every open file holds one slot of a pool of `CRUX_FILE_POOL_SIZE` handles. When all are in use,
+  `crux_file_open` returns `CRUX_FILE_ERR_NO_RESOURCES`, before any provider call
+  (`components/file/src/file.c:96-102`). A listing uses a separate pool, `CRUX_FILE_DIR_POOL_SIZE`.
+- `CRUX_FILE_POOL_SIZE` is a public compile definition of `crux::file`, so a product can state its
+  budget at build time, for example `_Static_assert(PRODUCT_MAX_OPEN_FILES <= CRUX_FILE_POOL_SIZE,
+  "...")`. Count the most handles that the product's code holds at once, and add those that other
+  Crux services in the same image hold.
+- Today the value is 4 in every provider's CMake (`components/file/CMakeLists.txt:4` and
+  `components/file/ports/zephyr/CMakeLists.txt`), and 4 is the minimum
+  (`components/file/src/file.c:5`). A product cannot change it with a Kconfig symbol or a CMake
+  cache option, and none exists in the repository. [File validation](file-validation.md) says the private
+  `file_port.h` permits a provider build override, which is not a product setting. Whether to
+  expose one is a Crux decision and is not made here.
+- **The reserved handle is a known limit, not a guarantee.** The file service accepts at most
+  `CRUX_FILE_SERVICE_TRANSFER_MAX` transfers (default 3) and the build fails unless that is below
+  `CRUX_FILE_POOL_SIZE`, so one handle stays free for the credential store and the project. Project
+  code can still take that handle ([File service](file-service-contract.md#transfers)).
+- **Replace.** File has no replace call, and `rename` refuses an existing destination. A
+  replace built from File calls is: write the new content under another name, close every handle on
+  both names (removing an open file is unsupported, and `rename` returns INVALID_STATE for a live
+  handle), remove the old name, then rename. A power cut between the remove and the rename leaves
+  the temporary file and no target, and File does not recover it. The file service's upload commit
+  is the one place with a recovery sequence ([Commit and power
+  loss](file-service-contract.md#commit-and-power-loss)). In it, the open of the target at the
+  commit step needs a free handle. The service reports a full pool as `ERR_NO_RESOURCES`, which
+  changes nothing and keeps the upload handle, so the caller can retry or close. Which commit step
+  returns it when clients hold the whole pool is not verified.
+- **Copy.** File has no copy call. A copy built from File calls holds a `READ` handle on the source
+  and a `CREATE_REPLACE` handle on the destination at once, so it needs two free slots. With the
+  default pool of 4 and 3 service transfers open, one slot is free and the destination open returns
+  NO_RESOURCES. `CREATE_REPLACE` truncates an existing destination when it opens, so a copy over an
+  existing name loses the old content at once and is not a safe replace.
+
+### Rename limits
+
+`crux_file_rename(root, from, to)` works inside one root. Checks run in this order: arguments,
+INVALID_STATE for a live handle on either name, NOT_FOUND for a missing or non-regular source, and
+`CRUX_FILE_ERR_EXISTS` for an existing destination of any type, including `from` equal to `to`
+(`tests/file/conformance.c:150-205`). It is **not atomic across power loss**: on FAT a cut between
+the two directory writes can leave two names on one cluster chain. That comes from reading `ff.c`
+and has not been reproduced here. Native clients that bypass File can race the destination check.
+See [Additions](#additions-for-roots-stat-size-rename-and-listing).
+
+### Free space
+
+**Not provided.** There is no call that reports the free or total space of a volume.
+`crux_file_info_t` holds only a size, and `crux_file_stat` and `crux_file_size` report one file.
+A product learns that a volume is full from `CRUX_FILE_ERR_NO_SPACE` on a write or a create, and on
+Reliance Edge also for an empty file when no inode is left ([Reliance Edge mapping](#reliance-edge-mapping)).
+The FatFs provider does call `fs_statvfs` internally, only to map a refused create on a full
+volume to NO_SPACE, and it returns no value (`components/file/ports/zephyr/file_native.c:277-284`, the call at line 280).
+The file service's area counters are limits that it enforces, not free space on the medium
+([File service](file-service-contract.md#capacity)). A public volume-information call would be a
+new Experimental function and an owner decision under [AGENTS.md](../AGENTS.md), and this section
+promises none. A product that needs the figure now can call Zephyr's `fs_statvfs()` on its mount
+point in its own adapter, outside File's lock and tests. That call is not verified with a File
+volume in use.
+
 ## Verified native mapping and limits
 
 Pinned Zephyr is `684c9e8f32e4373a21098559f748f06915f950c9`.
