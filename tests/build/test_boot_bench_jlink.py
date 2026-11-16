@@ -197,6 +197,33 @@ class JlinkWrapperTest(unittest.TestCase):
             with self.subTest(serial=bad):
                 self.assert_refused('jlink-load.sh', 'app.signed.bin', BENCH_PROBE_SERIAL=bad)
 
+    def test_refuses_a_symlinked_handoff_directory_and_command_file(self):
+        self.put('app.signed.bin')
+        real = self.bench.parent / 'real-handoff'
+        (self.bench / 'handoff').rename(real)
+        (self.bench / 'handoff').symlink_to(real)
+        self.assert_refused('jlink-load.sh', 'app.signed.bin')
+        (self.bench / 'handoff').unlink()
+        real.rename(self.bench / 'handoff')
+        target = self.bench.parent / 'elsewhere.jlink'
+        (self.bench / 'cmd' / 'load-app.signed.bin.jlink').symlink_to(target)
+        self.assert_refused('jlink-load.sh', 'app.signed.bin')
+        self.assertFalse(target.exists())
+
+    def test_serial_length_limit(self):
+        self.put('app.signed.bin')
+        ok = self.run_script('jlink-load.sh', 'app.signed.bin', BENCH_PRINT_ONLY='1', BENCH_PROBE_SERIAL='1' * 12)
+        self.assertEqual(ok.returncode, 0)
+        self.assert_refused('jlink-load.sh', 'app.signed.bin', BENCH_PROBE_SERIAL='1' * 13)
+
+    def test_temporary_output_is_removed(self):
+        self.put('app.signed.bin')
+        tmp = self.bench.parent / 'tmp'
+        tmp.mkdir()
+        self.run_script('jlink-verify.sh', 'app.signed.bin', TMPDIR=str(tmp))
+        self.run_script('jlink-load.sh', 'app.signed.bin', TMPDIR=str(tmp), FAKE_JLINK_EXIT='3')
+        self.assertEqual(list(tmp.iterdir()), [])
+
     def test_refuses_a_bench_path_that_would_break_the_command_file(self):
         quoted = self.bench.parent / 'we"ird'
         quoted.mkdir()

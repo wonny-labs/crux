@@ -8,6 +8,7 @@ import unittest
 from boot_bench_support import BENCH_TOOLS, SHELL_SCRIPTS, make_bench, mode_of, write_file
 
 import boot_timing  # noqa: E402
+import console_log  # noqa: E402
 import evidence_dir  # noqa: E402
 
 UTC = '20261116T093000Z'
@@ -196,10 +197,90 @@ class BootTimingTest(unittest.TestCase):
         with self.assertRaises(boot_timing.TimingError):
             boot_timing.summarise([])
 
+    def test_lines_read_in_the_burst_after_a_reset_command_are_refused(self):
+        done = json.dumps({'monotonic': 2.0, 'utc': 'x', 'event': 'tool_done', 'operation': 'reset', 'seconds': 1.2})
+        path = self.events([event(1.0, 'old\r\n'), done,
+                            event(2.01, 'I: Starting bootloader\r\nI: Jumping to the first image slot\r\n')])
+        with self.assertRaisesRegex(boot_timing.TimingError, 'console_log'):
+            boot_timing.interval(path, r'Starting bootloader', r'Jumping')
+        result = boot_timing.interval(path, r'Starting bootloader', r'Jumping', allow_buffered=True)
+        self.assertTrue(result['buffered'])
+        self.assertEqual(result['seconds'], 0.0)
+
+    def test_lines_after_the_first_chunk_are_not_a_burst(self):
+        done = json.dumps({'monotonic': 2.0, 'utc': 'x', 'event': 'tool_done', 'operation': 'reset', 'seconds': 1.2})
+        path = self.events([done, event(2.01, 'noise\r\n'), event(2.20, 'A\r\n'), event(2.30, 'B\r\n')])
+        result = boot_timing.interval(path, r'^A', r'^B')
+        self.assertFalse(result['buffered'])
+        self.assertAlmostEqual(result['seconds'], 0.10, places=6)
+
     def test_cli(self):
         path = self.events([event(1.0, 'start\r\n'), event(1.5, 'stop\r\n')])
         self.assertEqual(boot_timing.main(['--events', str(path), '--start', 'start', '--end', 'stop']), 0)
         self.assertNotEqual(boot_timing.main(['--events', str(path), '--start', 'start', '--end', 'absent']), 0)
+
+
+class FakeSerial:
+    def __init__(self, chunks):
+        self.chunks = list(chunks)
+        self.log = []
+        self.in_waiting = 0
+        self.closed = False
+
+    def read(self, size):
+        self.tick()
+        return self.chunks.pop(0) if self.chunks else b''
+
+    def tick(self):
+        pass
+
+    def close(self):
+        self.closed = True
+
+
+class ConsoleLogTest(unittest.TestCase):
+    def setUp(self):
+        self.root = make_bench(self, with_scripts=False)[0].parent
+        self.now = [0.0]
+
+    def clock(self):
+        self.now[0] += 0.001
+        return self.now[0]
+
+    def run_log(self, chunks, **kwargs):
+        fake = FakeSerial(chunks)
+        out = self.root / 'boot-1' / 'events.jsonl'
+        matched = console_log.log('/dev/fake', out, serial_factory=lambda port, baud: fake, clock=self.clock, **kwargs)
+        return matched, out, fake
+
+    def test_logs_chunks_until_the_pattern_and_feeds_boot_timing(self):
+        matched, out, fake = self.run_log(
+            [b'I: Starting bootloader\r\n', b'', b'I: Image 0 loaded from the primary slot\r\n',
+             b'I: Jumping to the first image slot\r\n', b'never read'], until='Jumping to the first image slot')
+        self.assertTrue(matched)
+        self.assertTrue(fake.closed)
+        self.assertEqual(fake.chunks, [b'never read'])
+        result = boot_timing.interval(out, r'Starting bootloader', r'Jumping to the first image slot')
+        self.assertGreater(result['seconds'], 0)
+        self.assertFalse(result['buffered'])
+
+    def test_timeout_is_a_result_not_an_error(self):
+        matched, out, fake = self.run_log([b'only this'], until='never', timeout=0.05)
+        self.assertFalse(matched)
+        self.assertTrue(fake.closed)
+        self.assertIn('"matched": false', out.read_text())
+
+    def test_refuses_an_existing_output_and_never_opens_the_port(self):
+        out = write_file(self.root / 'boot-1' / 'events.jsonl', b'x')
+        opened = []
+        with self.assertRaises(console_log.LogError):
+            console_log.log('/dev/fake', out, serial_factory=lambda p, b: opened.append(1))
+        self.assertEqual(opened, [])
+
+    def test_serial_is_opened_with_dtr_and_rts_low_and_sends_nothing(self):
+        text = (BENCH_TOOLS / 'console_log.py').read_text()
+        self.assertRegex(text, r'connection\.dtr = False\n\s+connection\.rts = False\n\s+connection\.open\(\)')
+        self.assertNotIn('.write(', text.replace('events.write(', '').replace('out.write', ''))
 
 
 if __name__ == '__main__':

@@ -15,7 +15,8 @@ a board. No tool here generates, reads, copies or stores a key, and none reads o
 | `make_manifest.py` | Hand-off manifest (SHA-256 of every file) and a completeness check |
 | `build_test_images.py` | The procedure's test images from given build outputs; key paths are arguments |
 | `evidence_dir.py` | Bench directories, timestamped case directories, session record, `SHA256SUMS` |
-| `boot_timing.py` | Time between two console lines from a device-control `events.jsonl` |
+| `console_log.py` | Timestamped raw console logger (pyserial), already reading when the board resets |
+| `boot_timing.py` | Time between two console lines from its `events.jsonl`; refuses the burst of a device-control `reset` capture |
 
 Run the tests from the repository root (no Docker, no west):
 

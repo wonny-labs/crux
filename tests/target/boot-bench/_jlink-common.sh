@@ -14,6 +14,7 @@
 # The bench directory is the directory this script lives in: copy the scripts there with
 # `evidence_dir.py init-bench`. Nothing here was run on a board.
 set -eu
+export LC_ALL=C
 
 bench_die() {
     printf 'boot-bench: %s\n' "$*" >&2
@@ -28,7 +29,7 @@ SACRIFICIAL_MAX_BYTES=4096 # one sector: the #309 first-sector files only
 SLOT0_ADDRESS=0x60020000
 SLOT0_MAX_BYTES=3145728   # partition `image-0`, 0x300000
 
-BENCH_DIR=$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)
+BENCH_DIR=$(CDPATH= cd -P -- "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)
 HANDOFF_DIR=$BENCH_DIR/handoff
 CMD_DIR=$BENCH_DIR/cmd
 
@@ -49,6 +50,7 @@ bench_prepare() {
         *erase* | *fuse*) bench_die "refusing an argument that mentions erase or fuse" ;;
     esac
     [ -n "$arg" ] || bench_die "empty argument"
+    [ ! -L "$HANDOFF_DIR" ] || bench_die "the hand-off directory is a symbolic link"
     [ -d "$HANDOFF_DIR" ] || bench_die "no hand-off directory: $HANDOFF_DIR"
     local name=$arg
     case $arg in
@@ -56,7 +58,7 @@ bench_prepare() {
             local dir=${arg%/*}
             [ -n "$dir" ] || dir=/
             local resolved
-            resolved=$(cd "$dir" 2>/dev/null && pwd -P) || bench_die "cannot resolve the directory of the argument"
+            resolved=$(CDPATH= cd -P -- "$dir" 2>/dev/null && pwd -P) || bench_die "cannot resolve the directory of the argument"
             [ "$resolved" = "$HANDOFF_DIR" ] || bench_die "the file is not in the hand-off directory $HANDOFF_DIR"
             name=${arg##*/}
             ;;
@@ -95,8 +97,10 @@ bench_prepare() {
         '' | *[!0-9]*) bench_die "BENCH_PROBE_SERIAL must be the probe's numeric serial number" ;;
     esac
     [ "${#BENCH_PROBE_SERIAL}" -le 12 ] || bench_die "BENCH_PROBE_SERIAL is too long"
+    [ ! -L "$CMD_DIR" ] || bench_die "the cmd directory is a symbolic link"
     mkdir -p "$CMD_DIR"
     CMD_FILE=$CMD_DIR/$kind-$name.jlink
+    [ ! -L "$CMD_FILE" ] || bench_die "$CMD_FILE is a symbolic link"
 }
 
 # bench_write_commands <kind>: the whole command file. `exec DisableAutoUpdateFW` is always first.
@@ -134,6 +138,7 @@ bench_run() {
         return 0
     fi
     BENCH_OUTPUT_FILE=$(mktemp "${TMPDIR:-/tmp}/boot-bench.XXXXXX")
+    trap 'rm -f "$BENCH_OUTPUT_FILE"' EXIT
     BENCH_STATUS=0
     "${command[@]}" >"$BENCH_OUTPUT_FILE" 2>&1 || BENCH_STATUS=$?
     cat "$BENCH_OUTPUT_FILE"
