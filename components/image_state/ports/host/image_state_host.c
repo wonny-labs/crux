@@ -121,17 +121,19 @@ void image_state_host_set_copy_done_write_fails(bool fails)
 }
 
 /* Logs the write and says whether it lands. A failed write changes nothing and is not logged. */
-static bool write_lands(image_state_host_write_t op, crux_image_slot_t slot)
+static bool write_lands(const host_log_entry_t *write)
 {
     if (write_hook != NULL) {
         write_hook();
     }
-    if (writes_until_failure != 0 && --writes_until_failure == 0) {
-        return false;
+    if (writes_until_failure != 0) {
+        writes_until_failure--;
+        if (writes_until_failure == 0) {
+            return false;
+        }
     }
     if (log_count < HOST_LOG_CAPACITY) {
-        log_entries[log_count].op = op;
-        log_entries[log_count].slot = slot;
+        log_entries[log_count] = *write;
         log_count++;
     }
     return true;
@@ -158,7 +160,8 @@ crux_image_result_t crux_image_port_slot_read(crux_image_slot_t slot,
 
 crux_image_result_t crux_image_port_write_magic(crux_image_slot_t slot)
 {
-    if (!write_lands(IMAGE_STATE_HOST_WRITE_MAGIC, slot)) {
+    const host_log_entry_t write = {IMAGE_STATE_HOST_WRITE_MAGIC, slot};
+    if (!write_lands(&write)) {
         return CRUX_IMAGE_ERR_IO;
     }
     slots[slot].magic = CRUX_IMAGE_PORT_MAGIC_GOOD;
@@ -167,7 +170,8 @@ crux_image_result_t crux_image_port_write_magic(crux_image_slot_t slot)
 
 crux_image_result_t crux_image_port_write_swap_info_test(crux_image_slot_t slot)
 {
-    if (!write_lands(IMAGE_STATE_HOST_WRITE_SWAP_INFO_TEST, slot)) {
+    const host_log_entry_t write = {IMAGE_STATE_HOST_WRITE_SWAP_INFO_TEST, slot};
+    if (!write_lands(&write)) {
         return CRUX_IMAGE_ERR_IO;
     }
     return CRUX_IMAGE_OK;
@@ -175,7 +179,8 @@ crux_image_result_t crux_image_port_write_swap_info_test(crux_image_slot_t slot)
 
 crux_image_result_t crux_image_port_write_image_ok(crux_image_slot_t slot)
 {
-    if (!write_lands(IMAGE_STATE_HOST_WRITE_IMAGE_OK, slot)) {
+    const host_log_entry_t write = {IMAGE_STATE_HOST_WRITE_IMAGE_OK, slot};
+    if (!write_lands(&write)) {
         return CRUX_IMAGE_ERR_IO;
     }
     slots[slot].image_ok = CRUX_IMAGE_PORT_FLAG_SET;

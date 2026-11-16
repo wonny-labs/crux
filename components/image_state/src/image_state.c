@@ -82,8 +82,8 @@ static crux_image_result_t start_locked(void)
     }
 
     for (crux_image_slot_t slot = 0; slot < CRUX_IMAGE_SLOT_COUNT; slot++) {
-        crux_image_port_slot_view_t view;
-        crux_image_slot_state_t state;
+        crux_image_port_slot_view_t view = {0};
+        crux_image_slot_state_t state = CRUX_IMAGE_SLOT_INVALID;
         crux_image_result_t result = crux_image_port_slot_read(slot, &view);
         if (result != CRUX_IMAGE_OK) {
             return result;
@@ -134,8 +134,8 @@ crux_image_result_t crux_image_slot_get(crux_image_slot_t slot, crux_image_slot_
     if (!is_started()) {
         return CRUX_IMAGE_ERR_NOT_READY;
     }
-    crux_image_port_slot_view_t view;
-    crux_image_slot_state_t state;
+    crux_image_port_slot_view_t view = {0};
+    crux_image_slot_state_t state = CRUX_IMAGE_SLOT_INVALID;
     crux_image_result_t result = read_state(slot, &view, &state);
     if (result == CRUX_IMAGE_ERR_BOOT_STATE) {
         /* A live trailer that is no longer one this contract supports is reported, not hidden. */
@@ -159,8 +159,8 @@ static crux_image_result_t request_checks(crux_image_slot_t slot, crux_image_slo
         return CRUX_IMAGE_ERR_ACTIVE_SLOT;
     }
 
-    crux_image_port_slot_view_t running_view;
-    crux_image_slot_state_t running_state;
+    crux_image_port_slot_view_t running_view = {0};
+    crux_image_slot_state_t running_state = CRUX_IMAGE_SLOT_INVALID;
     crux_image_result_t result = read_state(cached.running_slot, &running_view, &running_state);
     if (result != CRUX_IMAGE_OK) {
         return result;
@@ -169,7 +169,7 @@ static crux_image_result_t request_checks(crux_image_slot_t slot, crux_image_slo
         return CRUX_IMAGE_ERR_NOT_CONFIRMED;
     }
 
-    crux_image_port_slot_view_t view;
+    crux_image_port_slot_view_t view = {0};
     result = read_state(slot, &view, state);
     if (result != CRUX_IMAGE_OK) {
         return result;
@@ -219,8 +219,8 @@ crux_image_result_t crux_image_confirm(void)
         return CRUX_IMAGE_ERR_BUSY;
     }
 
-    crux_image_port_slot_view_t view;
-    crux_image_slot_state_t state;
+    crux_image_port_slot_view_t view = {0};
+    crux_image_slot_state_t state = CRUX_IMAGE_SLOT_INVALID;
     crux_image_result_t result = read_state(cached.running_slot, &view, &state);
     if (result == CRUX_IMAGE_OK && state == CRUX_IMAGE_SLOT_RUNNING_TESTING) {
         /* The running slot only: confirm never names a slot. */
