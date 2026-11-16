@@ -2,8 +2,7 @@
 """Find NOR references reachable from the FlexSPI NOR write and erase path of a built MCUboot ELF (#165).
 
 Static, host-only, and read-only: it reads `nm` and `objdump -d` text of the image and the bytes of the ELF's
-loadable segments. It runs no board and writes nothing. See docs/plans/mcuboot-flexspi-write-path-closure.md,
-section 5.1, for what each check is for.
+loadable segments. It runs no board and writes nothing. See issue #165 for what each check is for.
 
   S1 placement      the FlexSPI configuration object must not run in the NOR window; each function reached
                     from the roots must run in ITCM (its run address, not its load address).
@@ -42,7 +41,7 @@ REGIONS = (
 ROOTS = ("flash_flexspi_nor_write", "flash_flexspi_nor_erase")
 # Relative to the Zephyr checkout, or to the hal_nxp checkout for the path under mcux/. The digests are the
 # ones of scripts/prepare-flash-poc.py (NOR_HASH, MEMC_HASH, HAL_HASH), which were also found unchanged at
-# Zephyr v4.4.2 (docs/plans/mcuboot-flexspi-write-path-closure.md, fact 1.1).
+# Zephyr v4.4.2 (see issue #165).
 PINNED_FILES = {
     "drivers/flash/flash_mcux_flexspi_nor.c": "25733356c1b06bf03178e78431b697ad8736553b63a42dc725a1a5173486c5fa",
     "drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
