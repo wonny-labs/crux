@@ -22,6 +22,8 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 
 The optional organisation manifest is a shared layer. Add it only when two or more products share a composition.
 
+Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md).
+
 ```mermaid
 flowchart TB
     P["Product repository: product-x<br/>west.yml, app/, locks/"]

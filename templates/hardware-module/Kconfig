@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig ACMECO_HW
+	bool "Acme shared hardware module"
+	default y
+	help
+	  Drivers that two or more products of the organisation share. Each
+	  driver below is enabled by devicetree, not by this symbol alone.
+
+if ACMECO_HW
+
+rsource "drivers/Kconfig"
+
+endif # ACMECO_HW

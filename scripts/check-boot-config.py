@@ -20,8 +20,8 @@ This reads files. It builds nothing, programs nothing, boots nothing and writes 
 images were configured, not how the bootloader behaves on a board.
 
 scripts/test-boot-composition.sh calls it on its own build, so the `runtime` shard of CI runs it. That edit of a
-protected file is pending the project owner's approval; the proposal is in the description of the pull request that
-added this file. It has not yet run on a real build.
+protected file was approved by the project owner on 2026-11-16 (#489); the proposal is in the description of the
+pull request that added this file. It has not yet run on a real build.
 
 Usage: scripts/check-boot-config.py [build-dir] [--image NAME]
   build-dir  the build directory of the composition ($repo/build/zephyr/boot-composition by default)

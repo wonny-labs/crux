@@ -94,7 +94,7 @@ of the boot composition, on fake build trees, a fake imgtool and a fake composit
 `tests/build/test_check_boot_config.py` holds the checks of `scripts/check-boot-config.py`, which reads the resolved `.config` of the
 MCUboot image and the application of the boot composition and fails unless both are built for RAM load with revert and the
 build-number comparison is off (image-state rows I5 and Q9). It runs on fixture files in `tests/build/fixtures/boot-config/`. The
-script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the edit of that protected script is pending the owner's approval); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
+script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the owner approved the edit of that protected script on 2026-11-16, #489); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
 
 `tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
 size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
@@ -233,6 +233,8 @@ CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p 
 This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
 of these checks flashes, resets or opens a device.
 
+Hardware tests have no supported entry point. A wired-part scenario is built in CI and not run, and a run is a hardware operation through the device-control route, not a Twister run. [Hardware integration tests](../docs/build.md#hardware-integration-tests) says what each source says.
+
 ## Device-control tool
 
 `build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
@@ -263,6 +265,14 @@ PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <boa
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
 Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
+
+`tests/build/test_product_style.py` checks the [style kit](../templates/product/style/README.md) of the
+template and the guidance that names it. It runs the three wrapper scripts on throwaway Git repositories,
+with stand-ins for clang-format and checkpatch, and runs the real tools when they are present: set
+`CLANG_FORMAT` to a clang-format 18 binary, or `ZEPHYR_BASE` to a Zephyr tree, and those cases run instead of
+skipping. It also compares the kit's settings with Crux's own, and reads the guideline, the hardware test
+section of the build guide and the corrected controller row of the API guide. It needs only Python, Git, Bash
+and Perl, so the host CI job runs it, and it uses no west, Docker or hardware.
 
 ## Frozen header warning
 
