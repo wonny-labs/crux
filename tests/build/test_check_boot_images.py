@@ -217,6 +217,8 @@ class ScriptShape(unittest.TestCase):
         self.assertRegex(page, r"Called by `scripts/test-boot-composition\.sh`")
         self.assertRegex(page, r"approved by the owner on 2026-11-16")
         self.assertNotRegex(page, r"pending the owner's approval")
+        # The section heading must not say that the approval is still needed (review of this change).
+        self.assertNotRegex(page, r"(?im)^#+ .*needs the owner's approval")
         self.assertRegex(page, r"never run on a real build")
 
 

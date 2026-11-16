@@ -196,7 +196,9 @@ class BuildCheckWiringTest(unittest.TestCase):
         self.assertNotIn("pending", header)
 
     def test_the_tests_readme_does_not_call_the_wiring_pending(self):
-        self.assertNotIn("pending the owner's approval", read(REPO / "tests/README.md"))
+        readme = read(REPO / "tests/README.md")
+        self.assertNotIn("pending the owner's approval", readme)
+        self.assertIn("approved the edit of that protected script on 2026-11-16", readme)
 
     def test_no_existing_check_of_the_script_was_dropped(self):
         # The wiring is additive (belt and braces with the inline greps, as the proposal recommends).

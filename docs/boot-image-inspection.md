@@ -114,7 +114,7 @@ The script prints a summary table and, for the confirmed image, a **survey of th
 
 **What it will settle, once it has run on a real build:** whether the inspector's reading of the TLV layout (the magics `0x6908` and `0x6907`, the entry layout, the hashed range) agrees with an image that MCUboot's tool signed and verifies, which is the check that the synthetic tests cannot give; whether the key hash is of the `SubjectPublicKeyInfo` or of the point; and which alignment unit the trailer of the build's confirmed image carries. It does not verify a signature itself, does not boot anything, and a pass says nothing about MCUboot's behaviour at boot.
 
-### How CI runs it (needs the owner's approval)
+### How CI runs it (approved by the owner on 2026-11-16, #489)
 
 No workflow edit is needed. `scripts/test-boot-composition.sh` (a protected file) calls this script on its own build directory, after the signing checks and the configuration check, with `CRUX_PYTHON` and `CRUX_WORKSPACE` of the composition script, and fails the composition check if it exits non-zero. The `runtime` shard of `.github/workflows/zephyr.yml` already runs that script, and the workflow file is unchanged. The edit of the composition script, a protected path (`AGENTS.md`), was approved by the owner on 2026-11-16 (#489).
 
