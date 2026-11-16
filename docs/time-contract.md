@@ -166,6 +166,114 @@ Current RTC storage accepts whole seconds only; normalized nonzero fractions
 return NOT_SUPPORTED before any write rather than being silently truncated.
 Missing/unready RTC returns NOT_READY. No generic public RTC framework is added.
 
+## Loading the RTC at boot (product recipe)
+
+This section is guidance. It restates the contract above and adds no interface, option or
+behaviour.
+
+**Where it belongs.** Crux never loads the RTC. `crux_realtime_init()` leaves Time ready but
+unset, and it never writes a default, adopts native time or loads RTC
+([`<crux/time.h>`](../components/time/include/crux/time.h), and [State and error
+precedence](#state-and-error-precedence)). Whether to load, from which device, whether to trust
+the value and what to do when there is none are application policy
+(`components/time/ports/zephyr/time_rtc_zephyr.h:6-10`; [Private port and link
+selection](#private-port-and-link-selection)). A product therefore reads the RTC in its own Zephyr
+code, in an adapter or in composition, and calls the public Time Authority API. This is route 1
+of [Composition interface rules](composition-interfaces.md): a Zephyr feature that Crux does not
+offer, behind code the product owns, with no Crux change.
+
+**Do not include `time_rtc_zephyr.h`.** It is a private port header, not a composition
+interface. It sits beside the port in `components/time/ports/zephyr/`, and no usage target
+publishes it: `crux::time` exposes only `components/time/include`, and there is no
+`crux::time_zephyr` target or header under `ports/zephyr/include/crux/` as the
+[composition rules](composition-interfaces.md#the-six-rules) require. Private headers and `ports/`
+include paths are named as not being an escape hatch
+([composition-interfaces.md](composition-interfaces.md#what-is-not-an-escape-hatch)), and Zephyr
+calls stay in adapters ([ADR-0001](decisions/0001-application-boundary-and-api-stability.md), D2).
+Crux's own Zephyr test includes it, which a test may do and a product may not
+(`tests/time/zephyr/main.c`). `CONFIG_CRUX_TIME_RTC` is not needed for this recipe: it only
+compiles that private adapter.
+
+**Recipe.** Run once in thread context, after the devicetree and the RTC driver are up and before
+code that needs valid realtime:
+
+1. `crux_realtime_init()`. `crux_realtime_set()` returns NOT_READY before it.
+2. Check the product's RTC device with `device_is_ready()`, then read it with Zephyr's
+   `rtc_get_time()`. In `struct rtc_time`, `tm_year` counts from 1900 and `tm_mon` runs 0 to 11
+   (`include/zephyr/drivers/rtc.h:62-73` in Zephyr). Zephyr returns -ENODATA when the RTC time has
+   not been set (`rtc.h:267`).
+3. Fill a `crux_datetime_t` from the fields (year `tm_year + 1900`, month `tm_mon + 1`) and call
+   `crux_realtime_from_utc()`. Crux's own adapter treats the RTC fields as UTC; use the same
+   convention for what the product stores in the RTC.
+4. `crux_realtime_set(&value, CRUX_REALTIME_SOURCE_RTC, false)`. Synchronized is false, because
+   true is accepted only with EXTERNAL.
+
+```c
+/* Product Zephyr adapter, called once from the boot sequence. `rtc` is the
+ * device the product chose (for example DEVICE_DT_GET(DT_ALIAS(rtc))). */
+crux_status_t product_adopt_rtc_at_boot(const struct device *rtc)
+{
+    crux_status_t status = crux_realtime_init();
+    if (status != CRUX_OK) {
+        return status;
+    }
+    if (!device_is_ready(rtc)) {
+        return CRUX_ERR_NOT_READY; /* time stays invalid */
+    }
+
+    struct rtc_time native = {0};
+    if (rtc_get_time(rtc, &native) != 0) { /* -ENODATA: never set */
+        return CRUX_ERR_NO_DATA;          /* time stays invalid */
+    }
+
+    const crux_datetime_t utc = {
+        .year = native.tm_year + 1900,
+        .month = native.tm_mon + 1,
+        .day = native.tm_mday,
+        .hour = native.tm_hour,
+        .minute = native.tm_min,
+        .second = native.tm_sec,
+        .nanoseconds = (uint32_t)native.tm_nsec,
+    };
+    crux_realtime_t value;
+    status = crux_realtime_from_utc(&utc, &value);
+    if (status != CRUX_OK) {
+        return status; /* INVALID_ARGUMENT or OUT_OF_RANGE: do not set */
+    }
+    return crux_realtime_set(&value, CRUX_REALTIME_SOURCE_RTC, false);
+}
+```
+
+The function needs `<crux/time.h>`, `<crux/time_authority.h>`, `<crux/time_calendar.h>`,
+`<zephyr/device.h>` and `<zephyr/drivers/rtc.h>`, and the product's Kconfig needs `CONFIG_RTC`
+with a driver for its device. Crux's own test does the same sequence with the private adapter's
+read (`tests/time/zephyr/main.c:182-185` and `:200-204`).
+
+**Errors and what they leave behind.** The product decides what to do after each one. Crux's part
+is this:
+
+| Step | Failure | State after |
+| --- | --- | --- |
+| Device not ready, or `rtc_get_time()` fails | The product returns without calling set | Time stays unset or invalid. `crux_realtime_now()` returns NO_DATA, and the snapshot is OK with validity false ([State and error precedence](#state-and-error-precedence)) |
+| `crux_realtime_from_utc()` | INVALID_ARGUMENT for malformed fields, OUT_OF_RANGE for a valid date outside 2000 to 2099 | Pure conversion, nothing changed |
+| `crux_realtime_set()` | INVALID_ARGUMENT or OUT_OF_RANGE, NOT_READY before init, NOT_SUPPORTED in an ISR | Rejected before native access, state preserved |
+| `crux_realtime_set()` | The native clock write fails | Validity and synchronization are cleared, and the previous source is kept (the clock might have changed) |
+
+- A date inside 2000 to 2099 passes the range check. An RTC that restarted at a hardware default
+  in that range reads as a valid value, so any plausibility floor is the product's policy. This
+  follows from the supported range above. It is not a statement about any particular RTC part.
+- Success says nothing about RTC persistence, and `CRUX_REALTIME_SOURCE_RTC` records the last
+  establishment, not accuracy ([Time Authority](#time-authority)).
+- Later sources, such as a user or a network time client, call `crux_realtime_set()` with MANUAL or
+  EXTERNAL. Writing the time back to the RTC is also the product's choice, with Zephyr's
+  `rtc_set_time()`. Crux's adapter stores whole seconds only
+  (`time_rtc_zephyr.h:9-10`), so a product that stores fractions owns that decision.
+
+**Not verified.** The snippet was checked only for syntax against the Crux headers and stand-in
+declarations of the two Zephyr headers. It has not been built in a Zephyr image or run on a board.
+Historical RTC measurements do not apply to the redesigned Time API
+([Host command composition](#host-command-composition)).
+
 ## Host command composition
 
 The portable sample still accepts `time set YYYY-MM-DDTHH:MM:SS`, `time get` and
