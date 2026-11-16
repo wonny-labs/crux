@@ -36,7 +36,7 @@ A product image never links the Host double. A provider over a real bootloader w
 
 ## What is Verified, and by what
 
-**Verified by Host test:** the cases below pass against the Host double on Linux CI (see the pull request for the revision and the runs). The suites are `ImageState.pure`, `ImageState.provider`, `ImageState.scenarios`, `ImageState.nodiscard` and `ImageState.boundary` under `tests/image_state/`. The Host double is a hand-written model of the rules that the record tabulates, not a copy of MCUboot. A pass shows that the contract's logic follows its own table over that model, and nothing more.
+**Verified by Host test:** the cases below passed against the Host double on the author's macOS arm64 machine with clang, in a scratch CMake project that holds only this component and its tests, also under the address and undefined-behaviour sanitizers. The Linux CI result at the reviewed revision is recorded in the pull request when it exists, and is not claimed here. The suites are `ImageState.pure`, `ImageState.provider`, `ImageState.scenarios`, `ImageState.nodiscard` and `ImageState.boundary` under `tests/image_state/`. The Host double is a hand-written model of the rules that the record tabulates, not a copy of MCUboot. A pass shows that the contract's logic follows its own table over that model, and nothing more.
 
 | Cases of the record | Covered on Host | Notes |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ The record fixes the decisions and leaves some details open. The implementation 
 | `ERR_BUSY` | One try-lock serialises start, request and confirm. A caller that finds it taken gets `ERR_BUSY` at once: the bounded wait of the record is zero. The record's text sets no bound. |
 | Order of the request checks | As the record lists them. A pending slot whose version is no longer strictly newer gives `ERR_NOT_NEWER`, not an idempotent `OK`, and a stale confirmed trailer under an older image gives `ERR_NOT_NEWER`, not `ERR_SLOT_STATE`. |
 | A live running trailer that stops being supported after start | `crux_image_slot_get()` reports `INVALID`. `crux_image_confirm()` and `crux_image_request_test()` return `ERR_BOOT_STATE`. |
-| Outcome inputs outside the table | A missing record, an attempt on a slot that does not exist, and a running state on the slot that is not running give `NONE`. |
+| Outcome inputs outside the table | A missing record and an attempt on a slot that does not exist give `NONE`. A requested attempt on a slot that was in a running state at start gives `NONE`. A request that was never made gives `NOT_BOOTED` first (rule 5). |
 
 ## Known limits
 

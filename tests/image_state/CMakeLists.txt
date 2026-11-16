@@ -36,16 +36,15 @@ endforeach()
 set_target_properties(image_state_consumer_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF)
 
-# A result that is ignored must warn. The first object uses every result and builds. The probe
-# ignores one, is left out of the normal build, and the test builds it with the warning as an error
-# and expects the attribute to be named.
-add_library(image_state_nodiscard_probe OBJECT EXCLUDE_FROM_ALL probe/nodiscard_probe.c)
-target_link_libraries(image_state_nodiscard_probe PRIVATE crux::image_state)
-target_compile_options(image_state_nodiscard_probe PRIVATE -Werror=unused-result)
+# A result that is ignored must warn. The probe ignores one result and is not a CMake target, so that
+# no compile database names it: the test runs the compiler on it directly with the warning as an
+# error, expects that to fail, and expects the attribute to be named in the output.
 add_test(NAME ImageState.nodiscard
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target image_state_nodiscard_probe)
-set_tests_properties(ImageState.nodiscard PROPERTIES PASS_REGULAR_EXPRESSION "warn_unused_result"
-    TIMEOUT 120)
+    COMMAND ${CMAKE_COMMAND} -DC_COMPILER=${CMAKE_C_COMPILER}
+        -DINCLUDE_DIR=${IMAGE_STATE_DIR}/include
+        -DPROBE=${CMAKE_CURRENT_LIST_DIR}/probe/nodiscard_probe.c
+        -P ${CMAKE_CURRENT_LIST_DIR}/check_nodiscard.cmake)
+set_tests_properties(ImageState.nodiscard PROPERTIES TIMEOUT 60)
 
 add_test(NAME ImageState.boundary
     COMMAND ${CMAKE_COMMAND} -DCOMPONENT_DIR=${IMAGE_STATE_DIR} -P ${CMAKE_CURRENT_LIST_DIR}/check_boundary.cmake)

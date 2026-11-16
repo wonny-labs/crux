@@ -316,6 +316,7 @@ static void write_hook_reenters_confirm(void)
         return;
     }
     inside = true;
+    CHECK_INT(CRUX_IMAGE_ERR_BUSY, crux_image_start());
     CHECK_INT(CRUX_IMAGE_ERR_BUSY, crux_image_confirm());
     CHECK_INT(CRUX_IMAGE_ERR_BUSY, crux_image_request_test(1));
     inside = false;
@@ -479,7 +480,17 @@ static void request_cases(void)
     CHECK_INT(CRUX_IMAGE_SLOT_INVALID, info.state); /* reported, not hidden */
     CHECK_INT(0, image_state_host_write_count());
 
-    CASE("R11 a request inside another call gets BUSY");
+    CASE("R12 a pending slot that is no longer strictly newer: NOT_NEWER, not an idempotent OK");
+    image_state_host_init();
+    started();
+    stage_newer(1, ver(1, 1, 0, 0));
+    CHECK_INT(CRUX_IMAGE_OK, crux_image_request_test(1));
+    view_t overtaken = make_view(ver(1, 1, 0, 0), CRUX_IMAGE_PORT_MAGIC_GOOD, SET, SET);
+    image_state_host_slot_put(0,
+                              &overtaken); /* the running image is now as new as the pending one */
+    CHECK_INT(CRUX_IMAGE_ERR_NOT_NEWER, crux_image_request_test(1));
+
+    CASE("R11 a request, a confirm and a start inside another call get BUSY");
     image_state_host_init();
     started();
     stage_newer(1, ver(1, 1, 0, 0));

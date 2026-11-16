@@ -36,7 +36,7 @@ static void full_update(void)
     crux_image_boot_record_t record;
     crux_image_attempt_t attempt = {1, {1, 1, 0, 0}, false};
 
-    CASE("N: stage, request, reset, the new image runs on trial, confirm, reset, it stays");
+    CASE("E1: stage, request, reset, the new image runs on trial, confirm, reset, it stays");
     image_state_host_init();
     CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
     image_state_host_stage(1, ver(1, 1, 0));
@@ -57,7 +57,7 @@ static void full_update(void)
     CHECK(record.running_confirmed);
     CHECK_INT(CRUX_IMAGE_OUTCOME_CONFIRMED, outcome_of(&attempt));
 
-    CASE("N2: the next update runs from slot 1 and targets slot 0 (the B63a case, end to end)");
+    CASE("E1b: the next update runs from slot 1 and targets slot 0 (the B63a case, end to end)");
     image_state_host_stage(0, ver(1, 2, 0));
     attempt = (crux_image_attempt_t){0, ver(1, 2, 0), true};
     CHECK_INT(CRUX_IMAGE_OK, crux_image_request_test(0));
@@ -71,7 +71,7 @@ static void full_update(void)
     reset_and_start();
     CHECK_INT(CRUX_IMAGE_OUTCOME_CONFIRMED, outcome_of(&attempt));
 
-    CASE("N3: an attempt record that was not cleared is stale once its slot holds another image");
+    CASE("E1c: an attempt record that was not cleared is stale once its slot holds another image");
     /* Slot 1 now holds the confirmed 1.1.0 of the first update (rule 4). */
     CHECK_INT(CRUX_IMAGE_OUTCOME_NONE, outcome_of(&(crux_image_attempt_t){1, ver(1, 1, 0), true}));
     /* Slot 0 runs 1.2.0, so an attempt for another release on it is stale (rule 3). */
@@ -83,7 +83,7 @@ static void left_unconfirmed(void)
     crux_image_boot_record_t record;
     crux_image_attempt_t attempt = {1, {1, 1, 0, 0}, true};
 
-    CASE("T2: tested, never confirmed, reset: the previous image runs and the outcome is REVERTED");
+    CASE("E2: tested, never confirmed, reset: the previous image runs and the outcome is REVERTED");
     image_state_host_init();
     CHECK_INT(CRUX_IMAGE_OK, crux_image_start());
     image_state_host_stage(1, ver(1, 1, 0));
@@ -103,7 +103,7 @@ static void refused_image(void)
     crux_image_boot_record_t record;
     crux_image_attempt_t attempt = {1, {1, 1, 0, 0}, true};
 
-    CASE("T3: a staged image that fails validation: slot reads TRIED, then EMPTY, REVERTED both "
+    CASE("E3: a staged image that fails validation: slot reads TRIED, then EMPTY, REVERTED both "
          "times");
     image_state_host_init();
     CHECK_INT(CRUX_IMAGE_OK, crux_image_start());

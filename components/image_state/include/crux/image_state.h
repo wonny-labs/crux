@@ -23,8 +23,9 @@
  * serialised by one internal lock, and a caller that finds it taken gets CRUX_IMAGE_ERR_BUSY.
  * crux_image_start() runs once at boot, before other threads use the service. The boot record is
  * read once at start and never changes. crux_image_slot_get(), crux_image_request_test() and
- * crux_image_confirm() read the live trailers. The pure functions have no state and may be called
- * from any context.
+ * crux_image_confirm() read the live trailers. crux_image_slot_get() takes no lock, so a read that
+ * overlaps a request or a confirm sees the slot before or after a write, as the medium's driver
+ * serialises them. The pure functions have no state and may be called from any context.
  *
  * The contract checks no permission. A management adapter checks access before it calls the update
  * agent. The caller is trusted code.
@@ -158,7 +159,7 @@ CRUX_IMAGE_NODISCARD crux_image_result_t crux_image_start(void);
 /**
  * Copies the boot record taken at start. It does not read the medium and does not block.
  *
- * @param record Receives the record. Must not be NULL.
+ * @param[out] record Receives the record. Must not be NULL.
  * @return CRUX_IMAGE_OK, CRUX_IMAGE_ERR_INVALID_ARGUMENT or CRUX_IMAGE_ERR_NOT_READY.
  */
 CRUX_IMAGE_NODISCARD crux_image_result_t
@@ -170,7 +171,7 @@ crux_image_boot_record_get(crux_image_boot_record_t *record);
  * reads CRUX_IMAGE_SLOT_RUNNING_CONFIRMED, while the boot record still says it was on trial.
  *
  * @param slot Slot number, below CRUX_IMAGE_SLOT_COUNT.
- * @param info Receives the state and the header version. Must not be NULL.
+ * @param[out] info Receives the state and the header version. Must not be NULL.
  * @return CRUX_IMAGE_OK, CRUX_IMAGE_ERR_INVALID_ARGUMENT, CRUX_IMAGE_ERR_NOT_READY or
  *         CRUX_IMAGE_ERR_IO.
  */
