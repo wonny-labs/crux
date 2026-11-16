@@ -2,9 +2,10 @@
 #
 # Moves the const FlexSPI configuration object into the memory that already holds the FlexSPI
 # driver's code, so the NOR busy poll does not read its register base from the NOR it is waiting
-# on. Zephyr's drivers/memc/CMakeLists.txt relocates the text of memc_mcux_flexspi.c only, and
+# on. At the pinned Zephyr (v4.4.2, read in source, Not verified in a build),
+# drivers/memc/CMakeLists.txt relocates the text of memc_mcux_flexspi.c only, and
 # relocates both the text and the read-only data of its xSPI sibling. This adds the read-only data
-# of the one object, with the code relocation of the pinned Zephyr (v4.4.2):
+# of the one object, with Zephyr's code relocation:
 # scripts/build/gen_relocate_app.py matches FILTER against section names, so it needs
 # -fdata-sections to give the object a section of its own (Zephyr's default, not checked in a
 # build). It moves no other object.

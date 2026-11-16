@@ -2,7 +2,7 @@
 
 NOT BUILT, NOT VERIFIED, NOT FOR MERGE. These rules read files and run the one CMake fragment with
 stub Zephyr functions, so they show only that the fragment is off by default, asks for the one
-relocation that docs/plans/mcuboot-flexspi-write-path-closure.md proposes, and refuses a
+relocation that docs/plans/mcuboot-flexspi-write-path-closure.md (PR #491, not yet on main) proposes, and refuses a
 configuration that cannot honour it. They show nothing about a Zephyr build, the generated linker
 script or the board. They use the standard library, because `host.yml` runs this directory without
 west or PyYAML. The CMake rules are skipped where `cmake` is not installed.
@@ -104,7 +104,7 @@ class FragmentTest(unittest.TestCase):
 
 
 class ScopeTest(unittest.TestCase):
-    def test_the_candidate_leaves_the_trial_inputs_and_the_board_files_alone(self):
+    def test_the_board_directory_still_holds_only_the_four_files(self):
         board = REPO / "zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B"
         self.assertEqual(
             ["app.conf", "app.overlay", "mcuboot.conf", "mcuboot.overlay"],

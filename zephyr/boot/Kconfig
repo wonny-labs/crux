@@ -13,8 +13,9 @@ config CRUX_BOOT_FLEXSPI_CONFIG_IN_RAM
 	  This symbol asks for that one object to be placed in the memory that already holds
 	  the driver's code (CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM, ITCM on the RT1060-EVK), with
 	  Zephyr's own code relocation. It is meant for the MCUboot image only, through
-	  zephyr/boot/mcuboot-flexspi-config-in-ram.conf. It closes that one edge and nothing
-	  else in the matrix (see docs/plans/mcuboot-flexspi-write-path-closure.md).
+	  zephyr/boot/mcuboot-flexspi-config-in-ram.conf. It is meant to remove that one edge and
+	  nothing else in the matrix (see docs/plans/mcuboot-flexspi-write-path-closure.md,
+	  proposed in PR #491, not yet on main).
 
 	  The build refuses the symbol without CONFIG_FLASH, CONFIG_FLASH_MCUX_FLEXSPI_XIP
 	  and CONFIG_CODE_DATA_RELOCATION.
