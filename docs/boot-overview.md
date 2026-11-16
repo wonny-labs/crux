@@ -55,7 +55,7 @@ Merged:
 - The [boot composition](boot-composition.md) page, the four board files for the RT1060-EVK Rev B in `zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B/`, and a CI step that builds MCUboot and the controller sample with sysbuild, signs the application with the public test key and checks the signature with `imgtool verify`. It also checks that a key of another type and an image changed after signing are refused by the signing tool.
 - The three investigation records and the plan, as records. They adopt only the owner decisions they list.
 - The trailer replay of MCUboot sequences on the eMMC simulator.
-- Software-only tools for the RT1060 path: the [boot image inspector](boot-image-inspection.md) with its `fit` decision for oversized or misaligned images (#466, #472), a check of the CI-built images against it that is **not wired into CI** and has never run on a real build (#467), and the [porting guide](boot-porting-rt1062.md) for another i.MX RT1062 board (#468).
+- Software-only tools for the RT1060 path: the [boot image inspector](boot-image-inspection.md) with its `fit` decision for oversized or misaligned images (#466, #472), a check of the CI-built images against it that the composition script calls (the edit is pending the owner's approval) and that has never run on a real build (#467), and the [porting guide](boot-porting-rt1062.md) for another i.MX RT1062 board (#468).
 
 Not merged or not started:
 
