@@ -21,7 +21,7 @@ Owner: `components/web`. The settings type, the start calls and the authenticati
 | Idle and absolute expiry | Host only. The limits are 15 minutes and 8 hours in the composition, too long for a `native_sim` run. | |
 | HTTPS | **Not in #186's own image**: plain HTTP on loopback. Over HTTPS: [HTTPS composition](https-composition.md) and [the services image](native-composition-242.md). | |
 | Header capture on Safari | **Not run.** Safari cannot run unattended on this machine. The criterion stays open. A by-hand observation of the `Secure` cookie on the mock is under decision 14. | |
-| RT1060 | Compile only, not linked: an image also needs the Access core and its store | |
+| RT1060 | Compiled as objects in CI. Linked in the Mbed management image (`samples/management_rt1060_mbed`), which `psa-crypto.yml` cross-builds on each pull request and push to `main`, and in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build), which refuses to start. Neither has run on a board | |
 | Anything on a board | Not run. No hardware was operated. | |
 
 ## How a login flows
