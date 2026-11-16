@@ -22,6 +22,8 @@ if(PROBE_VARIANT STREQUAL "app_sources")
 elseif(PROBE_VARIANT STREQUAL "plain_static")
   add_library(probe_queue_adapter STATIC src/queue_adapter.c)
   target_link_libraries(probe_queue_adapter PUBLIC zephyr_interface)
+  # Zephyr orders its own libraries after the generated headers. A plain library must ask.
+  add_dependencies(probe_queue_adapter zephyr_generated_headers)
   target_compile_options(probe_queue_adapter PRIVATE -Wall -Wextra -Werror)
   target_link_libraries(app PRIVATE probe_queue_adapter)
 elseif(PROBE_VARIANT STREQUAL "module_library")
