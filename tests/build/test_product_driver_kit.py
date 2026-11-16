@@ -467,6 +467,15 @@ class GuideTest(unittest.TestCase):
                 with self.subTest(line=line):
                     self.assertRegex(line, r"(?i)\b(not|never|flash|warn|do not)\b")
 
+    def test_the_guide_names_every_way_the_fixture_gate_opens(self):
+        # A hardware map entry that lists the fixture opens the gate as well as the command line.
+        self.assertIn("hardware map", self.text)
+        self.assertIn("--device-testing", self.text)
+
+    def test_the_guide_does_not_say_the_devicetree_sets_the_init_order(self):
+        self.assertNotIn("devicetree already orders", self.text)
+        self.assertIn("CONFIG_CHECK_INIT_PRIORITIES", self.text)
+
     def test_the_guide_keeps_the_boundary_with_crux(self):
         self.assertIn("ADR-0001", self.text)
         self.assertIn("choosing-an-api.md", self.text)
@@ -513,9 +522,9 @@ class PointerTest(unittest.TestCase):
         self.assertIn("--whole-archive", text)
         self.assertIn("tests/product_template_link", text)
 
-    def test_contributing_is_not_part_of_this_change(self):
-        # CONTRIBUTING.md is a protected file and the approval does not cover it. The guide is
-        # reached from README.md and docs/README.md.
+    def test_the_guide_is_reached_without_an_edit_of_contributing(self):
+        # When the kit was added, CONTRIBUTING.md (a protected file) was not changed: the guide is
+        # reached from README.md and docs/README.md. A later reviewed change may link it there.
         self.assertNotIn("writing-a-product-driver", read(REPO / "CONTRIBUTING.md"))
 
 

@@ -4,12 +4,13 @@
  * never run. It shows the shape that a product copies for a real part.
  *
  * The scenario is gated on the Twister fixture "example_temp_wired" (see testcase.yaml). Without
- * that fixture on the command line, Twister builds the image and does not run it, and CI does not
- * run it either. With it, a run is a hardware operation: it needs authorisation for the task, a
- * verified board, probe and flash configuration, and a safe setup. In this repository the route
- * is the device-control tool, which gates every flash and reset, and not a Twister launch of the
- * hardware type, which flashes on every launch. The guide docs/writing-a-product-driver.md says
- * more.
+ * --device-testing, and without that fixture on the command line or in a hardware map entry,
+ * Twister builds the image and does not run it, and CI does not run it either. A run is a
+ * hardware operation: it needs authorisation for the task, a verified board, probe and flash
+ * configuration, and a safe setup. A Twister launch of the hardware type flashes on every launch
+ * and is not a safe route. Crux's accepted direction is its device-control tool, which is untested
+ * on hardware, and consumer hardware tests have no supported entry point yet. The guide
+ * docs/writing-a-product-driver.md says more.
  *
  * SPDX-License-Identifier: Apache-2.0
  */

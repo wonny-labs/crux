@@ -14,10 +14,10 @@ tests:
       - native_sim
       - native_sim/native/64
   # The same driver on a board with the part wired. The scenario is gated on a Twister fixture:
-  # without the fixture on the command line, Twister builds the image and does not run it. A run
-  # on a board is a hardware operation. It needs authorisation for the task, and this repository
-  # routes it through the device-control tool, never through a Twister launch that flashes. See
-  # src/hardware_test.c.
+  # without --device-testing, and without the fixture on the command line or in a hardware map
+  # entry, Twister builds the image and does not run it. A run on a board is a hardware operation
+  # and needs authorisation for the task. A Twister launch of the hardware type flashes on every
+  # launch and is not a safe route. See src/hardware_test.c.
   product.drivers.sensor.example_temp.hardware:
     harness: ztest
     harness_config:

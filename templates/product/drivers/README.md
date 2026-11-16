@@ -31,7 +31,7 @@ ZEPHYR_EXTRA_MODULES=$PWD/product-x west twister -p example_rt1062/mimxrt1062 \
   -T product-x/tests --build-only -O build/twister-build --inline-logs
 ~~~
 
-A run of the hardware scenario on a board is a hardware operation. It needs authorisation for the current task, and in Crux's repository it goes through the device-control tool, not through a Twister launch, which flashes on every launch. The guide says why.
+A run of the hardware scenario on a board is a hardware operation. It needs authorisation for the current task. Do not launch it from Twister with `--device-testing`, which flashes on every launch. Crux's accepted direction is its device-control tool, which is untested on hardware, and Crux has no supported entry point for consumer hardware tests yet. The guide says why.
 
 Build product code that calls kernel objects as a `zephyr_library_named` library of this module, or as sources of the `app` target, not as a plain CMake `STATIC` library that `app` links. The guide's section on static libraries says why and names the probe that tests it.
 

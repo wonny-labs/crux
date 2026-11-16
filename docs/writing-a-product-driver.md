@@ -100,7 +100,7 @@ DT_INST_FOREACH_STATUS_OKAY(EXAMPLE_TEMP_INST)
 `EXAMPLE_TEMP_INST` defines one data block, one config block and one device for each node of the compatible whose status is `okay`. The device comes from `SENSOR_DEVICE_DT_INST_DEFINE`, the sensor class's form of the generic `DEVICE_DT_INST_DEFINE`. It names the init function, the **init level** and the **priority**:
 
 - `POST_KERNEL` is the level of a device that talks to a bus. `PRE_KERNEL_1` and `PRE_KERNEL_2` cannot use kernel services and run on the interrupt stack.
-- The priority orders devices within a level, lower first. A sensor uses `CONFIG_SENSOR_INIT_PRIORITY`, as Zephyr's sensor drivers do. The devicetree already orders a device after the bus it sits on.
+- The priority orders devices within a level, lower first. A sensor uses `CONFIG_SENSOR_INIT_PRIORITY`, as Zephyr's sensor drivers do. The devicetree does not set the order. `CONFIG_CHECK_INIT_PRIORITIES`, on by default, compares the priorities with the dependencies that the devicetree gives and fails the build if a device would start before the bus it sits on; by default `CONFIG_SENSOR_INIT_PRIORITY` is 90, above the I2C and SPI controller priorities (50, from `CONFIG_KERNEL_INIT_PRIORITY_DEVICE`).
 
 The build side is two files next to the driver.
 
@@ -163,7 +163,7 @@ On Apple Silicon the Dev Container is an amd64 image under emulation and a full 
 
 A driver is not qualified by its emulator: the emulator is a model written by the same hand as the driver. A product needs a scenario that runs against the part on a board, and that scenario must not run by accident.
 
-The kit's second scenario, `product.drivers.sensor.example_temp.hardware` in `testcase.yaml`, is **gated on a Twister fixture** named `example_temp_wired`. Without the fixture on the command line, Twister builds the image for the board and does not run it. CI builds it for the vendor board and for the example board and checks that it was built and not run. The part is fictional, so there is nothing to wire: the file `tests/drivers/sensor/example_temp/src/hardware_test.c` is a documented stub that a product replaces.
+The kit's second scenario, `product.drivers.sensor.example_temp.hardware` in `testcase.yaml`, is **gated on a Twister fixture** named `example_temp_wired`. Without `--device-testing`, and without the fixture on the command line or in an entry of a hardware map, Twister builds the image for the board and does not run it. A hardware map whose entry lists the fixture, used with `--device-testing`, makes the scenario runnable and flashes the board, which is why the gate is not a safety route on its own (below). CI builds it for the vendor board and for the example board and checks that it was built and not run. The part is fictional, so there is nothing to wire: the file `tests/drivers/sensor/example_temp/src/hardware_test.c` is a documented stub that a product replaces.
 
 **Do not read the fixture as a way to run on a board from Twister.** The sources say otherwise:
 

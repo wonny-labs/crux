@@ -82,7 +82,8 @@ static int example_temp_init(const struct device *dev)
     uint8_t id;
     int ret;
 
-    /* The bus controller initialises first, because the devicetree says the part is on it. It
+    /* The bus controller initialises first because its priority is lower than the sensor's, and
+     * the build fails if the devicetree dependencies and the priorities disagree. The controller
      * can still have failed, and init must say so rather than touch a bus that is not there. */
     if (!i2c_is_ready_dt(&config->i2c)) {
         LOG_ERR("I2C bus not ready");
