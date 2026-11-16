@@ -123,7 +123,7 @@ static void slot_state_table(void)
 
     /* The running slot. */
     CASE("S7 running, image_ok set: RUNNING_CONFIRMED, whatever copy_done says");
-    for (int copy = UNSET; copy <= SET; copy++) {
+    for (int copy = UNSET; copy <= BADFLAG; copy++) {
         image_state_host_init();
         v = make_view(ver(1, 0, 0, 0), GOOD, SET, (crux_image_port_flag_t)copy);
         image_state_host_slot_put(0, &v);

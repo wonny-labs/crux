@@ -73,7 +73,8 @@ crux_image_result_t crux_image_port_write_image_ok(crux_image_slot_t slot);
  * Derives a slot's state from its header and trailer, by the slot-state table of the contract.
  * Pure. Returns CRUX_IMAGE_OK, or CRUX_IMAGE_ERR_BOOT_STATE for a running slot that the contract
  * does not support: no valid header, a magic that is not good (under revert the bootloader erases
- * such a slot, so it cannot be running), or a flag outside set and unset. @p state is then
+ * such a slot, so it cannot be running), an image_ok flag outside set and unset, or, while image_ok
+ * is unset, a copy_done flag outside set and unset. @p state is then
  * CRUX_IMAGE_SLOT_EMPTY for a missing header and CRUX_IMAGE_SLOT_INVALID otherwise.
  */
 crux_image_result_t crux_image_slot_state_derive(bool is_running,

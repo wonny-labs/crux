@@ -1,6 +1,6 @@
 # Image state contract
 
-Status: **Experimental.** The first piece of the contract's implementation: the public header, the pure functions, the portable core and a Host test double. No bootloader provider exists, and nothing here ran on a board, in a bootloader or on `native_sim`. The decisions are rows I1 to I7 of the [image state contract proposal](plans/image-state-contract-proposal.md), which the owner approved as Experimental on 15 and 16 November 2026. Rows I8 and I9 of that record are still open. The [update agent design proposal](plans/update-agent-design-proposal.md) (U8) is a proposal, and its agent, Zephyr provider and `native_sim` work are not started and not approved.
+Status: **Experimental.** The first piece of the contract's implementation: the public header, the pure functions, the portable core and a Host test double. No bootloader provider exists, and nothing here ran on a board, in a bootloader or on `native_sim`. The decisions are rows I1 to I7 of the [image state contract proposal](plans/image-state-contract-proposal.md), which the owner approved as Experimental on 15 November 2026. The owner approved the implementation scope of this first piece on 16 November 2026. Rows I8 and I9 of that record are still open. The [update agent design proposal](plans/update-agent-design-proposal.md) (U8) is a proposal, and its agent, Zephyr provider and `native_sim` work are not started and not approved.
 
 Owner: `components/image_state`. Public header `<crux/image_state.h>`, usage target `crux::image_state`. The header includes `<stdbool.h>`, `<stddef.h>` and `<stdint.h>` only. No Zephyr, MCUboot or bootutil header or type is part of it.
 
@@ -64,7 +64,7 @@ The record fixes the decisions and leaves some details open. The implementation 
 
 | Point | Choice |
 | --- | --- |
-| A running slot with no valid header, or a flag outside set and unset | `crux_image_start()` fails with `CRUX_IMAGE_ERR_BOOT_STATE` (fail closed, row I6). The table only says that a running slot with a magic that is not good fails. |
+| A running slot with no valid header, an `image_ok` flag outside set and unset, or, while `image_ok` is unset, a `copy_done` flag outside set and unset | `crux_image_start()` fails with `CRUX_IMAGE_ERR_BOOT_STATE` (fail closed, row I6). The table only says that a running slot with a magic that is not good fails. With `image_ok` set the table says `copy_done` is "any", so the slot is `RUNNING_CONFIRMED` whatever `copy_done` holds (case S7). |
 | A slot that is not running, with the magic unset and a stale flag | `INVALID`, not `STAGED`. A request on `STAGED` with `image_ok` set would create a permanent request, which row I2 excludes, and with `copy_done` set the slot would be erased at the next reset. `STAGED` needs an erased trailer. |
 | A missing mode key, or a running slot above 1 | A missing mode key is `ERR_NO_BOOT_DATA`. A mode other than RAM load, or a running slot above 1, is `ERR_BOOT_STATE`. |
 | Unreadable slot at start | `ERR_IO`. The start caches nothing and may be repeated. |

@@ -145,7 +145,8 @@ typedef enum {
  * boot data, or the running-slot key or the mode key in it, is missing. It fails with
  * CRUX_IMAGE_ERR_BOOT_STATE when the mode is not RAM load, when the running slot is not 0 or 1, or
  * when the running slot is not in a state that the contract supports (no valid header, a trailer
- * magic that is not good, or a flag outside set and unset). A failed start caches nothing and may
+ * magic that is not good, an image_ok flag outside set and unset, or, while image_ok is unset, a
+ * copy_done flag outside set and unset). A failed start caches nothing and may
  * be repeated. After a failed start every other call returns CRUX_IMAGE_ERR_NOT_READY. A missing
  * bootloader version does not fail the start: the record says it is not known.
  *
