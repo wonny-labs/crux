@@ -41,7 +41,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | Registration with Zephyr's TLS credentials, on either profile | **Not built in the `native_sim` images**, which keep the declared test certificate of #263. The adapter is the interface a composition uses. The RT1060 bench image builds it (`crux_mgmt_rt1060_tls_credentials`, compile-only): it still refuses to start in `main()` and has not run on a board ([feasibility report](rt1060-management-image-feasibility.md)). | None |
 | wolfPSA signing, wolfSSL parsing the key and the certificate | **Not run by #190.** Run in [the services image](native-composition-242.md) on wolfPSA: the certificate is generated at first boot, loaded at the second with the same fingerprint, and OpenSSL verified it. A run, not a qualification. | `native_sim` |
 | Browsers accepting the self-signed profile | **Not run** | None |
-| RT1060-EVKB | **Not compiled** | None |
+| RT1060-EVKB | **Compiled and linked** in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build, not in CI), which refuses to start; never run on a board | None for a run |
 
 ## Structure
 
@@ -505,5 +505,5 @@ Each was taken without asking the owner, as the task instructs. The narrower cho
 - Any browser with the self-signed profile.
 - A change of certificate under a running listener on either profile.
 - Multithreaded use beyond the contention cases, which run on one thread through hooks.
-- RT1060-EVKB compilation, RAM, stack and timing.
+- RT1060-EVKB RAM, stack and timing. The module is compiled and linked only in the bench image, locally, and has not run.
 - Entropy: Host suites use a counting fake, and the PSA composition uses the Host kernel's random source.
