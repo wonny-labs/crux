@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# A fictional controller board that two products share. It has its own board
+# name: it is not a "board: extend:" variant of the vendor's evaluation kit.
+board:
+  name: acmeco_ctrl_a
+  full_name: Acme Co controller A
+  vendor: acmeco
+  socs:
+    - name: mimxrt1062

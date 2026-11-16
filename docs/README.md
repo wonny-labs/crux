@@ -12,6 +12,7 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 2. [Architecture overview](architecture.md): the three layers of a product, the component ownership rules and the capability inventory.
 3. [Product Composition Guide](product-composition.md): how a product repository composes, versions and releases Crux. There is no Crux release or tag yet.
    If the product targets a board that this repository has not worked with, read [Porting Crux to a new board](porting-to-a-new-board.md) next: the test ladder, what to review, a checklist and a first-board-run outline.
+   If two or more products share boards or drivers, read [Shared boards and drivers across products](shared-hardware-modules.md): where each board and driver lives, and the organisation manifest and hardware module templates.
 4. [Build and Integration Guide](build.md): setup, builds and external applications.
 5. [Component readiness](component-readiness.md): per component, which environments and which evidence exist, and what is missing.
 6. If the product needs remote management over HTTPS, the command line or SFTP: [Secure management in a product](management-in-a-product.md), then the contracts it links. To judge what is verified in that stack before a product relies on it, read the [secure management review guide](secure-management-review.md).
