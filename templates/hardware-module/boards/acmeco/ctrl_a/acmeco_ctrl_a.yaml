@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Twister description of the fictional board. CI builds for it and never runs
+# on it: a board run is a hardware operation with its own authorisation.
+identifier: acmeco_ctrl_a
+name: Acme Co controller A
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+ram: 512
+flash: 8192
+supported:
+  - gpio
+  - serial
+vendor: acmeco

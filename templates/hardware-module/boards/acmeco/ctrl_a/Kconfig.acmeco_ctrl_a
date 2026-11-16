@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_ACMECO_CTRL_A
+	select SOC_PART_NUMBER_MIMXRT1062DVL6A
