@@ -53,11 +53,10 @@ class LoggingCompositionTest(unittest.TestCase):
             'evkb_input': ('', 'CONFIG_CONSOLE_SUBSYS=y\nCONFIG_CONSOLE_GETCHAR=y\n',
                            'shared Console requires Logging-only routing'),
             'evkb_positive': ('', '', None),
-            # Any enabled LPUART of the RT1062 SoC, the EVKB included, with the mode and owner checks.
-            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n', None),
-            # Serial's CSI rule, carried into Logging: LPUART3 shares GPIO_AD_B1_06/07 with CSI on the EVKB.
-            'evkb_lpuart3_csi': ('&logging_uarts { uarts = <&lpuart3>; };\n&csi { status = "okay"; };',
-                                 'CONFIG_CRUX_SERIAL=n\n', 'Logging on LPUART3 conflicts with enabled CSI'),
+            # The RT1060-EVKB keeps its bounded LPUART1 profile: another LPUART is refused there,
+            # even with Serial off.
+            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n',
+                             'unsupported UART resource'),
             'positive': ('', '', None),
             # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
             # with the same mode and owner checks.
@@ -72,9 +71,6 @@ class LoggingCompositionTest(unittest.TestCase):
                                   'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
                                   'status = "okay"; }; };\n&logging_uarts { uarts = <&log_emul>; };', '',
                                   'unsupported UART resource'),
-            # The CSI rule names SoC labels, so it also refuses a board whose LPUART3 pins do not collide.
-            'custom_csi': ('&logging_uarts { uarts = <&lpuart3>; };\n&csi { status = "okay"; };',
-                           'CONFIG_CRUX_SERIAL=n\n', 'Logging on LPUART3 conflicts with enabled CSI'),
         }
         selected = os.environ.get('CRUX_LOGGING_COMPOSITION_CASE')
         if selected and selected not in cases:

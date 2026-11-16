@@ -11,7 +11,7 @@ REPO = Path(__file__).resolve().parents[2]
 # overlay puts Serial on LPUART3 (GPIO_B0_08/09) and leaves the board console on LPUART1.
 FIXTURE_BOARD_ROOT = REPO / 'tests/zephyr/board_fixture'
 FIXTURE_BOARD = 'crux_rt1062_fixture'
-EVKB_CASES = ('csi', 'evkb_lpuart8', 'single_wire', 'rs485')
+EVKB_CASES = ('csi', 'unsupported_lpuart', 'single_wire', 'rs485')
 
 
 @unittest.skipUnless(os.environ.get("CRUX_SERIAL_COMPOSITION_TESTS") == "1",
@@ -56,9 +56,9 @@ class SerialCompositionTest(unittest.TestCase):
                            'Crux Serial conflicts with UART management'),
             "csi": ('&csi { status = "okay"; };', '',
                     'LPUART3 Serial pins conflict with enabled EVKB CSI'),
-            # Any enabled LPUART of the RT1062 SoC, the EVKB included, with the mode and owner checks.
-            "evkb_lpuart8": ('/ { aliases { crux-serial0 = &lpuart8; }; };'
-                             '&lpuart8 { status = "okay"; };', '', None),
+            "unsupported_lpuart": ('/ { aliases { crux-serial0 = &lpuart8; }; };'
+                                   '&lpuart8 { status = "okay"; };', '',
+                                   'Crux Serial unsupported UART resource'),
             "single_wire": ('&lpuart3 { single-wire; };', '',
                             'Crux Serial unsupported UART electrical mode'),
             "rs485": ('&lpuart3 { nxp,rs485-mode; };', '',
@@ -73,7 +73,7 @@ class SerialCompositionTest(unittest.TestCase):
                                 'CONFIG_UART_CONSOLE=n\nCONFIG_SHELL=n\n'
                                 'CONFIG_UART_MCUMGR=n\nCONFIG_LOG=n\n', None),
             # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
-            # with the same mode and owner checks.
+            # with the same mode and owner checks. The RT1060-EVKB stays at LPUART3 (cases above).
             "custom_positive": ('', '', None),
             "custom_console": ('/ { aliases { crux-serial0 = &lpuart1; }; };', '',
                                'Crux Serial conflicts with UART Console'),
