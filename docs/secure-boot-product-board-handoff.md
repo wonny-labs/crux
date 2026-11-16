@@ -67,7 +67,7 @@ Take the full list and the reasons from the [validation target record](plans/emm
 | HAB status and the open-configuration plan | [HAB status](boot-hab-status.md), [HAB open-configuration plan](plans/hab-open-configuration-plan.md) | No HAB result of any kind exists. |
 | The update agent and image-state designs | [update agent proposal](plans/update-agent-design-proposal.md), [image-state contract proposal](plans/image-state-contract-proposal.md) | Proposals. No update code exists. |
 
-What Crux does **not** provide: board support for a product, eMMC part data, signing keys, the NXP flashloader, a HAB signing run or an eMMC first-stage image. A first-stage image for eMMC (plan issue B) is not built.
+What Crux does **not** provide: board support for a product, eMMC part data, signing keys, the NXP flashloader, a HAB signing run or an eMMC first-stage image. A first-stage image for eMMC (plan issue B, not created in the plan as of 15 November 2026; its state was not re-read) is not built.
 
 ## 5. The order of steps
 
@@ -75,7 +75,7 @@ Steps 1 to 4 need no hardware. Do not start a step before the one above it has i
 
 1. **Agree the scope and the custody.**
    - [ ] Name the variant (NOR or eMMC), the board owner, the approver, the board's custody and where results are returned.
-   - [ ] Read the [ladder](secure-boot-verification-ladder.md) so that every result is declared at its level (L3 to L5) and its trust level.
+   - [ ] Read the [ladder](secure-boot-verification-ladder.md) so that every result is declared at its level and its trust level. A result on the product board is L5; L3 and L4 apply only if the team also runs an EVKB.
 2. **Collect the inputs of section 3** in the private repository. Open items stay open and are named in the record.
 3. **Prepare the build, board-free.**
    - [ ] Write the board devicetree, the flash configuration block and the device configuration data, the four composition files and the partition table from a measured signed image ([porting guide, section 6, steps 1 to 5](boot-porting-rt1062.md)).
@@ -87,12 +87,12 @@ Steps 1 to 4 need no hardware. Do not start a step before the one above it has i
    - [ ] Identify the board and the probe, check the target voltage, and connect (retry once at a slower speed and record both).
    - [ ] Back up the boot medium read twice and compare the copies. Exclude any range of unknown content or unreadable range.
    - [ ] eMMC: read EXT_CSD of a unit from an independent host, read only, on a sacrificial unit first. Compare it with the inputs of section 3 and stop on a difference you cannot explain.
-7. **Prove a recovery path before any boot experiment.** This is a rule of the plan (milestone M8). Restore a known good image from the backup, and check the serial downloader route if the product keeps it. The EVKB routes are written and not run (#309), so a product's route is **Not verified** until it is run.
+7. **Prove a recovery path before any boot experiment.** This is a rule of the plan (milestone M8). Restore a known good image from the backup, and check the serial downloader route if the product keeps it. The EVKB probe restore is written and not run, and the serial downloader route is only planned (#309), so a product's route is **Not verified** until it is run.
 8. **Run the boot cases in order** (NOR products: the cases of the EVKB procedure, adapted; T1 to T5, then T6 power cuts with the fixture).
    - [ ] Bootloader NOR writes need the decision on #165 recorded first.
    - [ ] eMMC products: software cases through the MMC stack first (the eMMC variant has no EVKB-like procedure yet), then the first stage from the boot partition. The boot partition steps need the eMMC flash-API driver decision (D2) and a first-stage image that does not exist yet.
 9. **Provisioning, last and in this order,** each write with its own approval, sacrificial units first ([provisioning profile, dependencies and order](plans/emmc-provisioning-profile.md)): partition settings and a power cycle; the boot partition content and the reversible boot settings; a boot test; then protection, reset pin function and other one-time-programmable fields. The profile recommends none of the one-time-programmable writes now.
-10. **HAB.** Open configuration (a signed first stage and an event read) only after the owner's separate approvals for keys, tool runs and the hardware task. Closed configuration, fuses and key custody are the product's own decisions (D1, D5, D6) and need a board that may be locked. Never on an EVKB.
+10. **HAB.** Open configuration (a signed first stage and an event read) only after the owner's separate approvals for keys, tool runs and the hardware task. Closed configuration needs the fuse plan, key custody and signing ceremony that the product takes after the owner's decisions D1, D5 and D6 of 15 November 2026 (approved as recommended, with no key and no fuse operation), and a board that may be locked. Never on an EVKB.
 11. **Return the results** (section 7) and declare the level and trust level reached.
 
 ## 6. Approvals and stop conditions
@@ -142,7 +142,7 @@ Result record, one per case (copy and fill in):
 
 ```text
 Case:               <name from the product procedure>
-Level / trust:      <L3 | L4 | L5> / <T0 | T1 | T2 | T3>
+Level / trust:      <L5 for the product board; L3 or L4 only on an EVKB> / <T0 | T1 | T2 | T3>
 Revisions:          crux <sha>, product <sha>, zephyr <sha>, mcuboot <sha>
 Approval reference: <task record>
 Expected:           <prediction, copied before the run>
@@ -155,7 +155,7 @@ Evidence:           <directory, file hashes>
 **Rules for the return.**
 
 - Say "product board". Give the level and trust level and what was not shown. A pass on one unit is not a pass for every unit ([ladder, section 5](secure-boot-verification-ladder.md)).
-- Give the evidence directory to the Crux maintainers. **Do not commit results under `docs/evidence/`, and do not edit `docs/baseline.md`:** they are protected paths and need an explicit human approval and a material independent review ([`AGENTS.md`](../AGENTS.md)). The maintainers decide what becomes a public record, and in what words.
+- Give the evidence directory to the Crux maintainers. **Do not commit results under `docs/evidence/`, and do not edit `docs/baseline.md`:** under [`AGENTS.md`](../AGENTS.md) an existing file there changes only within an explicit human approval, and a new evidence record is added only within an approved Crux task, with a material independent review. The maintainers decide what becomes a public record, and in what words.
 - Scrub before sharing: product and customer names, part numbers, serial numbers, device parameter values, absolute personal paths and anything of section 8. If a result cannot be stated without them, keep it private and share only its outcome and level.
 - Record failures, skipped steps and blocked cases as such. Do not report an unexecuted case as passing, and do not interpret a build as a boot.
 
@@ -171,7 +171,7 @@ To this public repository, to a pull request description, an issue or a comment:
 - [ ] **Product schematics, board files and the product's first-stage image.**
 - [ ] **Vendor binaries whose licence is not read,** including the flashloader ([plan, section 7](plans/secure-boot-development-plan.md)).
 - [ ] **Personal paths, host names and account details,** and a user home or Docker socket mounted into a build ([`AGENTS.md`](../AGENTS.md)).
-- [ ] **Results written into protected paths** (`docs/evidence/`, `docs/baseline.md`, `tools/`, `scripts/`, `.github/`) without the approval of [`AGENTS.md`](../AGENTS.md).
+- [ ] **Results written into protected paths** (`docs/evidence/`, `docs/baseline.md`, `tools/`, `scripts/`, `.github/`) outside an approved Crux task. [`AGENTS.md`](../AGENTS.md) lets an existing file on these paths change only within an explicit human approval; hand results to the Crux maintainers instead.
 
 When in doubt, keep it in the private repository and ask.
 
@@ -189,4 +189,4 @@ Open questions about the procedures, checkers and records go to the Crux maintai
 
 ## Method
 
-Written from the pages linked above, read on 16 November 2026. No build, tool or hardware was run. No vendor, product or part name was used, and no document under a non-disclosure agreement was used. This page does not claim that any product board boots, that any eMMC works with the RT1060, or that any approval exists.
+Written from the pages linked above, read on 16 November 2026. No build, tool or hardware was run. No eMMC vendor or part name and no product name was used, and no document under a non-disclosure agreement was used. This page does not claim that any product board boots, that any eMMC works with the RT1060, or that any approval exists.
