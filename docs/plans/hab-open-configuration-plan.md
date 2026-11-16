@@ -2,7 +2,7 @@
 
 > **Status:** Proposed. A plan for the project owner. It adopts nothing beyond the decisions it cites. Since 16 November 2026 one narrow approval is recorded (per-run throwaway keys in a software test, see section 8); it approves no hardware operation, fuse operation, persistent key or other CI change. Section 8 lists what the owner must decide or approve.
 > **Verified:** Only that the offline structure checker named in section 3 passes its host tests on synthetic images. Everything else is a plan or a citation of a desk record.
-> **Not verified:** That any tool named here accepts a Zephyr-built first-stage image, produces an image the boot ROM accepts, or yields any HAB event on a board; every HAB behaviour on the RT1060; the layouts the checker assumes. No key was generated, no tool was installed or run, and no board was used for this plan.
+> **Not verified:** (As of writing the plan; the software signing test added later is described on the status page.) That any tool named here accepts a Zephyr-built first-stage image, produces an image the boot ROM accepts, or yields any HAB event on a board; every HAB behaviour on the RT1060; the layouts the checker assumes. No key was generated, no tool was installed or run, and no board was used for this plan.
 > **Read this first / then:** the [HAB status page](../boot-hab-status.md), then the [secure boot development plan](secure-boot-development-plan.md) (phases 4 and 5, sections 3 and 6).
 
 | Field | Value |
@@ -34,7 +34,7 @@ Labels follow the boot records: Verified on pinned source, Verified by build, Ve
 | Closed configuration is planned for production (D1), anti-rollback is application-side until D1 (D4), recovery stays signed-only and is decided with D1 (D5). None approves a fuse operation. | Plan section 6, owner answers of 15 November 2026 |
 | HAB key algorithm and size, key custody (D6): RSA-3072 or larger, offline keys in an HSM, up to four SRK slots; which slots are revocable stays Not verified. D6 creates and provisions no key. | Plan section 6 |
 | No production keys; development keys stay outside the repository. Throwaway keys that a software test creates in a temporary directory and deletes were approved on 16 November 2026 (second-hand quote on the [HAB status page](../boot-hab-status.md#software-signing-test-throwaway-keys-no-board)); no other key generation is approved. | #296 boundaries; #141 owner decision 18 (as the plan cites it); this plan |
-| The SPSDK download was approved under #141 A2 (2 November 2026) and not used. CST and the Secure Provisioning tool have no approval. | [Boot and update investigation](../boot-update-investigation.md), A2 |
+| The SPSDK download was approved under #141 A2 (2 November 2026); since 16 November 2026 SPSDK 3.13.0 is used for the software signing test only. CST and the Secure Provisioning tool have no approval. | [Boot and update investigation](../boot-update-investigation.md), A2 |
 | The RT1060-EVKB is open and stays open. A dedicated board for closed-configuration work is deferred. | Plan section 9; #141 decision 11 |
 | A new check script may be added within a task; an edit to an existing workflow, script or other protected path needs an explicit human approval; a new evidence record may be added within the task. | `AGENTS.md`, protected paths |
 | Physical programming, reset and other hardware operations need explicit authorisation for the current task, a verified target and a safe setup. | `AGENTS.md` |
@@ -58,7 +58,7 @@ Blocks A to F are board-free. Block G is the hardware block. Block H is not part
 | NXP Code Signing Tool (CST) | Fallback only if SPSDK output cannot be produced or processed. | Click-through licence; superseded by SPSDK as read; no approval. A licence review and a separate approval come first. |
 | MCUXpresso Secure Provisioning (GUI and `securep`) | Not used. Not in CI or the repository; not a reproducibility path. | Account and EULA. |
 
-Pin SPSDK by exact version and by the hash of the downloaded artefact in a requirements file added outside the protected paths. Committing that file adds a dependency pin to the repository and is part of O2. The version read in #299 was 3.13.0 (published 3 November 2026); the pin is decided at implementation time and recorded. Install into a virtual environment outside the repository and outside any container that mounts the user home directory (`AGENTS.md`). Disk space and Python 3.10 or later are preconditions (SPSDK's own requirement as read in stage 3).
+Pin SPSDK by exact version and by the hash of the downloaded artefact in a requirements file (the software signing test pins SPSDK and its dependencies by version only, without hashes; a hash lock is a possible follow-up) added outside the protected paths. Committing that file adds a dependency pin to the repository and is part of O2. The version read in #299 was 3.13.0 (published 3 November 2026); the pin is decided at implementation time and recorded. Install into a virtual environment outside the repository and outside any container that mounts the user home directory (`AGENTS.md`). Disk space and Python 3.10 or later are preconditions (SPSDK's own requirement as read in stage 3).
 
 Questions the first run answers offline, each Not verified today:
 
@@ -161,7 +161,7 @@ The key algorithm for products and key custody (D6, approved as a recommendation
 
 ## 8. Decisions and approvals the owner must give
 
-Nothing below is given. Each row gives my recommendation, the reason and the alternative. "Approve" means approve the item as the row words it and nothing more.
+Nothing below is given, except the narrow part recorded after the table. Each row gives my recommendation, the reason and the alternative. "Approve" means approve the item as the row words it and nothing more.
 
 | # | Item | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- | --- |

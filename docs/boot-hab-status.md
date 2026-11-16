@@ -7,7 +7,7 @@
 
 ## In one paragraph
 
-HAB is the boot ROM's check of the first-stage image. The repository holds desk investigations of it, a plan that puts HAB work in Phase 4 (open configuration, reporting only) and Phase 5 (closed configuration, a product decision), the owner's decisions D1, D4, D5 and D6, and, since this page, an offline checker that reads the boot structures of an image file. It holds no HAB signing step, no key, no signed image, no tool run and no board result. Phase 4 is Not started. Trust level T2 of the plan is not reached; neither is T0 shown on a board.
+HAB is the boot ROM's check of the first-stage image. The repository holds desk investigations of it, a plan that puts HAB work in Phase 4 (open configuration, reporting only) and Phase 5 (closed configuration, a product decision), the owner's decisions D1, D4, D5 and D6, an offline checker that reads the boot structures of an image file, and a software signing test that makes its own throwaway keys and signed synthetic images at run time and deletes them. It holds no stored key, no signed image of the real first stage, no vendor reference image and no board result. Phase 4 is Not started. Trust level T2 of the plan is not reached; neither is T0 shown on a board.
 
 ## Evidence labels
 
@@ -37,7 +37,7 @@ None of the following exists: a HAB signing step for the real first-stage image;
 
 | Kind | Examples | Needs |
 | --- | --- | --- |
-| **Board-free, no key** | The structure checker (done, this change); a plan for signing and for the hardware block ([HAB open-configuration plan](plans/hab-open-configuration-plan.md)); a licence review of the tools; fixtures and checks for the layouts of the SDP-download variant. | Nothing beyond the task's approval. |
+| **Board-free, no key** | The structure checker (done); a plan for signing and for the hardware block ([HAB open-configuration plan](plans/hab-open-configuration-plan.md)); a licence review of the tools; fixtures and checks for the layouts of the SDP-download variant. | Nothing beyond the task's approval. |
 | **Board-free, with throwaway keys** | The software signing test (below; approved for temporary, per-run keys only); signing the real first-stage image; the question whether SPSDK accepts a Zephyr image with an FCB and an IVT (A14). | Per-run keys in a temporary directory for the test: approved on 16 November 2026, with the conditions below. Persistent throwaway keys and signing the real first-stage image: **not approved**. Keys stay outside every repository. |
 | **Board, open configuration, no fuse write** | A HAB event read; the ROM serial downloader check (#309), which may share a session with it (#141 owner decision 8); showing that the ROM runs an image that carries a CSF in open configuration. | A separately approved hardware task with a verified target, probe and setup, a custody arrangement for the board and a stop rule. **Not given.** The RT1060-EVKB is open and stays open. |
 | **Board, closed configuration** | Programming SRK hash fuses, setting SEC_CONFIG, a flashloader signed under the device's SRK, revocation, debug lockdown, a hardware anti-rollback counter. | A decision on D1 (which the owner approved as "plan for it in production") turned into a product fuse plan, key custody and a signing ceremony, and a board that may be locked ([#141 decision 11](boot-update-investigation.md) defers a dedicated board). No fuse operation is approved. **Phase 5; not started.** |
@@ -77,9 +77,9 @@ These statements are cited from the records above and carry their labels there.
 
 **What the test does** (`tests/build/test_hab_signing.py`, run by `.github/workflows/hab-signing.yml` and skipped elsewhere unless SPSDK is installed): `nxpcrypto pki-tree hab` creates an RSA-3072 tree with four SRKs; `nxpcrypto rot export` writes the SRK table; `nxpimage hab export` signs a synthetic application for the NOR layout (start `0x60000000`, IVT `0x1000`) and the SD/eMMC layout (start `0x80000000`, IVT `0x400`); the structure checker reads the result as a bare container and as a device image. Controls: an unsigned export declared signed, and a copy with the csf pointer zeroed, are rejected.
 
-**Dependency decision (stated plainly).** A new pinned CI test dependency, SPSDK 3.13.0, licence BSD-3-Clause on PyPI as read; the licences of its binary dependencies are Not verified. SPSDK and its 51 dependencies are pinned in [`tests/target/hab-constraints.txt`](../tests/target/hab-constraints.txt) without hashes. Cost: a separate workflow, run only when the test, the checker, the pin files or the workflow change; about one minute of virtual-environment installation and about 20 seconds of test time. Nothing in `host.yml` or `zephyr.yml` changed.
+**Dependency decision (stated plainly).** A new pinned CI test dependency, SPSDK 3.13.0, licence BSD-3-Clause on PyPI as read; the licences of its binary dependencies are Not verified. SPSDK and its 51 dependencies are pinned in [`tests/target/hab-constraints.txt`](../tests/target/hab-constraints.txt) without hashes. Cost (estimates from the local run, not measured in CI): a separate workflow, run only when the test, the checker, the pin files or the workflow change; about one minute of virtual-environment installation and about 20 seconds of test time. The pins come from a macOS freeze: a dependency that applies only on Linux, or one without a Linux wheel, is settled by the first CI run, whose Linux `pip freeze` should then replace the file. Nothing in `host.yml` or `zephyr.yml` changed.
 
-**What a first run of the pinned tool showed** (author's local run on a Mac with SPSDK 3.13.0, then the same test in CI; the CI result is recorded in the pull request):
+**What a first run of the pinned tool showed** (author's local run on a Mac with SPSDK 3.13.0; the CI run of the same test had not been read when this was written, so its result is not recorded here):
 
 | Observation | Label |
 | --- | --- |
@@ -104,7 +104,7 @@ python3 -m unittest tests/build/test_hab_structure.py
 | --- | --- |
 | `ivt` | No IVT tag `0xD1` at the expected offset. The message says when an IVT-like header sits at the other medium's offset. |
 | `ivt_header` | The header length is not 32 or the version is not `0x40` or `0x41`. |
-| `boot_data` | The boot data pointer is zero, below the image base or beyond the file; the boot data length is zero, larger than the file, or too short to cover the IVT and boot data. |
+| `boot_data` | The boot data pointer is zero, below the image base or beyond the file; the boot data length is zero, larger than the image (the file plus the bytes before a bare container's IVT), or too short to cover the IVT and boot data. |
 | `self` | The self pointer minus the IVT offset differs from the boot data start. The two fields disagree and the tool cannot say which is wrong. |
 | `dcd` | The declaration and the dcd pointer disagree; or the header tag is not `0xD2`; or the length is under 4, over 1,768 or runs beyond the file. |
 | `csf` | The declaration and the csf pointer disagree; or the pointer is outside the file; or the region has no CSF header (tag `0xD4`), for example a reserved empty region; or its length runs beyond the file. |
@@ -112,11 +112,11 @@ python3 -m unittest tests/build/test_hab_structure.py
 
 `fcb` (NOR only, the tag `FCFB` at offset 0; the FCB region also takes part in the overlap check), `entry`, `entry_range`, `reserved`, `plugin`, `image_length` and `csf_range` (a CSF that starts beyond the boot data length warns, because the ROM may never load it) report as `ok`, `info` or `warn` and never decide the verdict. The last line is `Result: structure consistent` or `Result: structure inconsistent`; the exit status is 0, 1, and 2 for a usage error or an unreadable file.
 
-The checker does not verify a signature, a certificate, an SRK table or a key, does not parse DCD or CSF commands, reads no vendor tool output and cannot say what the ROM or HAB would decide. It complements [`inspect_boot_image.py`](boot-image-inspection.md), which reads MCUboot's format, and shares no code with it. A first run on an image built by a real tool is the next check; until then a pass is a result about the checker as much as about the image. It is not wired into CI.
+The checker does not verify a signature, a certificate, an SRK table or a key, does not parse DCD or CSF commands, reads no key material and cannot say what the ROM or HAB would decide. It reads SPSDK 3.13.0 output from synthetic input in `tests/build/test_hab_signing.py`, which the `hab-signing` workflow runs. It complements [`inspect_boot_image.py`](boot-image-inspection.md), which reads MCUboot's format, and shares no code with it. A first run on an image built by a real tool is the next check; until then a pass is a result about the checker as much as about the image. It is not wired into CI.
 
 ## Open points
 
-- The layouts the checker assumes (header words, big-endian lengths, the pointer-to-offset arithmetic, the `FCFB` tag and the boot data start being the address of file offset 0) are Inference until an image from a vendor tool has been checked against them.
+- The layouts the checker assumes (header words, big-endian lengths, the pointer-to-offset arithmetic, the `FCFB` tag and the boot data start being the address of file offset 0) are Inference. They agree with SPSDK 3.13.0 output from synthetic input (local run); they have not been checked against a vendor reference image or the ROM.
 - Where the IVT sits inside a file that the serial downloader receives (`0x0` in the SPSDK device data, B-15; `0x400` in a BD file the SDK guide shows, B-18 as summarised). Not verified; the checker has no medium for it yet.
 - The CSF placement for an SD or eMMC image (#298 X7), the HAB event content for a blank SRK hash (X4), the SRK revoke bits (B-62) and the RT1060 HAB API table layout (B-65) need sources the repository has not read and that may not be public. Material under a non-disclosure agreement stays out of the repository: say "Not verified" in any record instead of guessing.
 - The licences of SPSDK's binary dependencies, of the flashloader and of CST are Not verified.

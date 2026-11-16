@@ -57,7 +57,10 @@ def load_checker():
 def run(*argv, cwd):
     result = subprocess.run(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                             timeout=300)
-    return result.returncode, result.stdout
+    output = result.stdout
+    if "PRIVATE KEY" in output:  # never let key material reach a log or an assertion message
+        output = "[output withheld: it contained private key material]"
+    return result.returncode, output
 
 
 def application(start, size=0x2000):

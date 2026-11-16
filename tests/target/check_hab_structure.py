@@ -3,6 +3,7 @@
 """Check the HAB boot structures of a first-stage image. A developer tool, not a Crux interface.
 
   check <file> --medium {nor,sd,emmc} --csf {present,absent} [--dcd {present,absent}]
+        [--layout {image,container}]
 
 It reads the IVT, the boot data, the DCD pointer and header and the CSF pointer and header of an
 image file and says whether they are consistent with what the caller declares. It reads one file and
@@ -17,7 +18,8 @@ tests/target/inspect_boot_image.py (which reads MCUboot's image format and share
 tool) and does not edit it.
 
 The layouts below come from sources of different strength. docs/boot-hab-status.md records the
-label of each statement. None of it was compared against a real image or a vendor tool here.
+label of each statement. Apart from the check against SPSDK 3.13.0 output from synthetic input in
+tests/build/test_hab_signing.py, none of it was compared against a real image or a vendor tool.
 
 * Repository records (Verified by public vendor document, a third-party copy of the RT1060 reference
   manual, as recorded in docs/evidence/boot-bootloader-update/b-nxp-rom-fuses-hab.md and
@@ -62,7 +64,8 @@ SIGNATURE_NOTE = (
 EPILOG = (
     f"{SIGNATURE_NOTE}\n"
     "The layouts are the author's reading of public descriptions and the repository's records (see "
-    "docs/boot-hab-status.md); they are not checked against a real image or a vendor tool.\n"
+    "docs/boot-hab-status.md); they are checked only against SPSDK 3.13.0 output from synthetic input "
+    "(tests/build/test_hab_signing.py), not against a vendor reference image or the boot ROM.\n"
     "Exit status: 0 consistent, 1 inconsistent, 2 usage error."
 )
 
