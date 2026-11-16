@@ -312,16 +312,20 @@ config CRUX_FILE_FATFS_SIMULATOR
       disk whose contents outlive the process; does not mount or format a volume.
 
 config CRUX_FILE_FATFS_RT1060
-    bool "Crux File FatFs provider on the RT1060-EVKB microSD"
-    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
-    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    bool "Crux File FatFs provider on an RT1062 microSD card"
+    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
     depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Link the File provider into an RT1060-EVKB image. Off by default. It mounts and
-      formats nothing by itself; the project composition owns mount order and recovery.
+      Link the File provider into an image for a board with the RT1062 SoC and an enabled
+      USDHC with an SD disk in its devicetree. On the RT1060-EVK it needs the Rev B QSPI
+      target. Off by default. It mounts and formats nothing by itself; the project
+      composition owns mount order and recovery. Accepted is not qualified: a board other
+      than the RT1060-EVKB is checked for these facts only.
       Physical-board evidence is narrow: runs of earlier revisions (2 and 3 November 2026) on
       one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
       microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
@@ -332,16 +336,18 @@ config CRUX_FILE_FATFS_RT1060
       crux_file gained later (#224) have no physical run.
 
 config CRUX_FILE_FATFS_RT1060_RAM_DISK
-    bool "Crux File FatFs provider on a RAM disk of the RT1060-EVKB"
-    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
-    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    bool "Crux File FatFs provider on a RAM disk of an RT1062 board"
+    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
     depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Link the File provider into an RT1060-EVKB image whose only disk is a RAM disk, so that no
-      card can be reached by it and nothing persists across a reset. Off by default. It needs the
+      Link the File provider into an RT1062 image (on the RT1060-EVK, the Rev B QSPI target)
+      whose only disk is a RAM disk, so that no card can be reached by it and nothing persists
+      across a reset. Off by default. It needs the
       SD card driver to be absent: a build that has both is refused here and by the provider's
       CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
       format a RAM disk because it is memory. Used by the bench image of the integrated
@@ -350,16 +356,18 @@ config CRUX_FILE_FATFS_RT1060_RAM_DISK
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
-    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
-    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
+    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
+    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
     depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Compile the File implementation and RT1060 SDHC/FatFs composition as an
-      object-only check. This does not link or select a target File provider,
-      mount media, format media, or enable runtime File operations.
+      Compile the File implementation and RT1062 SDHC/FatFs composition as an
+      object-only check, on any board with the RT1062 SoC and an enabled USDHC with an SD
+      disk (on the RT1060-EVK, the Rev B QSPI target). This does not link or select a
+      target File provider, mount media, format media, or enable runtime File operations.
 
 config CRUX_FILE_RELIANCE_EDGE
     bool "Crux File provider on Reliance Edge"

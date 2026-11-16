@@ -6,11 +6,12 @@
 #if !DT_NODE_HAS_STATUS(SERIAL_NODE, okay)
 #error "Crux Serial requires an explicit dedicated crux-serial0 UART alias"
 #else
-/* Bounded M5 profile, not generic board/device qualification. */
-#if defined(CONFIG_BOARD_MIMXRT1060_EVK) && DT_NODE_EXISTS(DT_NODELABEL(lpuart3))
-#define SUPPORTED_TARGET_UART                                                                      \
-    (DT_NODE_HAS_COMPAT(SERIAL_NODE, nxp_lpuart) &&                                                \
-     DT_SAME_NODE(SERIAL_NODE, DT_NODELABEL(lpuart3)))
+/* Bounded M5 profile, not generic board/device qualification. Any board with the RT1062 SoC,
+ * the EVKB included: any enabled LPUART, accepted by SoC and devicetree, not by board name,
+ * with the mode, owner and CSI checks below. Other pin conflicts are board facts that Crux
+ * does not check; reviewing them is the product's duty. Accepted is not qualified. */
+#if defined(CONFIG_SOC_MIMXRT1062)
+#define SUPPORTED_TARGET_UART DT_NODE_HAS_COMPAT(SERIAL_NODE, nxp_lpuart)
 #else
 #define SUPPORTED_TARGET_UART 0
 #endif
@@ -50,6 +51,7 @@ REJECT_OWNER(DT_CHOSEN(zephyr_bt_uart), "Crux Serial conflicts with Bluetooth UA
 #if DT_NODE_EXISTS(DT_ALIAS(m2_hci_bt_uart)) && defined(CONFIG_BT_HCI)
 REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Serial conflicts with Bluetooth UART");
 #endif
+/* Keyed on SoC labels: it also refuses a board whose LPUART3 pins do not collide with CSI. */
 #if DT_NODE_EXISTS(DT_NODELABEL(lpuart3)) && DT_NODE_EXISTS(DT_NODELABEL(csi))
 #if DT_SAME_NODE(SERIAL_NODE, DT_NODELABEL(lpuart3)) && DT_NODE_HAS_STATUS(DT_NODELABEL(csi), okay)
 #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
