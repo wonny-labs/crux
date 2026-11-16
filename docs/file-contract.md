@@ -234,8 +234,12 @@ Appending is the three existing calls in this order, on a handle that the caller
 
 Rules for the result. `transferred` is mandatory and set to zero before dispatch. A short write
 returns `CRUX_FILE_PARTIAL`, and an explicit no-space error returns `CRUX_FILE_ERR_NO_SPACE`.
-Accepted bytes are not rolled back, so after either result the file is longer by `transferred`.
-Read the size again and seek again before retrying, and do not retry the whole record blindly.
+Accepted bytes are not rolled back, and after an error `transferred` may be lower than what
+reached the file. On the Zephyr FatFs path Zephyr's `fatfs_write` discards the count of `f_write`
+when it fails (`subsys/fs/fat_fs.c:225-232`, Zephyr v4.4.0), and
+`components/file/ports/zephyr/file_native.c:312-315` then reports zero transferred. For errors
+from other providers the count is not verified. Read the size again and seek again before
+retrying, and do not retry the whole record blindly.
 `crux_file_sync()` returning OK acknowledges the provider's flush and not power-loss safety, and no
 atomic update is promised, so a cut during an append can leave a partial last record. A log format
 that lets a reader ignore an incomplete tail is the product's own design, and this contract says
@@ -293,7 +297,7 @@ See [Additions](#additions-for-roots-stat-size-rename-and-listing).
 A product learns that a volume is full from `CRUX_FILE_ERR_NO_SPACE` on a write or a create, and on
 Reliance Edge also for an empty file when no inode is left ([Reliance Edge mapping](#reliance-edge-mapping)).
 The FatFs provider does call `fs_statvfs` internally, only to map a refused create on a full
-volume to NO_SPACE, and it returns no value (`components/file/ports/zephyr/file_native.c:277-284`, the call at line 280).
+volume to NO_SPACE, and it returns no value (`components/file/ports/zephyr/file_native.c:277-284`, the call on line 281).
 The file service's area counters are limits that it enforces, not free space on the medium
 ([File service](file-service-contract.md#capacity)). A public volume-information call would be a
 new Experimental function and an owner decision under [AGENTS.md](../AGENTS.md), and this section

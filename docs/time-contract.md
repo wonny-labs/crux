@@ -185,7 +185,7 @@ offer, behind code the product owns, with no Crux change.
 **Do not include `time_rtc_zephyr.h`.** It is a private port header, not a composition
 interface. It sits beside the port in `components/time/ports/zephyr/`, and no usage target
 publishes it: `crux::time` exposes only `components/time/include`, and there is no
-`crux::time_zephyr` target or header under `ports/zephyr/include/crux/` as the
+published composition target or header under `ports/zephyr/include/crux/` for it, as the
 [composition rules](composition-interfaces.md#the-six-rules) require. Private headers and `ports/`
 include paths are named as not being an escape hatch
 ([composition-interfaces.md](composition-interfaces.md#what-is-not-an-escape-hatch)), and Zephyr
@@ -200,8 +200,13 @@ code that needs valid realtime:
 1. `crux_realtime_init()`. `crux_realtime_set()` returns NOT_READY before it.
 2. Check the product's RTC device with `device_is_ready()`, then read it with Zephyr's
    `rtc_get_time()`. In `struct rtc_time`, `tm_year` counts from 1900 and `tm_mon` runs 0 to 11
-   (`include/zephyr/drivers/rtc.h:62-73` in Zephyr). Zephyr returns -ENODATA when the RTC time has
-   not been set (`rtc.h:267`).
+   (`include/zephyr/drivers/rtc.h:62-73`). Zephyr returns -ENODATA when the RTC time has not been
+   set (`rtc.h:267`). Both citations were read at Zephyr v4.4.0 and at v4.4.2, with the same line
+   numbers in each. A provider library named `crux_time_zephyr` exists
+   (`components/time/ports/zephyr/CMakeLists.txt:20`). Its include directories are the Time
+   `include` and `src` directories and the Base `include` directory, not `ports/zephyr`
+   (`CMakeLists.txt:26-30`), and the `crux::time` target links only the portable declarations
+   (`CMakeLists.txt:36-40`).
 3. Fill a `crux_datetime_t` from the fields (year `tm_year + 1900`, month `tm_mon + 1`) and call
    `crux_realtime_from_utc()`. Crux's own adapter treats the RTC fields as UTC; use the same
    convention for what the product stores in the RTC.
@@ -222,8 +227,12 @@ crux_status_t product_adopt_rtc_at_boot(const struct device *rtc)
     }
 
     struct rtc_time native = {0};
-    if (rtc_get_time(rtc, &native) != 0) { /* -ENODATA: never set */
-        return CRUX_ERR_NO_DATA;          /* time stays invalid */
+    int err = rtc_get_time(rtc, &native);
+    if (err == -ENODATA) { /* Zephyr: the RTC time has never been set */
+        return CRUX_ERR_NO_DATA; /* time stays invalid */
+    }
+    if (err != 0) { /* any other driver error is not "never set" */
+        return CRUX_ERR_IO; /* time stays invalid */
     }
 
     const crux_datetime_t utc = {
@@ -244,10 +253,17 @@ crux_status_t product_adopt_rtc_at_boot(const struct device *rtc)
 }
 ```
 
-The function needs `<crux/time.h>`, `<crux/time_authority.h>`, `<crux/time_calendar.h>`,
-`<zephyr/device.h>` and `<zephyr/drivers/rtc.h>`, and the product's Kconfig needs `CONFIG_RTC`
-with a driver for its device. Crux's own test does the same sequence with the private adapter's
-read (`tests/time/zephyr/main.c:182-185` and `:200-204`).
+The status codes returned for the two failures of `rtc_get_time()` are product policy, not a Crux
+rule. The snippet keeps `-ENODATA` apart from other errors because only `-ENODATA` means that the
+RTC was never set, and a product that reports every failure as "never set" hides driver faults.
+
+The function needs `<errno.h>`, `<crux/time.h>`, `<crux/time_authority.h>`,
+`<crux/time_calendar.h>`, `<zephyr/device.h>` and `<zephyr/drivers/rtc.h>`. The product's Kconfig
+needs `CONFIG_RTC` with a driver for its device, and `CONFIG_CRUX_TIME=y`, which the
+`crux_realtime_*` calls need and which defaults to y when `CONFIG_RTC` is set
+(`zephyr/Kconfig:9-11`). Crux's own test does a similar sequence with the private adapter's read:
+it sets MANUAL time, stores and reads the RTC, then sets the RTC value with source RTC
+(`tests/time/zephyr/main.c:177-204`).
 
 **Errors and what they leave behind.** The product decides what to do after each one. Crux's part
 is this:
