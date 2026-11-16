@@ -14,6 +14,11 @@ No Crux release tag exists yet. The [Product Composition Guide](https://github.c
 | `check_domain_includes.py` | The domain include check, and with `--product` the include check of the whole product repository |
 | `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, support period, release steps, bundle contents, revision and checks |
 | `.gitignore` | Keeps `build/` out of the source tree that the build record hashes |
+| `zephyr/module.yml`, `CMakeLists.txt`, `Kconfig` | Make the repository a Zephyr module with its own board and devicetree roots. See [the driver kit](#drivers-boards-and-tests-the-driver-kit) |
+| `drivers/` | The product's Zephyr drivers, one folder for each class. The example is a fictional I2C temperature sensor behind the sensor API, with its emulator |
+| `dts/bindings/` | The product's devicetree bindings, and `vendor-prefixes.txt` for the prefixes that it adds |
+| `boards/` | The product's boards. The example, `vnd/example_rt1062`, is a fictional board with a name of its own |
+| `tests/` | The tests of the drivers: unit tests on `native_sim` against the emulator, and a hardware scenario that is gated on a Twister fixture and built, never run |
 
 ## Start a product
 
@@ -87,6 +92,40 @@ The warning is silent in the targets that Crux's own CMake creates. A Zephyr ima
 An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Until the failure below is understood, make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. In one product (crux-controller, Zephyr 4.4.2, `native_sim` and RT1060-EVKB cross-build) an adapter built as a `STATIC` library failed to link with undefined references to `k_msgq_init`, `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. The cause was not reproduced locally. An adapter that makes no kernel-object calls has not shown this failure.
 
 `--domain DIR` resolves a quoted include only relative to the including file and to `DIR`, never through an include path. A layout with `include/` beside `src/`, where `#include "name.h"` is found through an include path, therefore fails, even though the header is inside `DIR`. Either spell the include relative to `DIR` (`"include/name.h"`), or leave that directory out of `--domain`. Leaving it out keeps only the frozen-header rule for it, so `<zephyr/...>` includes there are no longer caught.
+
+## Drivers, boards and tests (the driver kit)
+
+The repository is also a Zephyr module, so that a product can hold its own board, its own drivers and their tests next to the application. [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md) (`docs/writing-a-product-driver.md` in `crux-pilot`) is the guide: when not to write a driver, the layout, the binding, the driver, the emulator, the tests and a checklist. The kit is plain Zephyr. It adds no Crux interface, and nothing in it uses the `crux_` prefix.
+
+| What | Where | What it shows |
+| --- | --- | --- |
+| Module | `zephyr/module.yml` | `board_root`, `dts_root`, and the `tests` and `boards` keys that Twister reads |
+| Binding | `dts/bindings/sensor/vnd,example-temp.yaml` | A binding named after its compatible, with the stand-in vendor prefix `vnd` |
+| Driver | `drivers/sensor/example_temp/` | `DT_DRV_COMPAT`, `DEVICE_API`, `DT_INST_FOREACH_STATUS_OKAY`, init level and priority, errors as negative errno, a `zephyr_library_named` library, `depends on DT_HAS_VND_EXAMPLE_TEMP_ENABLED` |
+| Emulator | `drivers/sensor/example_temp/example_temp_emul.c` | A model of the part's registers behind Zephyr's I2C emulator, with the sensor backend |
+| Board | `boards/vnd/example_rt1062/` | A minimal copy of the files of the vendor board that it needs, with its own board name, not a `board: extend:` variant |
+| Unit tests | `tests/drivers/sensor/example_temp/src/emul_test.c` | The driver against its emulator on `native_sim`, with bus errors injected through the bus emulator's `mock_api` and a wrong part identifier |
+| Hardware scenario | `tests/drivers/sensor/example_temp/src/hardware_test.c` | A scenario gated on the Twister fixture `example_temp_wired`. A stub: the part is fictional |
+
+The part, the board and the flash configuration are examples. Replace them with the product's own. When you rename the product, rename `product-x` in `zephyr/module.yml` as well as in `west.yml`: the tests find the driver folder through the module name.
+
+Run the unit tests on `native_sim`, which needs Linux (the Dev Container). In a workspace whose manifest repository is the product, west finds the module. From any other workspace, name it:
+
+~~~sh
+ZEPHYR_EXTRA_MODULES=product-x west twister -p native_sim -p native_sim/native/64 \
+  -T product-x/tests -O build/twister --inline-logs
+~~~
+
+Build the hardware scenario for a board without running it. The run builds an image and names no fixture, so Twister runs nothing:
+
+~~~sh
+ZEPHYR_EXTRA_MODULES=product-x west twister -p example_rt1062/mimxrt1062 \
+  -T product-x/tests --build-only -O build/twister-build --inline-logs
+~~~
+
+A run of the hardware scenario on a board is a hardware operation. It needs authorisation for the current task, and in Crux's repository it goes through the device-control tool, not through a Twister launch, which flashes on every launch. The guide says why.
+
+The `board_root` and `dts_root` of the module apply to every build that includes it, including a secondary image such as a bootloader built by sysbuild. The kit's driver is built only when the sensor subsystem is on and a node of its compatible is enabled, and a bootloader image normally has neither, but this has not been tested: no sysbuild image is built with the module.
 
 ## Shared-state example
 

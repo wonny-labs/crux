@@ -1,0 +1,29 @@
+# Example temperature sensor configuration options
+
+# Modelled on drivers/sensor/f75303/Kconfig of Zephyr (Copyright (c) 2023 Google LLC).
+# SPDX-License-Identifier: Apache-2.0
+
+config EXAMPLE_TEMP
+	bool "Example temperature sensor"
+	default y
+	depends on DT_HAS_VND_EXAMPLE_TEMP_ENABLED
+	select I2C
+	help
+	  Enable the driver for the example temperature sensor of this template. The part is
+	  fictional: the driver shows the shape of a product driver and is not meant to be shipped.
+
+if EXAMPLE_TEMP
+
+config EMUL_EXAMPLE_TEMP
+	bool "Emulator for the example temperature sensor"
+	default y
+	depends on EMUL
+	help
+	  Enable the emulator of the sensor, a model of the part's registers behind Zephyr's bus
+	  emulator. It exists for tests on native_sim and is never part of a firmware image.
+
+module = EXAMPLE_TEMP
+module-str = Example temperature sensor
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # EXAMPLE_TEMP

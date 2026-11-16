@@ -52,6 +52,8 @@ KIT_FILES = (
     "tests/drivers/sensor/example_temp/testcase.yaml",
     "tests/drivers/sensor/example_temp/boards/native_sim.overlay",
     "tests/drivers/sensor/example_temp/boards/native_sim.conf",
+    "tests/drivers/sensor/example_temp/boards/native_sim_64.overlay",
+    "tests/drivers/sensor/example_temp/boards/native_sim_64.conf",
     "tests/drivers/sensor/example_temp/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay",
     "tests/drivers/sensor/example_temp/src/emul_test.c",
     "tests/drivers/sensor/example_temp/src/hardware_test.c",
@@ -72,6 +74,11 @@ def kit_text_files():
 
 def read(path):
     return Path(path).read_text()
+
+
+def code(path):
+    """Return a file without its comment lines, so that a rule is not tripped by the explanation."""
+    return "\n".join(line for line in read(path).splitlines() if not line.lstrip().startswith("#"))
 
 
 class KitFilesTest(unittest.TestCase):
@@ -163,8 +170,8 @@ class BindingTest(unittest.TestCase):
 class DriverTest(unittest.TestCase):
     def setUp(self):
         self.source = read(DRIVER / "example_temp.c")
-        self.cmake = read(DRIVER / "CMakeLists.txt")
-        self.kconfig = read(DRIVER / "Kconfig")
+        self.cmake = code(DRIVER / "CMakeLists.txt")
+        self.kconfig = code(DRIVER / "Kconfig")
 
     def test_the_driver_is_bound_to_the_binding_by_its_compatible(self):
         self.assertRegex(self.source, r"(?m)^#define DT_DRV_COMPAT vnd_example_temp$")
@@ -229,8 +236,8 @@ class DriverTest(unittest.TestCase):
 
 class BoardTest(unittest.TestCase):
     def setUp(self):
-        self.board_yml = read(BOARD / "board.yml")
-        self.kconfig = read(BOARD / "Kconfig.example_rt1062")
+        self.board_yml = code(BOARD / "board.yml")
+        self.kconfig = code(BOARD / "Kconfig.example_rt1062")
 
     def test_the_board_has_its_own_name_and_is_not_an_extension_of_the_vendor_board(self):
         # A board that extends another keeps its name, so Crux would accept it as the vendor board.
@@ -305,6 +312,14 @@ class TestScenariosTest(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertIn(token, source)
 
+    def test_both_native_sim_platforms_get_the_same_board_files(self):
+        # native_sim/native reads native_sim.*, native_sim/native/64 reads native_sim_64.*.
+        boards = TESTS / "boards"
+        for suffix in ("overlay", "conf"):
+            with self.subTest(suffix=suffix):
+                self.assertEqual(read(boards / f"native_sim.{suffix}"),
+                                 read(boards / f"native_sim_64.{suffix}"))
+
     def test_the_unit_test_resets_the_bus_mock_after_each_test(self):
         source = read(TESTS / "src/emul_test.c")
         self.assertRegex(source, r"mock_api\s*=\s*NULL")
@@ -320,6 +335,8 @@ class ScriptTest(unittest.TestCase):
 
     def setUp(self):
         self.text = read(SCRIPT)
+        # A command that continues on the next line is one command.
+        self.commands = self.text.replace("\\\n", " ")
 
     def test_the_script_still_has_the_checks_it_had(self):
         for line in (
@@ -337,12 +354,13 @@ class ScriptTest(unittest.TestCase):
 
     def test_the_script_runs_the_kit_tests_and_twister_on_native_sim(self):
         self.assertIn("test_product_driver_kit.py", self.text)
-        self.assertRegex(self.text, r"west twister[^\n]*-p native_sim\b")
+        self.assertRegex(self.commands, r"west twister[^\n]*-p native_sim\b")
         self.assertIn("native_sim/native/64", self.text)
-        self.assertIn("templates/product/tests", self.text)
+        self.assertIn('template="$repo/templates/product"', self.text)
+        self.assertIn('-T "$template/tests"', self.text)
 
     def test_the_script_builds_the_hardware_scenarios_and_never_runs_them(self):
-        self.assertRegex(self.text, r"west twister[^\n]*--build-only")
+        self.assertRegex(self.commands, r"west twister[^\n]*--build-only")
         self.assertNotRegex(self.text, r"--device-testing|--device-serial|--hardware-map")
         self.assertNotRegex(self.text, r"\bwest (flash|debug|attach)\b")
 
@@ -364,8 +382,8 @@ class GuideTest(unittest.TestCase):
     def test_the_guide_has_the_sections_a_product_team_needs(self):
         headings = re.findall(r"(?m)^#{1,3} (.+)$", self.text)
         joined = "\n".join(headings).lower()
-        for topic in ("when not to write a driver", "layout", "module.yml", "binding",
-                      "skeleton", "error", "logging", "emulator", "hardware", "checklist"):
+        for topic in ("when not to write a driver", "layout", "module", "binding", "the driver",
+                      "error", "logging", "emulator", "hardware", "checklist"):
             with self.subTest(topic=topic):
                 self.assertIn(topic, joined)
 
@@ -388,7 +406,8 @@ class GuideTest(unittest.TestCase):
         self.assertTrue(found, "the guide names no repository path")
         for path in sorted(found):
             with self.subTest(path=path):
-                self.assertTrue((REPO / path).exists(), path)
+                # Paths of the layout table are relative to the template, the others to Crux.
+                self.assertTrue((REPO / path).exists() or (TEMPLATE / path).exists(), path)
 
     def test_every_template_path_named_in_a_code_span_without_the_prefix_exists(self):
         # Paths in the layout table are relative to the product repository root.
@@ -434,10 +453,10 @@ class PublicTextTest(unittest.TestCase):
             with self.subTest(path=str(path.relative_to(REPO))):
                 self.assertIsNone(FORBIDDEN_IN_PUBLIC_TEXT.search(read(path)))
 
-    def test_no_file_of_the_kit_is_named_after_a_vendor_board_or_a_product(self):
-        for path in kit_text_files():
-            with self.subTest(path=str(path.relative_to(REPO))):
-                self.assertNotIn("mimxrt1060_evk", path.name)
+    def test_only_one_file_of_the_kit_is_named_after_the_vendor_board(self):
+        # Zephyr finds the overlay of the hardware scenario for the vendor board by that name.
+        named = [path.name for path in kit_text_files() if "mimxrt1060_evk" in path.name]
+        self.assertEqual(["mimxrt1060_evk_mimxrt1062_qspi_B.overlay"], named)
 
 
 class PointerTest(unittest.TestCase):

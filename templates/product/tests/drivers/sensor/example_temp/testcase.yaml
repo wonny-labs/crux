@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+
+common:
+  tags:
+    - product
+    - driver
+    - sensor
+tests:
+  # Unit tests of the driver against its emulator. They run on the simulator, in CI and on a
+  # developer's machine in the Dev Container, and they need no hardware.
+  product.drivers.sensor.example_temp.emul:
+    harness: ztest
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
+  # The same driver on a board with the part wired. The scenario is gated on a Twister fixture:
+  # without the fixture on the command line, Twister builds the image and does not run it. A run
+  # on a board is a hardware operation. It needs authorisation for the task, and this repository
+  # routes it through the device-control tool, never through a Twister launch that flashes. See
+  # src/hardware_test.c.
+  product.drivers.sensor.example_temp.hardware:
+    harness: ztest
+    harness_config:
+      fixture: example_temp_wired
+    platform_allow:
+      - mimxrt1060_evk@B/mimxrt1062/qspi
+      - example_rt1062/mimxrt1062
