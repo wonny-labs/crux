@@ -122,5 +122,25 @@ grep -qx CONFIG_RETENTION_BOOTLOADER_INFO_TYPE_MCUBOOT=y "$app_config" ||
     fail 'the application configuration lacks the bootloader information type'
 [[ -s "$build/mcuboot/zephyr/zephyr.bin" ]] || fail 'the MCUboot image is empty'
 
+# Both images are configured for RAM load with revert, and the build-number comparison is off
+# (image-state rows I5 and Q9). It reads the two .config files only.
+"$python" "$repo/scripts/check-boot-config.py" "$build" --image "$image" ||
+    fail 'the boot build configuration check failed'
+
+# RAM load with revert implies the padded, confirmed image (erratum of docs/boot-update-investigation.md).
+# The bench procedure (docs/secure-boot-board-test-procedure.md, section 4) takes this file, which is
+# padded to the 3 MiB slot, so it must exist at that size. The explicit path avoids a search by name.
+slot_size=3145728
+confirmed="$build/$image/zephyr/zephyr.signed.confirmed.bin"
+[[ -f "$confirmed" ]] || fail "the build did not produce $confirmed"
+[[ "$(stat -c %s "$confirmed")" -eq "$slot_size" ]] ||
+    fail "$confirmed is $(stat -c %s "$confirmed") bytes, not the slot size $slot_size"
+
+# The images that this build wrote are read by the boot image inspector (tests/target/inspect_boot_image.py)
+# and by imgtool, which must agree, and by the inspector's slot fit decision. It builds and signs nothing
+# that is kept, reads $build and removes its own temporary files.
+CRUX_PYTHON="$python" CRUX_WORKSPACE="$workspace" "$repo/tests/target/check_boot_images.sh" "$build" ||
+    fail 'the boot image check failed'
+
 printf 'Boot composition: MCUboot %s bytes, signed application %s bytes (build only, not booted).\n' \
     "$(stat -c %s "$build/mcuboot/zephyr/zephyr.bin")" "$(stat -c %s "$signed")"

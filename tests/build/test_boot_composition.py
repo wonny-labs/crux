@@ -129,6 +129,95 @@ class BuildCheckTest(unittest.TestCase):
         step = match.group(0)
         self.assertIn("if: matrix.shard == 'runtime'", step)
 
+class BuildCheckWiringTest(unittest.TestCase):
+    """The board-free checks that read the build output are called by the composition script.
+
+    They were merged as separate tools (scripts/check-boot-config.py, tests/target/check_boot_images.sh) and
+    did nothing in CI until this script called them. The script itself needs Linux, west and a build, so
+    these rules read it as text, like the rules of BuildCheckTest.
+    """
+
+    def setUp(self):
+        self.script = read(SCRIPT)
+        self.code = "\n".join(l for l in self.script.splitlines() if not l.lstrip().startswith("#"))
+
+    def position(self, text):
+        index = self.code.find(text)
+        self.assertNotEqual(-1, index, f"the script does not contain: {text}")
+        return index
+
+    def test_the_script_runs_the_build_configuration_check_on_its_own_build(self):
+        self.assertIn(
+            '"$python" "$repo/scripts/check-boot-config.py" "$build" --image "$image" ||', self.code)
+        self.assertIn("the boot build configuration check failed", self.code)
+
+    def test_the_configuration_check_runs_after_the_configurations_it_reads_exist(self):
+        # It reads both .config files, so it follows the lines that already insist on them.
+        call = self.position("check-boot-config.py")
+        self.assertLess(self.position('[[ -f "$config" ]]'), call)
+        self.assertLess(self.position('[[ -f "$app_config" ]]'), call)
+
+    def test_the_script_requires_the_padded_confirmed_image_of_the_slot_size(self):
+        # docs/secure-boot-board-test-procedure.md section 4 step 4 hands this file to the bench. The
+        # explicit path avoids the search by name that returned a wrong file once (see above).
+        self.assertIn('confirmed="$build/$image/zephyr/zephyr.signed.confirmed.bin"', self.code)
+        self.assertIn("slot_size=3145728", self.code)
+        self.assertIn('[[ -f "$confirmed" ]]', self.code)
+        self.assertIn('"$(stat -c %s "$confirmed")" -eq "$slot_size"', self.code)
+
+    def test_the_slot_size_is_the_one_the_image_check_and_the_procedure_use(self):
+        images = read(REPO / "tests/target/check_boot_images.sh")
+        self.assertIn("slot_size=3145728", images)
+        procedure = read(REPO / "docs/secure-boot-board-test-procedure.md")
+        self.assertIn("`<app-out>/zephyr.signed.confirmed.bin` | 3,145,728 B, the slot size", procedure)
+
+    def test_the_script_runs_the_image_check_on_its_own_build_with_its_own_tools(self):
+        self.assertIn(
+            'CRUX_PYTHON="$python" CRUX_WORKSPACE="$workspace" "$repo/tests/target/check_boot_images.sh" "$build" ||',
+            self.code)
+        self.assertIn("the boot image check failed", self.code)
+        self.assertTrue((REPO / "tests/target/check_boot_images.sh").stat().st_mode & 0o111)
+
+    def test_the_image_check_runs_after_the_images_are_signed_verified_and_confirmed(self):
+        call = self.position("check_boot_images.sh")
+        self.assertLess(self.position("imgtool.py\" verify"), call)
+        self.assertLess(self.position("zephyr.signed.confirmed.bin"), call)
+        self.assertLess(self.position("check-boot-config.py"), call)
+
+    def test_the_new_checks_come_before_the_final_report(self):
+        report = self.position("Boot composition: MCUboot")
+        self.assertLess(self.position("check_boot_images.sh"), report)
+        self.assertLess(self.position("check-boot-config.py"), report)
+
+    def test_no_existing_check_of_the_script_was_dropped(self):
+        # The wiring is additive (belt and braces with the inline greps, as the proposal recommends).
+        for line in (
+            "CONFIG_BOOT_RAM_LOAD=y",
+            "CONFIG_BOOT_RAM_LOAD_REVERT=y",
+            "CONFIG_RETENTION_BOOTLOADER_INFO_TYPE_MCUBOOT=y",
+            "expect_refused",
+        ):
+            self.assertIn(line, self.code)
+
+    def test_the_script_still_builds_nothing_extra_and_never_touches_a_board(self):
+        for forbidden in ("west flash", "west debug", "openocd", "pyocd", "JLink", " keygen"):
+            self.assertNotIn(forbidden, self.code)
+
+    def test_the_procedure_no_longer_says_the_ci_check_ignores_the_confirmed_image(self):
+        procedure = read(REPO / "docs/secure-boot-board-test-procedure.md")
+        self.assertNotIn("The CI check does not test for this file", procedure)
+        self.assertIn("zephyr.signed.confirmed.bin", procedure)
+
+    def test_the_documents_say_that_the_composition_script_calls_the_image_check(self):
+        for name in ("docs/boot-image-inspection.md", "docs/boot-overview.md", "docs/boot-composition.md",
+                     "docs/secure-boot-and-update-review.md"):
+            text = read(REPO / name)
+            self.assertIn("pending the owner's approval", text, name)
+            # The reproducibility check is still unwired, so only the image check's statements are refused.
+            self.assertNotIn("check against the real build output is prepared there and not wired into CI", text, name)
+            self.assertNotIn("`imgtool sign` is prepared and not wired", text, name)
+            self.assertNotIn("**not wired into CI** and has never run on a real build (#467)", text, name)
+
 
 if __name__ == "__main__":
     unittest.main()
