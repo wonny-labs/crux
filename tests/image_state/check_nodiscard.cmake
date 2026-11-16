@@ -1,3 +1,7 @@
+# A script run with `cmake -P` has no project, so it sets the policies of the CI's CMake itself:
+# without this, CMake 3.28 reads IN_LIST as an argument and not as an operator (policy CMP0057).
+cmake_minimum_required(VERSION 3.28)
+
 # Runs the C compiler on probe/nodiscard_probe.c with -Werror=unused-result. The probe ignores the
 # result of crux_image_confirm(), so the compile must fail, and the output must name the attribute:
 # a header that does not compile, or a typo in the probe, would fail it too.
