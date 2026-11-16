@@ -1,4 +1,5 @@
 # Qualification is the revision-B EVKB composition, not the whole board family.
+# Another RT1062 board has no EVK revision; its own revisions are the product's to check.
 if(CONFIG_BOARD_MIMXRT1060_EVK AND NOT BOARD_REVISION STREQUAL "B")
     message(FATAL_ERROR "Crux Logging unsupported EVKB board revision: ${BOARD_REVISION}; expected B")
 endif()

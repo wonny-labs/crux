@@ -22,15 +22,21 @@ if(CONFIG_CRUX_FILE_RELIANCE_EDGE AND
     CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK))
   message(FATAL_ERROR "The Reliance Edge provider cannot be combined with another File selection")
 endif()
+# The RT1060 selections are keyed on the RT1062 SoC and the devicetree (an enabled USDHC with an SD
+# disk, checked by Kconfig), not on the board name. On the RT1060-EVK itself only the Rev B QSPI
+# target is accepted, the one that has the physical evidence.
+if(CONFIG_BOARD_MIMXRT1060_EVK AND
+   (NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B))
+  set(CRUX_FILE_RT1060_EVK_VARIANT TRUE)
+endif()
 if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
-  if(CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_BOARD_MIMXRT1060_EVK OR
-     NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B OR
+  if(CONFIG_BOARD_NATIVE_SIM OR CRUX_FILE_RT1060_EVK_VARIANT OR
      NOT CONFIG_SOC_MIMXRT1062 OR NOT CONFIG_FAT_FILESYSTEM_ELM OR
      NOT CONFIG_FILE_SYSTEM OR NOT CONFIG_DISK_DRIVER_SDMMC OR
      NOT CONFIG_IMX_USDHC OR NOT CONFIG_FS_FATFS_LFN OR
      CONFIG_FS_FATFS_MAX_LFN LESS 127 OR NOT CONFIG_FS_FATFS_REENTRANT OR
      CONFIG_FS_FATFS_MOUNT_MKFS)
-    message(FATAL_ERROR "RT1060 File check requires the Rev B QSPI board and the selected FatFs/SDHC build with auto-format disabled")
+    message(FATAL_ERROR "RT1060 File check requires the RT1062 SoC (on the RT1060-EVK, the Rev B QSPI board) and the selected FatFs/SDHC build with auto-format disabled")
   endif()
   if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
     message(FATAL_ERROR "RT1060 compile check cannot be combined with simulator providers")
@@ -57,8 +63,8 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
     message(FATAL_ERROR "The RT1060 provider cannot be combined with simulator providers")
   endif()
-  if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B)
-    message(FATAL_ERROR "The RT1060 File provider requires the Rev B QSPI board")
+  if(NOT CONFIG_SOC_MIMXRT1062 OR CRUX_FILE_RT1060_EVK_VARIANT)
+    message(FATAL_ERROR "The RT1060 File provider requires the RT1062 SoC (on the RT1060-EVK, the Rev B QSPI board)")
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
@@ -78,10 +84,10 @@ endif()
 if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
   # The RT1060 provider over a RAM disk. The SD card driver must be absent, so that the image has no card
   # that the composition could mount or format, and the disk drivers are the RAM disk's alone.
-  if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B OR
+  if(NOT CONFIG_SOC_MIMXRT1062 OR CRUX_FILE_RT1060_EVK_VARIANT OR
      NOT CONFIG_DISK_DRIVER_RAM OR CONFIG_DISK_DRIVER_SDMMC OR CONFIG_IMX_USDHC OR
      CONFIG_DISK_DRIVER_FLASH OR CONFIG_FS_FATFS_MOUNT_MKFS)
-    message(FATAL_ERROR "The RT1060 RAM disk File provider requires the Rev B QSPI board, the RAM disk as the only disk driver and auto-format disabled")
+    message(FATAL_ERROR "The RT1060 RAM disk File provider requires the RT1062 SoC (on the RT1060-EVK, the Rev B QSPI board), the RAM disk as the only disk driver and auto-format disabled")
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")

@@ -102,7 +102,7 @@ The image is written for **RT1060-EVKB Rev B** (`mimxrt1060_evk@B//qspi`) and re
 
 | Part | Where it is set | SoC (RT1062) or board | A product board with an RT1062 changes |
 | --- | --- | --- | --- |
-| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's, and the RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on that board | Board | The check and the provider's `depends on`, or a board file that this repository does not have |
+| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's. The RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on the RT1062 SoC, and on the RT1060-EVK on its Rev B QSPI target | Board | The image's check, or a board file that this repository does not have. The provider accepts an RT1062 board with another name |
 | Entropy | The TRNG (`zephyr,entropy = &trng`, `ENTROPY_MCUX_TRNG`), the fail-closed correction and the boot check | **SoC** | Nothing, unless the board's devicetree changes the chosen entropy node |
 | Device ID for the credential store | `CONFIG_HWINFO` | **SoC** (the unique ID) | Nothing |
 | Flash part and boot | QSPI NOR, XIP from `0x60000000`, the boot header of the board files | Board (the flash part, its size and the boot-mode switches) | The board's flash configuration and boot data |

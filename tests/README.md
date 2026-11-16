@@ -642,6 +642,9 @@ anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if 
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
+The script then configures the same check for `crux_rt1062_fixture`, the fictional compile-only RT1062
+board of `tests/zephyr/board_fixture`, with an SD slot on USDHC1, and compiles the File object only:
+the selection is accepted by SoC and devicetree. That fixture is no hardware and no evidence for any real board.
 
 ### eMMC simulator on `native_sim`
 
@@ -813,13 +816,22 @@ proposal. Root Host/ASan checks include the common and native PTY Serial cases.
 The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
 the public `crux::time` clock contract. Static Zephyr composition and
-UART ownership checks remain part of the full Serial script.
+UART ownership checks remain part of the full Serial script. Its composition test also
+configures and compiles the Serial library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
+the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging
 
 `scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
 Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Its composition test also configures and compiles the Logging library on
+`tests/zephyr/board_fixture`, a fictional compile-only board with its own name and
+the RT1062 SoC: Logging on LPUART2 builds next to Serial on LPUART3, and the mode, owner and
+resource checks still refuse. On the revision-B EVKB, Logging stays at LPUART1: LPUART3 is
+still refused. That fixture is no hardware and no evidence for any real board.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 
@@ -835,7 +847,10 @@ lifecycle and real Linux monotonic-provider tests.
 `scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
 Controller policy checks.
 `scripts/test-system.sh` additionally checks native ownership/configuration,
-Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. Its composition
+test also compiles the System library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` with WDOG1, keeps the WDOG1 asserts on it, and checks
+that an RT1064 board is still refused. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
 

@@ -5,6 +5,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_file_fatfs_compile C)
 # An unsatisfied Kconfig dependency only warns, which would build an empty application.
 if(NOT CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
-  message(FATAL_ERROR "The RT1060 File compile check is not selected: it requires the Rev B QSPI board")
+  message(FATAL_ERROR "The RT1060 File compile check is not selected: it requires the RT1062 SoC, an enabled USDHC with an SD disk and, on the RT1060-EVK, the Rev B QSPI board")
 endif()
 target_sources(app PRIVATE main.c)

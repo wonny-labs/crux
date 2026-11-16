@@ -6,6 +6,12 @@ import subprocess
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
+# A fictional, compile-only board with its own name and the RT1062 SoC: it stands for a
+# custom board with an i.MX RT1062 (tests/zephyr/board_fixture, no hardware). Its app
+# overlay puts Serial on LPUART3 (GPIO_B0_08/09) and leaves the board console on LPUART1.
+FIXTURE_BOARD_ROOT = REPO / 'tests/zephyr/board_fixture'
+FIXTURE_BOARD = 'crux_rt1062_fixture'
+EVKB_CASES = ('csi', 'unsupported_lpuart', 'single_wire', 'rs485')
 
 
 @unittest.skipUnless(os.environ.get("CRUX_SERIAL_COMPOSITION_TESTS") == "1",
@@ -66,6 +72,20 @@ class SerialCompositionTest(unittest.TestCase):
                                 'uarts = <&serial_test>; }; };',
                                 'CONFIG_UART_CONSOLE=n\nCONFIG_SHELL=n\n'
                                 'CONFIG_UART_MCUMGR=n\nCONFIG_LOG=n\n', None),
+            # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
+            # with the same mode and owner checks. The RT1060-EVKB stays at LPUART3 (cases above).
+            "custom_positive": ('', '', None),
+            "custom_console": ('/ { aliases { crux-serial0 = &lpuart1; }; };', '',
+                               'Crux Serial conflicts with UART Console'),
+            "custom_flow_control": ('&lpuart3 { hw-flow-control; };', '',
+                                    'Crux Serial unsupported UART electrical mode'),
+            "custom_not_lpuart": ('/ { aliases { crux-serial0 = &serial_emul; }; '
+                                  'serial_emul: serial-emul { compatible = "zephyr,uart-emul"; '
+                                  'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
+                                  'status = "okay"; }; };', '', 'Crux Serial unsupported UART resource'),
+            # The CSI rule names SoC labels, so it also refuses a board whose LPUART3 pins do not collide.
+            "custom_csi": ('&csi { status = "okay"; };', '',
+                           'LPUART3 Serial pins conflict with enabled EVKB CSI'),
         }
         selected = os.environ.get("CRUX_SERIAL_COMPOSITION_CASE")
         if selected and selected not in cases:
@@ -80,10 +100,16 @@ class SerialCompositionTest(unittest.TestCase):
                 overlay_path.write_text(overlay)
                 config_path = case / "case.conf"
                 config_path.write_text(config)
-                target = name in ('csi', 'unsupported_lpuart', 'single_wire', 'rs485')
+                custom = name.startswith('custom_')
+                target = name in EVKB_CASES or custom
                 board = 'mimxrt1060_evk@B//qspi' if target else 'native_sim/native/64'
                 app = REPO / ('tests/serial_consumer/zephyr' if target else 'tests/serial/zephyr')
                 build = root / ('evkb-build' if target else 'native-build')
+                extra = []
+                if custom:
+                    board = FIXTURE_BOARD
+                    build = root / 'custom-build'
+                    extra = [f'-DBOARD_ROOT={FIXTURE_BOARD_ROOT}']
                 modules = [str(REPO)]
                 if target:
                     modules += subprocess.check_output(
@@ -94,7 +120,7 @@ class SerialCompositionTest(unittest.TestCase):
                            f'-DZEPHYR_MODULES={";".join(modules)}',
                            '-DCRUX_SERIAL_PROVIDER=zephyr',
                            f'-DEXTRA_DTC_OVERLAY_FILE={overlay_path}',
-                           f'-DEXTRA_CONF_FILE={config_path}']
+                           f'-DEXTRA_CONF_FILE={config_path}', *extra]
                 if name == 'unsupported_provider':
                     command[command.index('-DCRUX_SERIAL_PROVIDER=zephyr')] = '-DCRUX_SERIAL_PROVIDER=unsupported'
                 result = subprocess.run(command, text=True, stdout=subprocess.PIPE,

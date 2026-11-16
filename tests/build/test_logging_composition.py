@@ -5,6 +5,11 @@ import subprocess
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
+# A fictional, compile-only board with its own name and the RT1062 SoC: it stands for a
+# custom board with an i.MX RT1062 (tests/zephyr/board_fixture, no hardware). Its app
+# overlay puts Logging on LPUART2, Serial on LPUART3, and leaves the board console on LPUART1.
+FIXTURE_BOARD_ROOT = REPO / 'tests/zephyr/board_fixture'
+FIXTURE_BOARD = 'crux_rt1062_fixture'
 
 
 @unittest.skipUnless(os.environ.get('CRUX_LOGGING_COMPOSITION_TESTS') == '1',
@@ -48,7 +53,24 @@ class LoggingCompositionTest(unittest.TestCase):
             'evkb_input': ('', 'CONFIG_CONSOLE_SUBSYS=y\nCONFIG_CONSOLE_GETCHAR=y\n',
                            'shared Console requires Logging-only routing'),
             'evkb_positive': ('', '', None),
+            # The RT1060-EVKB keeps its bounded LPUART1 profile: another LPUART is refused there,
+            # even with Serial off.
+            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n',
+                             'unsupported UART resource'),
             'positive': ('', '', None),
+            # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
+            # with the same mode and owner checks.
+            'custom_positive': ('', '', None),
+            'custom_shared_console': ('/ { chosen { zephyr,console = &lpuart2; }; };', '', None),
+            'custom_shared_stdout': ('/ { chosen { zephyr,console = &lpuart2; }; };', 'CONFIG_STDOUT_CONSOLE=y\n',
+                                     'shared Console requires Logging-only routing'),
+            'custom_flow_control': ('&lpuart2 { hw-flow-control; };', '', 'unsupported UART mode'),
+            'custom_serial': ('/ { aliases { crux-serial0 = &lpuart2; }; };', 'CONFIG_CRUX_SERIAL=y\n',
+                              'conflicts with Crux Serial'),
+            'custom_not_lpuart': ('/ { log_emul: log-emul { compatible = "zephyr,uart-emul"; '
+                                  'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
+                                  'status = "okay"; }; };\n&logging_uarts { uarts = <&log_emul>; };', '',
+                                  'unsupported UART resource'),
         }
         selected = os.environ.get('CRUX_LOGGING_COMPOSITION_CASE')
         if selected and selected not in cases:
@@ -61,7 +83,8 @@ class LoggingCompositionTest(unittest.TestCase):
                 case.mkdir(exist_ok=True)
                 (case / 'case.overlay').write_text(overlay)
                 (case / 'case.conf').write_text(config)
-                target = name.startswith('evkb_')
+                custom = name.startswith('custom_')
+                target = name.startswith('evkb_') or custom
                 modules = [str(REPO)]
                 if target:
                     modules += subprocess.check_output(
@@ -72,13 +95,18 @@ class LoggingCompositionTest(unittest.TestCase):
                     board = 'mimxrt1060_evk@C//qspi'
                 app = REPO / ('tests/logging_consumer/zephyr' if target else 'tests/logging/zephyr')
                 build = root / ('evkb-build' if target else 'native-build')
+                extra = []
                 if name == 'evkb_revision':
                     build = root / 'revision-build'
+                elif custom:
+                    board = FIXTURE_BOARD
+                    build = root / 'custom-build'
+                    extra = [f'-DBOARD_ROOT={FIXTURE_BOARD_ROOT}']
                 result = subprocess.run([
                     'west', 'build', '--cmake-only', '-b', board, '-d', str(build),
                     str(app), '--', f'-DZEPHYR_MODULES={";".join(modules)}',
                     f'-DEXTRA_DTC_OVERLAY_FILE={case / "case.overlay"}',
-                    f'-DEXTRA_CONF_FILE={case / "case.conf"}'],
+                    f'-DEXTRA_CONF_FILE={case / "case.conf"}', *extra],
                     text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=240)
                 if result.returncode == 0:
                     built = subprocess.run(['cmake', '--build', str(build),
