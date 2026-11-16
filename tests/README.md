@@ -810,6 +810,10 @@ UART ownership checks remain part of the full Serial script.
 `scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
 Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Its composition test also configures and compiles the Logging library on
+`tests/zephyr/board_fixture`, a fictional compile-only board with its own name and
+the RT1062 SoC: Logging on LPUART2 builds, and the mode, owner and resource checks
+still refuse. That fixture is no hardware and no evidence for any real board.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 
@@ -825,7 +829,10 @@ lifecycle and real Linux monotonic-provider tests.
 `scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
 Controller policy checks.
 `scripts/test-system.sh` additionally checks native ownership/configuration,
-Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. Its composition
+test also compiles the System library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` with WDOG1, keeps the WDOG1 asserts on it, and checks
+that an RT1064 board is still refused. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
 
