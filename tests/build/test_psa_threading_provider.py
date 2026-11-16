@@ -129,14 +129,18 @@ class Provider(unittest.TestCase):
         self.assertNotIn("tests/", text)
 
     def test_help_states_what_an_image_without_the_mbed_module_gets(self):
-        # An image that leaves the option off keeps its behaviour, but the typed redefinition of the Mbed TLS symbol puts
-        # that symbol, empty, into the .config of every image that has this module and not the Mbed TLS module.
+        # An image that leaves the option off keeps its behaviour. The module's definition of the Mbed TLS symbol has
+        # no prompt and a default that applies only with this option, so without the Mbed TLS module (where Zephyr's
+        # own definition is hidden) the symbol is not written to .config. kconfiglib on a reduced model shows this.
         text = " ".join(block("CRUX_PSA_THREADING").split())
         self.assertNotIn("nothing changes in an image", text)
         self.assertIn("no behaviour changes in an image that leaves it off", text)
-        self.assertRegex(text, r"CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE[^.]*typed default")
-        self.assertRegex(text, r"without the Mbed TLS module[^.]*symbol, empty, in its \.config")
-        self.assertIn("Nothing reads it there", text)
+        self.assertRegex(text, r"CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE as a string whose default applies only "
+                               r"when this option is on")
+        self.assertRegex(text, r"without the Mbed TLS module[^.]*no prompt and no active default[^.]*"
+                               r"not written to \.config")
+        self.assertIn("nothing reads it", text)
+        self.assertNotRegex(text, r"symbol, empty")
 
     def test_wolf_profile_is_untouched(self):
         # The option needs the Mbed provider, and nothing selects or implies it.
@@ -178,7 +182,7 @@ class ProductRoute(unittest.TestCase):
         self.assertNotIn("PSA and file system symbols", step)
         profile_sentence = re.search(r"[^.]*come from the profile files that the test images use[^.]*\.", step)
         self.assertIsNotNone(profile_sentence)
-        self.assertRegex(profile_sentence.group(0), r"PSA algorithm and file system symbols, but not the locks")
+        self.assertRegex(profile_sentence.group(0), r"PSA algorithm, key type and file system symbols, but not the locks")
         # The locks come from the public option, which the step names after the test files.
         self.assertIn("CONFIG_CRUX_PSA_THREADING=y", step)
         self.assertNotIn("mbed-threading.conf", step)
