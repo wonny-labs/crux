@@ -292,5 +292,50 @@ class BehaviourTest(unittest.TestCase):
         self.assertFalse((command.parent / "runs").exists())
 
 
+class CiProposalTest(unittest.TestCase):
+    """The page proposes where two real builds could be compared in CI; nothing is wired."""
+
+    def setUp(self):
+        self.page = PAGE.read_text(encoding="utf-8")
+        start = self.page.index("## Proposal: comparing two real builds in CI")
+        self.section = self.page[start:]
+
+    def test_the_proposal_is_labelled_inference_and_states_cost_and_what_it_shows(self):
+        self.assertIn("**Inference**", self.section)
+        self.assertRegex(self.section, r"(?i)cost")
+        self.assertRegex(self.section, r"(?i)what it (would )?show")
+        self.assertRegex(self.section, r"(?i)does not show|would not show|will not show")
+
+    def test_the_measured_step_time_is_given_with_its_source(self):
+        self.assertIn("43898428480", self.section)
+        self.assertRegex(self.section, r"62 s")
+
+    def test_the_proposal_names_the_options_and_the_approval_it_needs(self):
+        self.assertIn("check_boot_reproducibility.sh --build", self.section)
+        self.assertRegex(self.section, r"(?i)owner")
+        self.assertRegex(self.section, r"(?i)protected")
+
+    def test_the_page_gives_one_recommendation_for_the_placement(self):
+        # The older section advised a job of its own; the proposal recommends the runtime shard. The page
+        # must not hold both.
+        self.assertNotIn("better placed in its own job or shard", self.page)
+        self.assertEqual(1, self.page.count("tests/target/check_boot_reproducibility.sh --build\n"))
+
+    def test_the_claims_that_are_not_read_from_a_record_are_not_labelled_verified(self):
+        paragraph = next(l for l in self.section.splitlines() if l.startswith("**Cost, measured.**"))
+        verified, _, rest = paragraph.partition("**Inference:**")
+        self.assertIn("43898428480", verified)
+        self.assertNotIn("separate job probably costs more", verified)
+        self.assertIn("separate job probably costs more", rest)
+
+    def test_no_workflow_runs_the_reproducibility_check(self):
+        # The task is a proposal, not a heavy job: the check stays out of every workflow.
+        for workflow in (REPO / ".github/workflows").glob("*.yml"):
+            self.assertNotIn("check_boot_reproducibility", workflow.read_text(encoding="utf-8"), workflow.name)
+        for script in (REPO / "scripts").glob("*"):
+            if script.is_file():
+                self.assertNotIn("check_boot_reproducibility", script.read_text(encoding="utf-8", errors="replace"), script.name)
+
+
 if __name__ == "__main__":
     unittest.main()

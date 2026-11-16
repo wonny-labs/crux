@@ -129,7 +129,7 @@ find <hwbuild>/zephyr -name zephyr.signed.bin
 | MCUboot | `<hwbuild>/mcuboot/zephyr/zephyr.bin` | about 51,700 B | Verified by build for the public-key build (51,668 B) |
 | Unsigned application | `<app-out>/zephyr.bin` | about 32,900 B | Verified by build |
 | Signed application, unpadded | `<app-out>/zephyr.signed.bin` | about 33,050 B | Verified by build |
-| Signed, padded, confirmed | `<app-out>/zephyr.signed.confirmed.bin` | 3,145,728 B, the slot size | Verified by build in the earlier full build at Zephyr v4.4.2. The CI check does not test for this file: if it is missing, stop |
+| Signed, padded, confirmed | `<app-out>/zephyr.signed.confirmed.bin` | 3,145,728 B, the slot size | Verified by build in the earlier full build at Zephyr v4.4.2. `scripts/test-boot-composition.sh` fails if this file is missing or is not 3,145,728 B (wired in the change that adds this sentence, **Not verified** by a CI run until that change has run): if it is missing, stop |
 
 5. **Check the signature and the key.** The development key must verify both signed files, and the public test key must refuse them. Expected: `Image was correctly validated` and exit 0 for the first command; non-zero for the second (`imgtool` refusing a wrong key is **Verified by build** for another key type, and an **Inference** for the same type).
 
