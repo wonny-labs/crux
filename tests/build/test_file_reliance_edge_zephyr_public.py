@@ -7,6 +7,7 @@ compile the header against a stand-in for the one Zephyr header it includes, hol
 to the same single definition, and read the consumers' sources and CMake files. The Zephyr builds
 that use the header are exercised by the Zephyr CI shards.
 """
+import importlib.util
 import os
 from pathlib import Path
 import re
@@ -20,6 +21,7 @@ PUBLIC_INCLUDE = PORT / 'include'
 HEADER = PUBLIC_INCLUDE / 'crux/file_reliance_edge_zephyr.h'
 PRIVATE_DIR = ROOT / 'zephyr/fs/reliance_edge'
 PRIVATE_HEADER = PRIVATE_DIR / 'fs_reliance_edge.h'
+DOMAIN_CHECK = ROOT / 'templates/product/check_domain_includes.py'
 CC = os.environ.get('CC', 'cc')
 FLAGS = ['-std=c17', '-Wall', '-Wextra', '-Wpedantic', '-Werror']
 
@@ -75,9 +77,13 @@ class PublicHeader(unittest.TestCase):
         for path in included:
             self.assertNotRegex(path.lower(), r'nxp|cmsis|mcux|/boards?/')
 
-    def test_the_header_has_the_name_pattern_of_a_composition_interface(self):
-        # The product template's domain check rejects <crux/NAME_zephyr.h> by this pattern.
-        self.assertRegex(HEADER.name, r'^[a-z0-9_]+_zephyr\.h$')
+    def test_the_product_domain_check_rejects_the_header_as_a_composition_interface(self):
+        spec = importlib.util.spec_from_file_location('check_domain_includes', DOMAIN_CHECK)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        reason = module.classify('crux/' + HEADER.name, True, ROOT / 'domain/x.c', ROOT)
+        self.assertIsNotNone(reason)
+        self.assertIn('composition interface', reason)
 
     def test_the_public_path_is_unique_across_components(self):
         found = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / 'components').rglob(HEADER.name))
@@ -96,8 +102,12 @@ class PublicHeader(unittest.TestCase):
     def test_the_header_records_its_tier_and_its_rules(self):
         text = ' '.join(HEADER.read_text().replace('\n *', ' ').split())
         self.assertIn('Status: Experimental (ADR-0001 decision 4)', text)
-        for word in ('composition', 'never format', 'crux::file_zephyr', 'fs_mount_t', 'fs_mkfs'):
+        for word in ('composition', 'crux::file_zephyr', 'fs_mount_t', 'fs_mkfs'):
             self.assertIn(word, text, word)
+        # The formatter policy is cited, not restated.
+        self.assertIn('docs/emmc-reliance-physical-gate.md', text)
+        self.assertIn('docs/porting-to-a-new-board.md', text)
+        self.assertNotIn('never formats;', text)
 
     def test_lines_fit_the_column_limit_of_the_format_check(self):
         for path in (HEADER, PRIVATE_HEADER):
@@ -184,6 +194,34 @@ class Documents(unittest.TestCase):
         self.assertIn('`<crux/file_reliance_edge_zephyr.h>`', text)
         self.assertIn('`CRUX_FS_RELIANCE_EDGE`', text)
         self.assertIn('Experimental', text)
+
+    def test_the_decisions_say_whose_choices_they_are(self):
+        text = ' '.join((ROOT / 'docs/file-composition-interface.md').read_text().split())
+        section = text.split('## The Reliance Edge file system type')[-1]
+        self.assertIn("The author's choices within the owner's approval", section)
+        self.assertIn('name is pending the owner', section)
+        self.assertNotIn('follows the `<crux/NAME_zephyr.h>` pattern of the [composition interface rules]', section)
+        self.assertIn('extends rule 1', section)
+        self.assertIn('templates/product/check_domain_includes.py', section)
+
+    def test_the_verification_table_does_not_claim_a_host_ci_run(self):
+        text = ' '.join((ROOT / 'docs/file-composition-interface.md').read_text().split())
+        section = text.split('## The Reliance Edge file system type')[-1]
+        self.assertIn('Host CI had not run when this was written', section)
+
+    def test_the_rules_table_names_the_header_in_rules_1_4_5_and_6(self):
+        lines = (ROOT / 'docs/composition-interfaces.md').read_text().splitlines()
+        for number in ('1', '4', '5', '6'):
+            row = [line for line in lines if line.startswith('| %s |' % number)]
+            self.assertEqual(len(row), 1, number)
+            with self.subTest(rule=number):
+                self.assertIn('file_reliance_edge_zephyr.h', row[0])
+        self.assertIn('Experimental', [line for line in lines if line.startswith('| 6 |')][0])
+        self.assertIn('<zephyr/fs/fs.h>', [line for line in lines if line.startswith('| 5 |')][0])
+
+    def test_the_product_guide_says_the_header_is_composition_code_only(self):
+        text = ' '.join((ROOT / 'templates/product/README.md').read_text().split())
+        self.assertIn('`<crux/file_reliance_edge_zephyr.h>`', text)
 
     def test_the_readiness_table_records_the_tier_of_the_header(self):
         text = (ROOT / 'docs/component-readiness.md').read_text()
