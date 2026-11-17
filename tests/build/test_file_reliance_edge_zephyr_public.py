@@ -66,8 +66,10 @@ class PublicHeader(unittest.TestCase):
         result = compile_source(CONSUMER, [PUBLIC_INCLUDE], ['-H'])
         self.assertEqual(result.returncode, 0, result.stderr)
         included = [line.lstrip('. ').strip() for line in result.stderr.splitlines() if line.startswith('.')]
-        zephyr = [path for path in included if '/zephyr/' in path]
-        self.assertEqual([Path(p).as_posix().split('stand_in/')[-1] for p in zephyr], ['zephyr/fs/fs.h'])
+        # The stand-in root is the only place where a <zephyr/...> header can come from here.
+        zephyr = [path for path in included if '/stand_in/zephyr/' in path]
+        self.assertEqual([path.split('/stand_in/')[-1] for path in zephyr], ['zephyr/fs/fs.h'])
+        self.assertEqual(len([path for path in included if path.endswith('/fs.h')]), 1)
         crux = [path for path in included if '/crux/' in path]
         self.assertEqual([Path(p).name for p in crux], ['file_reliance_edge_zephyr.h'])
         for path in included:
