@@ -24,11 +24,8 @@ RELEASE = REPO / "templates/product/RELEASE.md"
 CMAKE = shutil.which("cmake")
 SHASUM = shutil.which("sha256sum") or shutil.which("shasum")
 
-# Names that a neutral public sample must not carry: the list of test_product_template.py.
-FORBIDDEN_NAMES = (
-    "codesys", "wolfssl", "wolfssh", "nxp", "mcuxpresso", "datalight", "reliance",
-    "crux-controller", "crux-codesys", "bitbucket", "employer",
-)
+# Names that a neutral public sample must not carry: the list of the product template test.
+from test_product_template import FORBIDDEN_NAMES  # noqa: E402, found through unittest discover
 
 
 def load_tool():

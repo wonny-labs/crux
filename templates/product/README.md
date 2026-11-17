@@ -12,7 +12,7 @@ No Crux release tag exists yet. The [Product Composition Guide](https://github.c
 | `app/` | A Zephyr application, the execution shell, that links `crux::time` and calls the domain |
 | `domain/` | The product's own behaviour as plain C, with one product-owned port header |
 | `check_domain_includes.py` | The domain include check, and with `--product` the include check of the whole product repository |
-| `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, support period, release steps, bundle contents, revision and checks |
+| `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, vendor kits, build environment, support period, release steps, bundle contents, revision and checks |
 | `.gitignore` | Keeps `build/` out of the source tree that the build record hashes |
 
 ## Start a product
@@ -34,7 +34,7 @@ west build -b <board> -d product-x/build/app product-x/app
 
 `west crux-pins` compares the workspace with the revisions Crux pins, and fails on a difference with no declared reason. The build warns if the workspace uses another Zephyr release, and stops with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`. The guide lists both checks, how to modify third-party code and how to make a release.
 
-Pin a Crux tag or SHA in `west.yml` before you make a release. Then copy `RELEASE.md` and fill it in for that release. It leaves the support period to the product, allows a bundle of hashes only, and links the guide at a pinned Crux revision. The release bundle schema and checker it names are provisional.
+Pin a Crux tag or SHA in `west.yml` before you make a release. Then copy `RELEASE.md` and fill it in for that release. It leaves the support period to the product, allows a bundle of hashes only, and links the guide at a pinned Crux revision. The release bundle schema and checker it names are provisional. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux-pilot/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux-pilot`).
 
 ## Zones and the domain include check
 
