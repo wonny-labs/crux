@@ -25,8 +25,8 @@
  * - Mount: set `type` to CRUX_FS_RELIANCE_EDGE, `storage_dev` to the disk_access name (for example
  *   "MMC") and leave `fs_data` unused. A mount never formats.
  * - Format: only with CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT, which is off by default, as
- *   fs_mkfs(CRUX_FS_RELIANCE_EDGE, (uintptr_t)"MMC", NULL, 0). A platform composition never
- *   formats; the call is for test-owned media.
+ *   fs_mkfs(CRUX_FS_RELIANCE_EDGE, (uintptr_t)"MMC", NULL, 0). When formatting is allowed is set
+ *   by docs/emmc-reliance-physical-gate.md and docs/porting-to-a-new-board.md, not by this header.
  * - Execution context and thread safety are those of the Zephyr VFS calls above.
  *
  * The value is FS_TYPE_EXTERNAL_BASE, the first type that Zephyr leaves to out-of-tree file
