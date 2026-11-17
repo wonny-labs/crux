@@ -206,7 +206,7 @@ class CMakeFunctionTest(unittest.TestCase):
         path.write_text(self.tool.hash_list(self.kit))
         self.digest = hashlib.sha256(path.read_bytes()).hexdigest()
 
-    def configure(self, *defines, env=None, extra_args=""):
+    def configure(self, *defines, env=None, extra_args="", python=None):
         script = self.tmp / "configure.cmake"
         script.write_text(
             f'include("{CMAKE_SNIPPET.as_posix()}")\n'
@@ -215,9 +215,11 @@ class CMakeFunctionTest(unittest.TestCase):
             'message(STATUS "RESULT ${KIT_INTEGRITY_LINE}|${KIT_INTEGRITY_DELIVERY}|'
             '${KIT_INTEGRITY_DIGEST}|${KIT_INTEGRITY_PATH}|${KIT_INTEGRITY_SOURCE}")\n')
         environment = {k: v for k, v in os.environ.items()
-                       if k not in ("KIT_A_PATH", "EXTRA_ZEPHYR_MODULES", "ZEPHYR_EXTRA_MODULES")}
+                       if k not in ("KIT_A_PATH", "EXTRA_ZEPHYR_MODULES", "ZEPHYR_EXTRA_MODULES",
+                                    "ZEPHYR_MODULES")}
         environment.update(env or {})
-        args = [CMAKE, f"-DPYTHON_EXECUTABLE={sys.executable}", *defines, "-P", str(script)]
+        python = [f"-DPYTHON_EXECUTABLE={sys.executable}"] if python is None else python
+        args = [CMAKE, *python, *defines, "-P", str(script)]
         result = subprocess.run(args, capture_output=True, text=True, env=environment)
         # CMake wraps warning text at word boundaries, so compare with whitespace collapsed.
         return result, " ".join((result.stdout + result.stderr).split())
@@ -277,6 +279,29 @@ class CMakeFunctionTest(unittest.TestCase):
                 self.assertNotEqual(0, result.returncode)
                 self.assertIn(name, out)
 
+    def test_zephyr_modules_is_refused_in_a_release_build(self):
+        # ZEPHYR_MODULES replaces west's module discovery: zephyr_module.cmake passes it to
+        # zephyr_module.py as --modules instead of reading the west workspace.
+        with self.subTest(source="environment"):
+            result, out = self.configure("-DPRODUCT_RELEASE_BUILD=ON", env={"ZEPHYR_MODULES": str(self.other)})
+            self.assertNotEqual(0, result.returncode, out)
+            self.assertIn("ZEPHYR_MODULES is set in the environment", out)
+        with self.subTest(source="cmake"):
+            result, out = self.configure("-DPRODUCT_RELEASE_BUILD=ON", f"-DZEPHYR_MODULES={self.other}")
+            self.assertNotEqual(0, result.returncode, out)
+            self.assertIn("ZEPHYR_MODULES is set in CMake", out)
+        with self.subTest(source="development"):
+            result, out = self.configure(env={"ZEPHYR_MODULES": str(self.other)})
+            self.assertEqual(0, result.returncode, out)
+
+    def test_python3_executable_is_preferred_over_python_executable(self):
+        # Zephyr's python.cmake defines Python3_EXECUTABLE; PYTHON_EXECUTABLE is the fallback.
+        result, out = self.configure(python=[f"-DPython3_EXECUTABLE={sys.executable}",
+                                             "-DPYTHON_EXECUTABLE=/nonexistent/python"])
+        self.assertEqual(0, result.returncode, out)
+        result, out = self.configure(python=[f"-DPYTHON_EXECUTABLE={sys.executable}"])
+        self.assertEqual(0, result.returncode, out)
+
     def test_the_expected_line_must_match(self):
         result, out = self.configure(extra_args="EXPECT_LINE 1.x")
         self.assertEqual(0, result.returncode, out)
@@ -289,6 +314,47 @@ class CMakeFunctionTest(unittest.TestCase):
         result, out = self.configure()
         self.assertNotEqual(0, result.returncode)
         self.assertIn("kit-a: no kit at", out)
+
+
+@unittest.skipUnless(CMAKE, "cmake is required for the CMake function tests")
+class CMakeConfigureDependsTest(unittest.TestCase):
+    """In a CMake project, a changed kit file or hash list makes the build run CMake again."""
+
+    def setUp(self):
+        self.tool = load_tool()
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.kit = make_kit(self.tmp / "kit-a")
+        self.lists = self.tmp / "kit-hashes"
+        self.list_file = self.lists / "1.x/1.1.0.sha256"
+        self.list_file.parent.mkdir(parents=True)
+        self.list_file.write_text(self.tool.hash_list(self.kit))
+        self.source = self.tmp / "project"
+        self.source.mkdir()
+        (self.source / "CMakeLists.txt").write_text(
+            "cmake_minimum_required(VERSION 3.20)\n"
+            "project(kit_depends NONE)\n"
+            f'include("{CMAKE_SNIPPET.as_posix()}")\n'
+            f'kit_integrity_check(NAME kit-a ENV_VAR KIT_A_PATH DEFAULT_PATH "{self.kit.as_posix()}"\n'
+            f'  HASH_DIR "{self.lists.as_posix()}")\n')
+        self.build = self.tmp / "build"
+        environment = {k: v for k, v in os.environ.items() if k != "KIT_A_PATH"}
+        result = subprocess.run([CMAKE, "-G", "Unix Makefiles", "-S", str(self.source), "-B", str(self.build),
+                                 f"-DPython3_EXECUTABLE={sys.executable}"],
+                                capture_output=True, text=True, env=environment)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_kit_files_and_hash_lists_are_configure_dependencies(self):
+        depends = (self.build / "CMakeFiles/Makefile.cmake").read_text()
+        for path in (self.kit / "src/a.c", self.kit / "include/kit.h", self.list_file):
+            with self.subTest(path=path.name):
+                self.assertIn(path.as_posix(), depends)
+        self.assertNotIn((self.kit / ".git/HEAD").as_posix(), depends)
+
+    def test_added_kit_files_are_found_by_a_glob_check(self):
+        globs = self.build / "CMakeFiles/VerifyGlobs.cmake"
+        self.assertTrue(globs.is_file(), "no CONFIGURE_DEPENDS glob was recorded")
+        self.assertIn(self.kit.as_posix(), globs.read_text())
 
 
 class GuideTest(unittest.TestCase):
