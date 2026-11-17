@@ -52,4 +52,4 @@ kit_integrity_check(NAME kit-a ENV_VAR KIT_A_PATH
 
 A symbolic link or a file name with a newline in the kit stops the check in every build. The check runs at configure time; in a CMake project the kit files and hash lists are configure dependencies, so a changed, added or removed kit file runs CMake and the check again. The tool runs with `Python3_EXECUTABLE`, else `PYTHON_EXECUTABLE`, else `python3`.
 
-Commit a `.gitattributes` with `*.sha256 -text` in the kit module, so that no line-ending conversion changes a hash list.
+Commit a `.gitattributes` with `*.sha256 -text` in the kit module, so that no line-ending conversion changes a hash list. For the kit repository itself, commit `* -text` only on working branches, never on vendor branches; the guide explains why.

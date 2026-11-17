@@ -351,6 +351,21 @@ class CMakeConfigureDependsTest(unittest.TestCase):
                 self.assertIn(path.as_posix(), depends)
         self.assertNotIn((self.kit / ".git/HEAD").as_posix(), depends)
 
+    def test_a_trailing_slash_on_the_kit_path_still_leaves_git_out(self):
+        (self.source / "CMakeLists.txt").write_text(
+            (self.source / "CMakeLists.txt").read_text().replace(
+                f'DEFAULT_PATH "{self.kit.as_posix()}"', f'DEFAULT_PATH "{self.kit.as_posix()}/"'))
+        build = self.tmp / "build-slash"
+        environment = {k: v for k, v in os.environ.items() if k != "KIT_A_PATH"}
+        result = subprocess.run([CMAKE, "-G", "Unix Makefiles", "-S", str(self.source), "-B", str(build),
+                                 f"-DPython3_EXECUTABLE={sys.executable}"],
+                                capture_output=True, text=True, env=environment)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"from {self.kit.as_posix()} (west project)", " ".join(result.stdout.split()))
+        depends = (build / "CMakeFiles/Makefile.cmake").read_text()
+        self.assertIn((self.kit / "src/a.c").as_posix(), depends)
+        self.assertNotIn("/.git/", depends.replace("CMakeFiles", ""))
+
     def test_added_kit_files_are_found_by_a_glob_check(self):
         globs = self.build / "CMakeFiles/VerifyGlobs.cmake"
         self.assertTrue(globs.is_file(), "no CONFIGURE_DEPENDS glob was recorded")
