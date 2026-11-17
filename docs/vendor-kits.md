@@ -33,7 +33,7 @@ The build of a kit module checks that the kit tree it compiles is a delivery the
 
 ### The mechanism
 
-1. **The list.** For every regular file of the kit tree, take the SHA-256 of its bytes. Write one line per file, `<hex digest>  ./<path>`, sorted by the bytes of the path. A `.git` entry at the top of the tree is left out, so a west project checkout and an unpacked archive give the same list. A symbolic link, or a file name with a newline, is refused, because the list cannot state it without ambiguity. This is the list that the Product Composition Guide's [vendor branch](product-composition.md#vendor-branch) section writes with `find . -type f -exec sha256sum {} + | LC_ALL=C sort -k 2`, in the same format.
+1. **The list.** For every regular file of the kit tree, take the SHA-256 of its bytes. Write one line per file, `<hex digest>  ./<path>`, sorted by the bytes of the path. A `.git` entry at the top of the tree is left out, so a west project checkout and an unpacked archive give the same list. A symbolic link, or a file name with a newline, is refused, because the list cannot state it without ambiguity. This is the list that the Product Composition Guide's [vendor branch](product-composition.md#vendor-branch) section writes with `find . -type f -exec sha256sum {} + | LC_ALL=C sort -k 2`, in the same format, with one exception: GNU `sha256sum` escapes a line whose file name holds a backslash (it starts the line with `\`), and the template's tool does not, so for such names the two lists differ.
 2. **The digest.** The SHA-256 of the list's bytes identifies the tree. A changed byte, an added, removed or renamed file all change it.
 3. **The committed lists.** The kit module holds one list per accepted tree, at `kit-hashes/<line>/<delivery>.sha256`. A delivery as received is named by its delivery, `kit-hashes/1.x/1.1.0.sha256`. A released state of a working branch, when the product compiles one, is named after its work tag without the `work/` prefix, `kit-hashes/1.x/1.1.0-acme1.sha256`.
 4. **The check.** At configure time the module computes the list of the tree it is about to compile and compares it byte for byte with each committed list. Exactly one must match.
@@ -54,7 +54,7 @@ A tree that matches no committed list is an unknown delivery.
 | Release (`-DPRODUCT_RELEASE_BUILD=ON`, see [Marking a release build](#marking-a-release-build)) | Configure error | A release must compile a tree that the module was built and tested against |
 | Any build with `-DKIT_REQUIRE_KNOWN_DELIVERY=ON` | Configure error | For a CI job that must not pass on an unknown tree |
 
-Two committed lists with the same content are an error, because the match would not name one delivery. A product that pins a kit revision and a module revision that do not belong together gets an unknown delivery, so the check also catches that.
+Two committed lists with the same content are an error when the tree matches them, because the match would not name one delivery. A product that pins a kit revision and a module revision that do not belong together gets an unknown delivery, so the check also catches that.
 
 ### Reference template
 
@@ -63,7 +63,9 @@ Two committed lists with the same content are an error, because the match would 
 - `kit_hashes.py generate <kit-dir>` prints the list of a tree. `kit_hashes.py check <kit-dir> --lists kit-hashes [--expect-line 1.x]` prints `MATCH line=... delivery=... digest=...` and exits 0, or `UNKNOWN digest=...` and exits 1. It needs Python 3.9 or later and nothing else.
 - `kit_integrity.cmake` defines `kit_integrity_check(NAME ... ENV_VAR ... DEFAULT_PATH ... HASH_DIR ... [EXPECT_LINE ...])`, which runs the check, applies the [path rule](#the-kit-path-rule) and the release rule, and sets `KIT_INTEGRITY_LINE`, `KIT_INTEGRITY_DELIVERY`, `KIT_INTEGRITY_DIGEST`, `KIT_INTEGRITY_PATH` and `KIT_INTEGRITY_SOURCE` for the caller, for example to write them into a generated header or the build directory.
 
-The check runs at configure time. A kit file changed after configuring is not seen until CMake runs again, which a release from a fresh workspace always does. Both files are a template, not a Crux interface, and neither has been run inside a Zephyr build.
+The check runs at configure time. In a CMake project the function makes every kit file and hash list a configure dependency, and watches for added or removed files with `CONFIGURE_DEPENDS` globs, so a reused development build directory runs CMake, and the check, again when the kit changes. A release from a fresh workspace configures anyway. The function runs the tool with `Python3_EXECUTABLE`, which Zephyr's `cmake/modules/python.cmake` sets, else `PYTHON_EXECUTABLE`, else `python3` from the path. Both files are a template, not a Crux interface, and neither has been run inside a Zephyr build.
+
+A kit module's own release-only rules, beyond this check, should key off the same `PRODUCT_RELEASE_BUILD` variable, so that one flag marks a release for every module.
 
 ### Whole tree or the files compiled
 
@@ -74,6 +76,8 @@ The template lists the whole tree. A second shape lists only the files the modul
 | Whole tree (the template) | The default. It also catches a stray file that a source glob or an include path could pick up, and a dirty tree |
 | Files compiled | The delivery holds large parts the module never reads, such as IDE projects or tools for another host, and their churn would make every list differ. The module must then list its sources explicitly, never by glob |
 
+The files-compiled shape loses the stray-file protection unless the module also checks that every kit file the build actually compiled or included is in its subset list, for example from the compiler's dependency files (`-MD`) or by a scan after the build. The template has no subset variant and no such check.
+
 ### Receipt of a delivery
 
 A hash list taken after unpacking proves that the vendor branch equals what was unpacked, not what the vendor sent. Recommended, for each delivery, a receipt kept beside the hash list in the kit repository's working branch or in the module:
@@ -82,7 +86,7 @@ A hash list taken after unpacking proves that the vendor branch equals what was 
 - the channel, the date and the role that received it;
 - where the archive is kept: internal storage that does not allow a stored object to be replaced, readable by the roles that may rebuild a release.
 
-Import each delivery into a clean working tree (`git clean -fdx` first), with `core.autocrlf=false`, and refuse symbolic links, so that what git stores is what was received. Then check the delivery tag against its list, as the [vendor branch](product-composition.md#vendor-branch) section shows. Sign the `vendor/*` and `work/*` tags if the organisation's Git server can verify tag signatures.
+Import each delivery into a clean working tree (`git clean -fdx` first), with `core.autocrlf=false`, and refuse symbolic links, so that what git stores is what was received. Commit a `.gitattributes` with `* -text` on the kit's vendor and working branches, and one with `*.sha256 -text` in the kit module: a line-ending conversion on checkout changes the bytes, and the delivery then shows as unknown. Then check the delivery tag against its list, as the [vendor branch](product-composition.md#vendor-branch) section shows. Sign the `vendor/*` and `work/*` tags if the organisation's Git server can verify tag signatures.
 
 ## A worked example: one kit, two lines
 
@@ -126,9 +130,11 @@ The product pins the kit and the module by full SHA, with the tag in a comment, 
 ```yaml
 manifest:
   version: "1.2"
-  # Restricted kits are off by default, so that a reader without access can
-  # fetch and build the rest. CI that holds the token enables the group.
-  # group-filter: [+acme-kit-a]
+  # West enables every group unless a manifest disables it. This manifest
+  # disables the restricted kit group, so that a reader without access can
+  # fetch and build the rest. CI that holds the token enables it with
+  # west config manifest.group-filter +acme-kit-a before west update.
+  group-filter: [-acme-kit-a]
   remotes:
     - name: crux
       url-base: https://github.com/wonny-labs
@@ -153,7 +159,7 @@ manifest:
     path: product-x
 ```
 
-`west crux-pins` reports both as `PRODUCT`. A product that uses the organisation manifest gets the same entries from there, as for a [shared hardware module](shared-hardware-modules.md#what-a-module-changes-in-the-checks).
+West's `manifest.group-filter` configuration option takes precedence over the manifest's `group-filter` ([west manifests](https://docs.zephyrproject.org/latest/develop/west/manifest.html), read on that page, not run here), so the `+acme-kit-a` in local configuration re-enables the group that the manifest disables. `west crux-pins` reports both projects as `PRODUCT`. A product that uses the organisation manifest gets the same entries from there, as for a [shared hardware module](shared-hardware-modules.md#what-a-module-changes-in-the-checks).
 
 The path, `modules/kits/kit-a`, does not change with the line. The revision carries the line, so a move to line `2.x` changes revisions only.
 
@@ -172,9 +178,9 @@ The path, `modules/kits/kit-a`, does not change with the line. The revision carr
 
 ## The kit path rule
 
-- **Default.** The module reads the kit from its west project path, through the variable `ZEPHYR_<NAME>_MODULE_DIR` if the kit's working branch carries a `zephyr/module.yml` (added as a `[acme noup]` commit), or otherwise from a path that the kit module derives from the west workspace. In Zephyr v4.4.2, `scripts/zephyr_module.py` emits a module that has a `zephyr/module.yml` without a `build:` section with an empty CMake directory, and `cmake/modules/zephyr_module.cmake` still sets `ZEPHYR_<NAME>_MODULE_DIR` for it. That was read in source, not built.
+- **Default.** The module reads the kit from its west project path, through the variable `ZEPHYR_<NAME>_MODULE_DIR` if the kit's working branch carries a `zephyr/module.yml` (added as a `[acme noup]` commit), or otherwise from a path that the kit module derives from the west workspace. In Zephyr v4.4.2, `scripts/zephyr_module.py` emits a module that has a `zephyr/module.yml` without a `build:` section with an empty CMake directory, and `cmake/modules/zephyr_module.cmake` still sets `ZEPHYR_<NAME>_MODULE_DIR` for it. Every Zephyr statement on this page was read in the source of the `v4.4.2` tag, fetched from the upstream repository, not in a local workspace tree, and nothing was built.
 - **Override for local development only.** An environment variable, one per kit (`KIT_A_PATH` in the template), may point the build at another tree. The build prints it as a CMake warning with the path, and the integrity check still runs on that tree.
-- **Refused in a release build.** A release build stops if the variable is set. It also stops if `EXTRA_ZEPHYR_MODULES` or `ZEPHYR_EXTRA_MODULES` is set, in CMake or in the environment, because a module added that way replaces or adds a tree that the build record and `west crux-pins` do not see. Zephyr v4.4.2 reads both names, from either place, in `cmake/modules/zephyr_module.cmake` (read in source). The Product Composition Guide's [shared hardware module page](shared-hardware-modules.md#local-development) already says never to release such a build; the check makes that a configure error.
+- **Refused in a release build.** A release build stops if the variable is set. It also stops if `ZEPHYR_MODULES`, `EXTRA_ZEPHYR_MODULES` or `ZEPHYR_EXTRA_MODULES` is set, in CMake or in the environment. `ZEPHYR_MODULES` replaces west's module discovery entirely: `cmake/modules/zephyr_module.cmake` passes it to `zephyr_module.py` as `--modules`. The other two add or replace a module. In each case the build compiles a tree that the build record and `west crux-pins` do not see. Zephyr v4.4.2 reads all three names, from either place, through `zephyr_get` in that file (read in source). The separate page [Shared boards and drivers across products](shared-hardware-modules.md#local-development) already says never to release a build with an extra module; the check makes that a configure error.
 - **A checkout that left its pin.** `west crux-pins` reports `MISMATCH` for a project whose `HEAD` is not what `west update` fetched, for any active project, not only those Crux pins ([`west crux-pins`](product-composition.md#west-crux-pins); read in `scripts/west_commands/crux_pins.py`), so the release flow catches a kit checkout moved by hand.
 
 An override through a CMake cache variable was considered and is not recommended: a cache variable persists silently in a build directory, while an environment variable has to be present in each shell that builds.
@@ -196,11 +202,13 @@ How a release build receives their path is open:
 
 In either option a missing or mismatching file stops a release build. The template does not implement this part.
 
+If a licence or identity value is compiled into a generated header, the build tree holds it and is confidential. The release bundle and every public artefact then exclude generated headers and the build tree, and hold only hashes, as the [release bundle](product-composition.md#release-bundle) already requires for images.
+
 ## Deliveries held outside Git
 
 When the licence does not allow a delivery on the organisation's Git server, or that is still undecided, or the delivery is large and partly binary or generated:
 
-- Keep each archive as received in internal storage that keeps every version, fetched by its hash, as Zephyr's `west blobs` does for binary blobs ([Zephyr binary blobs](https://docs.zephyrproject.org/latest/contribute/bin_blobs.html)).
+- Keep each archive as received in internal storage that keeps every version, and check its SHA-256 after each fetch, as Zephyr's `west blobs` fetches a blob from its URL and checks the `sha256` that `module.yml` declares ([Zephyr binary blobs](https://docs.zephyrproject.org/latest/contribute/bin_blobs.html)).
 - The module reads the unpacked tree from a fixed path in the workspace, or, during development, from the override variable, and runs the same integrity check. The vendor branch pattern is not used, and there is no work tag.
 - A local change is held as a patch in the module, applied to a copy at configure time, and listed in the release record. Prefer this only until the licence question is answered.
 - The release record says "sources held outside Git" for that kit, with the archive hash, the hash-list digest and where the archive is kept. A tree identified only by a hash-list digest is weaker than a tag in Git, because nothing records how it came to be, but it is exact about what was compiled.
@@ -219,11 +227,19 @@ This is the [route "Delivery that may not enter the repository"](product-composi
 
 These points come from a public reference product that pins Crux by full SHA. They were inferred in that work, not tested.
 
-- **Groups off by default.** Put each restricted kit and its module in a group that the product manifest does not enable, so that a reader without access can fetch and build everything else, and the default CI jobs pass without any secret.
-- **One job per restricted group.** A job that enables only that group holds a read-only token. Pull requests from forks never receive repository secrets, so such a job runs only on branches of the repository itself.
+- **Groups off by default.** Put each restricted kit and its module in a group that the product manifest disables with `-`, as in the [example manifest](#what-the-products-manifest-shows), so that a reader without access can fetch and build everything else, and the default CI jobs pass without any secret. West enables every group that no manifest or configuration disables.
+- **One job per restricted group.** A job that enables only that group, with `west config manifest.group-filter +<group>`, holds a read-only token. On common CI services a pull request from a fork does not receive repository secrets in its normal event, so such a job runs on branches of the repository itself. Events that run in the base repository's context with its secrets, such as a `pull_request_target` workflow, are the exception and must never check out or build the fork's code with the token.
 - **Guard the group list.** A product that wants to stop an accidental `+group` can keep a list of known optional groups and refuse any other in CI, in the default and in each group-on mode, before fetching. Each new restricted kit then needs a guard entry, a choice between a `name-blocklist` now and a dedicated group, and its job. A guard that matches projects by name should also check the URL, because a soft fork keeps the upstream name.
-- **Release group setting.** Set the groups that a release needs in the product manifest, not only in local `manifest.group-filter` configuration. `west manifest --freeze --active-only` leaves inactive projects out (west 1.4.0 `manifest.py`, read in source, not run), so a freeze made where the kit group is off, or made without access to the kit, silently omits the kit. After `west init --mf` from the lock, check that every kit the product needs is present and active.
-- **The lock of a public product.** The frozen manifest of a build with restricted kits names internal URLs and SHAs. A public product repository then keeps that lock in the internal release record, not in the public tree, and its public bundle holds hashes only. The [release bundle checker](release-bundle-checker.md) has no rule for internal URLs today. How the public lock and the internal lock relate is an [open question](#open-questions).
+- **Release group setting.** `west manifest --freeze --active-only` leaves inactive projects out (west 1.4.0 `manifest.py`, read in source, not run), so a freeze made where the kit group is off, or made without access to the kit, silently omits the kit. Two ways to get the kit into the lock:
+  - Enable the group in the product manifest on the release branch (`group-filter: [+acme-kit-a]`). The lock then does not depend on local configuration. This suits a private product repository.
+  - Keep the manifest's `-acme-kit-a`, let the release job enable the group with `west config manifest.group-filter +acme-kit-a` before freezing, and rely on `--active-only` plus a presence check. This is the only way for a public product repository, whose public manifest must keep the group disabled.
+
+  Recommended: the first for a private product and the second for a public one. In both, after `west init --mf` from the lock, check that every kit the product needs is present and active before building, because a missing kit is otherwise silent until the build fails or, worse, builds without it.
+- **The lock of a public product.** The frozen manifest of a build with restricted kits names internal URLs and SHAs. This differs from the accepted [release steps](product-composition.md#release) of the Product Composition Guide, which commit `locks/west.frozen.yml` on the product's release branch, tag it, and build from it with `west init --mf` from the product repository. Two options, neither decided:
+  - **(a) Internal lock only.** The full lock is kept outside the public tree, in the internal release record or an internal branch, and the fresh-workspace step initialises from an internal mirror of the product repository that holds it. For: no internal URL or SHA becomes public. Against: a public reader has no lock at all and cannot see which public revisions the release used, and the release flow differs from the guide's.
+  - **(b) Public partial lock and internal full lock.** The public tree holds a lock with the restricted projects removed; the internal record holds the full lock, and the public bundle carries the SHA-256 of the internal lock. For: a public reader can reproduce the public part and see that a full lock exists. Against: two locks to keep consistent, and the public lock alone does not build the product.
+
+  Recommendation, not adopted: keep the full lock internal and publish hashes only, which (a) and (b) both allow. The [release bundle checker](release-bundle-checker.md) has no rule for internal URLs today. The choice between (a) and (b) is [open question 3](#open-questions).
 - **Reachability.** A release can be rebuilt years later only if every pinned commit stays reachable and every archive stays readable. Keep a durable tag on each released SHA, mirror the public upstreams internally, and record, per restricted input, where it is archived and which role may retrieve it.
 
 ## Manifest layering
@@ -244,7 +260,7 @@ This page does not change the accepted guidance. B is listed for the owner's dec
 
 The [release record template](../templates/product/RELEASE.md) gains a section for vendor kits and a section for the build environment. For each kit: the line, the delivery tag, the work tag, the commit SHA, the hash-list digest that the module printed, the receipt hash, the location (west project, or sources held outside Git), the licence record, and the module tag that compiled it.
 
-The provisional [release manifest schema](release-bundle-checker.md) has `vendor_deliveries` with a project, a delivery tag and the hash of its hash list. Its delivery tag pattern now accepts the `vendor/<delivery>` and `work/<delivery>-<org><n>` forms of the vendor branch section; it refused the slash before. Everything else on this page goes into the manifest's `extensions` object until the schema is extended. A proposed shape for that extension, a `kits` list (name, line, delivery, delivery tag, location, commit, hash-list hash, receipt hash, licence reference) and a `modules` list (name, tag, commit, kit lines built and tested), is an [open question](#open-questions) and is not in the schema.
+The provisional [release manifest schema](release-bundle-checker.md) has `vendor_deliveries` with a project, a delivery tag and the hash of its hash list. Its delivery tag pattern now accepts the `vendor/<delivery>` and `work/<delivery>-<org><n>` forms of the vendor branch section; it refused the slash before. Which pair goes there: the delivery tag `vendor/<delivery>` of the last delivery merged and the SHA-256 of that delivery's own hash list, as the [vendor branch](product-composition.md#vendor-branch) section asks. The schema also accepts a `work/` tag, but this page recommends the `vendor/` tag in `vendor_deliveries`, so that the field always names a delivery as received. When the module matched a released working state, its work tag and the digest the module printed go in `extensions`. Everything else on this page goes into the manifest's `extensions` object until the schema is extended. A proposed shape for that extension, a `kits` list (name, line, delivery, delivery tag, location, commit, hash-list hash, receipt hash, licence reference) and a `modules` list (name, tag, commit, kit lines built and tested), is an [open question](#open-questions) and is not in the schema.
 
 The best evidence that a record is complete is a rebuild: two builds from the frozen manifest in fresh workspaces at different paths give the same image hash and `firmware_identity` ([Identity](product-composition.md#identity)). Record that result.
 
@@ -255,7 +271,7 @@ Sources opened on 2026-11-17. "Verified" means the statement was read on that pa
 | Practice in this guide | Common practice | Source and what was verified | Follows or differs |
 | --- | --- | --- | --- |
 | Product repository as the west manifest repository, Crux and Zephyr imported, entries in the product win | West: the first definition of a project name wins; imports in `self` come first, then the manifest's own projects, then project imports | [west manifests](https://docs.zephyrproject.org/latest/develop/west/manifest.html): verified the first-definition rule and import order | Follows |
-| Optional groups off by default, enabled with `group-filter: [+group]` | West: all groups are enabled unless the manifest or configuration disables them with `-`. Android repo: a project in the `notdefault` group is not synced unless asked | [west manifests](https://docs.zephyrproject.org/latest/develop/west/manifest.html) and the [repo manifest format](https://gerrit.googlesource.com/git-repo/+/HEAD/docs/manifest-format.md): verified both | Follows; the off-by-default state comes from Crux's manifest disabling the group, not from west |
+| Optional groups off by default, enabled with `group-filter: [+group]` or `west config manifest.group-filter +group` | West: all groups are enabled unless the manifest or configuration disables them with `-`. Android repo: a project in the `notdefault` group is not synced unless asked | [west manifests](https://docs.zephyrproject.org/latest/develop/west/manifest.html) and the [repo manifest format](https://gerrit.googlesource.com/git-repo/+/HEAD/docs/manifest-format.md): verified both | Follows; the off state comes from the manifest that disables the group with `-`, not from west: Crux's `west.yml` for Crux's groups, and the product manifest for its kit groups |
 | Pin by full SHA, tag in a comment, frozen lock for a release | West: `west manifest --freeze` rewrites each revision to a SHA, and the page warns that following a branch gives no reproducible `west update`. Repo: a revision may be a SHA, though its page says SHAs "have not been extensively tested" | Both pages above: verified | Follows |
 | Vendor branch: each delivery imported unmodified, tagged, merged into a working line; files the vendor dropped are removed | The classic vendor branch: import each drop on a vendor line, tag it, merge the difference into the local line; removed files must be deleted by hand or by a helper script | [Version Control with Subversion, "Vendor Branches"](https://svnbook.red-bean.com/en/1.7/svn.advanced.vendorbr.html): verified | Follows. One vendor branch per line is this guide's addition, for fix deliveries on an older line |
 | Hash list in `sha256sum` format, sorted, digest of the list | Go's module directory hash `h1:` is the SHA-256 of sorted `sha256sum`-style lines, base64-encoded. SPDX 2.3's package verification code is the SHA-1 of the sorted per-file SHA-1 values, without file names | [Go dirhash](https://pkg.go.dev/golang.org/x/mod/sumdb/dirhash) and [SPDX 2.3.1, 7.9](https://spdx.github.io/spdx-spec/v2.3.1/package-information/#79-package-verification-code-field): verified both | Follows Go's form, hex not base64. Unlike the SPDX code it includes file names, so a rename changes the digest |
@@ -281,7 +297,7 @@ None of these is adopted, and none changes an existing rule.
 
 1. Licence inputs in a release build: option A or B of [Licence and identity inputs](#licence-and-identity-inputs).
 2. Manifest layering: keep option A, or adopt B, of [Manifest layering](#manifest-layering).
-3. A public product with restricted kits: which lock is committed publicly, and how a reader verifies a release without the internal lock.
+3. A public product with restricted kits: option (a) internal lock only, or (b) public partial lock and internal full lock, of [The lock of a public product](#restricted-kits-public-repositories-and-ci). Both differ from the accepted release steps of the Product Composition Guide.
 4. The release manifest extension: the `kits` and `modules` lists, and whether `schema_version` rises with them.
 5. Whether a kit module declares prebuilt libraries as Zephyr blobs.
 
@@ -297,13 +313,14 @@ Not done here. Each needs the owner's approval for that path.
 
 **What was run**
 
-- `tests/build/test_vendor_kit_template.py`: the hash tool on invented trees, including a comparison with the `find`, `sort` and `sha256sum` (or `shasum -a 256`) pipeline; the CMake function in CMake script mode (`cmake -P`) for the known, unknown, override, release and line cases; and structure checks of this page and the release record.
+- `tests/build/test_vendor_kit_template.py`: the hash tool on invented trees, including a comparison with the `find`, `sort` and `sha256sum` (or `shasum -a 256`) pipeline; the CMake function in CMake script mode (`cmake -P`) for the known, unknown, override, release (including `ZEPHYR_MODULES`), Python selection and line cases; the function in a minimal CMake project (Unix Makefiles generator), to show that kit files and hash lists become configure dependencies with a `CONFIGURE_DEPENDS` glob; and structure checks of this page and the release record. A rebuild of that project after a kit change was not run.
 - `tests/build/test_release_bundle.py`: the schema accepts `vendor/1.1.0` and `work/1.0.1-acme1` and still refuses empty, absolute and dot segments.
 
 **What was not run**
 
 - A Zephyr build of a kit module, the CMake function inside a Zephyr build, or a sysbuild image.
 - A real vendor delivery, a real kit repository, a merge with conflicts, a signed tag or a receipt.
-- West: the `--active-only` behaviour and the `ZEPHYR_<NAME>_MODULE_DIR` statement were read in source only.
+- West 1.4.0's `--active-only` behaviour, and Zephyr v4.4.2's `ZEPHYR_<NAME>_MODULE_DIR`, `ZEPHYR_MODULES` and extra-module handling, were read in source only. The precedence of `manifest.group-filter` configuration over the manifest was read in west's documentation only.
+- A files-compiled subset list: the template has no such variant, and in that shape the stray-file protection is lost unless the module adds its own check.
 - The restricted-group CI pattern, tokens and fork pull requests.
 - Any licence question. Nothing on this page is legal advice.

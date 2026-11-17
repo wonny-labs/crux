@@ -44,10 +44,12 @@ kit_integrity_check(NAME kit-a ENV_VAR KIT_A_PATH
 
 `ZEPHYR_KIT_A_MODULE_DIR` exists when the kit carries a `zephyr/module.yml` named `kit-a`. Otherwise pass the kit's west project path.
 
-| Build | Unknown delivery | `KIT_A_PATH` set | `EXTRA_ZEPHYR_MODULES` or `ZEPHYR_EXTRA_MODULES` set |
+| Build | Unknown delivery | `KIT_A_PATH` set | `ZEPHYR_MODULES`, `EXTRA_ZEPHYR_MODULES` or `ZEPHYR_EXTRA_MODULES` set, in CMake or the environment |
 | --- | --- | --- | --- |
 | Development | Warning | Warning, the path is printed, the check runs on that tree | Not checked |
 | `-DKIT_REQUIRE_KNOWN_DELIVERY=ON` | Error | As in development | Not checked |
 | `-DPRODUCT_RELEASE_BUILD=ON` | Error | Error | Error |
 
-A symbolic link or a file name with a newline in the kit stops the check in every build. The check runs at configure time only.
+A symbolic link or a file name with a newline in the kit stops the check in every build. The check runs at configure time; in a CMake project the kit files and hash lists are configure dependencies, so a changed, added or removed kit file runs CMake and the check again. The tool runs with `Python3_EXECUTABLE`, else `PYTHON_EXECUTABLE`, else `python3`.
+
+Commit a `.gitattributes` with `*.sha256 -text` in the kit module, so that no line-ending conversion changes a hash list.
