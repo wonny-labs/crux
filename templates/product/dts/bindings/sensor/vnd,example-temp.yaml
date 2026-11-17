@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Example temperature sensor of the product template. The part is fictional.
+  It is read over I2C, reports one temperature channel and has a part identifier register.
+
+  The file name is the compatible, and the compatible is <vendor prefix>,<part>. The vendor
+  prefix "vnd" stands in for a real vendor in examples and tests. A binding for the product's own
+  part uses a prefix that is listed in dts/bindings/vendor-prefixes.txt.
+
+compatible: "vnd,example-temp"
+
+include: [sensor-device.yaml, i2c-device.yaml]
