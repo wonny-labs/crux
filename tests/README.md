@@ -1020,7 +1020,7 @@ documentation. Pull requests do not start it, so their CI time is unchanged.
 | Part | Script | What runs |
 | --- | --- | --- |
 | Host | `scripts/coverage-host.sh run` then `report` | The root CMake tree with `--coverage` added on the command line (the `host-debug` settings otherwise, `CMakePresets.json` unchanged) and its CTest set, built with Clang 18 and read with `llvm-cov gcov` through gcovr |
-| `native_sim` | `scripts/coverage-native-sim.sh run` then `report` | The Time, Logging, System and FatFs File Twister suites on `native_sim/native/64`, with the test roots and module arguments of their own scripts, through gcovr |
+| `native_sim` | `scripts/coverage-native-sim.sh run` then `report` | The Time, Logging, System and FatFs File Twister suites on `native_sim/native/64`, with the module arguments of their own scripts (System without the consumer root `tests/system_consumer/zephyr`, FatFs on `native_sim/native/64` only), through gcovr |
 
 The four `native_sim` suites are a first, cheap and representative set. Other suites are not
 measured yet, and a suite that cannot be built with coverage is named in the run's log without
@@ -1033,6 +1033,8 @@ and `summary.md` as an artifact, `coverage-host-*` or `coverage-native-sim-*`, k
 `scripts/coverage-summary.py` builds the table and is tested by
 `tests/build/test_coverage_summary.py`; `tests/build/test_coverage_workflow.py` keeps the
 workflow advisory.
+
+To run the report step locally, install gcovr 8.3 and LLVM 18 (`llvm-cov-18`) by hand: neither is in the Dev Container image. The workflow installs them.
 
 A build or test failure fails the job. Only the report step may fail for a tool reason, and it
 then leaves a warning and a note in the run summary instead of failing the job.

@@ -4,8 +4,8 @@
 #   coverage-native-sim.sh run      run the suites on native_sim/native/64 with gcov data
 #   coverage-native-sim.sh report   collect the data and write the report (never gates)
 #
-# The suites are the Time, Logging, System and FatFs File Twister suites, run with the same
-# test roots and module arguments as their own scripts. One failing suite does not stop the
+# The suites are the Time, Logging, System and FatFs File Twister suites, run with the module
+# arguments of their own scripts (System without the consumer root, FatFs on the 64-bit target only). One failing suite does not stop the
 # others, but the run still fails. Reports go to build/coverage/native-sim/report.
 set -euo pipefail
 
