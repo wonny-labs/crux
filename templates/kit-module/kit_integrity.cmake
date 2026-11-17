@@ -16,8 +16,9 @@
 #   environment variable named by ENV_VAR is set. That override is for local
 #   development only: it is printed as a warning, and refused in a release build.
 # - A release build is one configured with -DPRODUCT_RELEASE_BUILD=ON. It also
-#   refuses EXTRA_ZEPHYR_MODULES and ZEPHYR_EXTRA_MODULES, from CMake or from the
-#   environment, because a module added that way is invisible to the build record.
+#   refuses ZEPHYR_MODULES, EXTRA_ZEPHYR_MODULES and ZEPHYR_EXTRA_MODULES, from
+#   CMake or from the environment: ZEPHYR_MODULES replaces west's module discovery,
+#   and a module added by the others is invisible to the build record.
 # - The kit tree must match one committed list, HASH_DIR/<line>/<delivery>.sha256.
 #   The match is printed. An unknown delivery warns in development and fails a
 #   release build, or any build configured with -DKIT_REQUIRE_KNOWN_DELIVERY=ON.
@@ -27,8 +28,11 @@
 # (or "unknown"), KIT_INTEGRITY_DIGEST, KIT_INTEGRITY_PATH and
 # KIT_INTEGRITY_SOURCE ("west project" or "environment <ENV_VAR>").
 #
-# The check runs at configure time only. A kit file changed after configuring is
-# not seen until CMake runs again; a release builds from a fresh workspace.
+# The check runs at configure time. In a CMake project, the kit files and hash
+# lists are configure dependencies and CONFIGURE_DEPENDS globs watch for added or
+# removed files, so a reused build directory runs CMake, and the check, again.
+# The tool is run with Python3_EXECUTABLE (set by Zephyr), else PYTHON_EXECUTABLE,
+# else python3 from the PATH.
 
 set(KIT_INTEGRITY_TOOL "${CMAKE_CURRENT_LIST_DIR}/kit_hashes.py")
 
@@ -41,7 +45,7 @@ function(kit_integrity_check)
   endforeach()
 
   if(PRODUCT_RELEASE_BUILD)
-    foreach(var EXTRA_ZEPHYR_MODULES ZEPHYR_EXTRA_MODULES)
+    foreach(var ZEPHYR_MODULES EXTRA_ZEPHYR_MODULES ZEPHYR_EXTRA_MODULES)
       if(DEFINED ${var} AND NOT "${${var}}" STREQUAL "")
         message(FATAL_ERROR "${KIT_NAME}: ${var} is set in CMake, which a release build refuses")
       endif()
@@ -69,7 +73,9 @@ function(kit_integrity_check)
     message(FATAL_ERROR "${KIT_NAME}: no kit at ${kit_path}")
   endif()
 
-  if(PYTHON_EXECUTABLE)
+  if(Python3_EXECUTABLE)
+    set(python "${Python3_EXECUTABLE}")
+  elseif(PYTHON_EXECUTABLE)
     set(python "${PYTHON_EXECUTABLE}")
   else()
     find_program(python NAMES python3 python REQUIRED)
@@ -101,6 +107,27 @@ function(kit_integrity_check)
     message(WARNING ${text} ". Development only: this build is not a release candidate.")
   else()
     message(FATAL_ERROR "${KIT_NAME}: kit check failed: ${err}${out}")
+  endif()
+
+  # In a project (not in script mode), make the kit files and the hash lists configure
+  # dependencies, so that a changed file runs CMake, and so this check, again. The
+  # CONFIGURE_DEPENDS globs also run CMake again when a file is added or removed. The
+  # top-level .git entry is left out, as in kit_hashes.py.
+  if(NOT CMAKE_SCRIPT_MODE_FILE)
+    file(GLOB kit_top LIST_DIRECTORIES true CONFIGURE_DEPENDS "${kit_path}/*")
+    set(kit_files)
+    foreach(entry ${kit_top})
+      if(entry STREQUAL "${kit_path}/.git")
+        continue()
+      elseif(IS_DIRECTORY "${entry}")
+        file(GLOB_RECURSE entry_files LIST_DIRECTORIES false CONFIGURE_DEPENDS "${entry}/*")
+        list(APPEND kit_files ${entry_files})
+      else()
+        list(APPEND kit_files "${entry}")
+      endif()
+    endforeach()
+    file(GLOB_RECURSE list_files LIST_DIRECTORIES false CONFIGURE_DEPENDS "${KIT_HASH_DIR}/*.sha256")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${kit_files} ${list_files})
   endif()
 
   set(KIT_INTEGRITY_LINE "${line}" PARENT_SCOPE)
