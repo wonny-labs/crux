@@ -367,7 +367,8 @@ class DomainIncludeCheckTest(unittest.TestCase):
         self.assertEqual([], self.violations_of(text))
 
     def test_a_crux_composition_interface_fails(self):
-        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h"):
+        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h",
+                       "crux/file_reliance_edge_zephyr.h"):
             with self.subTest(header=header):
                 found = self.violations_of(f"#include <{header}>\n")
                 self.assertEqual([header], [v.include for v in found])
