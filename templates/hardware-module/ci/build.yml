@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# CI workflow template for the shared hardware module. Copy it to
+# .github/workflows/build.yml in the module's own repository; in Crux it is
+# only a template and never runs. It runs every test of the module on
+# native_sim and cross-builds every board the module carries. It flashes and
+# runs nothing on hardware.
+#
+# Versions follow Crux at the time of writing: Zephyr 4.4.2, SDK 1.0.1 and
+# west 1.4.0. Keep them equal to what the organisation manifest pins.
+name: acme-hw
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: acme-hw
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential gcc-multilib device-tree-compiler file gperf git ninja-build \
+            libmagic1 pkg-config python3-dev wget xz-utils
+
+      # The organisation's repositories are private. Read them with a token that
+      # can read only what the workspace needs, never with a personal token.
+      - name: Allow reading the organisation's repositories
+        env:
+          ACME_READ_TOKEN: ${{ secrets.ACME_READ_TOKEN }}
+        run: |
+          git config --global \
+            url."https://x-access-token:${ACME_READ_TOKEN}@git.example/".insteadOf \
+            https://git.example/
+
+      - name: Fetch the workspace at the organisation baseline
+        run: |
+          pip install west==1.4.0
+          west init -l --mf ci/west.yml acme-hw
+          west update --narrow -o=--depth=1
+          pip install -r zephyr/scripts/requirements-base.txt \
+            -r zephyr/scripts/requirements-build-test.txt \
+            -r zephyr/scripts/requirements-run-test.txt
+          west zephyr-export
+
+      # The module's tests use Crux's pins. This fails when the organisation
+      # baseline differs from Crux without a declared reason.
+      - name: Compare the workspace with the Crux contract
+        run: west crux-pins
+
+      - name: Install the Zephyr SDK
+        run: west sdk install --version 1.0.1 --toolchains arm-zephyr-eabi
+
+      - name: Run the module tests on native_sim
+        run: |
+          west twister -T acme-hw/tests -p native_sim \
+            --inline-logs -v --outdir twister-native-sim
+
+      - name: Cross-build the module's boards
+        run: |
+          west twister -T acme-hw/tests -p acmeco_ctrl_a --build-only \
+            --inline-logs -v --outdir twister-boards

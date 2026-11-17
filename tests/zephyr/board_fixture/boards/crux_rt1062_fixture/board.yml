@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Fictional, compile-only test board: its own board name, the RT1062 SoC.
+# It stands for "a custom board with an i.MX RT1062" in the System, Logging, Serial
+# and File composition tests. It describes no real hardware and is never programmed.
+board:
+  name: crux_rt1062_fixture
+  full_name: Crux RT1062 compile-only fixture (fictional)
+  socs:
+    - name: mimxrt1062

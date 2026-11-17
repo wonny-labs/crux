@@ -8,10 +8,10 @@ Every command and expected output below is taken from an existing document, test
 
 | Question | Answer | Source |
 | --- | --- | --- |
-| Is there an image to program? | **Only the RT1060-EVKB bench image**, `tests/zephyr/management_rt1060_compile`, and it **refuses to start**: `CRUX_BENCH_RUN_REFUSED` is `ON` in its `CMakeLists.txt`. Lifting it is a code change that your team must review and own. | [Bench plan, B3](rt1060-bench-image-plan.md#what-blocks-the-plan-today), `src/main.c` |
+| Is there an image to program? | Two, neither run. (1) The RT1060-EVKB **bench image**, `tests/zephyr/management_rt1060_compile`, which **refuses to start**: `CRUX_BENCH_RUN_REFUSED` is `ON` in its `CMakeLists.txt`, and lifting it is a code change that your team must review and own. (2) The **Mbed management image**, `samples/management_rt1060_mbed`, HTTPS only and meant to run, which `psa-crypto.yml` cross-builds, without flashing, on each pull request and push to `main`; the step passed on `main` at `164b0428`: see [using the Mbed image](#using-the-mbed-image). The checks below are written for the bench image. | [Bench plan, B3](rt1060-bench-image-plan.md#what-blocks-the-plan-today), `src/main.c`, [Mbed management image](rt1060-mbed-management-image.md) |
 | Is it a product image? | **No.** It has four declared bench test forms: a test host key form, no time source, a RAM disk (nothing persists across a reset), and a first-account password embedded in Flash from a file. | [Bench plan](rt1060-bench-image-plan.md#d-the-expected-boot-banner-and-the-lines-in-order), [bench first account](rt1060-bench-first-account.md) |
-| Which TLS profile? | **Wolf** (wolfSSL, wolfSSH, wolfPSA), for HTTPS too. No Mbed-profile board image exists in this repository. | `CMakeLists.txt` (`tls_offload_probe/wolf.conf`) |
-| Licence | wolfSSL and wolfSSH are GPL-3.0-or-later or commercial, wolfPSA's source states GPL-3.0-or-later, and the TLS socket patch has unconfirmed terms. **Building this image at all needs the Wolf stack.** Decide your licence position before any step; this procedure decides none. | [Patches README](../patches/zephyr/README.md#wolfssl-tls-socket-backend) |
+| Which TLS profile? | The bench image: **Wolf** (wolfSSL, wolfSSH, wolfPSA), for HTTPS too. The Mbed image: Mbed TLS with TF-PSA-Crypto, no SSH. | `CMakeLists.txt` (`tls_offload_probe/wolf.conf`), [Mbed management image](rt1060-mbed-management-image.md) |
+| Licence | wolfSSL and wolfSSH are GPL-3.0-or-later or commercial, wolfPSA's source states GPL-3.0-or-later, and the TLS socket patch has unconfirmed terms. **Building the bench image at all needs the Wolf stack**; the Mbed image uses none of it. Decide your licence position before any step; this procedure decides none. | [Patches README](../patches/zephyr/README.md#wolfssl-tls-socket-backend) |
 | Serial command line | **Composed in no image.** The bench image's UART is a log output only (`CONFIG_CONSOLE_HANDLER=n`, `CONFIG_SHELL=n` in `target.conf`). | [CLI contract](cli-contract.md#what-exists) |
 | A route to read events | **None.** `GET /api/v1/events` is not built. Events appear as Logging lines on the console UART, and as counts in `GET /api/v1/status`. | [Security event contract](security-event-contract.md#what-exists), `target.conf` |
 | A way to replace the certificate | **None**: no route and no command. | [TLS certificate](tls-certificate.md#replacing-the-certificate) |
@@ -49,6 +49,21 @@ flowchart LR
 ```
 
 Verdicts are **PASS**, **FAIL** or **NOT RUN**. A FAIL is a finding to report, not a reason to retry.
+
+## Using the Mbed image
+
+The [Mbed management image](rt1060-mbed-management-image.md) has its own build, first account, console lines and team checks; use that document for them. How the checks below map onto it:
+
+| Check | With the Mbed image |
+| --- | --- |
+| T0 | The `MBED-MGMT ...` lines of its [expected console lines](rt1060-mbed-management-image.md#expected-console-lines) instead of the `BENCH` lines, ending with `MBED-MGMT ready https://192.168.77.2:443/` |
+| First account | Only through its test form, off by default (`CONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT` with the environment variable `CRUX_MBED_MGMT_PASSWORD_FILE`), [the first account](rt1060-mbed-management-image.md#the-first-account); without it nobody can log in |
+| T1 | The certificate line is `MBED-MGMT certificate sha256=...`. Its certificate names `crux-rt1060` and the board's address, not `crux-bench`: use `-servername crux-rt1060` (or none, as its own check does) and expect `DNS:crux-rt1060` ([what it contains](rt1060-mbed-management-image.md#what-it-contains), `samples/management_rt1060_mbed/src/composition.c`). The Mbed profile has no X25519: `-groups X25519:P-256` completes on P-256 after a HelloRetryRequest, and X25519 alone is refused ([what a team checks](rt1060-mbed-management-image.md#what-a-team-checks)) |
+| T2 | Applies as written. The routes also include reboot: `POST /api/v1/system/reboot` resets the board |
+| T7 | The rows for the web login and logout, a wrong password, T2 step 5 and the certificate at first boot apply; `access.provisioned` only with the test first account on; the SSH and SFTP rows do not apply |
+| T3, T4, T5 | Not available: no serial console, no SSH, no SFTP in the image |
+| T6 | Its reboot route or a reset gives a new certificate, as the RAM disk makes every boot a first boot |
+| Programming | The team's own: `west flash` with a runner for this board, or the NXP tools ([flash and run](rt1060-mbed-management-image.md#flash-and-run)) |
 
 ## T0. Boot and image identity
 
@@ -196,7 +211,7 @@ Verdicts are **PASS**, **FAIL** or **NOT RUN**. A FAIL is a finding to report, n
 | T2 login and logout | `access.login_ok` and `access.logout`, `chan=web` |
 | A deliberate wrong password | `access.login_failed`, `res=denied` |
 | T4 login | `access.login_ok`, `chan=ssh` |
-| T2 step 5, a refused CSRF token or `Origin` | **None on `main`**; records come only with open pull request [#449](https://github.com/wonny-labs/crux-pilot/pull/449) |
+| T2 step 5, a refused CSRF token, then a refused `Origin` | `web.csrf_rejected`, then `web.origin_rejected`, `chan=web`, `user=admin`, `res=denied`, no subject; at most 3 of each kind in 60 s, later ones only counted ([web session](web-session.md#security-events-for-a-refused-csrf-token-or-origin)). Tested on the Host only |
 | SFTP put and remove | `file.created`, `file.removed` with the area as subject |
 | Any loss | An `event.lost` line; `security.events_dropped` above 0 |
 

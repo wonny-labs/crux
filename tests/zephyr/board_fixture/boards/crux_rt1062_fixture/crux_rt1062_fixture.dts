@@ -1,0 +1,99 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/*
+ * Fictional, compile-only test board (see board.yml). The peripherals come from
+ * the RT1062 SoC files; the board adds only memory choices, the system timer, a
+ * console on LPUART1 and pin groups for LPUART1, LPUART2, LPUART3 and USDHC1. The pins are valid
+ * SoC pin functions, not taken from any board schematic. LPUART3 uses GPIO_B0_08/09, not the
+ * GPIO_AD_B1_06/07 pins that LPUART3 shares with CSI on the EVKB. The tests' overlays enable
+ * LPUART2, LPUART3 and USDHC1 as each composition needs them.
+ */
+
+/dts-v1/;
+
+#include <nxp/imxrt/nxp_rt1060.dtsi>
+#include <nxp/nxp_imx/rt/mimxrt1062dvl6a-pinctrl.dtsi>
+
+/ {
+	model = "Crux RT1062 compile-only fixture (fictional)";
+	compatible = "nxp,mimxrt1062";
+
+	chosen {
+		zephyr,sram = &ocram;
+		zephyr,itcm = &itcm;
+		zephyr,dtcm = &dtcm;
+		zephyr,console = &lpuart1;
+	};
+};
+
+/* The SoC file leaves the system timer disabled; the kernel tick needs it. */
+&systick {
+	status = "okay";
+};
+
+&pinctrl {
+	fixture_lpuart1: fixture_lpuart1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_ad_b0_13_lpuart1_rx>,
+				 <&iomuxc_gpio_ad_b0_12_lpuart1_tx>;
+			drive-strength = "r0-6";
+			slew-rate = "slow";
+			nxp,speed = "100-mhz";
+		};
+	};
+
+	fixture_lpuart2: fixture_lpuart2 {
+		group0 {
+			pinmux = <&iomuxc_gpio_ad_b1_02_lpuart2_tx>,
+				 <&iomuxc_gpio_ad_b1_03_lpuart2_rx>;
+			drive-strength = "r0-6";
+			slew-rate = "slow";
+			nxp,speed = "100-mhz";
+		};
+	};
+
+	fixture_lpuart3: fixture_lpuart3 {
+		group0 {
+			pinmux = <&iomuxc_gpio_b0_08_lpuart3_tx>,
+				 <&iomuxc_gpio_b0_09_lpuart3_rx>;
+			drive-strength = "r0-6";
+			slew-rate = "slow";
+			nxp,speed = "100-mhz";
+		};
+	};
+
+	fixture_usdhc1: fixture_usdhc1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_sd_b0_00_usdhc1_cmd>,
+				 <&iomuxc_gpio_sd_b0_01_usdhc1_clk>,
+				 <&iomuxc_gpio_sd_b0_02_usdhc1_data0>,
+				 <&iomuxc_gpio_sd_b0_03_usdhc1_data1>,
+				 <&iomuxc_gpio_sd_b0_04_usdhc1_data2>,
+				 <&iomuxc_gpio_sd_b0_05_usdhc1_data3>;
+			drive-strength = "r0";
+			slew-rate = "fast";
+			nxp,speed = "100-mhz";
+		};
+	};
+};
+
+&lpuart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&fixture_lpuart1>;
+	pinctrl-names = "default";
+};
+
+&lpuart2 {
+	pinctrl-0 = <&fixture_lpuart2>;
+	pinctrl-names = "default";
+};
+
+&lpuart3 {
+	pinctrl-0 = <&fixture_lpuart3>;
+	pinctrl-names = "default";
+};
+
+&usdhc1 {
+	pinctrl-0 = <&fixture_usdhc1>;
+	pinctrl-names = "default";
+};

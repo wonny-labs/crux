@@ -142,5 +142,21 @@ confirmed="$build/$image/zephyr/zephyr.signed.confirmed.bin"
 CRUX_PYTHON="$python" CRUX_WORKSPACE="$workspace" "$repo/tests/target/check_boot_images.sh" "$build" ||
     fail 'the boot image check failed'
 
+# Report only (#165): list the NOR references reachable from the FlexSPI write and erase path of the MCUboot
+# image. The documented composition is not expected to be clean, so this never fails the check and has no
+# --strict. A pass of the check would show the absence of the edges it looks for, not closure of the #22 matrix
+# (issue #165). A run that cannot start says so. It weakens
+# and removes none of the checks above. Relayed owner approval of 2026-11-16, about 20:01 UTC (Secure Boot session chat); see PR #495.
+sdk_bin="${ZEPHYR_SDK_INSTALL_DIR:-}/gnu/arm-zephyr-eabi/bin"
+[[ -x "$sdk_bin/arm-zephyr-eabi-objdump" ]] || sdk_bin="${ZEPHYR_SDK_INSTALL_DIR:-}/arm-zephyr-eabi/bin"
+if [[ -x "$sdk_bin/arm-zephyr-eabi-objdump" && -f "$build/mcuboot/zephyr/zephyr.elf" ]]; then
+    "$python" "$repo/scripts/check-flexspi-closure.py" --elf "$build/mcuboot/zephyr/zephyr.elf" \
+        --nm "$sdk_bin/arm-zephyr-eabi-nm" --objdump "$sdk_bin/arm-zephyr-eabi-objdump" \
+        --zephyr-base "$workspace/zephyr" --hal-nxp "$workspace/modules/hal/nxp" ||
+        printf 'FlexSPI closure report: the report itself failed to run (report only, not a failure of this check).\n'
+else
+    printf 'FlexSPI closure report: no toolchain objdump or no MCUboot ELF, not run.\n'
+fi
+
 printf 'Boot composition: MCUboot %s bytes, signed application %s bytes (build only, not booted).\n' \
     "$(stat -c %s "$build/mcuboot/zephyr/zephyr.bin")" "$(stat -c %s "$signed")"

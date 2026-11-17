@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# The first scenario proves on native_sim that the build found this module
+# (its Kconfig is sourced). The second builds the module's own board, found
+# through board_root. Each shared driver adds its own test beside this one,
+# with an emulator on native_sim.
+common:
+  tags: acme_hw
+tests:
+  acme_hw.module.smoke:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+  acme_hw.module.smoke.board_build:
+    build_only: true
+    platform_allow:
+      - acmeco_ctrl_a
+    integration_platforms:
+      - acmeco_ctrl_a

@@ -1,6 +1,6 @@
 # The management image for RT1060-EVK Rev B on the Mbed TLS profile
 
-Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board, and the cross-build has not run either.** What has run is the static Host checks of the image's text. A cross-build check exists (`scripts/test-management-mbed-rt1060.sh build`) and no workflow runs it yet; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
+Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What runs is the static Host checks of the image's text and the cross-build check (`scripts/test-management-mbed-rt1060.sh build`), which `psa-crypto.yml` runs, without flashing, on each pull request and push to `main`; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
 
 It is a different image from the [bench image](rt1060-management-image-feasibility.md) of the Wolf profile. That image carries safety gates and **refuses to start by design**, and this one has none of them: see [what is different](#how-it-differs-from-the-bench-image).
 
@@ -102,7 +102,7 @@ The image is written for **RT1060-EVKB Rev B** (`mimxrt1060_evk@B//qspi`) and re
 
 | Part | Where it is set | SoC (RT1062) or board | A product board with an RT1062 changes |
 | --- | --- | --- | --- |
-| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's, and the RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on that board | Board | The check and the provider's `depends on`, or a board file that this repository does not have |
+| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's. The RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on the RT1062 SoC, and on the RT1060-EVK on its Rev B QSPI target | Board | The image's check, or a board file that this repository does not have. The provider accepts an RT1062 board with another name |
 | Entropy | The TRNG (`zephyr,entropy = &trng`, `ENTROPY_MCUX_TRNG`), the fail-closed correction and the boot check | **SoC** | Nothing, unless the board's devicetree changes the chosen entropy node |
 | Device ID for the credential store | `CONFIG_HWINFO` | **SoC** (the unique ID) | Nothing |
 | Flash part and boot | QSPI NOR, XIP from `0x60000000`, the boot header of the board files | Board (the flash part, its size and the boot-mode switches) | The board's flash configuration and boot data |
@@ -164,7 +164,7 @@ The locks of the Mbed profile's core are **not** taken from tests any more. The 
 | Item | State |
 | --- | --- |
 | The image's static rules: Mbed profile, no Wolf or SSH symbol, no bench symbol, the services selected, entropy before any key, the listener after the certificate, only the listed private includes, the test form off and absent from `prj.conf` | **Host**, `tests/build/test_management_mbed_rt1060_image.py` |
-| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **Not run.** The check is `scripts/test-management-mbed-rt1060.sh build`; no workflow runs it yet (the pull request names the one step to add). Until it has run, treat a compile or link error as possible. |
+| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **CI**: `scripts/test-management-mbed-rt1060.sh build` runs in `psa-crypto.yml` on each pull request and push to `main`; the step passed on `main` at `164b0428`. |
 | Everything on the board: boot, the TRNG, the handshake and its time and memory, the stack of the HTTP thread (16,384 B, a first choice), the Mbed TLS heap (120,000 B, sized on `native_sim` for three clients), the network buffers (the bench's numbers), the generated key as the listener's credential, reboot, every client | **Not run** |
 | The Mbed TLS listener with the generated certificate on any target | Not run: the `native_sim` images of the Mbed profile serve the declared test certificate |
 

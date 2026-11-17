@@ -96,7 +96,7 @@ of the boot composition, on fake build trees, a fake imgtool and a fake composit
 `tests/build/test_check_boot_config.py` holds the checks of `scripts/check-boot-config.py`, which reads the resolved `.config` of the
 MCUboot image and the application of the boot composition and fails unless both are built for RAM load with revert and the
 build-number comparison is off (image-state rows I5 and Q9). It runs on fixture files in `tests/build/fixtures/boot-config/`. The
-script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the edit of that protected script is pending the owner's approval); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
+script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the owner approved the edit of that protected script on 2026-11-16, #489); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
 
 `tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
 size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
@@ -235,6 +235,8 @@ CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p 
 This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
 of these checks flashes, resets or opens a device.
 
+Hardware tests have no supported entry point. A wired-part scenario is built in CI and not run, and a run is a hardware operation through the device-control route, not a Twister run. [Hardware integration tests](../docs/build.md#hardware-integration-tests) says what each source says.
+
 ## Device-control tool
 
 `build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
@@ -265,6 +267,14 @@ PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <boa
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
 Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
+
+`tests/build/test_product_style.py` checks the [style kit](../templates/product/style/README.md) of the
+template and the guidance that names it. It runs the three wrapper scripts on throwaway Git repositories,
+with stand-ins for clang-format and checkpatch, and runs the real tools when they are present: set
+`CLANG_FORMAT` to a clang-format 18 binary, or `ZEPHYR_BASE` to a Zephyr tree, and those cases run instead of
+skipping. It also compares the kit's settings with Crux's own, and reads the guideline, the hardware test
+section of the build guide and the corrected controller row of the API guide. It needs only Python, Git, Bash
+and Perl, so the host CI job runs it, and it uses no west, Docker or hardware.
 
 ## Frozen header warning
 
@@ -634,6 +644,9 @@ anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if 
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
+The script then configures the same check for `crux_rt1062_fixture`, the fictional compile-only RT1062
+board of `tests/zephyr/board_fixture`, with an SD slot on USDHC1, and compiles the File object only:
+the selection is accepted by SoC and devicetree. That fixture is no hardware and no evidence for any real board.
 
 ### eMMC simulator on `native_sim`
 
@@ -805,13 +818,22 @@ proposal. Root Host/ASan checks include the common and native PTY Serial cases.
 The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
 the public `crux::time` clock contract. Static Zephyr composition and
-UART ownership checks remain part of the full Serial script.
+UART ownership checks remain part of the full Serial script. Its composition test also
+configures and compiles the Serial library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
+the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging
 
 `scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
 Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Its composition test also configures and compiles the Logging library on
+`tests/zephyr/board_fixture`, a fictional compile-only board with its own name and
+the RT1062 SoC: Logging on LPUART2 builds next to Serial on LPUART3, and the mode, owner and
+resource checks still refuse. On the revision-B EVKB, Logging stays at LPUART1: LPUART3 is
+still refused. That fixture is no hardware and no evidence for any real board.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 
@@ -827,7 +849,10 @@ lifecycle and real Linux monotonic-provider tests.
 `scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
 Controller policy checks.
 `scripts/test-system.sh` additionally checks native ownership/configuration,
-Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. Its composition
+test also compiles the System library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` with WDOG1, keeps the WDOG1 asserts on it, and checks
+that an RT1064 board is still refused. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
 

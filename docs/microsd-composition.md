@@ -36,10 +36,15 @@ component unbound, so a later `sd_storage_start()` can succeed. The Settings Fil
 is not part of this sequence; its target provider is a separate decision.
 
 Selection: `CONFIG_CRUX_FILE_FATFS_RT1060` links the File provider into an EVKB Rev B image.
-It is off by default and requires the Rev B QSPI board (`BOARD_REVISION_B` and
-`BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI`, enforced in Kconfig, the File port CMake and a C `#error`;
-the testcase and sample CMake turn an unsatisfied dependency into an error because Kconfig only
-warns) and the guarded FatFs/SDHC configuration. Rev C and the hyperflash variant are refused. The older
+It is off by default and requires the RT1062 SoC, an enabled `nxp,imx-usdhc` node with a
+`zephyr,sdmmc-disk` child, and the guarded FatFs/SDHC configuration (Kconfig, the File port CMake
+and a C `#error` for the SoC; the testcase and sample CMake turn an unsatisfied dependency into an
+error because Kconfig only warns). On the RT1060-EVK it also requires the Rev B QSPI target
+(`BOARD_REVISION_B` and `BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI`, in Kconfig and the File port
+CMake), so Rev C and the hyperflash variant are refused. Since the owner's decision of
+2026-11-16 a board with another name and the RT1062 SoC can select it; that is accepted, not
+qualified: the evidence below is one RT1060-EVKB and one card, and the selection compiles on a
+fictional test board only (`tests/zephyr/board_fixture`). The older
 `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` object-only check remains.
 `CONFIG_SAMPLE_SD_START` (off by default) makes the sample image run the mount sequence at
 boot.

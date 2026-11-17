@@ -1,0 +1,4 @@
+# Vendor prefixes of the acme-hw module, one tab-separated line each.
+# acmeco is fictional. Zephyr already gives "acme" to a real company, so a real
+# organisation checks dts/bindings/vendor-prefixes.txt in Zephyr before it picks one.
+acmeco	Acme Co, a fictional organisation used in Crux templates

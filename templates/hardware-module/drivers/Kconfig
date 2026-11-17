@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# One rsource per shared driver. The driver's own Kconfig file enables it
+# from devicetree, as Zephyr's in-tree drivers do:
+#
+#   config ACMECO_EXAMPLE_SENSOR
+#   	bool "Acme example sensor"
+#   	default y
+#   	depends on DT_HAS_ACMECO_EXAMPLE_SENSOR_ENABLED
+#   	select I2C
+#
+# rsource "sensor/acmeco_example_sensor/Kconfig"
