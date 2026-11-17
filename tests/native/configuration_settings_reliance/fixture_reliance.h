@@ -5,7 +5,7 @@
 #ifndef CRUX_TESTS_CONFIGURATION_SETTINGS_FIXTURE_RELIANCE_H
 #define CRUX_TESTS_CONFIGURATION_SETTINGS_FIXTURE_RELIANCE_H
 
-#include <fs_reliance_edge.h>
+#include <crux/file_reliance_edge_zephyr.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/ztest.h>

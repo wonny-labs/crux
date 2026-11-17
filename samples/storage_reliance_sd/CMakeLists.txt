@@ -47,4 +47,4 @@ if(CONFIG_BOARD_NATIVE_SIM)
 endif()
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${EMMC_DIR} ${INTERRUPT_DIR}
-  ${REPLACE_DIR} ${CRUX_ROOT}/zephyr/fs/reliance_edge)
+  ${REPLACE_DIR})

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "format.h"
 #include "emmc_storage.h"
-#include "fs_reliance_edge.h"
+#include <crux/file_reliance_edge_zephyr.h>
 #include <stdint.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
