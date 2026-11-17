@@ -274,6 +274,16 @@ skipping. It also compares the kit's settings with Crux's own, and reads the gui
 section of the build guide and the corrected controller row of the API guide. It needs only Python, Git, Bash
 and Perl, so the host CI job runs it, and it uses no west, Docker or hardware.
 
+`tests/build/test_product_standards.py` checks the advisory target-code analysis of the same kit
+(`style/check_target_tidy.py` and `style/target.clang-tidy`), the product
+[contribution guide template](../templates/product/CONTRIBUTING.md), the
+[driver review checklist](../docs/driver-review-checklist.md) and the guideline sections that name them. It runs the
+script on throwaway Git repositories against a stand-in for clang-tidy, compares the profile with Crux's own
+`.clang-tidy`, and checks that the checklist covers every rule of the driver guideline and that every link and
+anchor resolves. Set `CLANG_TIDY` to a clang-tidy 18 binary to run the real tool on a small source instead of
+skipping that case. It needs only Python and Git, so the host CI job runs it, and it uses no west, Docker or
+hardware.
+
 ## Frozen header warning
 
 `tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,

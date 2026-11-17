@@ -105,6 +105,8 @@ A driver is Zephyr code. It lives on the shell side of the product, with the ada
 - **Power management.** If the part supports it, follow the `PM_DEVICE_DT_INST_DEFINE` pattern of an upstream sensor driver such as `drivers/sensor/f75303`. Do not invent a power interface.
 - **Tests.** Test a driver on `native_sim` against an emulator or a fake, and keep a wired-part scenario separate, as [hardware integration tests](build.md#hardware-integration-tests) describes. A `native_sim` pass is not hardware evidence.
 
+A reviewer or an author can walk these rules, and the files around a driver, with the [driver review checklist](driver-review-checklist.md). Each of its items points back here.
+
 ### What the Crux boundary check covers
 
 The product-side include check, `templates/product/check_domain_includes.py`, is lexical. In `domain/` it rejects every `<zephyr/...>` header, the Crux composition interfaces, and the four frozen headers (`<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`). With `--product ROOT` it also rejects the four frozen headers in every C, C++ and assembly source of the repository, driver sources included. [The template README](../templates/product/README.md#check-the-whole-product-repository) lists its rules.
@@ -129,6 +131,36 @@ It does not police anything else in this section. In particular it does not chec
 | `check-includes.sh` | `check_domain_includes.py --product` on the repository root |
 
 Crux's own `scripts/check-format.sh` and `scripts/check-patch.sh` already work in any Git repository, since they use the Git top level of the current directory. What is specific to Crux is the `.clang-format` they read and the `BRACES`-only rule set. Zephyr's checkpatch expects tab indentation, and without `--types` it reports every line of 4-space code. That is why Crux limits its gate to `BRACES`.
+
+### Static analysis of target code
+
+`.clang-tidy` and `analyze-host.sh` analyse the sources that Crux's Host builds compile ([static-analysis coverage](static-analysis-coverage.md)). A product's Zephyr adapters and drivers are compiled only by a Zephyr build, so nothing in Crux analyses them. [`templates/product/style/`](../templates/product/style/README.md) holds an advisory way to do it: `check_target_tidy.py` and the profile `target.clang-tidy`. They add no Crux interface, and no Crux CI job runs them.
+
+~~~sh
+west build -b <board> app
+style/check_target_tidy.py build
+style/check_target_tidy.py build --exclude '^app/legacy/' -- --extra-arg=-Wno-unknown-warning-option
+~~~
+
+- **What it analyses.** The sources in the build's `compile_commands.json` that lie inside the Git top level of the product and outside the build directory. Zephyr, Crux, the SDK and generated sources are skipped. Headers are reported only under `app`, `domain`, `drivers`, `include` and `tests` of the product, and `--header-filter` changes that. `--exclude REGEX` skips product paths, such as code the product has not yet cleaned up.
+- **Advisory.** Findings are printed and counted and never fail the run: the profile sets no `WarningsAsErrors`. The script exits 1 only when clang-tidy could not compile a file, because that file's result is missing, and 2 for a usage error or a missing tool or database. A product that wants a gate decides so itself, after it has seen the findings of its own code. Crux's rule that a new mandatory check needs a separate justification stands.
+- **The profile.** It equals Crux's selection, which a test compares, except `-bugprone-easily-swappable-parameters`: a Zephyr driver API fixes parameter lists such as `(dev, reg, value)`, so the check is expected to report code that the product cannot change. That expectation comes from reading the check, not from a run. `readability-identifier-naming` has no options, so it enforces no naming rule here either.
+- **The compile database.** Zephyr v4.4.0 writes `compile_commands.json` by default (`cmake/modules/kernel.cmake` sets `CMAKE_EXPORT_COMPILE_COMMANDS`); pass `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` if the pinned Zephyr does not. The database holds the build's own compiler command lines, for example GCC options for an Arm target. clang may reject an option it does not know, or not find the toolchain's headers. The script then reports the file as one that did not compile. Add `--extra-arg` options after `--` until the files compile.
+- **Not run.** `check_target_tidy.py` is tested against a stand-in for clang-tidy, and against the real tool only where `CLANG_TIDY` names one. Neither the script nor the profile has been run on a Zephyr database, a `native_sim` database or a driver source, so the findings, the noise and the exceptions in the profile are unmeasured. Treat the first real run as a measurement and record it.
+- **Other routes.** Zephyr can run analysers inside its build with `-DZEPHYR_SCA_VARIANT=<name>`. Its tree has the variants `clang` (the Clang static analyzer), `codechecker` (which runs Clang-Tidy, the Clang static analyzer and Cppcheck), `gcc`, `sparse` and `dtdoctor`, and variants for commercial tools (`coverity`, `cpptest`, `eclair`, `iar_c_stat` and `polyspace`). See Zephyr's [static code analysis](https://docs.zephyrproject.org/latest/develop/sca/index.html) pages. They are alternatives, and Crux has run none of them on product code.
+
+### MISRA C position
+
+Crux does not adopt MISRA C for product or driver code. MISRA stays **advisory**: it is not a gate, no check here or in CI fails because of a MISRA finding, and Crux makes no compliance claim for itself or for any product. [Static-analysis coverage](static-analysis-coverage.md) says the same of Crux's own code. Zephyr's [coding guidelines](https://docs.zephyrproject.org/latest/contribute/coding_guidelines/index.html) are a subset of MISRA C:2012 that Zephyr requires of its own new code. A product that wants a reference for style and safety can read that subset. It is guidance for product and driver code, not a requirement. The position is revisited when a certification or a customer requirement asks for MISRA, and the product then chooses the rule set, the tool and the deviation process.
+
+To get an advisory MISRA signal on product code, run a checker over the same compile database. These commands come from reading the tools' documentation. None was run here, and the tools were not installed:
+
+~~~sh
+# Cppcheck with its MISRA addon over a Zephyr build's database (the open-source addon covers part of the rules)
+cppcheck --project=build/compile_commands.json --file-filter='<product root>/*' --addon=misra.json
+~~~
+
+`misra.json` is Cppcheck's addon file, for example `{"script": "misra.py", "args": ["--rule-texts=<path>"]}`. The rule texts file comes from a licensed copy of the MISRA documents, so the product keeps it outside the repository and Crux ships none. Without it, as the addon's documentation describes, the findings carry rule numbers but not the rule wording. Read a result as a pointer for a reviewer, not as a verdict, and never as evidence of compliance. Commercial analysers with MISRA checkers, some of which Zephyr integrates as SCA variants, are the route for a compliance claim. Crux has evaluated none of them.
 
 ### Zephyr compliance checks out of tree
 
