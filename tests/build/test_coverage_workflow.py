@@ -154,6 +154,17 @@ class CoverageWorkflowTest(unittest.TestCase):
             with self.subTest(syntax=script.name):
                 subprocess.run(["bash", "-n", str(script)], check=True)
 
+    def test_scripts_the_workflow_runs_are_executable_in_the_git_index(self):
+        # The workflow calls them by path and CI checks out from the index, so the mode
+        # recorded there decides: without 100755 the job stops with "Permission denied".
+        named = sorted(set(re.findall(r"scripts/(coverage-[a-z-]+\.(?:sh|py))", self.workflow)))
+        self.assertTrue(named)
+        for name in named:
+            with self.subTest(script=name):
+                listing = subprocess.run(["git", "ls-files", "-s", f"scripts/{name}"], cwd=REPO,
+                                         capture_output=True, text=True, check=True).stdout
+                self.assertTrue(listing.startswith("100755 "), f"scripts/{name}: {listing!r}")
+
     def test_the_host_build_does_not_edit_the_presets(self):
         script = (REPO / "scripts/coverage-host.sh").read_text()
         for flag in ("-DCMAKE_C_FLAGS=--coverage", "-DCMAKE_CXX_FLAGS=--coverage",
