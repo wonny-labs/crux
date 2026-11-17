@@ -175,7 +175,7 @@ A run on a board is a hardware operation. It needs authorisation for the current
 
 ## The example board
 
-`boards/vnd/example_rt1062` is a fictional board with an i.MX RT1062, a QSPI flash, a console UART and the I2C bus that carries the example part. It is a minimal copy of the files of Zephyr's `mimxrt1060_evk` that it needs, with **a name of its own**. The flash configuration block is copied from the vendor board and describes its flash part: replace it for yours. Copied files keep their licence line and name their source.
+`boards/vnd/example_rt1062` is a fictional board with an i.MX RT1062, a QSPI flash, a console UART and the I2C bus that carries the example part. It is a minimal copy of the files that it needs from two NXP boards of Zephyr, `mimxrt1062_fmurt6` for the board skeleton and `mimxrt1060_evk` for the flash node and the rest, with **a name of its own**. The flash configuration block is copied from the vendor board and describes its flash part: replace it for yours. Copied files keep their licence line and name their source.
 
 The board is not a variant added with `board: extend:`. A variant keeps the name of the board it extends, so `CONFIG_BOARD_MIMXRT1060_EVK` stays set and code that tests for that name accepts the variant, whether or not its hardware is the vendor's. Several Crux Zephyr bindings test for a board name and refuse any other, as [Porting Crux to a new board](porting-to-a-new-board.md#33-kconfig-and-devicetree) lists. **The kit does not say that Crux's bindings accept the example board.** It proves the board definition, and the driver on it, with Zephyr alone.
 

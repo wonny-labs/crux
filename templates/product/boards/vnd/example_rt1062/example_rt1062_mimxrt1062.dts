@@ -1,13 +1,17 @@
 /*
+ * Copyright 2023, 2025 NXP
+ * Copyright 2024 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * A fictional board: an i.MX RT1062 with a QSPI flash, a console UART and one I2C bus that carries
  * the example temperature sensor. It has no SDRAM and no other peripheral. A product starts from
  * this file and describes its own hardware.
  *
- * Modelled on boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts and
- * boards/pjrc/teensy4/teensy40.dts of Zephyr (Copyright 2024 NXP; Copyright (c) 2020, Bernhard
- * Kraemer).
- *
- * SPDX-License-Identifier: Apache-2.0
+ * Modelled on two files of Zephyr v4.4.0, which carry the copyright lines above: the board
+ * skeleton on boards/nxp/mimxrt1062_fmurt6/mimxrt1062_fmurt6.dts (Copyright 2023, 2025 NXP) and
+ * the QSPI flash node on boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts (Copyright
+ * 2024 NXP).
  */
 
 /dts-v1/;
@@ -15,7 +19,6 @@
 #include <nxp/imxrt/nxp_rt1060.dtsi>
 #include "example_rt1062-pinctrl.dtsi"
 #include <freq.h>
-#include <mem.h>
 
 / {
 	model = "Example RT1062 board, a fictional board of the product template";
