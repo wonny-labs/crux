@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# The module of the module_library variant of the link probe. Only that probe build names it.
+name: product-template-link-probe
+build:
+  cmake: .
