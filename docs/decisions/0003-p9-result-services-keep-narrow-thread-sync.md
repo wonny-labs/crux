@@ -36,10 +36,10 @@ Reasons and alternatives are taken from the pilot records, ADR-0002 and the [pla
 
 1. **R1. P9 result: O4.** Crux's services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers. The services do not move to Zephyr kernel objects (O2).
 2. **R2. Principle.** Product code uses the OS natively: Zephyr products call Zephyr, Linux products call Linux. Crux's services use the narrow Crux Thread and Sync. Other OS facilities (drivers, networking, storage) are used natively in adapters. This is P1 with the services' inside named.
-3. **R3. Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after CODESYS, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then.
+3. **R3. Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after the PLC runtime ports, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then.
 4. **R4. Known exception.** `ssh` uses native threads.
 5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of `README.md:5` and `:37` follows this wording in its own change.
-6. **R6. O5, candidate.** Moving the services' internals to a documented POSIX subset is evaluated when a Linux product is defined. Known blocker: Zephyr's POSIX layer needs picolibc or newlib, and the workspace has neither (Stage A). That evaluation must also check that CODESYS's timing needs are met: distinct run-time priorities and sub-millisecond waits.
+6. **R6. O5, candidate.** Moving the services' internals to a documented POSIX subset is evaluated when a Linux product is defined. Known blocker: Zephyr's POSIX layer needs picolibc or newlib, and the workspace has neither (Stage A). That evaluation must also check that a PLC runtime's timing needs are met: distinct run-time priorities and sub-millisecond waits.
 
 ## What this amends in ADR-0002
 
