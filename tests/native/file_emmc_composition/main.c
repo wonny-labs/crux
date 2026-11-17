@@ -5,8 +5,8 @@
  * requests that the simulator received. */
 #include "emmc_sim.h"
 #include "emmc_storage.h"
-#include "fs_reliance_edge.h"
 #include <crux/file.h>
+#include <crux/file_reliance_edge_zephyr.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

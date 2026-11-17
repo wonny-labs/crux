@@ -11,7 +11,6 @@ if(NOT CONFIG_BOARD_NATIVE_SIM)
 endif()
 target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_emmc/emmc_storage.c)
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_emmc
-  ${CRUX_ROOT}/zephyr/fs/reliance_edge)
+target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_emmc)
 crux_emmc_sim_add(app)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
