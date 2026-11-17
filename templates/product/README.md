@@ -14,6 +14,7 @@ No Crux release tag exists yet. The [Product Composition Guide](https://github.c
 | `check_domain_includes.py` | The domain include check, and with `--product` the include check of the whole product repository |
 | `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, vendor kits, build environment, support period, release steps, bundle contents, revision and checks |
 | `.gitignore` | Keeps `build/` out of the source tree that the build record hashes |
+| `zephyr/module.yml`, `drivers/`, `dts/bindings/`, `boards/`, `tests/` | The driver kit: the repository as a Zephyr module with an example driver, its emulator and tests, and an example board. See [drivers/README.md](drivers/README.md) and [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md) |
 
 ## Start a product
 

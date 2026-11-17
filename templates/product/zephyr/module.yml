@@ -1,0 +1,22 @@
+# The product repository is a Zephyr module. Zephyr reads this file when the module is part of a
+# build: a west workspace that has this repository as its manifest repository finds it by itself,
+# any other build names it with -DZEPHYR_EXTRA_MODULES=<path>.
+#
+# Rename "product-x" when you rename the product. The name does not depend on the folder.
+name: product-x
+
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    # <board_root>/boards holds the product's boards, <dts_root>/dts and <dts_root>/dts/bindings
+    # hold its devicetree files and bindings. Both are relative to the root of this repository.
+    board_root: .
+    dts_root: .
+
+# Twister reads these two keys. They are not build settings. A plain "west twister" in a workspace
+# that has this module finds the tests, and the boards are known to Twister without --board-root.
+tests:
+  - tests
+boards:
+  - boards

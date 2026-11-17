@@ -1,0 +1,14 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The part on the emulated I2C controller of native_sim. The driver and the emulator both match
+ * this node by its compatible, so one node gives one device and one emulator.
+ */
+
+&i2c0 {
+	example_temp0: example-temp@48 {
+		compatible = "vnd,example-temp";
+		reg = <0x48>;
+		status = "okay";
+	};
+};
