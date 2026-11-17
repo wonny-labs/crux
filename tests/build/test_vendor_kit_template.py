@@ -222,7 +222,8 @@ class CMakeFunctionTest(unittest.TestCase):
         environment.update(env or {})
         args = [CMAKE, f"-DPYTHON_EXECUTABLE={sys.executable}", *defines, "-P", str(script)]
         result = subprocess.run(args, capture_output=True, text=True, env=environment)
-        return result, result.stdout + result.stderr
+        # CMake wraps warning text at word boundaries, so compare with whitespace collapsed.
+        return result, " ".join((result.stdout + result.stderr).split())
 
     def test_a_known_delivery_on_the_default_path_is_named_in_the_output(self):
         result, out = self.configure()
