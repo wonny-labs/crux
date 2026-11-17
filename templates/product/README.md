@@ -99,4 +99,4 @@ An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exce
 
 `main()` stands in for the callbacks of a service, so the example needs no extra Crux component. A real handler calls the same adapter and does nothing more. It is an example, not a framework: replace the stand-in port with a driver, and replace the one command with the product's own.
 
-Format, patch-style and include checks that run from a product root are in [style/README.md](style/README.md).
+Format, patch-style and include checks that run from a product root, and an advisory clang-tidy run on target code, are in [style/README.md](style/README.md). [CONTRIBUTING.md](CONTRIBUTING.md) is a contribution guide to copy to the product root: commits, pull requests, checks, independent review, protected paths and hardware operations.
