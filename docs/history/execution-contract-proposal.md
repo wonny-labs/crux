@@ -55,7 +55,7 @@ blob `b1e20234f2ef3d43689d33bdea6008f1935a39c2`, Architecture Concept blob
 | Existing controller | Preserve phase advancement, skip-overrun policy and Time serialisation; document the later migration seam | No new public clock, sleep or scheduler-policy interface in #25 |
 
 The synthetic runtime is original validation code. It proves usability of a bounded
-porting seam, not compatibility with CODESYS or another production runtime.
+porting seam, not compatibility with a particular PLC runtime or another production runtime.
 Its author should receive the approved contract and scenario, not provider source.
 Its supported build must use public targets and its own configuration.
 
