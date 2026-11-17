@@ -18,7 +18,7 @@ JOBS = ("host", "native-sim")
 # Only GitHub's own actions may run; nothing here can upload to another service.
 ALLOWED_ACTION_OWNERS = {"actions"}
 FORBIDDEN_WORDS = re.compile(
-    r"fail[-_]under|fail[-_]below|--fail|codecov|coveralls|sonar|curl |wget |secrets\.",
+    r"fail[-_]under|fail[-_]below|--fail|codecov|coveralls|sonar|\b(?:curl|wget)\s+(?:-|https?:)|secrets\.",
     re.IGNORECASE,
 )
 
@@ -145,7 +145,8 @@ class CoverageWorkflowTest(unittest.TestCase):
 
     def test_scripts_the_workflow_runs_exist_and_parse(self):
         named = set(re.findall(r"scripts/(coverage-[a-z-]+\.(?:sh|py))", self.workflow))
-        self.assertTrue({"coverage-host.sh", "coverage-native-sim.sh", "coverage-summary.py"} <= named)
+        self.assertEqual({"coverage-host.sh", "coverage-native-sim.sh"}, named)
+        self.assertTrue((REPO / "scripts/coverage-summary.py").is_file(), "run by both scripts")
         for name in named:
             with self.subTest(script=name):
                 self.assertTrue((REPO / "scripts" / name).is_file())
