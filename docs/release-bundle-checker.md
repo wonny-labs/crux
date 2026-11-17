@@ -58,7 +58,7 @@ The assembler is dashed because it does not exist in this repository yet. Today 
 | `bundle_hashes` | Yes | Path inside the bundle to SHA-256 | No | Every item except the manifest |
 | `image_sha256` | Yes | SHA-256 | No | The image is not in the bundle. Renamed from `zephyr_bin_sha256` |
 | `firmware_identity` | Yes | SHA-256 | No | Of the canonical JSON of the identity record that `identity_algorithm` defines |
-| `vendor_deliveries` | No | List of `project`, `delivery_tag`, `hash_list_sha256` | Partly: the guide's per-vendor-project record of a west-based product | A product with no vendor project leaves it out |
+| `vendor_deliveries` | No | List of `project`, `delivery_tag`, `hash_list_sha256`. A delivery tag is one or more segments of letters, digits, `.`, `_` and `-`, separated by `/`, such as the guide's `vendor/1.1.0` or `work/1.0.1-acme1` | Partly: the guide's per-vendor-project record of a west-based product | A product with no vendor project leaves it out |
 | `replaced_modules` | No | List of `original`, `replacement` | Partly: the guide's "module replaced under a new name" | A product with no module leaves it out |
 | `extensions` | No | Any object | No | The only place for a product's own fields, such as a security counter. The checker does not look inside it, except for paths and private strings, as for the rest of the file |
 

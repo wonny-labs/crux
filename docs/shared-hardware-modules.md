@@ -73,6 +73,7 @@ The module's CI never flashes or runs a board. A board run is a hardware operati
 - **Licence of each file.** Each source file of the module carries an SPDX line. A driver adapted from a Zephyr driver keeps Apache-2.0 and its copyright lines. Code under a vendor licence keeps that licence and its notice.
 - **Confidential code.** Code under an NDA or a confidential vendor licence stays on a private remote of the organisation and never goes into a public repository, Crux included. It may go into the module only if every product that imports the module may receive it.
 - **Private remotes.** The organisation manifest names the internal host as a remote (`acme`, `https://git.example/scm/acme`). CI reads it with a read-only token limited to the repositories the workspace needs. Use `https://` URLs: `ssh://` URLs lose the purl in the SBOM ([SBOM](product-composition.md#sbom)).
+- **Vendor kits.** A module that compiles a vendor kit checks the kit tree against committed per-delivery hash lists and names the delivery it matched. [Vendor kits across repositories](vendor-kits.md) recommends how, together with the kit path rule and what a release records.
 - **Optional groups.** A module that needs a Crux optional group, such as `crux-secure-management`, says so. Each product checks the group's licence before it enables it ([Commercial editions](product-composition.md#commercial-editions)).
 
 ## What a module changes in the checks

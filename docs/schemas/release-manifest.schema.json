@@ -76,7 +76,7 @@
         "required": ["project", "delivery_tag", "hash_list_sha256"],
         "properties": {
           "project": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
-          "delivery_tag": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+          "delivery_tag": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$"},
           "hash_list_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
         }
       }

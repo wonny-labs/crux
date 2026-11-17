@@ -22,7 +22,7 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 
 The optional organisation manifest is a shared layer. Add it only when two or more products share a composition.
 
-Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md).
+Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md). How vendor kits with several maintained lines fit across repositories, how a build proves which delivery it compiled and what a release records about each kit is in [Vendor kits across repositories](vendor-kits.md), a recommended convention that is not adopted.
 
 ```mermaid
 flowchart TB
@@ -197,7 +197,7 @@ flowchart TD
 
 ### Vendor branch
 
-Keep one vendor branch and one working branch per delivery line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
+Keep one vendor branch and one working branch per delivery line. [Vendor kits across repositories](vendor-kits.md) works through one kit with two lines, a module that compiles it and a product that pins one line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
 
 A fix delivery for an older line stays on that line. On one linear vendor branch it would drag the current tree back. Use branch names that git allows beside each other, such as `vendor-1.x` and `work-1.x`, never `vendor/1.x` beside a branch `vendor`.
 
