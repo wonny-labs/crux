@@ -14,8 +14,7 @@ import tempfile
 import unittest
 
 try:
-    # west depends on it. The Host CI job runs python3 from a venv that holds only cmake, ninja and
-    # clang-format, so it has neither, and no CI job installs west for this file.
+    # west depends on it. The Host CI job installs both into the venv that it runs python3 from.
     import yaml
 except ImportError:
     yaml = None

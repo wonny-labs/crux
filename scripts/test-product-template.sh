@@ -19,7 +19,7 @@ if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     exit 2
 fi
 
-# These use real west on local repositories. The host CI job has no west and skips them.
+# These use real west on local repositories. The host CI job installs west and runs them too, without a Zephyr tree.
 python="${CRUX_PYTHON:-python3}"
 "$python" -m unittest discover -s "$repo/tests/build" -p test_crux_pins.py -v
 "$python" -m unittest discover -s "$repo/tests/build" -p test_product_template.py -v

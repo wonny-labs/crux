@@ -10,7 +10,7 @@ import re
 import unittest
 
 try:
-    import yaml  # west depends on it. The Host CI job installs neither.
+    import yaml  # west depends on it, and the Host CI job installs both.
 except ImportError:
     yaml = None
 
