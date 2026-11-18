@@ -13,9 +13,10 @@ Applications select the components they need, and choose where each kind of code
 | Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
 | Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
 | Communication and networking | `serial` (frozen for new product code), `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
-| Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
+| Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load. The File type for Reliance Edge (`CRUX_FS_RELIANCE_EDGE`, `<crux/file_reliance_edge_zephyr.h>`) is described in the [File composition interface](docs/file-composition-interface.md) and under [Boot and storage work](#boot-and-storage-work) |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
-| Device I/O | `gpio`, `i2c`, `spi` | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource |
+| Device I/O | `gpio`, `i2c`, `spi` (frozen as Experimental, see below) | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource. [ADR-0001](docs/decisions/0001-application-boundary-and-api-stability.md) D4 freezes these three APIs. Deprecation at the first tag and removal in the next tag are planned and not yet done ([Component readiness](docs/component-readiness.md)). New product code uses the Zephyr GPIO, I2C and SPI APIs directly |
+| Boot and update | `image_state` | State of two firmware image slots, a test request and a confirm: public header, pure functions, portable core and a Host test double. Experimental. No bootloader provider exists, and it has not run in a bootloader, on `native_sim` or on a board. See the [image state contract](docs/image-state-contract.md) |
 | Secure management | `access`, `credential`, `security_event`, `cli`, `file_service`, `config_service`, `mgmt_status`, `network_settings`, `reboot`, `tls_certificate`, `web`, `ssh` (private) | Accounts, roles and sessions shared by every management channel; status, configuration, file, network-settings and reboot services; the device TLS certificate and security events; HTTPS web management, the command line over serial and SSH, and SFTP. Tested on Linux Host, and most of it also on `native_sim` (not the reboot service or the serial console). Some parts are compiled for RT1060-EVKB; none has run on a board |
 
 All listed components have implemented source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
@@ -33,16 +34,24 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | Development and test environment | Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
 | Simulated Zephyr target | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
 | Physical Zephyr target | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
-| Physical Zephyr target | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified; set aside for now (see the [boot overview](docs/boot-overview.md)) |
+| Physical Zephyr target | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope only (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified; set aside for now (see the [boot overview](docs/boot-overview.md)) |
 | Expected, not scheduled | Embedded Linux | An integration is expected and will be designed at the service boundary when its first product is defined. No date is set. Not implemented or qualified, and the Linux Host providers remain test providers until then |
 
 **What the Linux Host providers are used for today.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](docs/build.md#external-linux-application-using-crux-source), [`tests/consumer_poc`](tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
-Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
+Host tests, `native_sim` runs and target cross-builds do not prove physical operation. Platform milestone M4 (storage, issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14)) selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR, and it is still the current EVKB profile. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 
 For each component's Zephyr composition, strongest recorded evidence, gaps and provisional stability tier, see [Component readiness](docs/component-readiness.md).
 
 ## Getting started
+
+**On native Linux or Windows with WSL2, read [Getting started on Linux and Windows with WSL2](docs/getting-started-linux-wsl2.md) first.** Three things are easy to get wrong:
+
+- **Use a Git clone.** The scripts call `git rev-parse --show-toplevel`. If you received an archive, run `git init && git add -A && git commit -m import` in it first. The executable bits of `scripts/` must survive, so clone inside Linux or WSL2.
+- **Keep the folder layout.** The Dev Container mounts the repository's parent folder, and that parent becomes the west workspace. The repository folder must be named `crux-pilot`, for example `~/work/crux-ws/crux-pilot`. Do not clone directly into your home directory.
+- **On Windows, clone inside the WSL2 file system**, not under `/mnt/c`, with `core.autocrlf` set to `false`.
+
+The first set-up downloads from several hosts (container registry, PyPI, GitHub) and needs about 30 GiB of free disk space (an estimate). See [Network and proxy prerequisites](docs/build.md#network-and-proxy-prerequisites) and [Disk and memory](docs/build.md#disk-and-memory).
 
 Use Docker and VS Code Dev Containers with the documented Linux amd64 environment. Run the commands below from the Crux repository root **inside the Dev Container**. See the [Build and Integration Guide](docs/build.md) for workspace setup, prerequisites and configuration options.
 
@@ -78,6 +87,14 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 
 **Physical hardware:** Debugging, resets and firmware programming require a separately approved procedure. The current VS Code Flash profile builds and downloads the **Time sample**, not arbitrary firmware. The Attach profile does not download an image but the debugger connection may halt the target. See the [RT1060 debugging instructions](docs/build.md#rt1060-evkb-debugging) before using either profile.
 
+### Boot and storage work
+
+Work on eMMC storage and on secure boot is in progress. The status below is what the linked pages record, and no result comes from an eMMC device or from a booted image.
+
+- **eMMC on Reliance Edge.** A reference composition (`samples/storage_emmc`) links for the RT1060-EVKB and is tested on Host and `native_sim` against a test-only eMMC simulator. The RT1060-EVKB has no eMMC, so nothing has run on eMMC hardware. The Reliance Edge source is GPLv2 and sits in the optional west group `crux-reliance`, which is off by default. See [eMMC composition on Reliance Edge](docs/emmc-reliance-composition.md) and [Component readiness](docs/component-readiness.md).
+- **MCUboot.** MCUboot is in the manifest in the optional group `crux-boot`, with a documented build-only composition (sysbuild, RAM load with revert) for the RT1060-EVK Rev B, checked in CI. Nothing has been programmed or booted on a board. See the [boot overview](docs/boot-overview.md) and the [boot composition](docs/boot-composition.md).
+- **Image state.** The `image_state` contract is Experimental code with a Host test double and no bootloader provider. See the [image state contract](docs/image-state-contract.md).
+
 ## Repository structure
 
 | Path | Purpose |
@@ -106,7 +123,9 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
 | Where to start, which pages are current or historical, terms and milestones | [Documentation index](docs/README.md) |
 | Platform-wide decisions (ADRs) | [Decision records](docs/decisions/README.md) |
-| Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
+| Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) (historical record of early platform milestone M3) |
+| First set-up on Linux or WSL2 | [Getting started on Linux and Windows with WSL2](docs/getting-started-linux-wsl2.md) |
+| Secure boot, MCUboot and eMMC | [Boot overview](docs/boot-overview.md), [eMMC composition](docs/emmc-reliance-composition.md) |
 
 ### Secure management
 

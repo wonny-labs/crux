@@ -7,3 +7,15 @@ docs/evidence/settings-error-experiment/*.log -whitespace
 docs/evidence/file-native/*.log -whitespace
 docs/evidence/configuration-native/*.log -whitespace
 tests/native/configuration_settings/late-mount-read.patch whitespace=-space-before-tab
+# Files that run or are read in Linux keep LF line endings on every platform.
+# A checkout with CRLF breaks them ("bash\r: No such file or directory").
+# There is no global text rule: evidence logs and patches keep their bytes.
+*.sh text eol=lf
+*.command text eol=lf
+*.py text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+Dockerfile text eol=lf
+Kconfig* text eol=lf
+*.conf text eol=lf
+*.overlay text eol=lf

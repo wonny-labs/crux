@@ -1,6 +1,6 @@
 # Test organisation
 
-Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
+Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest and were recorded on macOS only (no Linux run has been made); other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 
 Typed monotonic and Thread sleep checks include controlled common/native failure
 cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
@@ -20,11 +20,27 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
 | Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
-| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
-| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS (the only recorded host), EVKB and J-Link |
+| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and a controlled peer setup, recorded on macOS |
 | Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
 | Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
 | Power-cut wrapper `scripts/power_cut.py` | Python `unittest` with fake commands, run by the Host workflow (`python3 -m unittest discover -s tests/power_cut -v`); no hub, probe or board | Linux host |
+
+## Before you open a pull request
+
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, `scripts/check-zephyr-smoke.sh` runs in no workflow, and some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+
+| Change | Command |
+| --- | --- |
+| Any code change | `scripts/check-host.sh` |
+| Any code change, memory and undefined behaviour | `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` |
+| Any code change | `scripts/check-format.sh` |
+| Any code change | `scripts/analyze-host.sh` |
+| Any code change | `scripts/check-dependencies.sh` |
+| Documentation | `python3 scripts/check_docs.py` (Python 3.11 or later; the first run needs `python3 scripts/check_docs.py --install` for the pinned link checker) |
+| Zephyr changes | `scripts/check-zephyr-smoke.sh`, and the `scripts/test-<component>.sh` of the component you changed (see the sections below) |
+
+`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. Push the branch to a draft pull request to see the CI results. Say in the pull request which checks you did not run. A Host test, a `native_sim` run, a cross-build and a board run each prove different things.
 
 ## Host: `time/` and `controller/`
 
@@ -100,7 +116,21 @@ script is called by `scripts/test-boot-composition.sh` on its own build, like `t
 size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
 result is in [the comparison record](../docs/plans/mcuboot-crypto-backend-comparison.md).
 
+### Boot composition: `scripts/test-boot-composition.sh`
+
+This script builds, signs and checks the MCUboot RAM-load composition of [boot composition](../docs/boot-composition.md) for the RT1060-EVK Rev B. It is build only: it programs, boots, debugs and resets nothing, and it signs with MCUboot's published public test key, so its images must never be programmed to a board. It needs the Linux Dev Container and a workspace made by `scripts/bootstrap-zephyr.sh`. CI runs it in the `runtime` shard.
+
+Outside CI it changes your local workspace:
+
+- It adds `+crux-boot` to `manifest.group-filter` with `west config` (keeping any filter already set) and runs `west update mcuboot`. The group filter stays on afterwards.
+- It runs `pip install -r bootloader/mcuboot/scripts/requirements.txt` into the Python given by `CRUX_PYTHON` (`python3` by default), because imgtool imports packages that the Zephyr requirements do not list.
+- It writes under `build/zephyr/boot-composition/`.
+
+It then checks the bootloader and application configuration, that the signed image verifies with the public key, that a key of another type and images changed after signing are refused, the padded confirmed image size, and the image inspector. It also prints a report-only FlexSPI closure listing that never fails the run. Use a throw-away workspace or virtual environment if you do not want the group filter and the pip installs in your main one.
+
 ## Physical UART: `target/`
+
+This procedure was recorded on macOS. `scripts/test-target.sh` exits on any other system, and the J-Link and serial steps below have not been run on Linux or Windows. On Linux the serial device would have a name such as `/dev/ttyACM0`, but that is not verified here.
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
 pyserial at 115200 baud, a kernel-exclusive UART handle and J-Link Commander resets at
@@ -119,10 +149,10 @@ Run after the explicit, documented download/verification step, with the actual a
 
 ```sh
 scripts/test-target.sh \
-  --uart /dev/cu.usbmodem11102 \
+  --uart <serial device> \
   --elf <verified-zephyr.elf> --manifest <matching-provenance.json> \
   --flash-log <gdb-download-and-compare.log> \
-  --probe 602003106 --board 'mimxrt1060_evk@B//qspi' \
+  --probe <J-Link serial> --board 'mimxrt1060_evk@B//qspi' \
   --evidence build/evidence/m4/<new-run-directory> \
   -v --junitxml=build/evidence/m4/<new-run>.junit.xml
 ```
