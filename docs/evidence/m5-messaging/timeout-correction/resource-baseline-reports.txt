@@ -17,7 +17,7 @@ Root                                                                            
 │   └── strnlen                                                                                    24   0.07%  0x60005a07 text
 ├── /                                                                                               4   0.01%  -
 │   └── Users                                                                                       4   0.01%  -
-│       └── jiwonkim                                                                                4   0.01%  -
+│       └── <user>                                                                                  4   0.01%  -
 │           └── Projects                                                                            4   0.01%  -
 │               └── crux-workspace                                                                  4   0.01%  -
 │                   └── .worktrees                                                                  4   0.01%  -

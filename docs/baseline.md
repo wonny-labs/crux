@@ -1,6 +1,6 @@
 # Crux implementation and readiness evidence
 
-Recorded from 2026-10-16 (Europe/London). Primary repo: `/Users/jiwonkim/Projects/crux-workspace/crux-pilot`.
+Recorded from 2026-10-16 (Europe/London). Primary repo: `<workspace>/crux-pilot`.
 
 This log contains dated snapshots; historical failures remain as evidence. The latest dated section
 at the end records current results and supersedes older status summaries.
@@ -10,7 +10,7 @@ at the end records current results and supersedes older status summaries.
 | Check | Command / source | Actual result |
 | --- | --- | --- |
 | Repository location/state | `pwd && git status --short --branch` | Correct primary repo; initial branch `main`, no commits; no remote. At inspection, only starter files and `.DS_Store` were untracked. Existing files were read before edits. |
-| Parent workspace | `ls -la ..` | `/Users/jiwonkim/Projects/crux-workspace` contains only `crux-pilot/`; no `.west/`, `zephyr/`, or module siblings exist. It is outside the Crux Git root. |
+| Parent workspace | `ls -la ..` | `<workspace>` contains only `crux-pilot/`; no `.west/`, `zephyr/`, or module siblings exist. It is outside the Crux Git root. |
 | OS/CPU | `uname -a; uname -m; sw_vers` | macOS 15.7.4, Apple M3, `arm64`. |
 | Memory | `sysctl hw.memsize` and `system_profiler SPHardwareDataType` | 8 GiB RAM. |
 | Free storage at initial inspection | `df -h .` | 11 GiB free (95% volume use), below the plan's 30–40 GiB working headroom; no files were deleted. |
@@ -47,7 +47,7 @@ Tool inventory used `command -v` and version commands for `git cmake ninja ctest
 | Example-application reference | `v4.4.0`, commit `aaff110f0d5656e8346ca43eddd1c874bf8a2f93` | Tag resolved with `git ls-remote`; reference only, no code copied. |
 | GoogleTest | `v1.15.2`, commit `b514bdc898e2951020cbdca1304b75f5950d1f59`; archive SHA-256 `9257316d65d6259f6596bc4fa5464092305ab3f3d9dc6d7e5780ab462d8baa64` | Tag resolved with `git ls-remote`; the archive was streamed and hashed, 873,745 bytes. Root CMake uses the immutable commit archive and hash. |
 | Zephyr SDK | `v1.0.1`, `arm-zephyr-eabi` toolchain | Zephyr v4.4.0's `SDK_VERSION` file selects 1.0.1; the migration guide sets 1.0.0 as its minimum. SDK, ARM compiler and host-tools are installed in the Docker named volume. `ZEPHYR_SDK_INSTALL_DIR` points at that persistent path. |
-| west | `1.4.0` | Pinned in the Dev Container's persistent-volume venv and later installed in `/Users/jiwonkim/Projects/crux-workspace/.crux-cache/zephyr-venv`; `west topdir`, `west list`, and pinned workspace bootstrap passed. |
+| west | `1.4.0` | Pinned in the Dev Container's persistent-volume venv and later installed in `<workspace>/.crux-cache/zephyr-venv`; `west topdir`, `west list`, and pinned workspace bootstrap passed. |
 | Host image | `mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:d94c97dd9cacf183d0a6fd12a8e87b526e9e928307674ae9c94139139c0c6eae`, `linux/amd64` | Built successfully. Latest local image ID `sha256:dbbf1293a2032554bd9174c44059859e3cf8bc4f1b05b30e2fb093858b8dbbd7`. The Dockerfile includes pinned Clang 18 sanitizer runtime `libclang-rt-18-dev=1:18.1.3-1ubuntu1` for Linux ASan/UBSan builds. |
 | Host build tools | CMake `3.28.4`, Ninja `1.11.1`, clang-format `18.1.8`, Clang/clang-tidy `18.1.3`, C17/C++17 | Installed identities checked inside the amd64 container. Host CMake/Ninja/format versions were also used successfully on macOS. |
 | Python | Zephyr 4.4 requires Python 3.12 minimum; Ubuntu 24.04 provides the selected platform baseline | Container reports Python 3.12.3. The macOS Python 3.9.6 was not used for Zephyr requirements. |
@@ -123,9 +123,9 @@ memory-write command.
 | --- | --- |
 | `command -v JLinkExe`; `find /Applications /opt /usr/local/bin /opt/homebrew/bin -maxdepth 5 -iname 'JLinkExe*' -print` | `/usr/local/bin/JLinkExe` resolves to `/Applications/SEGGER/JLink_V986a/JLinkExe`. |
 | `JLinkExe -version` | Commander printed `V9.86a` and DLL `V9.86a`, then reported `Unknown command line option -version`; the banner is the version evidence, not a successful `-version` option. |
-| `system_profiler SPUSBDataType` | Found SEGGER J-Link VID `0x1366`, PID `0x1020`, USB serial `000602003106`, and ARM DAPLink CMSIS-DAP VID `0x0d28`, PID `0x0204`. The DAPLink serial port is currently `/dev/cu.usbmodem11102`. |
-| `printf 'ShowEmuList USB\nq\n' \| JLinkExe -NoGui 1` | Commander listed a J-Link PLUS with S/N `602003106`, hardware V12.00, firmware V12 built 2026-09-24, and `VTref=3.328V`. During this probe-list command, Commander automatically updated probe firmware from a build dated 2025-04-01; it reported `New firmware booted successfully`. This changed the probe firmware, not the MCU. |
-| `printf 'connect\nq\n' \| JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 1000 -NoGui 1 -ExitOnError 1` | **Failed**, exit code 1: after selecting the requested device and initializing SWD, Commander reported `Could not connect to the target device.` It read `VTref=3.322V`. No reset/write/flash command was sent. |
+| `system_profiler SPUSBDataType` | Found SEGGER J-Link VID `0x1366`, PID `0x1020`, USB serial `<probe-serial>`, and ARM DAPLink CMSIS-DAP VID `0x0d28`, PID `0x0204`. The DAPLink serial port is currently `/dev/cu.usbmodem11102`. |
+| `printf 'ShowEmuList USB\nq\n' \| JLinkExe -NoGui 1` | Commander listed a J-Link PLUS with S/N `<probe-serial>`, hardware V12.00, firmware V12 built 2026-09-24, and `VTref=3.328V`. During this probe-list command, Commander automatically updated probe firmware from a build dated 2025-04-01; it reported `New firmware booted successfully`. This changed the probe firmware, not the MCU. |
+| `printf 'connect\nq\n' \| JLinkExe -USB <probe-serial> -Device MIMXRT1062xxx6A -If SWD -Speed 1000 -NoGui 1 -ExitOnError 1` | **Failed**, exit code 1: after selecting the requested device and initializing SWD, Commander reported `Could not connect to the target device.` It read `VTref=3.322V`. No reset/write/flash command was sent. |
 
 The initial failure was not evidence that the MCU or board was defective: the probe was enumerated
 and saw target voltage, while SWD did not respond. The user then corrected J9/J10, and the follow-up
@@ -142,7 +142,7 @@ definition and identified an ARM Cortex-M7 core. No reset, erase, flash, or memo
 requested.
 
 ```sh
-printf 'connect\nq\n' | JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 100 -NoGui 1 -ExitOnError 1
+printf 'connect\nq\n' | JLinkExe -USB <probe-serial> -Device MIMXRT1062xxx6A -If SWD -Speed 100 -NoGui 1 -ExitOnError 1
 ```
 
 Actual result: exit code `0`; Commander reported `VTref=3.322V`, SW-DP ID `0x0BD11477`, AHB-AP IDR
@@ -157,7 +157,7 @@ configuration before programming.
 ## M4 J-Link GDB transport check (2026-10-17)
 
 Started the repository's macOS J-Link GDB Server launcher with the connected EVKB and J-Link PLUS.
-The server remained at `Waiting for GDB connection...`; it reported J-Link S/N `602003106`, target
+The server remained at `Waiting for GDB connection...`; it reported J-Link S/N `<probe-serial>`, target
 `MIMXRT1062xxx6A`, SWD at 400 kHz, target voltage `3.34 V`, and `Connected to target`. From the
 running Dev Container, connected the SDK GDB client to the Mac host and read core registers, without
 loading an ELF, resetting the board, or downloading firmware:
@@ -187,7 +187,7 @@ configuration remain unconfirmed, so programming stays pending.
 
 To manually investigate the VS Code launch failure, started the macOS J-Link GDB Server using
 `scripts/macos/start-jlink-gdbserver.command`. It reported J-Link GDB Server V9.86a, probe S/N
-`602003106`, target `MIMXRT1062xxx6A`, SWD at 400 kHz, target voltage `3.34 V`, and `Connected to
+`<probe-serial>`, target `MIMXRT1062xxx6A`, SWD at 400 kHz, target voltage `3.34 V`, and `Connected to
 target`. From the running Dev Container, GDB attached to the target and read registers without
 issuing `load`, `monitor reset`, erase, or an explicit memory-write command:
 
@@ -228,7 +228,7 @@ not program until they are confirmed. This manual attach did not reproduce the V
 
 The user confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF,
 and the board has not been modified for HyperFlash. This resolved the flash-selection precondition
-for the selected `mimxrt1060_evk@B//qspi` image. The external J-Link PLUS is S/N `602003106`;
+for the selected `mimxrt1060_evk@B//qspi` image. The external J-Link PLUS is S/N `<probe-serial>`;
 J-Link GDB Server ran on macOS at 400 kHz and reported `VTref=3.34 V`. GDB ran in the Dev
 Container and reached the macOS server through `host.docker.internal:2331`.
 
@@ -294,8 +294,8 @@ board operation was performed. SEGGER's documented GDB sequence and reset semant
 | `df -h .` | 41 GiB available at start of resumed work; 40 GiB after west bootstrap. The 30–40 GiB plan headroom is met. |
 | `docker version`; `docker info` | Pass after user installed and started Docker Desktop: Client 29.8.2 / `darwin/arm64`, Desktop 4.95.0, Engine 29.8.2 / `linux/arm64`, 8 CPUs and 4,106,604,544 bytes memory. |
 | `python3 -m venv ../.crux-cache/zephyr-venv && ../.crux-cache/zephyr-venv/bin/python -m pip install --disable-pip-version-check --no-cache-dir west==1.4.0 && ../.crux-cache/zephyr-venv/bin/west --version` | Pass. Installed pinned west v1.4.0 in the external workspace cache; no system or repo installation. |
-| `PATH="/Users/jiwonkim/Projects/crux-workspace/.crux-cache/zephyr-venv/bin:/tmp/crux-m1-tools/bin:$PATH" CRUX_CACHE_DIR="/Users/jiwonkim/Projects/crux-workspace/.crux-cache" scripts/bootstrap-zephyr.sh` (host) | Pass for west workspace initialization/fetch. This host-side run predates the container requirements installation; it is not evidence that host Python 3.9 can install Zephyr requirements. |
-| `/Users/jiwonkim/Projects/crux-workspace/.crux-cache/zephyr-venv/bin/west topdir && /Users/jiwonkim/Projects/crux-workspace/.crux-cache/zephyr-venv/bin/west list` (from parent workspace) | Pass. `west topdir` is `/Users/jiwonkim/Projects/crux-workspace`; manifest, Zephyr, CMSIS, and NXP HAL resolve to expected siblings and pinned revisions. |
+| `PATH="<workspace>/.crux-cache/zephyr-venv/bin:/tmp/crux-m1-tools/bin:$PATH" CRUX_CACHE_DIR="<workspace>/.crux-cache" scripts/bootstrap-zephyr.sh` (host) | Pass for west workspace initialization/fetch. This host-side run predates the container requirements installation; it is not evidence that host Python 3.9 can install Zephyr requirements. |
+| `<workspace>/.crux-cache/zephyr-venv/bin/west topdir && <workspace>/.crux-cache/zephyr-venv/bin/west list` (from parent workspace) | Pass. `west topdir` is `<workspace>`; manifest, Zephyr, CMSIS, and NXP HAL resolve to expected siblings and pinned revisions. |
 | `PATH=/tmp/crux-m1-tools/bin:$PATH CRUX_CACHE_DIR=/tmp/crux-m1-cache scripts/check-host.sh` | Pass on resumed run with CMake FetchContent disconnected; CTest 1/1 passed. |
 | `PATH=/tmp/crux-m1-tools/bin:$PATH CLANG_FORMAT=/tmp/crux-m1-tools/bin/clang-format scripts/check-format.sh`; `scripts/check-dependencies.sh`; `bash -n scripts/*.sh` | Pass. Formatting, host/Zephyr build boundary, and shell syntax pass after the bootstrap update. |
 | `python3 -m json.tool .devcontainer/devcontainer.json`; `python3 -m json.tool CMakePresets.json`; Ruby YAML parse for `west.yml`, host workflow, and `zephyr/module.yml` | Pass; all JSON and YAML parsed. |
@@ -304,7 +304,7 @@ board operation was performed. SEGGER's documented GDB sequence and reset semant
 | `docker build --platform linux/amd64 -f .devcontainer/Dockerfile -t crux-pilot-dev .` (re-run after image lookup error) | Pass. Docker reported `naming to docker.io/library/crux-pilot-dev:latest`; image inspect reports the ID above and `linux/amd64`. Dockerfile includes Zephyr v4.4 Linux development prerequisites. |
 | User's `docker run ... crux-pilot-dev ...` diagnostic | First attempt failed before container start: `Unable to find image 'crux-pilot-dev:latest' locally` / `pull access denied for crux-pilot-dev`. `docker context show` returned `desktop-linux`; `docker image inspect crux-pilot-dev` confirmed the image was absent in that engine. After rebuilding, the same diagnostic passed: `/opt/crux-cache/venv/bin/cmake` version 3.28.4, `/opt/crux-cache/venv/bin/west` version 1.4.0, and executable `/opt/crux-cache/sdk/zephyr-sdk-1.0.1/setup.sh` present. The existing named volume retained its SDK files. |
 | Read-only SDK host-tools inspection (Docker volume mounted `:ro`) | User's pasted diagnostic output matches. `setup.sh` checks CMake and then invokes `hosttools/zephyr-sdk-x86_64-hosttools-standalone-0.10.sh -y -d .`; its output is redirected to `/dev/null`, and a nonzero exit becomes the generic `Host tools installation failed` message (script lines 297–304). The 68 MiB installer and partial host-tools files existed; this inspection alone did not prove successful installation. The next row records the explicit successful invocation. |
-| `docker run --rm --platform linux/amd64 --memory=4g --cpus=2 -v /Users/jiwonkim/Projects/crux-workspace:/workspaces/crux -v crux-host-cache:/opt/crux-cache -w /workspaces/crux/crux-pilot --user vscode crux-pilot-dev <check-command>` | Pass after fixing `/opt/crux-cache` ownership. Replaced `<check-command>` with the in-container identity/mount inspection, host-check, Zephyr bootstrap and smoke commands below. `arch=x86_64`; Git root `/workspaces/crux/crux-pilot`; `west topdir=/workspaces/crux`; `.west`, Zephyr, CMSIS, NXP HAL siblings visible. CMake 3.28.4, clang/clang++ 18.1.3, Ninja 1.11.1, Python 3.12.3, west 1.4.0, clang-format 18.1.8, clang-tidy 18.1.3. Only the documented parent bind and named cache volume were mounted; no home, credentials or Docker socket. |
+| `docker run --rm --platform linux/amd64 --memory=4g --cpus=2 -v <workspace>:/workspaces/crux -v crux-host-cache:/opt/crux-cache -w /workspaces/crux/crux-pilot --user vscode crux-pilot-dev <check-command>` | Pass after fixing `/opt/crux-cache` ownership. Replaced `<check-command>` with the in-container identity/mount inspection, host-check, Zephyr bootstrap and smoke commands below. `arch=x86_64`; Git root `/workspaces/crux/crux-pilot`; `west topdir=/workspaces/crux`; `.west`, Zephyr, CMSIS, NXP HAL siblings visible. CMake 3.28.4, clang/clang++ 18.1.3, Ninja 1.11.1, Python 3.12.3, west 1.4.0, clang-format 18.1.8, clang-tidy 18.1.3. Only the documented parent bind and named cache volume were mounted; no home, credentials or Docker socket. |
 | Container `scripts/bootstrap-zephyr.sh` | Pass. Installed Zephyr `requirements-base.txt`, `requirements-build-test.txt`, `requirements-run-test.txt`, and pinned west==1.4.0 into the persistent cache venv. |
 | Initial container `scripts/bootstrap-zephyr.sh --install-sdk` | Failed with `ERROR: Host tools installation failed` / `FATAL ERROR: command "/opt/crux-cache/sdk/zephyr-sdk-1.0.1/setup.sh -t arm-zephyr-eabi -h" failed`. A direct `setup.sh -t arm-zephyr-eabi -h` diagnostic outside the venv PATH exited 90 with `cmake` not found; that diagnostic did not reproduce the wrapper's environment. The first generic error's underlying child failure was hidden by the SDK script's output redirection. Relevant repo files: `scripts/bootstrap-zephyr.sh`, `.devcontainer/devcontainer.json`; installer state is in the external Docker named volume. |
 | SDK host-tools recovery and bootstrap | The user authorized continuing after the earlier report. Direct command `cd /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools && ./zephyr-sdk-x86_64-hosttools-standalone-0.10.sh -y -d .` completed with exit 0 and `SDK has been successfully set up and is ready to be used.` Then `scripts/bootstrap-zephyr.sh --install-sdk` completed with exit 0, installed SDK v1.0.1 and ARM toolchain, and printed `All done.` Initial generic output was suppressed by `setup.sh`; its source shows the failing child installer and redirection at lines 297–304. The underlying first failure cause was not recovered from that suppressed run. |
@@ -896,7 +896,7 @@ No hardware flash was performed.
 ### Reproduced failure and cause
 
 Used the already confirmed EVKB revision B, SW4 OFF–OFF–ON–OFF, no HyperFlash rework,
-J-Link PLUS S/N `602003106`, SWD 400 kHz, and 3.34 V target voltage. No switch or jumper was
+J-Link PLUS S/N `<probe-serial>`, SWD 400 kHz, and 3.34 V target voltage. No switch or jumper was
 changed. Started `scripts/macos/start-jlink-gdbserver.command` on macOS and replayed the repository's
 launch configuration through the installed Microsoft C/C++ 1.34.4 `OpenDebugAD7` adapter inside the
 Dev Container as `vscode`. The adapter used Zephyr SDK 1.0.1 GDB 16.2. A temporary DAP client was
@@ -1419,7 +1419,7 @@ claimed as the source of the already identified firmware bundle above.
 ## M4 physical UART and RTC acceptance (2026-10-17)
 
 Used the previously confirmed MIMXRT1060-EVKB PCB revision B, SW4 OFF–OFF–ON–OFF,
-without HyperFlash rework; external J-Link PLUS S/N 602003106 on J2, with J9/J10 isolation
+without HyperFlash rework; external J-Link PLUS S/N <probe-serial> on J2, with J9/J10 isolation
 as previously confirmed. USB discovery again identified that probe and the DAPLink device.
 UART was `/dev/cu.usbmodem11102` via J41, 115200 baud. Commander V9.86a identified the
 Cortex-M7 at 400 kHz SWD and VTref 3.322 V; the GDB Server reported about 3.33 V.
@@ -1482,7 +1482,7 @@ scripts/test-target.sh \
   --elf build/evidence/github-df48e61/zephyr/zephyr-39064901047-1/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf \
   --manifest build/evidence/github-df48e61/zephyr/zephyr-39064901047-1/zephyr/mimxrt1060_evk_B_qspi/provenance.json \
   --flash-log build/evidence/m4/restore-flash.log \
-  --probe 602003106 --board 'mimxrt1060_evk@B//qspi' \
+  --probe <probe-serial> --board 'mimxrt1060_evk@B//qspi' \
   --evidence build/evidence/m4/uart-run-02 \
   -v --junitxml=build/evidence/m4/uart-run-02.junit.xml
 ```
