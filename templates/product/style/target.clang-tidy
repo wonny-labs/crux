@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Advisory clang-tidy profile for the target code of a product: Zephyr adapters, devicetree-bound
+# drivers and the product's own sources that a Zephyr build compiles. It is not named .clang-tidy,
+# so clang-tidy never picks it up by itself. check_target_tidy.py passes it with --config-file.
+# To run clang-tidy by hand: clang-tidy -p build --config-file=style/target.clang-tidy <file>
+#
+# Advisory means findings are reported and no run fails because of one: WarningsAsErrors is empty,
+# unlike style/.clang-tidy, which is Crux's gating selection. There is no HeaderFilterRegex here.
+# The script computes one from the Git top level of the product, so nothing needs editing.
+#
+# The selection equals Crux's .clang-tidy, a test compares the two, with one exception:
+#   -bugprone-easily-swappable-parameters
+# A Zephyr driver API fixes parameter lists such as (dev, reg, value) that the product cannot
+# change, so this check is expected to report them. That is a reading of the check, not a
+# measurement: nobody has run this profile on Zephyr driver sources. Remove the exception if a
+# real run shows no noise, and add others the same way, with the reason beside them.
+#
+# readability-identifier-naming has no options, so it reports nothing, as in Crux's own file. The
+# naming rules of docs/coding-guidelines.md in Crux are not enforced by this file.
+Checks: >-
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  performance-*,
+  -performance-enum-size,
+  portability-*,
+  readability-identifier-naming
+WarningsAsErrors: ''
+...

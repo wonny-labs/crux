@@ -1,6 +1,6 @@
 # Test organisation
 
-Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
+Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest and were recorded on macOS only (no Linux run has been made); other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 
 Typed monotonic and Thread sleep checks include controlled common/native failure
 cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
@@ -20,11 +20,27 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
 | Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
-| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
-| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS (the only recorded host), EVKB and J-Link |
+| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and a controlled peer setup, recorded on macOS |
 | Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
 | Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
 | Power-cut wrapper `scripts/power_cut.py` | Python `unittest` with fake commands, run by the Host workflow (`python3 -m unittest discover -s tests/power_cut -v`); no hub, probe or board | Linux host |
+
+## Before you open a pull request
+
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, `scripts/check-zephyr-smoke.sh` runs in no workflow, and some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+
+| Change | Command |
+| --- | --- |
+| Any code change | `scripts/check-host.sh` |
+| Any code change, memory and undefined behaviour | `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` |
+| Any code change | `scripts/check-format.sh` |
+| Any code change | `scripts/analyze-host.sh` |
+| Any code change | `scripts/check-dependencies.sh` |
+| Documentation | `python3 scripts/check_docs.py` (Python 3.11 or later; the first run needs `python3 scripts/check_docs.py --install` for the pinned link checker) |
+| Zephyr changes | `scripts/check-zephyr-smoke.sh`, and the `scripts/test-<component>.sh` of the component you changed (see the sections below) |
+
+`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. Push the branch to a draft pull request to see the CI results. Say in the pull request which checks you did not run. A Host test, a `native_sim` run, a cross-build and a board run each prove different things.
 
 ## Host: `time/` and `controller/`
 
@@ -80,7 +96,41 @@ that parse a manifest need PyYAML and skip without it.
 west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
 what the checker covers and what it does not.
 
+`tests/build/test_boot_image_inspect.py` and `tests/build/test_boot_image_fit.py` hold the checks of `tests/target/inspect_boot_image.py`, the MCUboot image
+and trailer inspector and its slot fit decision, on synthetic images built in memory. They need no key, board or west workspace. See
+[boot image inspection](../docs/boot-image-inspection.md).
+
+`tests/build/test_hab_structure.py` holds the checks of `tests/target/check_hab_structure.py`, the offline structure check of the IVT, boot data, DCD and CSF pointers of a first-stage image, on synthetic images built in memory. They need no key, board, vendor tool or west workspace, and the checker verifies no signature. See the [HAB status page](../docs/boot-hab-status.md).
+
+`tests/build/test_compare_boot_builds.py` and `tests/build/test_check_boot_reproducibility.py` hold the checks of
+`tests/target/compare_boot_builds.py` and `tests/target/check_boot_reproducibility.sh`, the comparison of two builds
+of the boot composition, on fake build trees, a fake imgtool and a fake composition command. See
+[boot reproducibility](../docs/boot-reproducibility.md).
+
+`tests/build/test_check_boot_config.py` holds the checks of `scripts/check-boot-config.py`, which reads the resolved `.config` of the
+MCUboot image and the application of the boot composition and fails unless both are built for RAM load with revert and the
+build-number comparison is off (image-state rows I5 and Q9). It runs on fixture files in `tests/build/fixtures/boot-config/`. The
+script is called by `scripts/test-boot-composition.sh` on its own build, like `tests/target/check_boot_images.sh` (the owner approved the edit of that protected script on 2026-11-16, #489); `tests/build/test_boot_composition.py` reads that script as text and checks the wiring.
+
+`tests/build/test_mcuboot_crypto_comparison.py` reads the files of `tests/target/compare-mcuboot-crypto-backends.sh`, the one-off
+size comparison of MCUboot's ECDSA backends, and its variant files under `tests/target/mcuboot-crypto/`. It cannot run the builds; their
+result is in [the comparison record](../docs/plans/mcuboot-crypto-backend-comparison.md).
+
+### Boot composition: `scripts/test-boot-composition.sh`
+
+This script builds, signs and checks the MCUboot RAM-load composition of [boot composition](../docs/boot-composition.md) for the RT1060-EVK Rev B. It is build only: it programs, boots, debugs and resets nothing, and it signs with MCUboot's published public test key, so its images must never be programmed to a board. It needs the Linux Dev Container and a workspace made by `scripts/bootstrap-zephyr.sh`. CI runs it in the `runtime` shard.
+
+Outside CI it changes your local workspace:
+
+- It adds `+crux-boot` to `manifest.group-filter` with `west config` (keeping any filter already set) and runs `west update mcuboot`. The group filter stays on afterwards.
+- It runs `pip install -r bootloader/mcuboot/scripts/requirements.txt` into the Python given by `CRUX_PYTHON` (`python3` by default), because imgtool imports packages that the Zephyr requirements do not list.
+- It writes under `build/zephyr/boot-composition/`.
+
+It then checks the bootloader and application configuration, that the signed image verifies with the public key, that a key of another type and images changed after signing are refused, the padded confirmed image size, and the image inspector. It also prints a report-only FlexSPI closure listing that never fails the run. Use a throw-away workspace or virtual environment if you do not want the group filter and the pip installs in your main one.
+
 ## Physical UART: `target/`
+
+This procedure was recorded on macOS. `scripts/test-target.sh` exits on any other system, and the J-Link and serial steps below have not been run on Linux or Windows. On Linux the serial device would have a name such as `/dev/ttyACM0`, but that is not verified here.
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
 pyserial at 115200 baud, a kernel-exclusive UART handle and J-Link Commander resets at
@@ -99,10 +149,10 @@ Run after the explicit, documented download/verification step, with the actual a
 
 ```sh
 scripts/test-target.sh \
-  --uart /dev/cu.usbmodem11102 \
+  --uart <serial device> \
   --elf <verified-zephyr.elf> --manifest <matching-provenance.json> \
   --flash-log <gdb-download-and-compare.log> \
-  --probe 602003106 --board 'mimxrt1060_evk@B//qspi' \
+  --probe <J-Link serial> --board 'mimxrt1060_evk@B//qspi' \
   --evidence build/evidence/m4/<new-run-directory> \
   -v --junitxml=build/evidence/m4/<new-run>.junit.xml
 ```
@@ -213,6 +263,8 @@ CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p 
 This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
 of these checks flashes, resets or opens a device.
 
+Hardware tests have no supported entry point. A wired-part scenario is built in CI and not run, and a run is a hardware operation through the device-control route, not a Twister run. [Hardware integration tests](../docs/build.md#hardware-integration-tests) says what each source says.
+
 ## Device-control tool
 
 `build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
@@ -231,7 +283,8 @@ in `domain/` from the shell in `app/src/main.c`. The tests run `check_domain_inc
 shipped domain and on mutated copies (each frozen Crux header, each Zephyr header class, composition
 interfaces, dot components, a byte order mark, an empty directory), build the domain on the Host with
 a fake port and `-Wpedantic`, and check the shared-state example by reading the shell. They need
-only Python and a C compiler, so the host CI job runs them. Real west then takes the
+only Python and a C compiler, so the host CI job runs them. The same file tests `check_domain_includes.py --product`,
+which applies the frozen-header rule to every source file of a product repository and keeps the domain rules in `domain/`. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
 runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
@@ -242,6 +295,34 @@ PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <boa
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
 Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
+
+`tests/build/test_product_style.py` checks the [style kit](../templates/product/style/README.md) of the
+template and the guidance that names it. It runs the three wrapper scripts on throwaway Git repositories,
+with stand-ins for clang-format and checkpatch, and runs the real tools when they are present: set
+`CLANG_FORMAT` to a clang-format 18 binary, or `ZEPHYR_BASE` to a Zephyr tree, and those cases run instead of
+skipping. It also compares the kit's settings with Crux's own, and reads the guideline, the hardware test
+section of the build guide and the corrected controller row of the API guide. It needs only Python, Git, Bash
+and Perl, so the host CI job runs it, and it uses no west, Docker or hardware.
+
+`tests/build/test_product_standards.py` checks the advisory target-code analysis of the same kit
+(`style/check_target_tidy.py` and `style/target.clang-tidy`), the product
+[contribution guide template](../templates/product/CONTRIBUTING.md), the
+[driver review checklist](../docs/driver-review-checklist.md) and the guideline sections that name them. It runs the
+script on throwaway Git repositories against a stand-in for clang-tidy, compares the profile with Crux's own
+`.clang-tidy`, and checks that the checklist covers every rule of the driver guideline and that every link and
+anchor resolves. Set `CLANG_TIDY` to a clang-tidy 18 binary to run the real tool on a small source instead of
+skipping that case. It needs only Python and Git, so the host CI job runs it, and it uses no west, Docker or
+hardware.
+
+## Frozen header warning
+
+`tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,
+`<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. With a C compiler it shows that the
+headers are silent by default, even under `-Werror`, that `CRUX_WARN_FROZEN_HEADERS` makes each one
+warn once and name itself and `docs/choosing-an-api.md`, and that `CRUX_INTERNAL_BUILD` silences it.
+On Linux it configures Crux as a subdirectory and reads `compile_commands.json`: Crux's own sources
+carry `-DCRUX_INTERNAL_BUILD` and the consumer's source does not, no usage requirement exports it, and a
+global opt-in warns only in the consumer's file. Host CI runs it with `tests/build`.
 
 ## Portable execution capability
 
@@ -353,8 +434,9 @@ Access core, with fake ports for the reset, the sleep, the events that are still
 the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
 configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
 `Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
-`Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
-board. See [reboot service](../docs/reboot-service.md).
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. `Reboot.start_faults` makes 100 refused starts and then a good one, which shows that a refused start leaves no
+state for a retry to meet (the service creates no kernel object at the start, so the fault of #513 has no path left).
+Nothing here resets a device or operates a board. See [reboot service](../docs/reboot-service.md).
 
 ### Reboot suites on `native_sim` (pilot, Stage A)
 
@@ -609,6 +691,9 @@ anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if 
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
+The script then configures the same check for `crux_rt1062_fixture`, the fictional compile-only RT1062
+board of `tests/zephyr/board_fixture`, with an SD slot on USDHC1, and compiles the File object only:
+the selection is accepted by SoC and devicetree. That fixture is no hardware and no evidence for any real board.
 
 ### eMMC simulator on `native_sim`
 
@@ -780,13 +865,22 @@ proposal. Root Host/ASan checks include the common and native PTY Serial cases.
 The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
 the public `crux::time` clock contract. Static Zephyr composition and
-UART ownership checks remain part of the full Serial script.
+UART ownership checks remain part of the full Serial script. Its composition test also
+configures and compiles the Serial library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
+the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging
 
 `scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
 Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Its composition test also configures and compiles the Logging library on
+`tests/zephyr/board_fixture`, a fictional compile-only board with its own name and
+the RT1062 SoC: Logging on LPUART2 builds next to Serial on LPUART3, and the mode, owner and
+resource checks still refuse. On the revision-B EVKB, Logging stays at LPUART1: LPUART3 is
+still refused. That fixture is no hardware and no evidence for any real board.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 
@@ -802,9 +896,23 @@ lifecycle and real Linux monotonic-provider tests.
 `scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
 Controller policy checks.
 `scripts/test-system.sh` additionally checks native ownership/configuration,
-Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. Its composition
+test also compiles the System library on the fictional RT1062 board of
+`tests/zephyr/board_fixture` with WDOG1, keeps the WDOG1 asserts on it, and checks
+that an RT1064 board is still refused. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
+
+`tests/system/zephyr/native_sim_watchdog` is a console-harness scenario, not a Ztest, because it restarts its
+own process on a missed feed. It sets `CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` and shows the boot cause, a feed
+cycle, a missed feed and the second boot with the cause SOFTWARE. Twister finds it under `tests/system/zephyr`,
+so `scripts/test-system.sh` runs it. A simulated watchdog is not hardware evidence.
+
+`tests/consumer_system` is the same scenario as a product outside the repository: a copy outside the repository
+that links `crux::system` only and includes `<crux/system.h>` and `<crux/status.h>`. `scripts/test-consumer-system.sh`
+builds it on `native_sim`, checks it and runs it, builds it again with the symbol off, and applies six negative
+variants; `scripts/test-system.sh` calls it. `tests/build/test_consumer_system.py` is its Host check (no Zephyr SDK).
+See its [README](consumer_system/README.md).
 
 The independent Host System fixture selects only `CRUX_BUILD_SYSTEM` through the
 root entry point. External System profiles preserve parent testing/languages,
@@ -939,3 +1047,38 @@ No consumer calls a provider here. See the [qualification record](../docs/psa-cr
 `tests/native/management_ssh` is that services image with the wolfSSH provider beside the HTTPS listener, so that the command line over SSH and SFTP run next to the web on the same Access core, credential store and file service. It is the Wolf profile only, and `CONFIG_CRUX_SSH` in `zephyr/Kconfig` selects the provider. `scripts/test-ssh-integrated.sh [guards|build|controls|run|all]` builds it, runs `check_ssh_guard.py` (the guards that refuse its test-form host key outside a declared `native_sim` test image, which need only `cmake` and `cc`), and runs `driver.py` against the running image with OpenSSH `ssh` and `sftp` and `curl`. It needs the `crux-secure-management` group, and no default workflow runs it; see [the integrated image](../docs/ssh-integrated-image.md).
 
 `scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
+
+## Advisory test coverage
+
+The [`coverage.yml`](../.github/workflows/coverage.yml) workflow measures how many lines and
+branches of the component sources (`components/`) the tests execute. It is advisory: no
+threshold, badge or required status exists, and nothing is uploaded outside GitHub. It runs by
+hand (`workflow_dispatch`), weekly and on each push to `main` that changes more than
+documentation. Pull requests do not start it, so their CI time is unchanged.
+
+| Part | Script | What runs |
+| --- | --- | --- |
+| Host | `scripts/coverage-host.sh run` then `report` | The root CMake tree with `--coverage` added on the command line (the `host-debug` settings otherwise, `CMakePresets.json` unchanged) and its CTest set, built with Clang 18 and read with `llvm-cov gcov` through gcovr |
+| `native_sim` | `scripts/coverage-native-sim.sh run` then `report` | The Time, Logging, System and FatFs File Twister suites on `native_sim/native/64`, with the module arguments of their own scripts (System without the consumer root `tests/system_consumer/zephyr`, FatFs on `native_sim/native/64` only), through gcovr |
+
+The four `native_sim` suites are a first, cheap and representative set. Other suites are not
+measured yet, and a suite that cannot be built with coverage is named in the run's log without
+stopping the others. The Host part does not include the consumer suites that `host.yml` builds
+in separate trees.
+
+Each job writes a per-component table (lines and branches, one row per directory under
+`components/`) to the run summary and uploads an HTML report, `coverage.json`, a text report
+and `summary.md` as an artifact, `coverage-host-*` or `coverage-native-sim-*`, kept for 14 days.
+`scripts/coverage-summary.py` builds the table and is tested by
+`tests/build/test_coverage_summary.py`; `tests/build/test_coverage_workflow.py` keeps the
+workflow advisory.
+
+To run the report step locally, install gcovr 8.3 and LLVM 18 (`llvm-cov-18`) by hand: neither is in the Dev Container image. The workflow installs them.
+
+A build or test failure fails the job. Only the report step may fail for a tool reason, and it
+then leaves a warning and a note in the run summary instead of failing the job.
+
+Not measured: hardware and physical-board runs, the Python and shell checks, suites outside the
+list above, and Zephyr, kernel, vendor and fetched test-library code, which fall outside the
+repository root or the `components/` filter. Test sources are excluded. The figures show which
+code the tests execute, not whether the tests check it, and they qualify nothing on hardware.

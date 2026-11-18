@@ -4,21 +4,12 @@
 #define CRUX_NETWORK_SETTINGS_PORT_H
 
 #include <crux/network_settings.h>
+#include <crux/network_settings_apply_port.h>
 
 #include <stdbool.h>
 
-/*
- * Apply settings to the primary interface, once, at boot, before any management channel starts.
- * Private native code: it never reaches a public header. Returns false if the interface refused
- * them, and the boot then tries its defaults.
- */
-bool crux_network_settings_port_apply(const crux_network_settings_t *settings);
-
-/*
- * The settings now in use on the interface. Returns false while it has no IPv4 address. A port
- * that cannot read the interface returns false, which a client sees as no running values.
- */
-bool crux_network_settings_port_running(crux_network_settings_t *settings);
+/* The apply and running functions are the product's, declared in the public
+ * <crux/network_settings_apply_port.h> (ADR-0004 C3). The event port below stays private. */
 
 typedef enum {
     CRUX_NETWORK_SETTINGS_EVENT_CHANGED,      /* 0x0800, OK. The whole set is saved. */

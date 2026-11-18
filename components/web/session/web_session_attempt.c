@@ -398,6 +398,14 @@ void web_session_count_session(void)
     }
 }
 
+void web_session_count_forgery_suppressed(void)
+{
+    if (sync_created && lock()) {
+        ++stats.forgery_suppressed;
+        unlock();
+    }
+}
+
 void crux_web_session_stats_get(crux_web_session_stats_t *stats_out)
 {
     if (stats_out == NULL) {

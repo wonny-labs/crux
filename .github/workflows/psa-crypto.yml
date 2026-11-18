@@ -89,6 +89,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh mbed
 
+      - name: The management service cores built by the Zephyr module, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-management-module.sh
+
       - name: The web adapter over HTTPS on the composition, Mbed profile, on native_sim
         working-directory: crux-pilot
         run: scripts/test-web.sh https mbedtls
@@ -100,6 +104,10 @@ jobs:
       - name: Compile the PSA ports for RT1060-EVKB, without running them
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh target-mbed
+
+      - name: Cross-build the RT1060 Mbed management image, without flashing it
+        working-directory: crux-pilot
+        run: scripts/test-management-mbed-rt1060.sh build
 
       - name: Upload logs and reports
         if: always()

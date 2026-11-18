@@ -95,7 +95,7 @@ void crux_file_fake_reset(void)
     s->drop_writes = false;
     s->capacity = UINT64_MAX;
     s->write_hook = NULL;
-    memset(s->call_hook, 0, sizeof(s->call_hook));
+    memset((void *)s->call_hook, 0, sizeof(s->call_hook));
     s->remove_then_fail = CRUX_FILE_OK;
     s->dir_read_hook = NULL;
     s->cut_armed = false;
@@ -118,7 +118,7 @@ crux_file_result_t crux_file_fake_bind_root(crux_file_root_t root, const char *p
             return CRUX_FILE_ERR_INVALID_STATE;
         }
     }
-    strcpy(s->paths[root], path);
+    memcpy(s->paths[root], path, strlen(path) + 1u);
     s->bound[root] = true;
     return CRUX_FILE_OK;
 }
@@ -146,7 +146,7 @@ static size_t add(crux_file_root_t root, const char *name, bool directory, bool 
             entries[i].directory = directory;
             entries[i].on_medium = on_medium;
             entries[i].root = root;
-            strcpy(entries[i].name, name);
+            memcpy(entries[i].name, name, strlen(name) + 1u);
             entries[i].size = 0;
             entries[i].medium_size = 0;
             return i;
@@ -169,6 +169,7 @@ void crux_file_fake_add_raw(crux_file_root_t root, const char *raw_name)
     }
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in fake_file.h, called by tests
 void crux_file_fake_fail(crux_file_fake_op_t op, unsigned skip, crux_file_result_t result)
 {
     state_t *s = fake();
@@ -321,6 +322,7 @@ static bool mutate(void)
     return true;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): implements the signature of file_port.h
 crux_file_result_t crux_file_impl_open(crux_file_root_t root, size_t slot, const char *name,
                                        crux_file_mode_t mode)
 {
@@ -428,7 +430,7 @@ crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t 
         *count = length;
         return CRUX_FILE_OK;
     }
-    size_t room = CRUX_FILE_FAKE_FILE_BYTES - handle->position;
+    size_t room = (size_t)CRUX_FILE_FAKE_FILE_BYTES - handle->position;
     size_t taken = length < room ? length : room;
     taken = taken < s->write_limit ? taken : s->write_limit;
 
@@ -468,6 +470,7 @@ crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t 
     return CRUX_FILE_OK;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): implements the signature of file_port.h
 crux_file_result_t crux_file_impl_seek(size_t slot, uint64_t offset)
 {
     state_t *s = fake();
@@ -584,10 +587,13 @@ crux_file_result_t crux_file_impl_rename(crux_file_root_t root, const char *from
     if (find(root, to) != FAKE_ENTRIES) {
         return CRUX_FILE_ERR_EXISTS;
     }
+    if (strlen(to) >= FAKE_NAME) {
+        abort();
+    }
     if (!mutate()) {
         return CRUX_FILE_ERR_IO;
     }
-    strcpy(s->entries[source].name, to);
+    memcpy(s->entries[source].name, to, strlen(to) + 1u);
     s->entries[source].on_medium = true;
     return CRUX_FILE_OK;
 }
@@ -619,7 +625,7 @@ crux_file_result_t crux_file_impl_dir_read(size_t slot, char *name, size_t capac
         entry_t *entry = &s->entries[listing->next++];
         if (entry->used && !entry->directory && entry->root == listing->root &&
             strlen(entry->name) < capacity) {
-            strcpy(name, entry->name);
+            memcpy(name, entry->name, strlen(entry->name) + 1u);
             info->size = entry->size;
             if (s->dir_read_hook) {
                 void (*hook)(void) = s->dir_read_hook;

@@ -77,6 +77,13 @@ static const expectation_t expectations[] = {
     {CRUX_SSH_FAKE_FAULT_OPENING_NONE_COUNTED, "opening_none_does_not_count"},
     {CRUX_SSH_FAKE_FAULT_NAME_CHANGE_ALLOWED, "changing_the_user_ends_the_connection"},
     {CRUX_SSH_FAKE_FAULT_EMPTY_NAME_KEEPS_CONNECTION, "bad_user_never_reaches_a_callback"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_NOT_REPORTED, "auth_limit_is_reported_at_the_limit"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_REPORTED_TWICE, "auth_limit_is_reported_at_the_limit"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_WRONG_PEER, "auth_limit_is_reported_at_the_limit"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_ANY_END, "auth_limit_is_not_reported_for_other_ends"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_NAME_CHANGE, "auth_limit_is_not_reported_for_other_ends"},
+    {CRUX_SSH_FAKE_FAULT_AUTH_LIMIT_ON_VERIFIED_REFUSAL,
+     "auth_limit_is_not_reported_for_other_ends"},
 };
 
 static crux_ssh_fake_fault_t active_fault;

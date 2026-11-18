@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Zephyr module description of the shared hardware module acme-hw.
+# See doc/develop/modules.rst in Zephyr, section "Build settings".
+name: acme-hw
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    # Boards under boards/<vendor>/<board>. Every image of a build sees them,
+    # each sysbuild image included, as long as this module is in the workspace.
+    board_root: .
+    # Bindings under dts/bindings, and dts/bindings/vendor-prefixes.txt.
+    dts_root: .
+tests:
+  - tests

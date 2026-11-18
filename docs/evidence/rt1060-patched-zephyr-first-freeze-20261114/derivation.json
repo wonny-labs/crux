@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "algorithm": "crux-zephyr-tree-v1",
+  "zephyr_pin": "dccb09599635bdff17633fa7e9dab014b91dce90",
+  "zephyr_version": "v4.4.2",
+  "patches": [
+    {
+      "name": "zephyr-tls-4.4.1.patch",
+      "sha256": "3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda",
+      "size_bytes": 190586,
+      "source": "wolfSSL/osp revision 8c32b060ac6017b1291a6da0875a48637bfb682d, path zephyr/4.4/zephyr-tls-4.4.1.patch, downloaded by scripts/prepare-wolf-tls-zephyr.sh into a build-local copy outside the repository and deleted afterwards; the text is not in this repository"
+    },
+    {
+      "name": "zephyr-isn-fail-closed.patch",
+      "sha256": "831fecdbc6cfb23f47ace4dda662a95222b977977a167ef786ee02f33712de87",
+      "size_bytes": 6302,
+      "source": "patches/zephyr/zephyr-isn-fail-closed.patch in this repository"
+    }
+  ],
+  "marker": {
+    "file": ".crux-wolf-tls",
+    "text": "dccb09599635bdff17633fa7e9dab014b91dce90 3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda 831fecdbc6cfb23f47ace4dda662a95222b977977a167ef786ee02f33712de87\n",
+    "sha256": "f02f690728a3ffb82ca953e0020ed990a7c055ba7671f94cb462a3ebc4a4e369"
+  },
+  "patched_files": [
+    {
+      "path": "include/zephyr/net/net_compat.h",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "651d3e17e767c604c087a80ebc9fb5af9c8bf8fdfa3114d764113a73e3fdb6d8",
+      "stock_sha256": "81e41b307bb8988d69c200663d91bb332132620823eb177df881149701ea9820",
+      "size_bytes": 13527
+    },
+    {
+      "path": "include/zephyr/net/socket.h",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "48634a50dd7ff7736154f71dd981b5d028cbe679e6aef6bceca74ab162226ccd",
+      "stock_sha256": "1b81aec46581cd719ba1c92340a18d5571a8e6e70fc6edffbbb896591298003b",
+      "size_bytes": 45903
+    },
+    {
+      "path": "include/zephyr/net/tls_verify.h",
+      "change": "added",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "6becb48cfde92a6aac85454c9da0c0ef7e62ccb339db29a5f74253839acb14a3",
+      "stock_sha256": null,
+      "size_bytes": 5730
+    },
+    {
+      "path": "subsys/net/ip/tcp.c",
+      "change": "modified",
+      "patches": [
+        "zephyr-isn-fail-closed.patch"
+      ],
+      "sha256": "94642fe2257f80dd91b9e84d8c29459ca84144cb56af0cdfdd58039473e0e0cf",
+      "stock_sha256": "393b940e0d96adba9a0f7667c061b9e0e5d8d0ea2f49642e60f29ce1efdb7ad6",
+      "size_bytes": 124852
+    },
+    {
+      "path": "subsys/net/lib/sockets/CMakeLists.txt",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "998d677693f2fb59974a09b3ef000fb0a14d5dfc9ea0d718edb092b57803aebf",
+      "stock_sha256": "627b07a8cb3579bb37aafaad795bb3abcacbf11ca6ad4fce7f135252e8b29a5a",
+      "size_bytes": 1426
+    },
+    {
+      "path": "subsys/net/lib/sockets/Kconfig",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "dbbdccc00aa2b5de59d5e5b60ba3312de26ea31620a622ee2ce078ca0780585e",
+      "stock_sha256": "306931af9481e1083737df5d9672d31f09e503b7c8ce57e028d0e761a1f5f19c",
+      "size_bytes": 21541
+    },
+    {
+      "path": "subsys/net/lib/sockets/sockets_tls.c",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "106acdbb725fc72e4eca242125fd02283b0cd67403b205c7c231b2db6328552a",
+      "stock_sha256": "aa2927f87a6276fa300b382393fa306641713ead2a567eb0cec9935911b7be10",
+      "size_bytes": 209589
+    },
+    {
+      "path": "subsys/random/CMakeLists.txt",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "0a9d9a2d371a482d9f3f8a1b475bc03192d2c7815f92c89682d019f1c54bba86",
+      "stock_sha256": "d2546bc1e47f3f0d0d475a31d23f4d7d1aea908b62a5ae9ee655591fa90497f9",
+      "size_bytes": 1376
+    },
+    {
+      "path": "subsys/random/Kconfig",
+      "change": "modified",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "0a07662a8daae3c88f9f8a1ec6d1708719b895d2448196429dbf43744599afef",
+      "stock_sha256": "df18b7b607db8e2567abbdc2bd679cc43eb2eef3343c4cb464e2971f4447bc66",
+      "size_bytes": 7752
+    },
+    {
+      "path": "subsys/random/random_wolfssl.c",
+      "change": "added",
+      "patches": [
+        "zephyr-tls-4.4.1.patch"
+      ],
+      "sha256": "f3a633e54edbe616b9d53ee6c1c3d7a7706f48a6a2e42c5707950ce5f2749b1e",
+      "stock_sha256": null,
+      "size_bytes": 1817
+    }
+  ],
+  "tree": {
+    "algorithm": "crux-zephyr-tree-v1",
+    "sha256": "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63",
+    "file_count": 37620,
+    "symlink_count": 0
+  },
+  "stock_tree": {
+    "note": "git archive of the pin with :!doc :!samples :!tests, no marker",
+    "sha256": "3e9f2129642693c7b7f029b28c3b6c1671f7630363a0a7af41ef64ecda6745bb",
+    "file_count": 37617
+  },
+  "derivations": [
+    {
+      "method": "A1 tool digest of the prepared copy",
+      "sha256": "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63",
+      "file_count": 37620,
+      "built_by": "scripts/prepare-wolf-tls-zephyr.sh then scripts/prepare-isn-fail-closed.py (patch(1) for the TLS patch, git apply --no-index for the ISN patch)",
+      "digest_by": "tests/target/zephyr_tree.py tree_digest()"
+    },
+    {
+      "method": "A2 tool re-derivation from the stock checkout",
+      "sha256": "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63",
+      "file_count": 37620,
+      "built_by": "tests/target/patched_zephyr.py rederive(): git archive of the pin, patch --strip=1 --no-backup-if-mismatch --quiet for both patches in order, then the expected marker",
+      "digest_by": "tests/target/zephyr_tree.py tree_digest()"
+    },
+    {
+      "method": "B1 standalone digest of the prepared copy",
+      "sha256": "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63",
+      "file_count": 37620,
+      "built_by": "the same prepared copy as A1",
+      "digest_by": "a separately written script that imports nothing from the repository, from the digest rules of the design (os.walk over bytes, one list sorted by raw bytes)"
+    },
+    {
+      "method": "B2 independent build and standalone digest",
+      "sha256": "135c864e8c373ccedc98ff0695654c861536c2218e6388ced91098938ee93b63",
+      "file_count": 37620,
+      "built_by": "git archive of the pin into a new folder, git apply --no-index -C1 for the TLS patch and git apply --no-index for the ISN patch, the marker written by hand with printf",
+      "digest_by": "the same standalone script as B1"
+    }
+  ],
+  "agreement": {
+    "per_file_hashes_equal_between_copy_and_B2": true,
+    "executable_files_equal": true,
+    "marker_equal": true
+  },
+  "patch_application": {
+    "tls_hunks_total_in_sockets_tls_c": 71,
+    "tls_hunks_needing_fuzz_in_sockets_tls_c": 3,
+    "note": "patch(1) applies the TLS patch to v4.4.2 with fuzz (3 of 71 hunks of sockets_tls.c; fuzz 0 rejects them, fuzz 1 rejects 2) and says nothing with --quiet; git apply needs reduced context (-C1) for the same hunks; every other file applies with exact context. The result hash of sockets_tls.c is the one scripts/prepare-wolf-tls-zephyr.sh has carried since #263."
+  },
+  "patch_features": {
+    "renames": 0,
+    "copies": 0,
+    "mode_changes": 0,
+    "binary_hunks": 0,
+    "added_files": 2,
+    "modified_files": 7,
+    "deleted_files": 0,
+    "note": "counts of the TLS patch alone; the tree has eight modified files in all, with tcp.c of the ISN patch"
+  },
+  "repository_base": {
+    "commit": "b47cb35d663aa35102589a5f273bf9d37b0c15b8",
+    "note": "origin/main at the time; the tools are tests/target/patched_zephyr.py, zephyr_tree.py and bench_image.py at that commit"
+  },
+  "environment": {
+    "os": "macOS 15.7.4 (24G517), arm64, not the Linux Dev Container (no container was started)",
+    "tools": {
+      "patch": "patch 2.0-12u11-Apple (BSD)",
+      "git": "git 2.39.5 (Apple Git-154)",
+      "tar": "bsdtar 3.5.3, libarchive 3.7.4",
+      "curl": "curl 8.7.1 (SecureTransport)",
+      "python": "Python 3.9.6, run with -I"
+    },
+    "workaround": "/sbin/sha256sum of macOS has no --check, which scripts/prepare-wolf-tls-zephyr.sh uses. A shim on PATH in the scratch folder outside the repository supplied \"sha256sum --check [--quiet]\" on top of shasum -a 256 and failed on a mismatch (tested). The protected script was not changed.",
+    "stock_checkout": "a shallow fetch of the pinned commit alone into a scratch folder outside every project repository (git fetch --depth 1 of zephyrproject-rtos/zephyr); the workspace checkout of Zephyr was not used",
+    "copy": "scripts/prepare-wolf-tls-zephyr.sh with CRUX_WORKSPACE pointing at the scratch workspace, then python3 -I scripts/prepare-isn-fail-closed.py on the same folder"
+  },
+  "dry_run": {
+    "what": "tests/target/patched_zephyr.py capture, freeze and check_record on the real copy against the real declaration block (the keys of BLOCK_KEYS, pin from zephyr_pin), with the real patch bytes in a scratch patch folder, a synthetic inputs file (one west project zephyr at the scratch stock checkout) and a SYNTHETIC compile_commands.json with one entry under the copy",
+    "result": "capture, freeze and check_record all accepted: the copy digest, the re-derived digest and the declared digest are equal, 10 patched files, no refusal",
+    "not_a_build": "no build ran, so the compile-commands check proves nothing about a real build"
+  },
+  "not_done": [
+    "No build of the bench image, no real freeze of a build, no run of the image check on a real freeze.",
+    "No Linux container and no GNU patch: the digest is that of a copy made by the Apple BSD patch. The result hash of sockets_tls.c equals the one that scripts/prepare-wolf-tls-zephyr.sh carries and that the bench manifests of the earlier container builds record (for example docs/evidence/rt1060-wolf-entropy-c5/bench/bench-manifest.json); those files do not say which patch implementation made them, so this is agreement for that one file, not proof for the other eight.",
+    "The licence of the wolfSSL TLS patch, of wolfSSL, wolfSSH and wolfPSA, and of any binary built with them is not decided. Nothing is distributed. The bench profile is not registered.",
+    "Nothing ran on a board.",
+    "Not recorded: the patch text, any text derived from it or from wolfSSL source. The patch was downloaded into a scratch folder outside the repository and deleted afterwards."
+  ],
+  "status": "interim: derived on one macOS host with Apple git, tar and patch; the design asks for the build environment (Linux Dev Container). An owner decision on accepting it is requested in the pull request and not yet given."
+}

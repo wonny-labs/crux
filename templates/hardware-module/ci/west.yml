@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# West manifest for the module's own CI and for local work on the module.
+# The module repository becomes the manifest repository, and the rest of the
+# workspace comes from the organisation manifest at the baseline the products
+# share. The blocklist drops the copy of acme-hw that acme-manifest pins, so
+# that the build sees this checkout only.
+#
+#   west init -l --mf ci/west.yml acme-hw
+#   west update
+manifest:
+  version: "1.2"
+
+  remotes:
+    - name: acme
+      url-base: https://git.example/scm/acme
+
+  projects:
+    # Test against the organisation's current baseline: follow acme-manifest
+    # at main, so this CI picks up each Crux or Zephyr pin the organisation
+    # has already moved. To test a new Crux pin before the organisation
+    # moves, on a module branch either set revision to a branch of
+    # acme-manifest that carries the new pin, or add a crux-pilot entry with
+    # its url, the new revision and "import: true" above this one (an entry here
+    # beats the imported one). Do not merge either into the module's main.
+    - name: acme-manifest
+      remote: acme
+      revision: main
+      import:
+        name-blocklist: [acme-hw]
+
+  self:
+    path: acme-hw

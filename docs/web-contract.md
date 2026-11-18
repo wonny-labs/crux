@@ -332,8 +332,8 @@ The table was written for the issues that followed #184, and each now uses these
 
 | Issue | What it uses | From |
 | --- | --- | --- |
-| #186 | `crux_web_authenticate_t`, which returns `crux_web_auth_t` and sets the session | `crux_web_adapter.h` |
-| #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h` |
+| #186 | `crux_web_authenticate_t`, which returns `crux_web_auth_t` and sets the session | `crux/web.h` (moved from `crux_web_adapter.h` by ADR-0004 phase 1a) |
+| #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h`, and for a product `<crux/web_zephyr.h>` (target `crux::web_zephyr`, ADR-0004 phase 1a), with `crux_web_config_t` in `<crux/web.h>` |
 | #186 | `crux_web_request_head(request)`, for `Origin` on login and `X-Crux-Request` on the poll | `crux_web_adapter.h` |
 | #186 | `crux_web_add_header(request, "Set-Cookie", value)`, up to four headers and 384 bytes | `crux/web.h` |
 | Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, whose list is mandatory with resources, and which fails the build on a public or session-only route that is not on it | `cmake/CruxWebRoutes.cmake` |

@@ -15,6 +15,7 @@
 #define UNBOUND_ROOT ((crux_file_root_t)2)
 #define MISSING_ROOT ((crux_file_root_t)255)
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, (name, text) in fixed order
 static void put(crux_file_root_t root, const char *name, const char *text)
 {
     crux_file_t *file = NULL;
@@ -26,6 +27,7 @@ static void put(crux_file_root_t root, const char *name, const char *text)
     CHECK(crux_file_close(&file) == CRUX_FILE_OK);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, (name, text) in fixed order
 static void expect(crux_file_root_t root, const char *name, const char *text)
 {
     crux_file_t *file = NULL;
@@ -73,6 +75,7 @@ void crux_file_conformance_roots(const crux_file_conformance_env_t *env)
 
     /* Argument checks come first, as for the original functions. */
     CHECK(crux_file_open_at(0, "a/b", CRUX_FILE_READ, &file) == CRUX_FILE_ERR_INVALID_ARGUMENT);
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): out-of-range value on purpose
     CHECK(crux_file_open_at(0, "x", (crux_file_mode_t)99, &file) == CRUX_FILE_ERR_INVALID_ARGUMENT);
     CHECK(crux_file_open_at(0, "x", CRUX_FILE_READ, NULL) == CRUX_FILE_ERR_INVALID_ARGUMENT);
     CHECK(crux_file_remove_at(0, "") == CRUX_FILE_ERR_INVALID_ARGUMENT);

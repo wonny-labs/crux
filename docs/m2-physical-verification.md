@@ -1,5 +1,7 @@
 # M2 physical verification plan
 
+> **Status: historical.** Plan and authorisation record of the first physical Flash, reset and UART verification of the reference controller's execution (platform milestone M2, issues #6 and #7; not the Time Pilot's M2), kept as written. It authorises nothing now. For the current state of components and evidence see [Component readiness](component-readiness.md).
+
 Authorisation: user explicitly permits current-task Flash, Reset and UART verification for PR #9. This supersedes the earlier software-only hardware prohibition for this task. No PR merging, issue closure, M2 completion declaration, fuse/security/boot-layout operations, full-chip erase, board rework or M3 functionality is authorised.
 
 ## Inputs and preflight
@@ -137,7 +139,7 @@ The portable evidence archive is `crux-m2-physical-b6db696-afb5160.tar.gz` (922,
 SHA-256 `f9863c2f9f543950d0fcceee1d94180d3c3cc8e59f0674638367cf216ae8cdc3`.
 Its internal `SHA256SUMS` covers 106 raw evidence/source/firmware/CI files, including
 failed preparation and the actual independent physical review at that stage. A durable
-copy is retained with this chat's output artefacts; ignored build copies remain under
+copy is retained with the output artefacts of that run; ignored build copies remain under
 `build/evidence/m2-physical`. Original manifest paths identify local source files; the
 archive contains their matching bytes under `firmware/` and `ci/` for portable inspection.
 Hosted artefacts have 14-day retention; this archive preserves the selected proof.

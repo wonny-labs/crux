@@ -21,6 +21,7 @@ static bool active;
         }                                                                                          \
     } while (0)
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
 {
     CHECK(clock == CLOCK_MONOTONIC);
@@ -39,6 +40,7 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
         out->tv_sec = -1;
     return 0;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_getres(clockid_t clock, struct timespec *out)
 {
     CHECK(clock == CLOCK_MONOTONIC);
@@ -52,7 +54,9 @@ int __wrap_clock_getres(clockid_t clock, struct timespec *out)
     return 0;
 }
 /* Only calls made while executing the Delay API are prohibited. */
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 void *__real_malloc(size_t size);
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 void *__wrap_malloc(size_t size)
 {
     if (active) {
@@ -61,7 +65,9 @@ void *__wrap_malloc(size_t size)
     }
     return __real_malloc(size);
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __real_pthread_mutex_lock(pthread_mutex_t *mutex);
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     if (active) {
@@ -70,6 +76,7 @@ int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex)
     }
     return __real_pthread_mutex_lock(mutex);
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_nanosleep(const struct timespec *request, struct timespec *remaining)
 {
     (void)request;
@@ -78,6 +85,8 @@ int __wrap_nanosleep(const struct timespec *request, struct timespec *remaining)
     errno = EINTR;
     return -1;
 }
+/* Both names are fixed: --wrap picks the linker name, POSIX the parameter list. */
+// NOLINTNEXTLINE(bugprone-reserved-identifier,bugprone-easily-swappable-parameters): linker --wrap
 int __wrap_clock_nanosleep(clockid_t clock, int flags, const struct timespec *request,
                            struct timespec *remaining)
 {
@@ -88,6 +97,7 @@ int __wrap_clock_nanosleep(clockid_t clock, int flags, const struct timespec *re
     ++forbidden_calls;
     return EINTR;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_sched_yield(void)
 {
     ++forbidden_calls;

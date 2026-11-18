@@ -5,6 +5,8 @@
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
+# The module's lock provider counts locks for this fixture only (zephyr/psa_threading/CMakeLists.txt).
+set(CRUX_PSA_THREADING_TEST_COUNTER ON)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_native_management_composition LANGUAGES C)
 include("${CMAKE_CURRENT_LIST_DIR}/composition/composition.cmake")

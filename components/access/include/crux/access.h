@@ -2,6 +2,9 @@
  * @file
  * @brief Accounts, roles and permission checks shared by every management channel.
  *
+ * Status: Experimental (ADR-0001 decision 4). Access has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Thread context only. Buffers are borrowed for the call, and the policy stays borrowed for the
  * program's life. crux_access_init() must return before any other operation starts, and until it
  * succeeds every operation returns CRUX_ACCESS_ERR_NOT_READY.
@@ -271,8 +274,9 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
 
 /**
  * Add a public key. An account's own keys need access.self only. Sessions continue.
- * @param key SSH public key blob of type ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384 or
- * ecdsa-sha2-nistp521, compared byte for byte. Any other type or form is an invalid argument.
+ * @param key SSH public key blob of type ssh-ed25519 or ecdsa-sha2-nistp256, the types the SSH
+ * provider offers, compared byte for byte. Any other type or form, including ECDSA on P-384 or
+ * P-521, is an invalid argument.
  * @retval CRUX_ACCESS_ERR_NOT_FOUND The account does not exist.
  * @retval CRUX_ACCESS_ERR_ALREADY_EXISTS The account already lists this key.
  * @retval CRUX_ACCESS_ERR_NO_RESOURCES The account's key table is full.

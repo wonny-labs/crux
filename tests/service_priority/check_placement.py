@@ -23,6 +23,8 @@ WORKERS = (
      "CRUX_SERVICE_THREAD_WEB_SESSION_WORKER", "CRUX_WEB_SESSION_WORKER_PRIORITY"),
     ("components/web/management/web_management_save.c",
      "CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER", "CRUX_WEB_MANAGEMENT_WORKER_PRIORITY"),
+    ("components/cli/ports/zephyr/cli_serial_start.c",
+     "CRUX_SERVICE_THREAD_CLI_CONSOLE", "CRUX_CLI_CONSOLE_PRIORITY"),
 )
 # Zephyr-direct workers (the reboot pilot of ADR-0002 P9): a k_thread that takes its priority from its
 # Kconfig symbol in k_thread_create(), with no Crux Thread and no placement call. Source, Kconfig symbol.

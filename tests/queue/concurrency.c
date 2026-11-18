@@ -9,7 +9,9 @@ static crux_queue_t queue;
 static crux_status_t observed;
 static int value;
 static uint32_t wait_ms;
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 crux_status_t __real_crux_queue_wait(size_t index, const queue_deadline_t *deadline);
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 crux_status_t __wrap_crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     assert(sem_post(&admitted) == 0);

@@ -6,6 +6,7 @@
 #include <crux/security_event.h>
 
 void crux_file_service_port_event(crux_file_service_event_t event, crux_access_session_t session,
+                                  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): port ABI
                                   const char *area, const char *name, const char *new_name,
                                   bool storage_limit)
 {

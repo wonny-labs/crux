@@ -8,6 +8,7 @@
 #include "crux_ssh_attachment.h"
 #include "crux_ssh_callbacks.h"
 #include "ssh_check.h"
+#include "ssh_port_fake.h"
 
 #define USER "operator"
 
@@ -317,6 +318,81 @@ static void test_ipv6_delay_key_is_the_prefix(void)
     SSH_CHECK(attachment == NULL);
 }
 
+static void check_auth_limit_report(const crux_ssh_peer_t *from, const uint8_t *source,
+                                    uint8_t source_length)
+{
+    const crux_ssh_access_event_t *report;
+
+    ssh_port_fake_reset();
+    crux_ssh_access_auth_limit(NULL, from);
+    SSH_CHECK(!ssh_port_fake_overflowed());
+    SSH_CHECK(ssh_port_fake_count() == 1u);
+    report = ssh_port_fake_event(0);
+    SSH_CHECK(report != NULL && report->type == CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT);
+    if (report != NULL) {
+        SSH_CHECK(report->channel == (uint8_t)CRUX_ACCESS_CHANNEL_SSH);
+        SSH_CHECK(report->source_length == source_length);
+        SSH_CHECK(memcmp(report->source, source, source_length) == 0);
+    }
+}
+
+static void test_auth_limit_is_reported_with_the_source_access_uses(void)
+{
+    const crux_ssh_peer_t v6 = {
+        .address = {0x20, 0x01, 0x0d, 0xb8, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+        .address_length = 16};
+    const crux_ssh_peer_t mapped = {
+        .address = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 192, 0, 2, 7}, .address_length = 16};
+
+    setup();
+    /* An IPv4 address, an IPv4 address inside IPv6, and an IPv6 /64: the three sources Access keys
+     * on. */
+    check_auth_limit_report(&peer, peer.address, 4u);
+    check_auth_limit_report(&mapped, &mapped.address[12], 4u);
+    check_auth_limit_report(&v6, v6.address, 8u);
+    /* The report is the adapter's own: Access hears nothing, and no delay entry is written. */
+    SSH_CHECK(access_fake_event_count() == 0u);
+    crux_ssh_access_connection_closed(NULL, login(&peer));
+}
+
+static void test_auth_limit_without_a_known_peer_still_reports(void)
+{
+    const crux_ssh_peer_t none = {.address_length = 0};
+    const crux_ssh_peer_t odd = {.address = {1, 2, 3}, .address_length = 3};
+    const crux_ssh_access_event_t *report;
+
+    setup();
+    /* A limit was reached whatever the address looks like, so it is reported with no source. */
+    ssh_port_fake_reset();
+    crux_ssh_access_auth_limit(NULL, NULL);
+    crux_ssh_access_auth_limit(NULL, &none);
+    crux_ssh_access_auth_limit(NULL, &odd);
+    SSH_CHECK(!ssh_port_fake_overflowed());
+    SSH_CHECK(ssh_port_fake_count_of(CRUX_SSH_ACCESS_EVENT_AUTH_LIMIT) == 3u);
+    for (size_t i = 0; i < ssh_port_fake_count(); ++i) {
+        report = ssh_port_fake_event(i);
+        SSH_CHECK(report != NULL && report->source_length == 0u);
+        SSH_CHECK(report != NULL && report->channel == (uint8_t)CRUX_ACCESS_CHANNEL_SSH);
+    }
+}
+
+static void test_the_other_entry_points_report_no_port_event(void)
+{
+    const uint8_t wrong[] = "not the password";
+    crux_ssh_attachment_t *attachment = NULL;
+
+    setup();
+    ssh_port_fake_reset();
+    /* Refusals, a failed signature and a logout are Access's events. Only the limit is this port's.
+     */
+    SSH_CHECK(crux_ssh_access_password(NULL, &peer, USER, wrong, sizeof(wrong) - 1, &attachment) ==
+              CRUX_SSH_AUTH_DENIED);
+    crux_ssh_access_key_failed(NULL, &peer, USER);
+    crux_ssh_access_connection_closed(NULL, login(&other_peer));
+    SSH_CHECK(!ssh_port_fake_overflowed());
+    SSH_CHECK(ssh_port_fake_count() == 0u);
+}
+
 static void test_null_attachment_is_no_session(void)
 {
     SSH_CHECK(crux_ssh_attachment_session(NULL).value == 0u);
@@ -337,6 +413,9 @@ int main(void)
     test_failed_signature_counts_towards_the_delay();
     test_session_alive_does_not_refresh_the_idle_timer();
     test_ipv6_delay_key_is_the_prefix();
+    test_auth_limit_is_reported_with_the_source_access_uses();
+    test_auth_limit_without_a_known_peer_still_reports();
+    test_the_other_entry_points_report_no_port_event();
     test_null_attachment_is_no_session();
     printf("%u failures\n", ssh_check_failures);
     return ssh_check_failures == 0 ? 0 : 1;

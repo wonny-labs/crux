@@ -1,6 +1,6 @@
 # Typed Time Implementation Plan
 
-> **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task with TDD and independent final review for each Draft PR increment.
+> **Execution:** implement this plan task by task with test-driven development and independent final review for each Draft PR increment.
 
 **Goal:** Complete typed Time, realtime authority/RTC separation, bounded Delay,
 and migration while retaining supported behaviour and component ownership.

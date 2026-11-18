@@ -2,6 +2,9 @@
  * @file
  * @brief Bounded records of management activity, with stable identifiers and no secrets.
  *
+ * Status: Experimental (ADR-0001 decision 4). The events have no Zephyr composition outside tests/
+ * yet, and a change is listed in the release notes.
+ *
  * Thread context only. Strings are copied and not retained. An emit never waits on storage: it
  * copies a record into a RAM ring under a short leaf lock, and a low-priority thread hands the ring
  * to Logging. It is not free of every wait, because Sync's own bookkeeping has no time bound. The
@@ -89,6 +92,7 @@ enum {
     CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED = 0x0602,
     CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED = 0x0603,
     CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_UNUSABLE = 0x0604,
+    CRUX_SECURITY_EVENT_ID_WEB_ORIGIN_REJECTED = 0x0605,
     CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT = 0x0700,
     CRUX_SECURITY_EVENT_ID_SSH_HOST_KEY_MISSING = 0x0701,
     CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED = 0x0800,

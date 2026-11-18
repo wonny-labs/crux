@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Zephyr sources this file when the module is part of a build (build.kconfig in zephyr/module.yml).
+# Its symbols appear under "Zephyr Modules" in menuconfig.
+rsource "drivers/Kconfig"

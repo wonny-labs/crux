@@ -7,6 +7,12 @@ set(CRUX_WEB_SESSION_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/web_session_attempt.c"
     "${CMAKE_CURRENT_LIST_DIR}/web_session_json.c"
     CACHE INTERNAL "Web session sources")
+# The provider of the event port (Issue #319) over the security events. It is not in the list above,
+# because a Host test compiles those sources with a fake port, and an image with security events
+# compiles this file too: the native management composition, the module's session library and the bench
+# image list it by name.
+set(CRUX_WEB_SESSION_EVENTS "${CMAKE_CURRENT_LIST_DIR}/web_session_security_events.c" CACHE INTERNAL
+    "Web session event provider")
 set(CRUX_WEB_SESSION_ROUTES "${CMAKE_CURRENT_LIST_DIR}/web_session_routes.c" CACHE INTERNAL
     "Web session routes")
 set(CRUX_WEB_SESSION_PSA_PORT "${CMAKE_CURRENT_LIST_DIR}/../ports/psa/web_session_psa.c" CACHE INTERNAL

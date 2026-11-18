@@ -66,6 +66,11 @@ unsigned session_fake_random_calls(void);
 const uint8_t *session_fake_random_last(void);
 void session_fake_hash_fail(bool fail);
 
+/* The fake event port: what the session module reported, in order, since the last setup. */
+size_t session_events_count(void);
+const crux_web_session_event_t *session_events_at(size_t index);
+size_t session_events_count_of(crux_web_session_event_type_t type);
+
 /* Both clocks: the web core's and Access's. */
 void session_clock_advance(uint64_t delta_ms);
 

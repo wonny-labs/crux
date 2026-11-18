@@ -70,6 +70,11 @@ static bool equal(crux_realtime_t a, crux_realtime_t b)
 {
     return a.seconds == b.seconds && a.nanoseconds == b.nanoseconds;
 }
+static bool snapshot_equal(const crux_realtime_snapshot_t *a, const crux_realtime_snapshot_t *b)
+{
+    return equal(a->timestamp, b->timestamp) && a->last_source == b->last_source &&
+           a->is_valid == b->is_valid && a->is_synchronized == b->is_synchronized;
+}
 static crux_realtime_snapshot_t snapshot(void)
 {
     crux_realtime_snapshot_t s;
@@ -120,8 +125,7 @@ int main(void)
     CHECK(crux_realtime_now(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_realtime_get_snapshot(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_realtime_now(&out) == CRUX_ERR_NOT_READY && equal(out, first));
-    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_NOT_READY &&
-          memcmp(&s, &sentinel, sizeof(s)) == 0);
+    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_NOT_READY && snapshot_equal(&s, &sentinel));
     CHECK(crux_realtime_set(NULL, CRUX_REALTIME_SOURCE_MANUAL, false) == CRUX_ERR_INVALID_ARGUMENT);
     crux_realtime_t bad = {first.seconds, 1000000000};
     CHECK(crux_realtime_set(&bad, CRUX_REALTIME_SOURCE_MANUAL, false) == CRUX_ERR_INVALID_ARGUMENT);
@@ -186,7 +190,7 @@ int main(void)
     out = first;
     s = sentinel;
     CHECK(crux_realtime_now(&out) == CRUX_ERR_IO && equal(out, first));
-    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_IO && memcmp(&s, &sentinel, sizeof(s)) == 0);
+    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_IO && snapshot_equal(&s, &sentinel));
     read_status = CRUX_OK;
     CHECK(snapshot().is_synchronized);
     read_status = CRUX_ERR_NO_DATA;
@@ -197,8 +201,7 @@ int main(void)
     native_time.seconds = CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE;
     out = first;
     s = sentinel;
-    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_OUT_OF_RANGE &&
-          memcmp(&s, &sentinel, sizeof(s)) == 0);
+    CHECK(crux_realtime_get_snapshot(&s) == CRUX_ERR_OUT_OF_RANGE && snapshot_equal(&s, &sentinel));
     expect_invalid(CRUX_REALTIME_SOURCE_RTC);
     CHECK(crux_realtime_adopt() == CRUX_ERR_OUT_OF_RANGE);
     native_time = first;

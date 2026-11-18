@@ -1,0 +1,51 @@
+# West manifest of a fictional organisation manifest repository, acme-manifest.
+# Products of the organisation import this file instead of importing Crux
+# directly. It holds what two or more products share: the Crux revision, the
+# shared hardware module and the organisation's overrides. See README.md.
+manifest:
+  version: "1.2"
+
+  # Optional Crux groups stay off unless every product needs them. A product
+  # can enable a group in its own manifest. Check the licences first.
+  #
+  # group-filter: [+crux-boot]
+
+  remotes:
+    - name: crux
+      url-base: https://github.com/wonny-labs
+    # The organisation's internal host. Names and URLs of internal repositories
+    # stay in organisation and product manifests, never in Crux's.
+    - name: acme
+      url-base: https://git.example/scm/acme
+
+  projects:
+    # One Crux revision for every product of the organisation. No Crux tag
+    # exists yet, so this follows main. Pin a tag or SHA here before any
+    # product release, and move it for all products together.
+    - name: crux-pilot
+      remote: crux
+      revision: main
+      import: true
+
+    # The shared hardware module: boards and drivers used by two or more
+    # products. Pin a full SHA, with its tag in a comment. It is a plain
+    # project with no import, so its own ci/west.yml is never read here.
+    # west crux-pins lists it as PRODUCT.
+    - name: acme-hw
+      remote: acme
+      revision: 0123456789abcdef0123456789abcdef01234567 # v1.0.0
+      path: modules/acme/acme-hw
+
+    # An override that every product shares. Repeat the path and state why:
+    # west crux-pins in each product lists OVERRIDE with this reason, or fails
+    # with MISMATCH without one. The fork must contain the commit Crux pins.
+    #
+    # - name: hal_nxp
+    #   remote: acme
+    #   revision: fedcba9876543210fedcba9876543210fedcba98 # acme-hal-nxp-1
+    #   path: modules/hal/nxp
+    #   userdata:
+    #     crux-override: "fix for acme issue 123, drop when upstream has it"
+
+  self:
+    path: acme-manifest

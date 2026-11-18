@@ -12,6 +12,8 @@
  */
 #include "web_session_internal.h"
 
+#include "web_port.h"
+
 #include <string.h>
 
 typedef struct {
@@ -23,6 +25,15 @@ typedef struct {
 
 static web_session_slot_t web_sessions[CRUX_WEB_SESSION_MAX];
 static crux_web_session_config_t web_session_config;
+
+/* What one kind of refusal may still report in its window. Server thread only. */
+typedef struct {
+    bool started;
+    uint64_t window_start_ms;
+    uint32_t reported;
+} web_refusal_window_t;
+
+static web_refusal_window_t web_refusal_windows[2];
 
 static const char base64url[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -293,6 +304,52 @@ static bool csrf_matches(const web_session_slot_t *slot, const char *header)
     return matched;
 }
 
+/* A fixed window, which starts at the first refusal that it reports. A burst across the edge of two
+ * windows reports up to twice the share, and the share is sized for that. */
+static bool refusal_admitted(web_refusal_window_t *window)
+{
+    uint64_t now_ms = crux_web_port_now_ms();
+
+    if (!window->started ||
+        now_ms - window->window_start_ms >= CRUX_WEB_SESSION_FORGERY_WINDOW_MS) {
+        window->started = true;
+        window->window_start_ms = now_ms;
+        window->reported = 0u;
+    }
+    if (window->reported >= CRUX_WEB_SESSION_FORGERY_EVENTS) {
+        return false;
+    }
+    ++window->reported;
+    return true;
+}
+
+void web_session_report_refusal(web_refusal_t kind, const crux_web_request_head_t *head,
+                                crux_access_session_t session)
+{
+    crux_web_session_event_t event;
+
+    if (!refusal_admitted(&web_refusal_windows[kind == WEB_REFUSAL_CSRF ? 0 : 1])) {
+        web_session_count_forgery_suppressed();
+        return;
+    }
+    memset(&event, 0, sizeof(event));
+    event.type = kind == WEB_REFUSAL_CSRF ? CRUX_WEB_SESSION_EVENT_CSRF_REJECTED
+                                          : CRUX_WEB_SESSION_EVENT_ORIGIN_REJECTED;
+    event.channel = (uint8_t)CRUX_ACCESS_CHANNEL_WEB;
+    /* An address that does not fit the buffer is no address, and its bytes are not read. */
+    if (head->source_length <= sizeof(event.source)) {
+        memcpy(event.source, head->source, head->source_length);
+        event.source_length = head->source_length;
+    }
+    /* The account of a session that this server issued, and never a name from the request. A
+     * session that ended on the way leaves the name empty, and the report is still made. */
+    if (session.value != 0u &&
+        crux_access_session_user(session, event.user, sizeof(event.user)) != CRUX_ACCESS_OK) {
+        event.user[0] = '\0';
+    }
+    crux_web_session_port_event(&event);
+}
+
 crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *head,
                                               crux_access_session_t *session, void *context)
 {
@@ -327,9 +384,11 @@ crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *hea
     }
     if (head->method != CRUX_WEB_GET) {
         if (!web_session_origin_accepted(head)) {
+            web_session_report_refusal(WEB_REFUSAL_ORIGIN, head, slot->session);
             return CRUX_WEB_AUTH_ORIGIN_REJECTED;
         }
         if (!csrf_matches(slot, head->xsrf_token)) {
+            web_session_report_refusal(WEB_REFUSAL_CSRF, head, slot->session);
             return CRUX_WEB_AUTH_CSRF_REJECTED;
         }
         /* State-changing requests refresh the idle timer, and GET does not, so a page that polls
@@ -373,6 +432,7 @@ crux_web_result_t crux_web_session_init(const crux_web_session_config_t *config)
         }
     }
     web_session_config = *config;
+    memset(web_refusal_windows, 0, sizeof(web_refusal_windows));
     web_session_table_reset();
     web_session_attempts_reset();
     return web_session_attempts_ready() ? CRUX_WEB_OK : CRUX_WEB_ERR_FAILED;

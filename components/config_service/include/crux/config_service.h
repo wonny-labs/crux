@@ -2,6 +2,9 @@
  * @file
  * @brief Permission-checked listing, reading, updating and saving of Configuration parameters.
  *
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
  * Web and CLI use the same operations, and so the same permissions and text forms. Thread context
  * only. crux_config_service_start() must return before any other operation starts.
  *

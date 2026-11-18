@@ -1,0 +1,10713 @@
+{
+ "cases": 566692,
+ "controls": {
+  "alignment": {
+   "4MiB": {
+    "erase4096K/wp4M": 0,
+    "erase4096K/wp8M": 2,
+    "erase512K/wp4M": 0,
+    "erase512K/wp8M": 2
+   },
+   "512KiB": {
+    "erase4096K/wp4M": 4,
+    "erase4096K/wp8M": 4,
+    "erase512K/wp4M": 2,
+    "erase512K/wp8M": 2
+   },
+   "8MiB": {
+    "erase4096K/wp4M": 0,
+    "erase4096K/wp8M": 0,
+    "erase512K/wp4M": 0,
+    "erase512K/wp8M": 0
+   }
+  },
+  "early_ack": {
+   "P3_failures": 24,
+   "required": "P3 fails"
+  },
+  "layouts": {
+   "wb32/align32": {
+    "flag_write": 32,
+    "swap_modes_allowed": true,
+    "trailer_size": 160
+   },
+   "wb512/align32": {
+    "flag_write": null,
+    "swap_modes_allowed": true,
+    "trailer_size": 160
+   },
+   "wb512/align512": {
+    "flag_write": 512,
+    "swap_modes_allowed": false,
+    "trailer_size": 2560
+   },
+   "wb8/align8": {
+    "flag_write": 8,
+    "swap_modes_allowed": true,
+    "trailer_size": 48
+   }
+  },
+  "misaligned_slots": {
+   "P1_failures": 64,
+   "P2_failures": 64,
+   "example": {
+    "acked": [],
+    "boot1": null,
+    "boot2": null,
+    "model": "torn-native",
+    "position": 1,
+    "seed": 0
+   },
+   "required": "P1 and P2 fail"
+  },
+  "unerased_request": {
+   "booted": [
+    0,
+    1
+   ],
+   "magic_state": 2,
+   "rc": 3,
+   "required": "request fails, image 1 boots"
+  },
+  "unordered_second_trial": {
+   "P4_failures": 17,
+   "draws": 4096,
+   "example": {
+    "acked": [
+     "erased",
+     "image",
+     "requested",
+     "trial"
+    ],
+    "boot1": [
+     1,
+     2
+    ],
+    "boot2": [
+     0,
+     1
+    ],
+    "model": "reordered",
+    "position": 78,
+    "seed": 258
+   },
+   "required": "P4 fails"
+  }
+ },
+ "problems": [],
+ "properties": {
+  "P1": "a valid image boots after the cut and after one more reset (safety)",
+  "P2": "slot A, the confirmed old image, is byte-identical to the baseline (safety)",
+  "P3": "an acknowledged confirm survives: image 2 boots, twice",
+  "P4": "after an acknowledged trial, unconfirmed image 2 is not started again",
+  "P5": "an acknowledged test request survives until the trial starts: image 2 is tried (liveness)",
+  "P6": "an acknowledged revert survives: image 1 boots (liveness)",
+  "P7": "a torn write changes no trailer field other than the ones it was writing"
+ },
+ "rows": [
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 421
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "40e740b3f04ee34f123209c0eaed1819281eceef37dc9655a8a2a436dc7b9708"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "40e740b3f04ee34f123209c0eaed1819281eceef37dc9655a8a2a436dc7b9708"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 785
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "4eca05ed3cb1286c554eb42543c5b8c91ed04f500ea4fca61a91a2d452fee39e"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "4eca05ed3cb1286c554eb42543c5b8c91ed04f500ea4fca61a91a2d452fee39e"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 421
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "40e740b3f04ee34f123209c0eaed1819281eceef37dc9655a8a2a436dc7b9708"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "40e740b3f04ee34f123209c0eaed1819281eceef37dc9655a8a2a436dc7b9708"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 785
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "4eca05ed3cb1286c554eb42543c5b8c91ed04f500ea4fca61a91a2d452fee39e"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "4eca05ed3cb1286c554eb42543c5b8c91ed04f500ea4fca61a91a2d452fee39e"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 750
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 155
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 154,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "ccc2e0572a55823897effab9479f67ca433eef5432215e644b2af3a731da6f43"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 155
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 154,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "ccc2e0572a55823897effab9479f67ca433eef5432215e644b2af3a731da6f43"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1114
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 225
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 224,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "d502d5277dfd8ee4473e17f2204975bc2f4cfa01fd3d2169d12583d85fab028e"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 225
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 224,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "d502d5277dfd8ee4473e17f2204975bc2f4cfa01fd3d2169d12583d85fab028e"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 434
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 93
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 92,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "2a358478d30a6033e85366b10327425bb7be62c624051cca3945eda5e4220a29"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 93
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 92,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "2a358478d30a6033e85366b10327425bb7be62c624051cca3945eda5e4220a29"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 798
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "70771bf3ea7cf623bce93338bca44dc6ec03c371c49875a92af51981fa4d4803"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "70771bf3ea7cf623bce93338bca44dc6ec03c371c49875a92af51981fa4d4803"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2543
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 148
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 147,
+    "flushes": 11,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "8612c85b04a96196295505219846f085350868edf6f83ff374c58877bacd1336"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 148
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 147,
+    "flushes": 11,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "8612c85b04a96196295505219846f085350868edf6f83ff374c58877bacd1336"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2907
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 218
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 217,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "2feb364806c208aa5e2bd5f6bbc3abc6b9f32550fe559ac78f4e3efb4c8caaae"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 218
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 217,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "2feb364806c208aa5e2bd5f6bbc3abc6b9f32550fe559ac78f4e3efb4c8caaae"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2219
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 86
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 85,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "ad5522790132546f84ae59400ab83a2ab20eb3416aa76b835c0e78f26b809517"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 86
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 85,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "ad5522790132546f84ae59400ab83a2ab20eb3416aa76b835c0e78f26b809517"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 4376
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 149
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 148,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "f95174a8ba0f3e90c1116b4a259250f02f4bfdf7c4dc43d4504251237c8f04ae"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 149
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 1,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 1,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 143,
+     "seed": 5
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 148,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "f95174a8ba0f3e90c1116b4a259250f02f4bfdf7c4dc43d4504251237c8f04ae"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 4327
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 141
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 140,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "03517d31c468b1160b5f9c0659c9f988f2fbf6c3a8f7db9469615bf3ddc6f33f"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 141
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 140,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "03517d31c468b1160b5f9c0659c9f988f2fbf6c3a8f7db9469615bf3ddc6f33f"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 6483
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 204
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 203,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "da5112460eabd084c7588d271c3f346b1255f85af8b0f722569016bac9d13d97"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 22,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 204
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 1,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 1,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 198,
+     "seed": 5
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 203,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "da5112460eabd084c7588d271c3f346b1255f85af8b0f722569016bac9d13d97"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 18,
+    "torn-sector-wide": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 21,
+     "P4": 6,
+     "P5": 17,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2434
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 81
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 80,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 78,
+     "seed": 74
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 80,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "6caedd62283dfaa9cd530def0af139fc249b80c2822ab734d3cc92844091d529"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 36,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 14,
+    "torn-sector-wide": 8
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 81
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 80,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 80,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "6caedd62283dfaa9cd530def0af139fc249b80c2822ab734d3cc92844091d529"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 198,
+     "P5": 17,
+     "P6": 3,
+     "P7": 0,
+     "cases": 3889
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 144
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 78,
+     "seed": 74
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 143,
+     "seed": 74
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 143,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "75457be48aef0e138174e0749c1046c8e6970290d336f0f407820790c4c4cde6"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 36,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 14,
+    "torn-sector-wide": 8
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 144
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 143,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "75457be48aef0e138174e0749c1046c8e6970290d336f0f407820790c4c4cde6"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 30,
+     "P4": 4,
+     "P5": 25,
+     "P6": 0,
+     "P7": 0,
+     "cases": 3510
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 137
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 136,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 134,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 136,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "8dc0b8fb1bd86c594150012a90c8694a9c4c6c774c256920e3c753a5de79cbb8"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 50,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 14,
+    "torn-sector-wide": 8
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 137
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 136,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 136,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "8dc0b8fb1bd86c594150012a90c8694a9c4c6c774c256920e3c753a5de79cbb8"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 133,
+     "P5": 25,
+     "P6": 2,
+     "P7": 0,
+     "cases": 5363
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 200
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 134,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 199,
+     "seed": 130
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 199,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "851fb200a6b6fa984bc784155c6b73dd29016dde9c148c0f2415e7b50146106a"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 50,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 14,
+    "torn-sector-wide": 8
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 200
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-native",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "sector",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 199,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "851fb200a6b6fa984bc784155c6b73dd29016dde9c148c0f2415e7b50146106a"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 421
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "13b58a9fca4cba2c3a164131db2c74910a79b92b60e4815549d9118369090920"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "13b58a9fca4cba2c3a164131db2c74910a79b92b60e4815549d9118369090920"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 785
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "2c4962884bd5fc4bff0666561551aca779153dd2bcba7704fcd452a940028246"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "2c4962884bd5fc4bff0666561551aca779153dd2bcba7704fcd452a940028246"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 421
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "13b58a9fca4cba2c3a164131db2c74910a79b92b60e4815549d9118369090920"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 94
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 752
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 752
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 93,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "13b58a9fca4cba2c3a164131db2c74910a79b92b60e4815549d9118369090920"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 785
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "2c4962884bd5fc4bff0666561551aca779153dd2bcba7704fcd452a940028246"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 164
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1312
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1312
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 82,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 163,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "2c4962884bd5fc4bff0666561551aca779153dd2bcba7704fcd452a940028246"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 750
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 155
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 154,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "3ccc0270908f59c9fe9a8df6214d6e2e87193989c055cb66e76cfc722dd059f2"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 155
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1240
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1240
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 154,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "3ccc0270908f59c9fe9a8df6214d6e2e87193989c055cb66e76cfc722dd059f2"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1114
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 225
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 224,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "4e50e3cf89f13665ff11c83bc49728485a312cfdc8dde2835ce5cbee2aed5d4c"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 225
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1800
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1800
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 148,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 224,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "4e50e3cf89f13665ff11c83bc49728485a312cfdc8dde2835ce5cbee2aed5d4c"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 434
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 93
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 92,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "dbab98537df816b7f084f32b45ad4498ee4c6b9d9671d274a815f7cf1a0ba1a8"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 93
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 744
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 92,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "dbab98537df816b7f084f32b45ad4498ee4c6b9d9671d274a815f7cf1a0ba1a8"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 798
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "0c9f286f08638db19538295b654e3aeea22a875c162b4d4a3438d35af7695164"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1304
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 81,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "0c9f286f08638db19538295b654e3aeea22a875c162b4d4a3438d35af7695164"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2543
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 148
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 147,
+    "flushes": 11,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "becdb7d8745885ce77501e029ee9be7ca58d7072be4a7873da3fe7f94801688e"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 148
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1184
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1184
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 147,
+    "flushes": 11,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "becdb7d8745885ce77501e029ee9be7ca58d7072be4a7873da3fe7f94801688e"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2907
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 218
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 217,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "cf71cb62a04b87a10ddbc79bf94752fcc8152f34e8e21d8e965b803eca0e8e58"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 218
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1744
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1744
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 141,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 217,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "cf71cb62a04b87a10ddbc79bf94752fcc8152f34e8e21d8e965b803eca0e8e58"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2219
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 86
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 85,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "c7c57dec9c8e5399e4f38270bf6addee5ec8d0ffce4679f0f26acd8d23fcc4dd"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 86
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 688
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 688
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 85,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "c7c57dec9c8e5399e4f38270bf6addee5ec8d0ffce4679f0f26acd8d23fcc4dd"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 4376
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 149
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 148,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "703b51778c8147b4d36381ad28de5c43b2fecf9dd5d717b177897db8fe16dc2c"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 149
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1192
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1192
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 74,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 148,
+    "flushes": 5,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "703b51778c8147b4d36381ad28de5c43b2fecf9dd5d717b177897db8fe16dc2c"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 4327
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 141
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 140,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "00835da0d597d0a7bcb83b4a42bcdec0413cf179b0fb858bc855a44f834c4ca5"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 141
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1128
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1128
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 140,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "00835da0d597d0a7bcb83b4a42bcdec0413cf179b0fb858bc855a44f834c4ca5"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 6483
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 204
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 203,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "8f497dabe6b2d966df01c47344f9d0f14c92ffb6997777b4fb4829487ec23903"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 2,
+    "lost": 1,
+    "torn-native": 24,
+    "torn-sector": 20,
+    "torn-sector-wide": 24
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 204
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1632
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1632
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 134,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 203,
+    "flushes": 4,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "8f497dabe6b2d966df01c47344f9d0f14c92ffb6997777b4fb4829487ec23903"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 12,
+    "torn-native": 20,
+    "torn-sector": 16,
+    "torn-sector-wide": 20
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 21,
+     "P4": 6,
+     "P5": 17,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2434
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 81
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 80,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 78,
+     "seed": 74
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 80,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "95ae30b67889a21a97b4e432577805653ae5cf8327c56dec628fd0b7ef7567e0"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 36,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 12,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 81
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 648
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 14,
+     "cases": 648
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 32,
+     "cases": 648
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 80,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 80,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 74,
+    "sha256": "95ae30b67889a21a97b4e432577805653ae5cf8327c56dec628fd0b7ef7567e0"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 198,
+     "P5": 17,
+     "P6": 3,
+     "P7": 0,
+     "cases": 3889
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 144
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 78,
+     "seed": 74
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 143,
+     "seed": 74
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 143,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "77b615298dbdd2685b5ae4bd909195781a02f4f0730582cd6bcbdfde124b97ee"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 36,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 12,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 144
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1152
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 10,
+     "cases": 1152
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 24,
+     "cases": 1152
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 76,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 73,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 143,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 137,
+    "sha256": "77b615298dbdd2685b5ae4bd909195781a02f4f0730582cd6bcbdfde124b97ee"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 30,
+     "P4": 4,
+     "P5": 25,
+     "P6": 0,
+     "P7": 0,
+     "cases": 3510
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 137
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 136,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 134,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 136,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "9d71c6d4c04c9154e3112b517ebd2fddfa112b9d776a7bc2cb0b418608d4612c"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 50,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 12,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 137
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1096
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 2,
+     "cases": 1096
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 16,
+     "cases": 1096
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 136,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 132,
+     "seed": 2
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 136,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 130,
+    "sha256": "9d71c6d4c04c9154e3112b517ebd2fddfa112b9d776a7bc2cb0b418608d4612c"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 133,
+     "P5": 25,
+     "P6": 2,
+     "P7": 0,
+     "cases": 5363
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 200
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 134,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 199,
+     "seed": 130
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector-wide",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 199,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "e1207b90f3332849b65d63e88cf5f7215e13dbe3ace7ebda4c1bc2fa3ef6a1b4"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 50,
+    "lost": 2,
+    "torn-native": 16,
+    "torn-sector": 12,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 200
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1600
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 1,
+     "cases": 1600
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 8,
+     "cases": 1600
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P7": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "torn-sector",
+     "position": 132,
+     "seed": 2
+    }
+   },
+   "layout": "rmw",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 199,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 193,
+    "sha256": "e1207b90f3332849b65d63e88cf5f7215e13dbe3ace7ebda4c1bc2fa3ef6a1b4"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 2,
+    "reordered": 16,
+    "torn-native": 16,
+    "torn-sector": 16,
+    "torn-sector-wide": 16
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 629
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 124
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 123,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "090ccf10b5f56ba3de9e24eedb824b0a7647f3061c593975c4ea8a0047ac3f1f"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 124
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 123,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "090ccf10b5f56ba3de9e24eedb824b0a7647f3061c593975c4ea8a0047ac3f1f"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 944
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 187
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 186,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "6cc60229b936dc347a843bb00fbc144dab6d7ea2d9c3000ea9d3f0ab746c74f9"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 187
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": true,
+   "trace": {
+    "events": 186,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "6cc60229b936dc347a843bb00fbc144dab6d7ea2d9c3000ea9d3f0ab746c74f9"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 629
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 124
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 123,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "090ccf10b5f56ba3de9e24eedb824b0a7647f3061c593975c4ea8a0047ac3f1f"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 124
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 992
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 123,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "090ccf10b5f56ba3de9e24eedb824b0a7647f3061c593975c4ea8a0047ac3f1f"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 944
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 187
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 186,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "6cc60229b936dc347a843bb00fbc144dab6d7ea2d9c3000ea9d3f0ab746c74f9"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 187
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1496
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 186,
+    "flushes": 20,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "6cc60229b936dc347a843bb00fbc144dab6d7ea2d9c3000ea9d3f0ab746c74f9"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 855
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 169
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 168,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "e64100efcaeb2d0d2965f73766dff1e885bf9944e779f9475805cd3faf5b0dbd"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 169
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1352
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 168,
+    "flushes": 18,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "e64100efcaeb2d0d2965f73766dff1e885bf9944e779f9475805cd3faf5b0dbd"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1170
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 232
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 231,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "aa2a28bb7de7f877f976f40f56ba6c86a01cf8d1f378771e4c8cfca4715925ca"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 232
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1856
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "flush",
+   "reliable": false,
+   "trace": {
+    "events": 231,
+    "flushes": 25,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "aa2a28bb7de7f877f976f40f56ba6c86a01cf8d1f378771e4c8cfca4715925ca"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 709
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 123
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 122,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "aaa3953cb6de88055a9430f4fe3fc59f12f71e3bb4a0a71e5a71cc1ce5124bea"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 123
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 984
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 122,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "aaa3953cb6de88055a9430f4fe3fc59f12f71e3bb4a0a71e5a71cc1ce5124bea"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1024
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 186
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 185,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "ecb3a20ab40a099b657aede308067b8fdeb1d3b0e8fbd70c54b6763e5f57d34b"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 186
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1488
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 185,
+    "flushes": 19,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "ecb3a20ab40a099b657aede308067b8fdeb1d3b0e8fbd70c54b6763e5f57d34b"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1260
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 166
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 165,
+    "flushes": 15,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "a9223c1629586eb2d5a4fce1f9e417feb437f89b39f5e2bb8852b55d7150b579"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 166
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1328
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 165,
+    "flushes": 15,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "a9223c1629586eb2d5a4fce1f9e417feb437f89b39f5e2bb8852b55d7150b579"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1575
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 229
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 228,
+    "flushes": 22,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "a375bf797c7024d8fea6d6fe9df8ed8bde3c3bf2fdd9b73f5bc54f6d3512212b"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 229
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1832
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "steps",
+   "reliable": false,
+   "trace": {
+    "events": 228,
+    "flushes": 22,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "a375bf797c7024d8fea6d6fe9df8ed8bde3c3bf2fdd9b73f5bc54f6d3512212b"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1090
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 120
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 119,
+    "flushes": 9,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "fbbecd83442b9d19a48d32d32202bf8940eaf52a01d17af36e85a52c2659fd64"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 120
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 960
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 119,
+    "flushes": 9,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "fbbecd83442b9d19a48d32d32202bf8940eaf52a01d17af36e85a52c2659fd64"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1810
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 180
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 179,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "ee030114d9eab54699f03e5af3b9dc6a7cf11e358272da9b0532d8cbf7dd1b85"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 180
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1440
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 179,
+    "flushes": 13,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "ee030114d9eab54699f03e5af3b9dc6a7cf11e358272da9b0532d8cbf7dd1b85"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1641
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "7b94d42639286cd450db1a4447d5eb246f32de080892d448a00be5c6239abdc6"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 163
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1304
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 162,
+    "flushes": 12,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "7b94d42639286cd450db1a4447d5eb246f32de080892d448a00be5c6239abdc6"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 2361
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 223
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 222,
+    "flushes": 16,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "443ce52ddc3e0a11464dba5f2e899a2f5561922edc8f1d9672c0173f36478fa8"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 37,
+    "lost": 1,
+    "torn-native": 16,
+    "torn-sector": 78,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 223
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1784
+    }
+   },
+   "device": "unordered",
+   "examples": {},
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "trailer",
+   "reliable": false,
+   "trace": {
+    "events": 222,
+    "flushes": 16,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "443ce52ddc3e0a11464dba5f2e899a2f5561922edc8f1d9672c0173f36478fa8"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 1,
+    "reordered": 40,
+    "torn-native": 12,
+    "torn-sector": 46,
+    "torn-sector-wide": 40
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 25,
+     "P4": 17,
+     "P5": 22,
+     "P6": 0,
+     "P7": 0,
+     "cases": 3199
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 111
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 110,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 101,
+     "seed": 83
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 92,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 110,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "2232b59ef39aefa37914ecc62771097625a676e065259ce040e71e98cb2a4b3a"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 225,
+    "lost": 9,
+    "torn-native": 8,
+    "torn-sector": 70,
+    "torn-sector-wide": 64
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 111
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 888
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 110,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 92,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": false,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 110,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 104,
+    "sha256": "2232b59ef39aefa37914ecc62771097625a676e065259ce040e71e98cb2a4b3a"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 9,
+    "reordered": 72,
+    "torn-native": 72,
+    "torn-sector": 72,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 96,
+     "P5": 22,
+     "P6": 1,
+     "P7": 0,
+     "cases": 4729
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 167
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 101,
+     "seed": 83
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 92,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 166,
+     "seed": 83
+    }
+   },
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 166,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "d1dc92fa3bf0834543265a104703acbc132186b48a794b769afd2c1e37e5875e"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 225,
+    "lost": 9,
+    "torn-native": 8,
+    "torn-sector": 70,
+    "torn-sector-wide": 64
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 167
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1336
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 92,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": false,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 166,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 160,
+    "sha256": "d1dc92fa3bf0834543265a104703acbc132186b48a794b769afd2c1e37e5875e"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 9,
+    "reordered": 72,
+    "torn-native": 72,
+    "torn-sector": 72,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 25,
+     "P4": 10,
+     "P5": 25,
+     "P6": 0,
+     "P7": 0,
+     "cases": 3873
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 151
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 150,
+     "seed": 0
+    },
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 141,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 150,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "b0bec7ef8f7261168a76993c2bc6b1cb05387edc0315345da3346c9d14bda253"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 232,
+    "lost": 9,
+    "torn-native": 8,
+    "torn-sector": 70,
+    "torn-sector-wide": 64
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 1,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 151
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 8,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1208
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P3": {
+     "acked": [
+      "confirmed",
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 150,
+     "seed": 0
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": true,
+   "path": "confirm",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 150,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "confirmed"
+    ],
+    "sector_writes": 144,
+    "sha256": "b0bec7ef8f7261168a76993c2bc6b1cb05387edc0315345da3346c9d14bda253"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 9,
+    "reordered": 72,
+    "torn-native": 72,
+    "torn-sector": 72,
+    "torn-sector-wide": 72
+   }
+  },
+  {
+   "by_model": {
+    "fifo": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 70,
+     "P5": 25,
+     "P6": 1,
+     "P7": 0,
+     "cases": 5426
+    },
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 207
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    }
+   },
+   "device": "fifo-barrier",
+   "examples": {
+    "P4": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 141,
+     "seed": 130
+    },
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    },
+    "P6": {
+     "acked": [
+      "erased",
+      "image",
+      "requested",
+      "reverted",
+      "trial"
+     ],
+     "boot1": [
+      1,
+      2
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "fifo",
+     "position": 206,
+     "seed": 130
+    }
+   },
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 206,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "a89b9b4862101a7c5eb70d89cfc3ecacfb17d9cef4053f5c3df291b40e7b94f1"
+   },
+   "trial_cancelled_in_flight": {
+    "fifo": 232,
+    "lost": 9,
+    "torn-native": 8,
+    "torn-sector": 70,
+    "torn-sector-wide": 64
+   }
+  },
+  {
+   "by_model": {
+    "lost": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 1,
+     "P6": 0,
+     "P7": 0,
+     "cases": 207
+    },
+    "reordered": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 8,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    },
+    "torn-native": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    },
+    "torn-sector": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    },
+    "torn-sector-wide": {
+     "P1": 0,
+     "P2": 0,
+     "P3": 0,
+     "P4": 0,
+     "P5": 0,
+     "P6": 0,
+     "P7": 0,
+     "cases": 1656
+    }
+   },
+   "device": "unordered",
+   "examples": {
+    "P5": {
+     "acked": [
+      "erased",
+      "image",
+      "requested"
+     ],
+     "boot1": [
+      0,
+      1
+     ],
+     "boot2": [
+      0,
+      1
+     ],
+     "model": "lost",
+     "position": 132,
+     "seed": 0
+    }
+   },
+   "layout": "native",
+   "padded": true,
+   "path": "revert",
+   "policy": "none",
+   "reliable": false,
+   "trace": {
+    "events": 206,
+    "flushes": 0,
+    "marks": [
+     "erased",
+     "image",
+     "requested",
+     "trial",
+     "reverted"
+    ],
+    "sector_writes": 200,
+    "sha256": "a89b9b4862101a7c5eb70d89cfc3ecacfb17d9cef4053f5c3df291b40e7b94f1"
+   },
+   "trial_cancelled_in_flight": {
+    "lost": 9,
+    "reordered": 72,
+    "torn-native": 72,
+    "torn-sector": 72,
+    "torn-sector-wide": 72
+   }
+  }
+ ],
+ "seconds": 69.5,
+ "seeds": 8
+}

@@ -1,0 +1,4 @@
+/* Fictional compile-only RT1062 board (tests/zephyr/board_fixture): System selects
+ * the SoC's WDOG1, as a custom board with an i.MX RT1062 would in its overlay. */
+/ { aliases { crux-watchdog0 = &wdog0; }; };
+&wdog0 { status = "okay"; };

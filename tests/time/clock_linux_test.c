@@ -1,3 +1,4 @@
+// NOLINTNEXTLINE(bugprone-reserved-identifier): feature-test macro, the name is fixed by POSIX
 #define _POSIX_C_SOURCE 200809L
 #include <crux/time.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@ static int failures;
     } while (0)
 static struct timespec reading = {4, 999999999}, resolution = {0, 10};
 static int read_error, resolution_error, resolution_calls, wrong_clock;
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_gettime(clockid_t id, struct timespec *out)
 {
     if (id != CLOCK_MONOTONIC)
@@ -20,6 +22,7 @@ int __wrap_clock_gettime(clockid_t id, struct timespec *out)
     *out = reading;
     return read_error;
 }
+// NOLINTNEXTLINE(bugprone-reserved-identifier): linker --wrap convention, name fixed by the linker
 int __wrap_clock_getres(clockid_t id, struct timespec *out)
 {
     if (id != CLOCK_MONOTONIC)

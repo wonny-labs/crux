@@ -143,6 +143,64 @@ static void expect_record_unusable(const uint8_t *record, size_t length)
                                               &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
 }
 
+/* Appends one length-prefixed SSH string. */
+static size_t put_ssh_string(uint8_t *out, const void *text, size_t length)
+{
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = (uint8_t)(length >> 8);
+    out[3] = (uint8_t)length;
+    memcpy(&out[4], text, length);
+    return 4u + length;
+}
+
+/* A well-formed ECDSA blob of the named type, with an uncompressed point of the given size. */
+static size_t ecdsa_blob_of(uint8_t *blob, const char *type, size_t point_size, const char *curve)
+{
+    uint8_t point[CRUX_ACCESS_KEY_SIZE_MAX];
+    memset(point, 0x42, sizeof(point));
+    point[0] = 4;
+    size_t used = put_ssh_string(blob, type, strlen(type));
+    used += put_ssh_string(&blob[used], curve, strlen(curve));
+    used += put_ssh_string(&blob[used], point, point_size);
+    return used;
+}
+
+/* The record the key is last in: the single account of `good`, with `key` in place of its key. */
+static size_t record_with_key(const uint8_t *good, size_t key_length_at, const uint8_t *key,
+                              size_t key_length, uint8_t *record)
+{
+    memcpy(record, good, key_length_at);
+    record[key_length_at] = (uint8_t)key_length;
+    record[key_length_at + 1u] = (uint8_t)(key_length >> 8);
+    memcpy(&record[key_length_at + 2u], key, key_length);
+    return key_length_at + 2u + key_length;
+}
+
+/* A store that an earlier revision saved can hold a P-384 or P-521 key, which is no longer a type
+ * Access accepts (#316). The record is then malformed as a whole, so the store reads as unusable
+ * and no account can log in, as for any other malformed record. */
+static void legacy_key_type_cases(const uint8_t *good, size_t key_length_at)
+{
+    uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
+    uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
+
+    /* The control: the same record shape holding the accepted P-256 type loads. */
+    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 65, "nistp256");
+    size_t length = record_with_key(good, key_length_at, blob, used, record);
+    access_fake_reset();
+    crux_access_test_reset();
+    access_fake_store_set_record(record, length);
+    CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp384", 97, "nistp384");
+    length = record_with_key(good, key_length_at, blob, used, record);
+    expect_record_unusable(record, length);
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp521", 133, "nistp521");
+    length = record_with_key(good, key_length_at, blob, used, record);
+    expect_record_unusable(record, length);
+}
+
 /* The store promises to detect corruption, and this layer does not rely on that alone. */
 static void malformed_record_cases(void)
 {
@@ -216,6 +274,9 @@ static void malformed_record_cases(void)
     crux_access_test_reset();
     access_fake_store_set_record(good, length);
     CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+
+    CHECK(length < CRUX_ACCESS_RECORD_SIZE_MAX);
+    legacy_key_type_cases(good, key_length_at);
 }
 
 /* --- 64-bit time --- */

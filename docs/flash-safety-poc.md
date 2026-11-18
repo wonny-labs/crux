@@ -1,5 +1,7 @@
 # Isolated Flash safety remediation PoC
 
+> **Status: historical experiment.** A software-only proof of concept, not an adopted design. For the current state see [Component readiness](component-readiness.md).
+
 Experimental, software-only follow-up to [Issue #22](https://github.com/wonny-labs/crux-pilot/issues/22)
 and the accepted [storage assessment](storage-configuration-assessment.md).
 This is not an adopted Flash driver, partition layout, backend or production recovery policy.
@@ -116,7 +118,7 @@ permission follows from software tests or this Draft PR.
 
 ## Independent review
 
-Separate Reviewer `/root/flash_probe_review` returned **PASS for the limited
+A separate independent Reviewer returned **PASS for the limited
 software PoC**, independently checking current source transformations, late-error
 tests, ELF bytes/configuration pointer chain and retained build/Host evidence.
 Earlier REVISE findings were corrected and re-reviewed. One macOS lower-harness
@@ -165,5 +167,5 @@ A GCC CI failure also required expanding a compact `if` statement in generated
 host-test C into braces and separate lines. This changes no test assertions,
 PoC driver behavior or warning policy. The complete manual gate was rerun with
 GCC and the fault harness with Clang; the target ELF remains unchanged. [Review provenance and resolved findings](evidence/flash-safety-poc/review-record.md)
-separate the local subagent review from the later GitHub technical review. Neither
+separate the local independent review from the later GitHub technical review. Neither
 is a production-safety approval or authorisation to merge.

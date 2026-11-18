@@ -1,8 +1,20 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Crux's own targets are not product code. This directory definition reaches the targets that
+# the module creates and no usage requirement, so the application does not inherit it. It keeps
+# the opt-in frozen header warning (CRUX_WARN_FROZEN_HEADERS) out of Crux's own sources.
+add_compile_definitions(CRUX_INTERNAL_BUILD)
+
 # Rule L5 of the command line contract applies to every image, including one with no management.
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
 crux_check_management_shell()
+
+# CONFIG_CRUX_ACCESS needs hwinfo for the credential store's device ID. This is checked here, before the
+# System selection's own check of the same symbol, so that the refusal names the symbol that was set.
+if(CONFIG_CRUX_ACCESS AND NOT CONFIG_HWINFO)
+    message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_HWINFO: the credential store's device ID "
+                        "comes from it")
+endif()
 
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
@@ -148,6 +160,108 @@ if(CONFIG_CRUX_WEB)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/web")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
+endif()
+
+# The locks of TF-PSA-Crypto's core (Experimental). The option sets CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE to the
+# module's header, so a product that names another file there cannot also take these locks.
+if(CONFIG_CRUX_PSA_THREADING)
+    if(NOT "${CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE}" STREQUAL "crux_tf_psa_user_config.h")
+        message(FATAL_ERROR "CONFIG_CRUX_PSA_THREADING provides the locks through "
+                            "crux_tf_psa_user_config.h, but CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE is "
+                            "'${CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE}': leave one of the two out")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/psa_threading"
+        "${CMAKE_CURRENT_BINARY_DIR}/psa_threading")
+endif()
+
+# ADR-0004 phase 0: Access, the credential store and the security events, which are wired to each
+# other, so one symbol builds the three. Off by default, and an image without the symbol is unchanged.
+# Each library is registered with the Zephyr link. The portable targets crux::access,
+# crux::credential_store and crux::security_event are defined in the port directories: see
+# components/access/ports/zephyr/CMakeLists.txt. What the three need from the rest of the image is
+# refused here, at configuration, with the missing piece named.
+if(CONFIG_CRUX_ACCESS)
+    if(NOT CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the Mbed profile of PSA Crypto "
+                            "(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS): its ports are the PSA ports")
+    endif()
+    if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs the locks that the Mbed profile's core calls "
+                            "(CONFIG_TF_PSA_CRYPTO_USER_CONFIG): set CONFIG_CRUX_PSA_THREADING=y, or "
+                            "give the core locks of your own through CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE")
+    endif()
+    if(NOT TARGET crux::file)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs a Crux File provider for the credential store's "
+                            "two roots: set one of the CONFIG_CRUX_FILE_* selections")
+    endif()
+    if(NOT CONFIG_CRUX_LOGGING)
+        message(FATAL_ERROR "CONFIG_CRUX_ACCESS needs CONFIG_CRUX_LOGGING: the security events "
+                            "write their records through it")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/access/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/access")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/credential/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/credential")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/security_event/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/security_event")
+endif()
+
+# ADR-0004 phase 0, slice 2: the Configuration core, the Configuration service and the status service.
+# Each is off by default and added only under its symbol. The core defers to the Settings File selection
+# when that is on (components/configuration/ports/zephyr/core/CMakeLists.txt).
+if(CONFIG_CRUX_CONFIGURATION_CORE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr/core"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration_core")
+endif()
+if(CONFIG_CRUX_CONFIG_SERVICE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/config_service/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/config_service")
+endif()
+if(CONFIG_CRUX_MGMT_STATUS)
+    if(NOT TARGET crux::system)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_SYSTEM: the status service reads "
+                            "the System contract")
+    endif()
+    if(NOT TARGET crux::netif)
+        message(FATAL_ERROR "CONFIG_CRUX_MGMT_STATUS needs CONFIG_CRUX_NETIF: the status service reads "
+                            "the network interface")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/mgmt_status/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/mgmt_status")
+endif()
+
+# ADR-0004 phase 0, slice 3: network settings, the TLS certificate module, the file service and reboot. Each
+# is off by default and added only under its symbol.
+if(CONFIG_CRUX_NETWORK_SETTINGS)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/network_settings/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/network_settings")
+endif()
+if(CONFIG_CRUX_TLS_CERTIFICATE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/tls_certificate/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/tls_certificate")
+endif()
+if(CONFIG_CRUX_FILE_SERVICE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file_service/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/file_service")
+endif()
+if(CONFIG_CRUX_REBOOT)
+    if(NOT TARGET crux::system)
+        message(FATAL_ERROR "CONFIG_CRUX_REBOOT needs CONFIG_CRUX_SYSTEM: the reboot service resets "
+                            "through the System contract")
+    endif()
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/reboot/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/reboot")
+endif()
+
+# ADR-0004 phase 0, slice 4: the web session and web management cores. Each is off by default and added only
+# under its symbol. The route sources are not built here: the application names them to crux_web_routes().
+if(CONFIG_CRUX_WEB_SESSION)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr/session"
+        "${CMAKE_CURRENT_BINARY_DIR}/web_session")
+endif()
+if(CONFIG_CRUX_WEB_MANAGEMENT)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr/management"
+        "${CMAKE_CURRENT_BINARY_DIR}/web_management")
 endif()
 
 # SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
