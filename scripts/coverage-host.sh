@@ -32,15 +32,25 @@ if [[ "$mode" == run ]]; then
         -DFETCHCONTENT_BASE_DIR="$CRUX_CACHE_DIR/cmake" \
         -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DCMAKE_EXE_LINKER_FLAGS=--coverage
     cmake --build "$build"
-    ctest --test-dir "$build" --output-on-failure --output-junit "$build/ctest-junit.xml"
+    # Ssh.cli_entry_symbols reads the undefined symbols of the SSH entry points' object files
+    # and refuses any it does not know. --coverage adds llvm_gcda_* and llvm_gcov_init
+    # references, so the test fails only in this instrumented build and says nothing here. It
+    # still runs, un-instrumented, in the normal Host job (host.yml). Exclude only that test.
+    ctest --test-dir "$build" --output-on-failure --output-junit "$build/ctest-junit.xml" \
+        -E '^Ssh\.cli_entry_symbols$'
     exit 0
 fi
 
 # Component sources only: tests, the fetched test library and Zephyr or kernel code are out.
+# CMake's compiler-identification probes (CMakeFiles/<version>/CompilerId*) are built with
+# --coverage too, and gcovr finds no working directory in which gcov can read their notes
+# (no_working_dir_found), so it stops before it writes a report. They hold no component code:
+# skip those directories instead of ignoring errors.
 mkdir -p "$out"
 cd "$repo"
 gcovr -r "$repo" --gcov-executable "$gcov_tool" --gcov-object-directory "$build" \
     --filter 'components/' --exclude '.*/tests?/.*' \
+    --exclude-directories '.*/CMakeFiles/[0-9][0-9.]*/CompilerId[A-Za-z]*' \
     --exclude-unreachable-branches --exclude-throw-branches \
     --merge-mode-functions separate \
     --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \

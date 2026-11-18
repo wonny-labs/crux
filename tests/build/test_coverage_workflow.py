@@ -173,6 +173,51 @@ class CoverageWorkflowTest(unittest.TestCase):
                 self.assertIn(flag, script)
         self.assertNotIn("--coverage", (REPO / "CMakePresets.json").read_text())
 
+    def test_the_instrumented_host_run_skips_only_the_symbol_inspecting_test(self):
+        # Ssh.cli_entry_symbols runs nm on the entry points' object files and refuses any
+        # undefined symbol it does not know. --coverage adds llvm_gcda_* and llvm_gcov_init
+        # references, so the test fails only in the instrumented build. It is excluded there
+        # by its exact name, with a reason, and still runs in the normal Host job.
+        script = (REPO / "scripts/coverage-host.sh").read_text()
+        joined = script.replace("\\\n", " ")
+        ctest = [line for line in joined.splitlines() if line.lstrip().startswith("ctest ")]
+        self.assertEqual(1, len(ctest))
+        match = re.search(r"\s-E '([^']+)'", ctest[0])
+        self.assertIsNotNone(match, "the ctest line itself excludes a test with -E")
+        self.assertEqual(r"^Ssh\.cli_entry_symbols$", match.group(1), "exactly one test, by full name")
+        self.assertIn("Ssh.cli_entry_symbols", (REPO / "tests/ssh/cli/CMakeLists.txt").read_text())
+        self.assertIn("llvm_gcda", script, "the script says why the test is excluded")
+        readme = (REPO / "tests/README.md").read_text()
+        section = readme[readme.index("## Advisory test coverage"):]
+        self.assertIn("Ssh.cli_entry_symbols", section, "tests/README.md documents the exclusion")
+        self.assertIn("llvm_gcda", section)
+
+    def test_the_host_report_skips_the_cmake_compiler_probe_directories(self):
+        # CMake's compiler-identification probes are built with the coverage flags too. In the
+        # first run gcovr stopped on CMakeFiles/3.28.4/CompilerIdC/a-CMakeCCompilerId.gcno with
+        # no_working_dir_found, before it wrote any report. Why gcov found no working directory
+        # was not established. The probe directories are skipped by name; errors are not
+        # ignored, so a component file that gcov cannot resolve still fails the step.
+        script = (REPO / "scripts/coverage-host.sh").read_text()
+        gcovr = script[script.index("gcovr -r"):]
+        match = re.search(r"--exclude-directories '([^']+)'", gcovr)
+        self.assertIsNotNone(match, "the report skips the probe directories")
+        pattern = re.compile(match.group(1))
+        # gcovr matches a filter from the start of the path, like --filter 'components/'.
+        base = "/w/crux-pilot/build/linux/coverage"
+        for excluded in ("CMakeFiles/3.28.4/CompilerIdC", "CMakeFiles/3.28.4/CompilerIdCXX",
+                         "CMakeFiles/3.28.4/CompilerIdC/tmp"):
+            with self.subTest(excluded=excluded):
+                self.assertTrue(pattern.match(f"{base}/{excluded}"))
+        # Only directories under CMakeFiles/<version starting with a digit>/CompilerId* match.
+        for kept in ("CMakeFiles/crux_time.dir/components/time/src", "CMakeFiles/3.28.4",
+                     "CMakeFiles/3.28.4/CMakeTmp", "CMakeFiles/gtest.dir/CompilerIdC",
+                     "_deps/googletest-build/CMakeFiles/gtest.dir", "components/time",
+                     "CompilerIdC"):
+            with self.subTest(kept=kept):
+                self.assertIsNone(pattern.match(f"{base}/{kept}"))
+        self.assertNotIn("--gcov-ignore-errors", script)
+
     def test_native_sim_measures_a_named_set_and_keeps_repository_sources_only(self):
         script = (REPO / "scripts/coverage-native-sim.sh").read_text()
         for suite in ("tests/time/zephyr", "tests/logging/zephyr", "tests/system/zephyr",

@@ -1060,6 +1060,12 @@ documentation. Pull requests do not start it, so their CI time is unchanged.
 | Host | `scripts/coverage-host.sh run` then `report` | The root CMake tree with `--coverage` added on the command line (the `host-debug` settings otherwise, `CMakePresets.json` unchanged) and its CTest set, built with Clang 18 and read with `llvm-cov gcov` through gcovr |
 | `native_sim` | `scripts/coverage-native-sim.sh run` then `report` | The Time, Logging, System and FatFs File Twister suites on `native_sim/native/64`, with the module arguments of their own scripts (System without the consumer root `tests/system_consumer/zephyr`, FatFs on `native_sim/native/64` only), through gcovr |
 
+The instrumented Host run skips one test, `Ssh.cli_entry_symbols`, by its exact name. That test
+runs `nm` on the SSH entry points' object files and fails on any undefined symbol it does not
+know; `--coverage` adds the instrumentation references `llvm_gcda_*` and `llvm_gcov_init`, so it
+cannot pass in an instrumented build. It still runs un-instrumented in the normal Host job, and
+its test and allowlist are unchanged.
+
 The four `native_sim` suites are a first, cheap and representative set. Other suites are not
 measured yet, and a suite that cannot be built with coverage is named in the run's log without
 stopping the others. The Host part does not include the consumer suites that `host.yml` builds
