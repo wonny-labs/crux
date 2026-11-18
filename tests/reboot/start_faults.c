@@ -37,7 +37,8 @@ crux_status_t __wrap_crux_mutex_destroy(crux_mutex_t *mutex)
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the signature is the public one
-crux_status_t __wrap_crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out)
+crux_status_t __wrap_crux_semaphore_create(uint32_t initial, uint32_t maximum,
+                                           crux_semaphore_t *out)
 {
     if (semaphore_failures_left == 0u) {
         return __real_crux_semaphore_create(initial, maximum, out);
