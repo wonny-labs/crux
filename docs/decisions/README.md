@@ -17,7 +17,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 
 - One file per decision, `NNNN-short-title.md`, numbered in order and never reused.
 - Each record has a status line: **Proposed**, **Accepted** (with the date and the decision of the maintainer; the text of chat messages is not copied into the record), **Amended by ADR-NNNN** (the body stays and the later record names what it changes), **Superseded by ADR-NNNN** or **Withdrawn**.
-- An accepted record is not rewritten. A later decision supersedes it with a new record, and the old record's status line links to the new one.
+- An accepted record is not rewritten. A later decision supersedes it with a new record, and the old record's status line links to the new one. The only exceptions are changes that keep every decision, option, consequence and decision code, made with the maintainer's approval and disclosed by a dated line in the record's Record section: the amendment of ADR-0005 of 15 November 2026, and the wording revision of 18 November 2026 that replaced chat quotes, relay wording and model names in ADR-0001 to ADR-0006.
 - A record states options, trade-offs and a recommendation for each decision. It ends with a list of the owner's decisions.
 - The facts behind a record, with their sources, can sit in a research note under [`docs/research/`](../research/app-boundary-and-api-stability.md).
 - Accepting a record decides. It does not change code, checks or protected paths. Each of those is its own reviewed change.

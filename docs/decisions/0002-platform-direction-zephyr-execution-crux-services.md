@@ -1,6 +1,6 @@
 # ADR-0002: Platform direction: Zephyr for execution, Crux for services
 
-Status: **Accepted** on 13 November 2026. **Amended by [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md)** on 14 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 13 November 2026. Baseline: main `828021cf`. It amends [ADR-0001](0001-application-boundary-and-api-stability.md) by reference, as [What this amends](#what-this-amends-in-adr-0001) lists. ADR-0001's body is unchanged.
+Status: **Accepted** on 13 November 2026. **Amended by [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md)** on 14 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 13 November 2026. Baseline: main `828021cf`. It amends [ADR-0001](0001-application-boundary-and-api-stability.md) by reference, as [What this amends](#what-this-amends-in-adr-0001) lists. ADR-0001's body is unchanged by this amendment.
 
 This record is documentation only. It changes no code, check, contract or protected path. Each decision that it puts into effect needs its own reviewed change afterwards, listed under [Follow-up changes](#follow-up-changes). The evidence is in the [platform direction review](../research/platform-direction-review.md) and is not copied here.
 
@@ -102,3 +102,4 @@ After the approval, P2, P4 and P6 in the review's section 9 were reworded to app
 - Author: Claude Code, from the review, whose recommendations the maintainer approved.
 - Review: the repository's `reviewer` agent passed the review document before the owner's decision. This record's own review is in its pull request.
 - Acceptance: accepted by the maintainer on 13 November 2026.
+- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.

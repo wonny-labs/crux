@@ -8,10 +8,10 @@ This record keeps the raw evidence of the first real hardware use of the Crux ma
 
 | Date | Approval | Covers |
 | --- | --- | --- |
-| 2026-11-08 | Approved by the maintainer, after the cable state was checked | all board operations of stage 1 |
+| 2026-11-08 | Approved by the maintainer, who said the cable state would be checked | all board operations of stage 1 |
 | 2026-11-08 | Approved by the maintainer in several messages (plan option A, item 1, and the rest as listed) | identity block and reduced mode, replacement mount guard, driver scope, frozen-input rule, narrow checks |
 | 2026-11-08 | Approved in advance by the maintainer, for the night | proceed after an independent PASS without waiting for further approval |
-| 2026-11-08 | Approved by the maintainer, after he started the guard | the owner started the guard; permission for exactly the pyserial 3.5 wheel (PyPI, hash-pinned, new venv outside the repository) |
+| 2026-11-08 | Approved by the maintainer, after the mount guard was started | permission for exactly the pyserial 3.5 wheel (PyPI, hash-pinned, new venv outside the repository) |
 | 2026-11-08 | Approved by the maintainer | overwrite the unknown flash content with the accepted normal image, without a separate backup (plan revision 4a, section 3, `inputs/plans/stage1-phase-b-plan-r4.md`) |
 
 ## 2. Source, artefacts and plan of the run

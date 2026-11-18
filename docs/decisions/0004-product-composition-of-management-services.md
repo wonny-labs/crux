@@ -275,3 +275,4 @@ On native macOS, in the worktree at `a72032b2`: `git fetch`, reads of the files 
 | Baseline | `a72032b2f29c8c4579de8de07a43b40f19bb9516` |
 | Independent review | The `reviewer` agent, verdict in the pull request |
 | Acceptance | Accepted by the maintainer on 14 November 2026, as recommended (C1 to C9, C8 deferred). See [the owner's decisions](#the-owners-decisions) |
+| Revision | 18 November 2026: chat quotes, relay wording, model names and skill lists replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed |

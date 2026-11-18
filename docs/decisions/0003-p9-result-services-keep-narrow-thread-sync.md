@@ -1,6 +1,6 @@
 # ADR-0003: P9 result: services keep a narrow Crux Thread and Sync
 
-Status: **Accepted** on 14 November 2026. See [the owner's decision](#the-owners-decision). Baseline: main `907acd67`. It decides P9 of [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and gives P8 new wording, so it **amends ADR-0002** as [What this amends](#what-this-amends-in-adr-0002) lists. ADR-0002's body is unchanged.
+Status: **Accepted** on 14 November 2026. See [the owner's decision](#the-owners-decision). Baseline: main `907acd67`. It decides P9 of [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and gives P8 new wording, so it **amends ADR-0002** as [What this amends](#what-this-amends-in-adr-0002) lists. ADR-0002's body is unchanged by this amendment.
 
 This record is documentation only. It changes no code, check, contract or protected path. Each change that it puts into effect needs its own reviewed change afterwards, listed under [Follow-up changes](#follow-up-changes).
 
@@ -72,3 +72,4 @@ Accepted by the maintainer on 14 November 2026: recording the P9 result as O4, w
 - Author: Claude Code, from the two pilot records.
 - Review: this record's own independent review is in its pull request.
 - Acceptance: accepted by the maintainer on 14 November 2026.
+- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.

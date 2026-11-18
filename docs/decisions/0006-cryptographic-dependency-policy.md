@@ -1,6 +1,6 @@
 # ADR-0006: How Crux handles its cryptographic dependencies over time (proposal)
 
-Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code. The maintainer approved writing this proposal, and only the proposal, on 14 November 2026, for the item recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now. The question behind it came from the maintainer through the `crux-controller` project: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
+Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code. The maintainer approved writing this proposal, and only the proposal, on 14 November 2026, for the item recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now. The question behind it was the maintainer's, asked while working on `crux-controller`: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
 
 This record is documentation only. It adds no code, check, target or Kconfig symbol, changes no `west.yml` pin, changes no protected path and opens no GitHub issue. Accepting it decides the policy and nothing else: it adopts no pin move and no code. Every change it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes). The number 0006 is used because ADR-0005 is taken by the open Draft PR #404 (**Verified** with `gh pr list` on 14 November 2026).
 
@@ -245,3 +245,4 @@ On native macOS, in the worktree at `8a6fc5a5`: `git fetch`, reads of the files 
 | Baseline | `8a6fc5a59142963ebe49d6d0041ad29c952f47d4` |
 | Independent review | The `reviewer` agent, verdict in the pull request |
 | Acceptance | Accepted by the maintainer on 14 November 2026, as recommended (Q1 to Q8). See [the owner's decisions](#the-owners-decisions) |
+| Revision | 18 November 2026: chat quotes, relay wording, model names and skill lists replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed |

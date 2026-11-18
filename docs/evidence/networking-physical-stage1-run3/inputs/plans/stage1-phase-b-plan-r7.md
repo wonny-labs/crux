@@ -32,7 +32,7 @@ Phases 2 to 6 have not run on the board; the first packets after the link return
 
 ## 5. Timing and authorisation
 
-Authorisation as revision 6 (the maintainer's approval of stage 1 board operations and the standing approval after independent PASS; 14:30Z was set as the last time to start the board window, guard-3 lives until about 15:12Z). Expected: plan re-check about 13:00Z, B2' about 13:05Z, window about 30 min.
+Authorisation as revision 6 (the maintainer's approval of stage 1 board operations and the standing approval after independent PASS; the main session set 14:30Z as the last time to start the board window, guard-3 lives until about 15:12Z). Expected: plan re-check about 13:00Z, B2' about 13:05Z, window about 30 min.
 
 ## 6. Independent check (Opus, read-only, 2026-11-08, handed back about 12:52Z): PASS, no blocking finding; incorporated notes
 - Recomputed and found true: trees equal to the reviewed `c3ba313` (only evidence directories differ), the fix is exactly the two described spots, manifest verify (exit 0, and 1 for a wrong hash), BIN differing from the `b44b66a` build only in the commit tag (11 of the 12 tag bytes), byte-identical plan regeneration, six tampered approvals refused, 264 M5 and 140 M3 tests pass; guard-3 alive and unchanged; nothing physical done under r7.

@@ -484,3 +484,4 @@ The approval of D4 is read from the acceptance of the whole list as recommended,
 - Research: three subagents, each limited to primary sources.
 - Review: the repository's `reviewer` agent; its verdict is recorded in the pull request.
 - Acceptance: accepted by the maintainer on 12 November 2026. The pull request that records it holds its review.
+- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.
