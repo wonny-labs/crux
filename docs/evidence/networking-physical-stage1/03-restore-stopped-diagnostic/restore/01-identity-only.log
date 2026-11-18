@@ -6,12 +6,12 @@ J-Link Commander will now exit on Error
 J-Link Command File read successfully.
 Processing script file...
 J-Link>exec DisableAutoUpdateFW
-J-Link>usb 602003106
+J-Link>usb <probe-serial>
 Connecting to J-Link ...O.K.
 Firmware: J-Link V12 compiled Sep 24 2026 13:37:18
 Hardware version: V12.00
 J-Link uptime (since boot): 0d 01h 41m 27s
-S/N: 602003106
+S/N: <probe-serial>
 License(s): RDI,FlashBP,FlashDL,JFlash,GDB
 USB speed mode: High speed (480 MBit/s)
 VTref=3.322V

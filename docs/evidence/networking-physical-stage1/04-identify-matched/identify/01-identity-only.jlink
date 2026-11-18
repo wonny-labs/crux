@@ -1,4 +1,4 @@
 exec DisableAutoUpdateFW
-usb 602003106
+usb <probe-serial>
 connect
 q
