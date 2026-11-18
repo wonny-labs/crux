@@ -28,7 +28,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 ## Before you open a pull request
 
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change; CI runs the full set.
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, `scripts/check-zephyr-smoke.sh` runs in no workflow, and some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
 
 | Change | Command |
 | --- | --- |
@@ -40,7 +40,7 @@ Run these in the Dev Container, from the repository root. Choose the ones that f
 | Documentation | `python3 scripts/check_docs.py` (Python 3.11 or later; the first run needs `python3 scripts/check_docs.py --install` for the pinned link checker) |
 | Zephyr changes | `scripts/check-zephyr-smoke.sh`, and the `scripts/test-<component>.sh` of the component you changed (see the sections below) |
 
-`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. Push the branch to a draft pull request to see the full CI results. Say in the pull request which checks you did not run. A Host test, a `native_sim` run, a cross-build and a board run each prove different things.
+`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. Push the branch to a draft pull request to see the CI results. Say in the pull request which checks you did not run. A Host test, a `native_sim` run, a cross-build and a board run each prove different things.
 
 ## Host: `time/` and `controller/`
 
