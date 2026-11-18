@@ -59,7 +59,7 @@ class HostWorkflowTest(unittest.TestCase):
         self.assertRegex(checks, r"CLANG_TIDY: clang-tidy-18\b")
 
     def test_the_file_service_checks_run(self):
-        self.assertIn("scripts/test-file-service.sh", self.workflow)
+        self.assertIn("run: ./scripts/test-file-service.sh", self.workflow)
 
 
 class ZephyrWorkflowTest(unittest.TestCase):

@@ -95,9 +95,9 @@ The measurement script reads these from the scripts, expands the globs against t
 workflow references through scripts. The two `--not-run` exclusions above were set by hand after reading
 the mode dispatch of those scripts, because the script cannot read shell control flow.
 
-Six of the thirteen scripts therefore never run their clang-tidy step in CI: `test-file-service.sh`,
-`test-network-settings.sh`, `test-reboot.sh` and `test-tls-certificate.sh` are reached by no workflow,
-and `test-web-assets.sh` and `test-web-session.sh` are reached only in `native` mode. Their selections
+Five of the thirteen scripts therefore never run their clang-tidy step in CI (six when this was measured,
+before `host.yml` began to run `test-file-service.sh`): `test-network-settings.sh`, `test-reboot.sh` and
+`test-tls-certificate.sh` are reached by no workflow, and `test-web-assets.sh` and `test-web-session.sh` are reached only in `native` mode. Their selections
 are described in documents such as [reboot-service.md](reboot-service.md) and the
 [test guide](../tests/README.md), which say the scripts run clang-tidy, but a pull request never runs them.
 

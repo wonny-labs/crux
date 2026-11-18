@@ -117,7 +117,7 @@ Zephyr's own documentation: [modules](https://github.com/zephyrproject-rtos/zeph
 
 **What was run**
 
-- `tests/build/test_shared_hardware_templates.py` checks the structure of both templates and of this page, parses the manifests, and runs real west 1.4.0 on local throwaway repositories: `west manifest --validate`, the three-layer workspace, the module's CI workspace with its blocklist, and `west crux-pins` for each row of the organisation README's table. Fake repositories stand in for Crux, Zephyr and the modules. The Host CI job has no west, so it skips the west tests.
+- `tests/build/test_shared_hardware_templates.py` checks the structure of both templates and of this page, parses the manifests, and runs real west 1.4.0 on local throwaway repositories: `west manifest --validate`, the three-layer workspace, the module's CI workspace with its blocklist, and `west crux-pins` for each row of the organisation README's table. Fake repositories stand in for Crux, Zephyr and the modules. The Host CI job installs west 1.4.0 and PyYAML, so it runs the west tests too, without a Zephyr tree.
 
 **What was not run**
 

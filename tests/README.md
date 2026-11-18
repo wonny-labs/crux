@@ -92,7 +92,7 @@ to a clang-tidy 18 binary, or the manifest, workspace and real-tool cases skip. 
 on a machine without them the run is green and says less. The host CI job installs them and sets it. Two
 product style cases still skip there, because they need a Zephyr tree (`ZEPHYR_BASE`).
 `tests/build/test_ci_wiring.py` fails if the sanitizer preset stops aborting on undefined behaviour,
-or if a workflow stops running the File service checks, the Zephyr smoke check or those installs.
+or if a workflow stops running the File service checks, the Zephyr smoke check, those installs or the `CLANG_TIDY` setting.
 
 `tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
 compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
