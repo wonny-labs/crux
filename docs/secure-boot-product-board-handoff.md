@@ -65,7 +65,7 @@ Take the full list and the reasons from the [validation target record](plans/emm
 | eMMC simulator, trailer replay and power-cut replays | [trailer replay](evidence/boot-emmc/trailer-replay/README.md), [replay record](evidence/emmc-reliance/replay-reliance/README.md) | **Verified by command, models only.** |
 | The flash write path finding and its scope question | [flash XIP evidence](flash-xip-evidence.md); #165 (decision before any bootloader NOR write), with a proposal and a candidate in #491 and #493 (open) | Open. |
 | HAB status and the open-configuration plan | [HAB status](boot-hab-status.md), [HAB open-configuration plan](plans/hab-open-configuration-plan.md) | No HAB result of any kind exists. |
-| The update agent and image-state designs | [update agent proposal](plans/update-agent-design-proposal.md), [image-state contract proposal](plans/image-state-contract-proposal.md) | Proposals. No update code exists. |
+| The update agent and image-state designs | [update agent proposal](plans/update-agent-design-proposal.md), [image-state contract proposal](plans/image-state-contract-proposal.md) | The update agent is a proposal and no update code exists. The image-state contract has Experimental code (#496): the header, pure functions, portable core and a Host test double, with no bootloader provider and no board result ([image state contract](image-state-contract.md)). |
 
 What Crux does **not** provide: board support for a product, eMMC part data, signing keys, the NXP flashloader, a HAB signing run or an eMMC first-stage image. A first-stage image for eMMC (plan issue B, not created in the plan as of 15 November 2026; its state was not re-read) is not built.
 
