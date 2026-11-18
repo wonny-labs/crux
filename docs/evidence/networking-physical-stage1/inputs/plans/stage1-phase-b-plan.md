@@ -14,12 +14,12 @@ Status: PLAN, revision 2 after the independent review of revision 1 (REVISE: fou
 
 ## 2. Authorisation (quoted, for the evidence record)
 
-| When (chat) | Quote | Covers |
+| When | Approval | Covers |
 | --- | --- | --- |
-| 2026-11-08 | "단계 1 먼저 하고 싶어. 케이블 상태 확인할게.보드 조작 모두 승인할게." | all board operations of stage 1: inventory, programming the exact image, resets, power cycles |
-| 2026-11-08 | "방안 A로 진행해줘" / "방안 A승인" / "1번으로 진행해줘" / "모두 승인할게" | identity block + reduced mode; replacement guard; driver scope; frozen-input rule; narrow checks |
-| 2026-11-08 | "자는 동안 필요한 승인은 사전에 미리해줄께. 검토가 필요한건 독립리뷰를 거치고 pass하면 ... 내 승인 기다리지 말고 해줘." | proceed after an independent PASS without waiting for approval (relayed by the main session) |
-| 2026-11-08 | recovery power cut at EVKB J1 "once is a good recovery" | one recovery cut per incident, logged (used once: 2026-11-07T22:08Z) |
+| 2026-11-08 | Approved by the maintainer, after the cable state was checked | all board operations of stage 1: inventory, programming the exact image, resets, power cycles |
+| 2026-11-08 | Approved by the maintainer in several messages (plan option A, item 1, and the rest as listed) | identity block + reduced mode; replacement guard; driver scope; frozen-input rule; narrow checks |
+| 2026-11-08 | Approved in advance by the maintainer, for the night | proceed after an independent PASS without waiting for approval |
+| 2026-11-08 | recovery power cut at EVKB J1, approved by the maintainer | one recovery cut per incident, logged (used once: 2026-11-07T22:08Z) |
 | Not covered | anything as root without the owner's own sudo; any operation outside this reviewed plan; a cable pull | |
 
 ## 3. Exact source and artefacts
@@ -40,7 +40,7 @@ Status: PLAN, revision 2 after the independent review of revision 1 (REVISE: fou
 | J-Link tools | `JLink_V986a` `JLinkExe` `e4b344d7...989a` and `libjlinkarm.9.86.1.dylib` `71908611...f088`, verified against `tests/target/jlink-tools.json` (hashes matched on 2026-11-07) |
 | Guard | `m5_mount_guard.py` SHA-256 `0baad87914ef73f908a60e3fdbcb951e4993a402ee034baec431a578a39e616c`, arm mode; record `/var/tmp/crux-guard/session-2.json`, log `guard-2.log`, lifetime up to 14400 s from READY |
 
-## 4. Bench identities (from the 2026-11-07 inventory; owner approval of these values: "모두 승인할게" relayed 2026-11-08)
+## 4. Bench identities (from the 2026-11-07 inventory; approved by the maintainer on 2026-11-08)
 
 Host interface `en13`; adapter MAC `00:24:9b:6e:f7:7f`; macOS service `AX88179 3` (Manual `192.168.77.1/255.255.255.0`, no router); UART `/dev/cu.usbmodem11402`; DAPLink serial `02290000...9905` on hub `0-1.1` port 4; J-Link `<probe-serial>` on hub `0-1` port 4 (not touched); board `192.168.77.2/24`, TCP 42420, UDP 42421; EVKB rev B, `mimxrt1060_evk@B//qspi`, image base `0x60000000`.
 

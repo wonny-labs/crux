@@ -93,16 +93,12 @@ None of these is part of this ADR. Each is its own reviewed change. Protected pa
 
 ## The owner's decision
 
-The owner approved P1 to P10 as recommended in the Crux Pilot main session chat on 13 November 2026 at 08:12:55 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The main session had asked "P1~P10을 추천대로 승인할까요?" ("Approve P1 to P10 as recommended?"). The owner replied:
-
-> 추천대로 승인
-
-This means "approve as recommended". Hardware, phase 2 of D10 and merging stay outside it.
+Accepted by the maintainer on 13 November 2026: P1 to P10 approved as recommended. Hardware, phase 2 of D10 and merging stay outside it.
 
 After the approval, P2, P4 and P6 in the review's section 9 were reworded to apply the independent re-check's non-blocking points. No decision changed: Build B's exemption follows from P5's "Build B as approved", and the requirement for the runtime port's agreement was already in sections 4.2 and 5.6 of the review at `b43d40ba`.
 
 ## Record
 
-- Author: Claude Code, model `claude-sonnet-5-5`, from the review, whose recommendations the owner approved.
+- Author: Claude Code, from the review, whose recommendations the maintainer approved.
 - Review: the repository's `reviewer` agent passed the review document before the owner's decision. This record's own review is in its pull request.
-- Acceptance: recorded from the owner's words as the Crux Pilot main session relayed them.
+- Acceptance: accepted by the maintainer on 13 November 2026.

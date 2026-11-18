@@ -23,7 +23,7 @@ D-D also keeps the slim shim if M2 is above 2, and on that basis it is. Dividing
 
 ## Decisions
 
-Reasons and alternatives are taken from the pilot records, ADR-0002 and the [platform direction review](../research/platform-direction-review.md). The recommendation is the Crux Pilot main session's, as it relayed it to the owner in the session, and the owner approved it as stated ([the owner's decision](#the-owners-decision)).
+Reasons and alternatives are taken from the pilot records, ADR-0002 and the [platform direction review](../research/platform-direction-review.md). The recommendation was put to the maintainer, who approved it as stated ([the owner's decision](#the-owners-decision)).
 
 | # | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- |
@@ -65,14 +65,10 @@ None of these is part of this ADR. Each is its own reviewed change, and merging 
 
 ## The owner's decision
 
-The owner approved recording the P9 result as O4, with the P8 wording, as recommended in the Crux Pilot main session chat on 14 November 2026 at 09:06:27 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The owner replied:
-
-> 추천대로 승인할게
-
-This means "I will approve as recommended". The statement that an Embedded Linux integration is expected is the owner's, from earlier in the same session. The switch to internal-only, hardware, tags and merging stay outside this approval.
+Accepted by the maintainer on 14 November 2026: recording the P9 result as O4, with the P8 wording, as recommended. The statement that an Embedded Linux integration is expected is the maintainer's, made before this decision. The switch to internal-only, hardware, tags and merging stay outside this approval.
 
 ## Record
 
-- Author: Claude Code, model `claude-sonnet-5-5`, from the two pilot records.
+- Author: Claude Code, from the two pilot records.
 - Review: this record's own independent review is in its pull request.
-- Acceptance: recorded from the owner's words as the Crux Pilot main session relayed them.
+- Acceptance: accepted by the maintainer on 14 November 2026.
