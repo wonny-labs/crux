@@ -28,7 +28,7 @@
       "verify_normal_image": false
     },
     "plan_sha256": "d9d69b37c4840e48ce504143539918c40eda65695e6b00fedce80778efe0418a",
-    "probe_serial": "602003106",
+    "probe_serial": "<probe-serial>",
     "recovery_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
     "reduced": {
       "boots": 1,
@@ -195,7 +195,7 @@
       "verify_normal_image",
       "normal_acceptance_capture"
     ],
-    "probe_serial": "602003106",
+    "probe_serial": "<probe-serial>",
     "procedure": [
       "REDUCED NON-QUALIFYING run: one fresh boot, phases 1 to 6 only, no cable operation and no phase 7 to 9. It cannot satisfy the M5 series, the three-boot criterion or the link event criteria; its result and evidence say so. Every other step below applies unchanged.",
       "Before any device operation: operator verifies written approval of exact operation, manifest, runner, entry and normal recovery image. Read approved M3 procedure; retain pinned J-Link executable/DLL hashes, boot UUID, exclusive owner PID and fresh root USB mount guard. Unknown state: STOP with no automatic reset or retry.",

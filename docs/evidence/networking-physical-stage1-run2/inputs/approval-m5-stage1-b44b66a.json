@@ -27,7 +27,7 @@
     "verify_normal_image": true
   },
   "plan_sha256": "f11aa7b22019f6a09a9579376253281109c2168eb61ae2906d3ead423078798c",
-  "probe_serial": "602003106",
+  "probe_serial": "<probe-serial>",
   "recovery_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
   "reduced": {
     "boots": 1,
