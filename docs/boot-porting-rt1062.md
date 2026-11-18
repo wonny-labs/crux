@@ -1,6 +1,6 @@
 # Taking the boot composition to an RT1062 product board
 
-> **Status:** Guidance, current on 15 November 2026. It adopts nothing and decides nothing. Every product value below is an input that the product team supplies.
+> **Status:** Guidance, current on 15 November 2026, with the image-state statements updated on 18 November 2026 for #496. It adopts nothing and decides nothing. Every product value below is an input that the product team supplies.
 > **Verified:** What the repository's own records and the pinned Zephyr source show about the RT1060-EVK Rev B composition (by build, by command, on pinned source), and which of those facts belong to the EVKB and not to the SoC. Each row carries its label.
 > **Not verified:** Everything that needs a board. Nothing has been booted: not the EVKB, and not any product board with QSPI NOR or eMMC. No product value exists in this repository. No build of a product board was run for this page.
 > **Read this first / then:** the [boot overview](boot-overview.md) and the [boot composition](boot-composition.md) page, then this page, then the [secure boot development plan](plans/secure-boot-development-plan.md) (section 6, decision D8) and, before any bench work, the [board test procedure](secure-boot-board-test-procedure.md).

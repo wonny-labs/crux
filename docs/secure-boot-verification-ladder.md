@@ -1,6 +1,6 @@
 # Secure boot verification ladder: what each level can prove
 
-> **Status:** Orientation and review page, current on 16 November 2026. It decides nothing and approves no hardware operation, key, fuse operation, purchase or merge. The decisions are in the pages it points to.
+> **Status:** Orientation and review page, current on 16 November 2026, with the image-state statements updated on 18 November 2026 for #496. It decides nothing and approves no hardware operation, key, fuse operation, purchase or merge. The decisions are in the pages it points to.
 > **Verified:** Only what the cited pages record, read on 16 November 2026: build and host results of the merged boot work (by build and by command), and what the repository's records say about the simulators. This page ran no build, no test and no hardware. Where it says "open" or "not merged" for a pull request, that is the state known to the author on 16 November 2026 and was not re-read from GitHub.
 > **Not verified:** Every boot, refusal, confirm, revert, update, power-cut, recovery, HAB and eMMC claim on a board. **No boot experiment has run on any board** (see the [boot overview](boot-overview.md)), so every board row below is Not verified.
 > **Read this first / then:** the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md), then this page. People who will bring up a product board continue with the [product board hand-off checklist](secure-boot-product-board-handoff.md).

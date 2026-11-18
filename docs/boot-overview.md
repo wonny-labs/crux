@@ -20,7 +20,7 @@ The first board is the NXP RT1060-EVK Rev B with 8 MiB of QSPI NOR flash. The RT
 
 The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux milestones carry them: M8 "Boot platform foundation and verified boot" ([#296](https://github.com/wonny-labs/crux-pilot/issues/296)) and M9 "Secure firmware update and recovery" ([#297](https://github.com/wonny-labs/crux-pilot/issues/297)). eMMC work cross-references M14 "Transactional storage on eMMC".
 
-| Phase | What | Where it stands on 15 November 2026 |
+| Phase | What | Where it stands (15 November 2026, image state 18 November 2026) |
 | --- | --- | --- |
 | 0 | Investigations of boot and update, eMMC, and bootloader update | Done, as desk results and build-only trial builds |
 | 1 | M8 on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The merged parts of WP1a are listed below. Board evidence is not started. A design note on recovery options is a Draft (#459, not merged). RT1170 build-only evidence is set aside: its design note (#445) and starting files (#460, Draft) are not merged |
@@ -48,7 +48,7 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two Crux miles
 | How does a product add MCUboot to its manifest? | [Product composition guide](product-composition.md) |
 | What may Crux depend on for cryptography? | [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) |
 
-## 4. What is merged and what is not (15 November 2026)
+## 4. What is merged and what is not (15 November 2026, image state 18 November 2026)
 
 Merged:
 
