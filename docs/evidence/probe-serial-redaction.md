@@ -9,8 +9,8 @@ maintainer's equipment and was removed from the committed evidence.
   serial with leading zeros) was replaced by the text `<probe-serial>`. In Markdown files, where the
   placeholder would otherwise be read as an HTML tag and hidden, it is written in backticks. No other
   byte of these files changed. In particular every measurement, time, address, count and result is
-  unchanged. The files `SHA256SUMS.tsv` (three) and the three `README.md` files of the networking runs
-  are the exceptions described below.
+  unchanged. The three `SHA256SUMS.tsv` files and the `README.md` files that gained a pointer sentence
+  (listed below) are the exceptions described below.
 - Eight empty lock files were named after the serial. They were renamed to `evkb-probe-serial.lock`
   (a file name cannot hold `<` and `>` on every platform). Their content, the empty file, is unchanged, so
   their SHA-256 is the same as before. In the three `SHA256SUMS.tsv` files only the `path` of these rows
@@ -65,10 +65,12 @@ real transcripts, so they change together with those tools:
 ## Files changed
 
 `original_sha256` is the digest before the replacement and `redacted_sha256` the digest of the
-committed file. `count` is the number of replacements in the file.
+committed file. `count` is the number of replacements in the file (0 for a README that only gained
+a pointer sentence).
 
 | path | original_sha256 | redacted_sha256 | count |
 | --- | --- | --- | --- |
+| `microsd-card-states-stack/README.md` | `4b324f8fd28c664ee0502b75ea0d706261832a1bd6a576d4fea3e36695976d4c` | `5011b7062de626d62318e00daf463e152066434d2ea095ef44a4c0829d51a308` | 0 |
 | `microsd-card-states-stack/blank-restore.log` | `362ea40ff0876ed6cc0593be08006746e90f52ecde6223ac4aa2d855b162c11d` | `f2b89636c51ee6bc5525ff22cdf1ac01a271338bcd69684e955b362e612127c4` | 1 |
 | `microsd-card-states-stack/layout-flash.log` | `12a936ab7d03a1f484b6ea1f5a4bebd20b18eb6de0bc843321da312513886097` | `45ac292899f17fd37c49e8cac43610a38eeb8e3641f4298fcc25c608f0822638` | 1 |
 | `microsd-card-states-stack/layout-preflight.log` | `d4eae9444cd30af22addff5507e53aef803c85892e40f9a6b5f12a7a3b298948` | `d6a48c7cfde30c5a65b3b3074c788e5783ff0f4ddd5adedd397de7955c42dc0c` | 1 |
