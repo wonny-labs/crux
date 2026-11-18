@@ -435,7 +435,7 @@ They are in the file service, outside the files of #194, and none blocks this.
 | Item | Effect here |
 | --- | --- |
 | A STAT hook test for `rename` during the stale rule | None. It is a test of the service |
-| `scripts/test-file-service.sh` is not in CI | None |
+| `scripts/test-file-service.sh` was not in CI | Done: the host job runs it since 2026-11-18 |
 | A client removal during the stale rule gives one false `ERR_LIMIT`, and a retry succeeds | One write can fail with "Write File Error". An SFTP client stops that transfer, and a retry resumes it. The service's rule stands |
 
 ## Acceptance

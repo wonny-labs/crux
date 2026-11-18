@@ -140,6 +140,11 @@ jobs:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
         run: python3 tests/native/flash_safety/test_driver.py
 
+      - name: Check the Zephyr workspace with the smoke builds
+        if: matrix.shard == 'controller'
+        working-directory: crux-pilot
+        run: scripts/check-zephyr-smoke.sh
+
       - name: Compare controller execution candidates without hardware
         if: matrix.shard == 'controller'
         working-directory: crux-pilot

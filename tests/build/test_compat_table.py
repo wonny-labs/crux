@@ -5,7 +5,8 @@ The table is derived from a west manifest and from nothing else. These tests hol
 for an invented manifest, the structure of the table for the repository's own west.yml (no commit is
 spelled out here, because the pins move), the refusals, the determinism and the marking of optional
 groups. Nothing here needs west, git or the network. The cases that parse a manifest need PyYAML, which
-west installs and the host CI job does not, so they skip without it, as in test_product_template.py.
+west installs. The host CI job installs both, so the cases skip only on a machine without PyYAML, as in
+test_product_template.py.
 """
 import ast
 import contextlib
