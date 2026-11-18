@@ -127,6 +127,8 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 ## RT1060-EVKB debugging
 
+**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script starts `JLinkGDBServerCLExe -device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started on Linux and Windows with WSL2](getting-started-linux-wsl2.md#7-boards-and-debug-probes).
+
 The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
 
 On the approved macOS host, from the repository checkout (not the Dev Container), start the existing server:
