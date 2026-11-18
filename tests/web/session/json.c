@@ -110,7 +110,7 @@ static void test_rejects_malformed(void)
 
         CHECK(!web_json_parse_strings(body, sizeof(body) - 1u, fields, 2u));
     }
-    /* A request without a body is rejected. Under UBSan, a null pointer plus zero aborts the run. */
+    /* A request without a body is rejected. Adding zero to a null pointer is undefined. */
     {
         web_json_field_t fields[2] = {{"user", user, sizeof(user), 0u, false, false},
                                       {"password", password, sizeof(password), 0u, false, false}};
