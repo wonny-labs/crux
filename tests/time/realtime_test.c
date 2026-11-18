@@ -72,8 +72,12 @@ static bool equal(crux_realtime_t a, crux_realtime_t b)
 }
 static bool snapshot_equal(const crux_realtime_snapshot_t *a, const crux_realtime_snapshot_t *b)
 {
-    return equal(a->timestamp, b->timestamp) && a->last_source == b->last_source &&
-           a->is_valid == b->is_valid && a->is_synchronized == b->is_synchronized;
+    /* The sentinel is filled with 0x55, which is not a valid bool or source. Compare those fields
+     * as bytes: loading them as their types is undefined, and UBSan aborts the run. */
+    return equal(a->timestamp, b->timestamp) &&
+           memcmp(&a->last_source, &b->last_source, sizeof(a->last_source)) == 0 &&
+           memcmp(&a->is_valid, &b->is_valid, sizeof(a->is_valid)) == 0 &&
+           memcmp(&a->is_synchronized, &b->is_synchronized, sizeof(a->is_synchronized)) == 0;
 }
 static crux_realtime_snapshot_t snapshot(void)
 {
