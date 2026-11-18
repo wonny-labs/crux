@@ -1,9 +1,9 @@
 /* A start that is refused, and a retry. On Crux Sync the service created a mutex and a semaphore at
  * the start, and a start that failed on the second had to give the first back, or each retry would
  * use up a Sync slot for good (the fault of #513). The Zephyr-direct service (pilot of ADR-0002 P9)
- * defines its lock, its signal and its worker statically, so a start creates nothing and cannot fail
- * for want of an object. What is left to hold is the invariant behind that fix: a refused start
- * leaves no service and no state that a retry would meet, any number of refused starts cost
+ * defines its lock, its signal and its worker statically, so a start creates nothing and cannot
+ * fail for want of an object. What is left to hold is the invariant behind that fix: a refused
+ * start leaves no service and no state that a retry would meet, any number of refused starts cost
  * nothing, and the start that follows them works. */
 #include "reboot_test.h"
 
