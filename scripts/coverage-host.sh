@@ -43,8 +43,9 @@ fi
 
 # Component sources only: tests, the fetched test library and Zephyr or kernel code are out.
 # CMake's compiler-identification probes (CMakeFiles/<version>/CompilerId*) are built with
-# --coverage too, but their source is deleted after configuration, so gcov cannot resolve it and
-# gcovr stops. They hold no component code: skip those directories instead of ignoring errors.
+# --coverage too, and gcovr finds no working directory in which gcov can read their notes
+# (no_working_dir_found), so it stops before it writes a report. They hold no component code:
+# skip those directories instead of ignoring errors.
 mkdir -p "$out"
 cd "$repo"
 gcovr -r "$repo" --gcov-executable "$gcov_tool" --gcov-object-directory "$build" \

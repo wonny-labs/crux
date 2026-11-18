@@ -179,15 +179,13 @@ class CoverageWorkflowTest(unittest.TestCase):
         # references, so the test fails only in the instrumented build. It is excluded there
         # by its exact name, with a reason, and still runs in the normal Host job.
         script = (REPO / "scripts/coverage-host.sh").read_text()
-        match = re.search(r"-E '([^']+)'", script)
-        self.assertIsNotNone(match, "ctest in coverage-host.sh excludes a test with -E")
-        pattern = match.group(1)
-        self.assertEqual(r"^Ssh\.cli_entry_symbols$", pattern, "exactly one test, by full name")
-        self.assertIn("Ssh.cli_entry_symbols", (REPO / "tests/ssh/cli/CMakeLists.txt").read_text())
         joined = script.replace("\\\n", " ")
         ctest = [line for line in joined.splitlines() if line.lstrip().startswith("ctest ")]
         self.assertEqual(1, len(ctest))
-        self.assertIn("-E '^Ssh\\.cli_entry_symbols$'", ctest[0])
+        match = re.search(r"\s-E '([^']+)'", ctest[0])
+        self.assertIsNotNone(match, "the ctest line itself excludes a test with -E")
+        self.assertEqual(r"^Ssh\.cli_entry_symbols$", match.group(1), "exactly one test, by full name")
+        self.assertIn("Ssh.cli_entry_symbols", (REPO / "tests/ssh/cli/CMakeLists.txt").read_text())
         self.assertIn("llvm_gcda", script, "the script says why the test is excluded")
         readme = (REPO / "tests/README.md").read_text()
         section = readme[readme.index("## Advisory test coverage"):]
@@ -195,26 +193,30 @@ class CoverageWorkflowTest(unittest.TestCase):
         self.assertIn("llvm_gcda", section)
 
     def test_the_host_report_skips_the_cmake_compiler_probe_directories(self):
-        # CMake builds its compiler-identification probe with the coverage flags and then
-        # deletes its source. gcov cannot resolve that source, and gcovr stops with
-        # no_working_dir_found before it writes any report. The probe directories are skipped
-        # by name; errors are not ignored, so a real component file that gcov cannot resolve
-        # still shows as a failure.
+        # CMake's compiler-identification probes are built with the coverage flags too. In the
+        # first run gcovr stopped on CMakeFiles/3.28.4/CompilerIdC/a-CMakeCCompilerId.gcno with
+        # no_working_dir_found, before it wrote any report. Why gcov found no working directory
+        # was not established. The probe directories are skipped by name; errors are not
+        # ignored, so a component file that gcov cannot resolve still fails the step.
         script = (REPO / "scripts/coverage-host.sh").read_text()
         gcovr = script[script.index("gcovr -r"):]
         match = re.search(r"--exclude-directories '([^']+)'", gcovr)
         self.assertIsNotNone(match, "the report skips the probe directories")
         pattern = re.compile(match.group(1))
-        base = "/w/crux-pilot/build/coverage/host/CMakeFiles"
-        for probe in ("3.28.4/CompilerIdC", "3.28.4/CompilerIdCXX"):
-            with self.subTest(probe=probe):
-                self.assertTrue(pattern.fullmatch(f"{base}/{probe}"))
-        for real in ("crux_time.dir/components/time/src", "3.28.4/CompilerIdC/tmp/x",
-                     "components/time", "_deps/googletest-build/CMakeFiles/gtest.dir"):
-            with self.subTest(real=real):
-                self.assertIsNone(pattern.fullmatch(f"/w/crux-pilot/build/coverage/host/{real}"))
-                self.assertIsNone(pattern.fullmatch(f"{base}/{real}"))
-        self.assertNotIn("no_working_dir_found", script)
+        # gcovr matches a filter from the start of the path, like --filter 'components/'.
+        base = "/w/crux-pilot/build/linux/coverage"
+        for excluded in ("CMakeFiles/3.28.4/CompilerIdC", "CMakeFiles/3.28.4/CompilerIdCXX",
+                         "CMakeFiles/3.28.4/CompilerIdC/tmp"):
+            with self.subTest(excluded=excluded):
+                self.assertTrue(pattern.match(f"{base}/{excluded}"))
+        # Only directories under CMakeFiles/<version starting with a digit>/CompilerId* match.
+        for kept in ("CMakeFiles/crux_time.dir/components/time/src", "CMakeFiles/3.28.4",
+                     "CMakeFiles/3.28.4/CMakeTmp", "CMakeFiles/gtest.dir/CompilerIdC",
+                     "_deps/googletest-build/CMakeFiles/gtest.dir", "components/time",
+                     "CompilerIdC"):
+            with self.subTest(kept=kept):
+                self.assertIsNone(pattern.match(f"{base}/{kept}"))
+        self.assertNotIn("--gcov-ignore-errors", script)
 
     def test_native_sim_measures_a_named_set_and_keeps_repository_sources_only(self):
         script = (REPO / "scripts/coverage-native-sim.sh").read_text()
