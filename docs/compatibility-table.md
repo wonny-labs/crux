@@ -9,7 +9,7 @@ The table tells a reader which revision of each pinned project a Crux revision w
 | What | Where | State |
 | --- | --- | --- |
 | Generator | [`scripts/gen-compat-table.py`](../scripts/gen-compat-table.py) | Provisional. Python standard library and PyYAML, which west installs |
-| Tests | `tests/build/test_compat_table.py` with [fixtures](../tests/build/fixtures/compat_table) | Found by the existing `python3 -m unittest discover -s tests/build` step. That step runs on the host CI job, which has no PyYAML, so the cases that parse a manifest skip there ([follow-ups](#follow-ups)) |
+| Tests | `tests/build/test_compat_table.py` with [fixtures](../tests/build/fixtures/compat_table) | Found by the existing `python3 -m unittest discover -s tests/build` step. That step runs on the host CI job, which installs PyYAML and west, so the cases that parse a manifest run there ([follow-ups](#follow-ups)) |
 | Release notes template, tag, release | | **Not done.** No release notes template uses the generator yet, and no tag or release exists |
 
 ```sh
@@ -106,6 +106,6 @@ No Crux tag exists. `v0.1.0` is decided but not yet created, and **creating it n
 
 ## Follow-ups
 
-- **CI.** The host CI job installs no PyYAML, so the manifest cases of `tests/build/test_compat_table.py` skip there, and the job that installs west runs only named suites. Running them needs a workflow change, which has not been made: install PyYAML on the host job, or add this test to a job that has west. Until then the cases run only where PyYAML is installed.
+- **CI.** Done. The host CI job installs PyYAML and west, so the manifest cases of `tests/build/test_compat_table.py` run there. `tests/build/test_ci_wiring.py` fails if the install is removed.
 - **Release notes template.** The release documentation template in `templates/product` is a separate item of #301. It can call this generator.
 - **A fuller table.** A column for the compiler or SDK version, the CMake or Python tool pins and the Docker image is outside the owner's decision and is not in the generator.

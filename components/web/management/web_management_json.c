@@ -344,7 +344,8 @@ static bool member_value(reader_t *reader, web_value_t *value)
 bool web_mgmt_parse_update(const uint8_t *body, size_t length, web_value_t *value)
 {
     static const char name[] = "value";
-    reader_t reader = {body, body + length};
+    /* A null body has length zero, and adding zero to a null pointer is undefined. */
+    reader_t reader = {body, body != NULL ? body + length : NULL};
     char key[sizeof(name) + 1u];
     output_t key_output = {key, sizeof(key), 0u};
     char *text = value->text;

@@ -88,7 +88,8 @@ workflow selects.
 | `scripts/test-access.sh`, `test-cli.sh`, `test-credential.sh`, `test-security-event.sh`, `test-mgmt-services.sh` | globs of `components/<c>/src`, `tests/<c>` | `host.yml` | new files in those directories are picked up |
 | `scripts/test-web.sh` | globs, `host` mode | `host.yml` runs `host`; other workflows run other modes | |
 | `scripts/test-web-assets.sh`, `scripts/test-web-session.sh` | globs, in `run_host` | **no, in effect** | the workflows call these with `native`, and `native` does not call `run_host` (read from the scripts) |
-| `scripts/test-file-service.sh`, `test-network-settings.sh`, `test-reboot.sh`, `test-tls-certificate.sh` | globs | **no** | named by no workflow and no script |
+| `scripts/test-network-settings.sh`, `test-reboot.sh`, `test-tls-certificate.sh` | globs | **no** | named by no workflow and no script |
+| `scripts/test-file-service.sh` | globs | `host.yml`, since the CI gap fixes of 2026-11-18 | the counts below were measured before that step and still treat it as unreached |
 
 The measurement script reads these from the scripts, expands the globs against the tree, and follows
 workflow references through scripts. The two `--not-run` exclusions above were set by hand after reading

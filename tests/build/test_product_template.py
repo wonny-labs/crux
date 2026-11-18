@@ -14,7 +14,7 @@ from unittest import mock
 from test_crux_pins import git
 
 try:
-    import yaml  # west depends on it. The host CI job installs neither.
+    import yaml  # west depends on it, and the host CI job installs both.
 except ImportError:
     yaml = None
 

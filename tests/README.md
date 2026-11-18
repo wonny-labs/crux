@@ -28,7 +28,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 ## Before you open a pull request
 
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, `scripts/check-zephyr-smoke.sh` runs in no workflow, and some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
 
 | Change | Command |
 | --- | --- |
@@ -86,6 +86,13 @@ actual dependency HEAD/dirty-state checks, and invalidation of stale manifests e
 build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
+
+Install `west` and `pyyaml` (the host CI job pins `west==1.4.0` and `pyyaml==6.0.3`) and set `CLANG_TIDY`
+to a clang-tidy 18 binary, or the manifest, workspace and real-tool cases skip. A skipped case passes, so
+on a machine without them the run is green and says less. The host CI job installs them and sets it. Two
+product style cases still skip there, because they need a Zephyr tree (`ZEPHYR_BASE`).
+`tests/build/test_ci_wiring.py` fails if the sanitizer preset stops aborting on undefined behaviour,
+or if a workflow stops running the File service checks, the Zephyr smoke check or those installs.
 
 `tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
 compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
@@ -657,7 +664,7 @@ replace image must be valid and no older than the last GEN printed; leftover tem
 `SIGKILL` drops the simulated cache and keeps the image file. It is not a power cut.
 
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
-a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
+a C and C++ consumer from its public headers. The host CI job runs it. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
 and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
 ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
