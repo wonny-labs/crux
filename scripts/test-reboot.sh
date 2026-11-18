@@ -18,7 +18,7 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(reboot_service reboot_steps reboot_concurrency reboot_reason reboot_lock_faults reboot_pending
-    reboot_cpp_headers
+    reboot_start_faults reboot_cpp_headers
     web_reboot_routes web_reboot_no_service web_reboot_openapi_fixture management_providers_events)
 
 for preset in host-debug host-sanitize; do
