@@ -194,6 +194,28 @@ class CoverageWorkflowTest(unittest.TestCase):
         self.assertIn("Ssh.cli_entry_symbols", section, "tests/README.md documents the exclusion")
         self.assertIn("llvm_gcda", section)
 
+    def test_the_host_report_skips_the_cmake_compiler_probe_directories(self):
+        # CMake builds its compiler-identification probe with the coverage flags and then
+        # deletes its source. gcov cannot resolve that source, and gcovr stops with
+        # no_working_dir_found before it writes any report. The probe directories are skipped
+        # by name; errors are not ignored, so a real component file that gcov cannot resolve
+        # still shows as a failure.
+        script = (REPO / "scripts/coverage-host.sh").read_text()
+        gcovr = script[script.index("gcovr -r"):]
+        match = re.search(r"--exclude-directories '([^']+)'", gcovr)
+        self.assertIsNotNone(match, "the report skips the probe directories")
+        pattern = re.compile(match.group(1))
+        base = "/w/crux-pilot/build/coverage/host/CMakeFiles"
+        for probe in ("3.28.4/CompilerIdC", "3.28.4/CompilerIdCXX"):
+            with self.subTest(probe=probe):
+                self.assertTrue(pattern.fullmatch(f"{base}/{probe}"))
+        for real in ("crux_time.dir/components/time/src", "3.28.4/CompilerIdC/tmp/x",
+                     "components/time", "_deps/googletest-build/CMakeFiles/gtest.dir"):
+            with self.subTest(real=real):
+                self.assertIsNone(pattern.fullmatch(f"/w/crux-pilot/build/coverage/host/{real}"))
+                self.assertIsNone(pattern.fullmatch(f"{base}/{real}"))
+        self.assertNotIn("no_working_dir_found", script)
+
     def test_native_sim_measures_a_named_set_and_keeps_repository_sources_only(self):
         script = (REPO / "scripts/coverage-native-sim.sh").read_text()
         for suite in ("tests/time/zephyr", "tests/logging/zephyr", "tests/system/zephyr",

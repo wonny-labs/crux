@@ -42,10 +42,14 @@ if [[ "$mode" == run ]]; then
 fi
 
 # Component sources only: tests, the fetched test library and Zephyr or kernel code are out.
+# CMake's compiler-identification probes (CMakeFiles/<version>/CompilerId*) are built with
+# --coverage too, but their source is deleted after configuration, so gcov cannot resolve it and
+# gcovr stops. They hold no component code: skip those directories instead of ignoring errors.
 mkdir -p "$out"
 cd "$repo"
 gcovr -r "$repo" --gcov-executable "$gcov_tool" --gcov-object-directory "$build" \
     --filter 'components/' --exclude '.*/tests?/.*' \
+    --exclude-directories '.*/CMakeFiles/[0-9][0-9.]*/CompilerId[A-Za-z]*' \
     --exclude-unreachable-branches --exclude-throw-branches \
     --merge-mode-functions separate \
     --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
