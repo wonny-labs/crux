@@ -15,7 +15,7 @@ target_include_directories(reboot_test_fixture PUBLIC .)
 target_link_libraries(reboot_test_fixture PUBLIC reboot_test_logic)
 target_compile_options(reboot_test_fixture PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-foreach(suite IN ITEMS service steps concurrency reason lock_faults)
+foreach(suite IN ITEMS service steps concurrency reason lock_faults start_faults)
     add_executable(reboot_${suite} ${suite}.c $<TARGET_OBJECTS:reboot_test_fixture>)
     target_link_libraries(reboot_${suite} PRIVATE reboot_test_fixture)
     target_compile_options(reboot_${suite} PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -25,6 +25,8 @@ foreach(suite IN ITEMS service steps concurrency reason lock_faults)
 endforeach()
 
 target_link_options(reboot_lock_faults PRIVATE -Wl,--wrap=crux_mutex_lock)
+target_link_options(reboot_start_faults PRIVATE -Wl,--wrap=crux_mutex_create
+    -Wl,--wrap=crux_mutex_destroy -Wl,--wrap=crux_semaphore_create)
 
 # The sleep provider, over Sync's semaphore, with the take wrapped. It is an object library, which a
 # composition links by name, so the suite names its object.
