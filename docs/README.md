@@ -22,6 +22,26 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 7. If the product must start only signed images and take firmware updates: the [boot overview](boot-overview.md), then the [secure boot and update review](secure-boot-and-update-review.md). Nothing in the boot path has run on a board yet.
 8. [Testing a consumer application](build.md#testing-a-consumer-application) and the [test guide](../tests/README.md).
 
+### Migrating an existing controller product to Crux
+
+For a team that moves a controller runtime (for example a PLC runtime on an i.MX RT board with eMMC storage and SPI I/O cards) onto Crux and Zephyr. Read in this order:
+
+1. [Choosing an API](choosing-an-api.md): Zephyr directly for threads, locks, queues, timers and buses; Crux for platform services; plain C for the product's own behaviour. GPIO, I2C and SPI are frozen and to be removed, so bus I/O such as an SPI backplane uses Zephyr's SPI API in an adapter.
+2. [Product Composition Guide](product-composition.md) and the [product template](../templates/product/README.md): repository layout, west manifest, versions and release.
+3. [Porting Crux to a new board](porting-to-a-new-board.md), then [Writing a product driver](writing-a-product-driver.md) for a part with no upstream driver, and [Shared boards and drivers across products](shared-hardware-modules.md) if several products share boards or drivers. [Vendor kits across repositories](vendor-kits.md) applies if the product compiles vendor kits.
+4. Storage: [File composition interface](file-composition-interface.md), [File contract](file-contract.md) and [eMMC and Reliance Edge composition](emmc-reliance-composition.md). The eMMC pages record simulator and link-check evidence only; no eMMC hardware result exists.
+5. [Component readiness](component-readiness.md) for what each component has been tested with, and the [test guide](../tests/README.md) for the checks to run.
+
+### Security and CRA work (secure boot, update, SBOM, static analysis, vulnerabilities)
+
+1. Boot and update: the [boot overview](boot-overview.md), the [secure boot and update review](secure-boot-and-update-review.md), [boot composition](boot-composition.md) and [taking the composition to an RT1062 product board](boot-porting-rt1062.md) (its eMMC variant is section 4). Nothing in the boot path has run on a board.
+2. Update state: the [image state contract](image-state-contract.md) (Experimental code, tested with a Host test double only). The [verification ladder](secure-boot-verification-ladder.md) says which level of test can prove which claim.
+3. SBOM and releases: the [SBOM section](product-composition.md#sbom) and [upgrades and security fixes](product-composition.md#upgrades-and-security-fixes) of the product composition guide, the [product release record](../templates/product/RELEASE.md), the [compatibility table](compatibility-table.md) and the [release bundle checker](release-bundle-checker.md) (the last two are provisional).
+4. Dependencies and vulnerabilities: the [dependency review procedure](dependency-review.md) and its records for [Mbed TLS](dependency-review-mbed-tls-4.1.1.md), [the wolf projects](dependency-review-wolf-pins.md) and [FatFs](dependency-review-fatfs-r0.16.md), with [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) for the cryptographic dependency policy.
+5. Static analysis and coding rules: [static-analysis coverage](static-analysis-coverage.md), [static analysis of target code](coding-guidelines.md#static-analysis-of-target-code) and the [MISRA C position](coding-guidelines.md#misra-c-position) in the coding guidelines.
+
+Known gap: the repository has no security policy file (`SECURITY.md`) and no recorded route for reporting a vulnerability. Raise it with the maintainer before relying on one.
+
 ### A platform contributor
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md): code ownership, public interfaces, Git and pull request conventions, review requirements.
@@ -43,11 +63,13 @@ Start at the [repository README](../README.md) for what Crux is and how the repo
 
 ## Who to ask
 
+In these documents "the owner" is the repository maintainer: the person who approves platform decisions and merges pull requests. A team that works on its own copy names its own maintainer for that role.
+
 Open a [GitHub issue](https://github.com/wonny-labs/crux-pilot/issues) in `wonny-labs/crux-pilot`. A missing composition interface, a documentation gap and a question about a decision all go there. The repository records no other contact channel.
 
 ## Current and historical pages
 
-Most pages in `docs/` describe the current implementation or a current decision. A page that is a historical record says so at its top or is named below. Do not read a historical page as the present state of the project.
+Most pages in `docs/` describe the current implementation or a current decision. A page that is a historical record says so at its top or is named below. The pages that carry a dated status line (for example the boot review pages, which say "current on" a date) are current guidance as of that date, not timeless statements; the code and CI at your revision are authoritative. Do not read a historical page as the present state of the project.
 
 ### Historical records
 
@@ -62,6 +84,7 @@ Most pages in `docs/` describe the current implementation or a current decision.
 | [`physical-verification-plan.md`](physical-verification-plan.md) | Unexecuted plan, never an approval, for physical checks of GPIO, I2C and SPI. Component readiness still cites its open items |
 | [`flash-safety-poc.md`](flash-safety-poc.md) | Isolated proof of concept for Flash safety. Not an adopted driver or layout |
 | [`storage-pilot-software-handoff.md`](storage-pilot-software-handoff.md) | Storage handoff of the Pilot, superseded as the selected storage direction |
+| [`investigation records`](boot-update-investigation.md) | The boot, eMMC and bootloader-update investigations ([boot and update](boot-update-investigation.md), [eMMC](boot-emmc-investigation.md), [bootloader update](boot-bootloader-update-investigation.md)) are desk studies that record what a study found when it was written. Current guidance is in the [boot overview](boot-overview.md) and [boot composition](boot-composition.md) |
 | `plans/` | Plans, designs and proposals. Many are completed or superseded, some are still active, so read each file's own status line |
 | `history/` | Superseded proposals and snapshots |
 | `evidence/` | Frozen validation records and review artefacts. They are kept as recorded and are not guidance |
@@ -89,7 +112,8 @@ A contract page defines one component's public behaviour, its limits and its val
 | Communication and networking | [Serial](serial-contract.md), [serial validation](serial-validation.md), [networking](networking-contract.md) |
 | Storage and configuration | [File](file-contract.md), [Configuration](configuration-contract.md), [File root binding](file-composition-interface.md) |
 | Diagnostics and system | [Logging](logging-contract.md), [System health and reset](system-validation.md) |
-| Device I/O | [GPIO](gpio-contract.md), [I2C](i2c-contract.md), [SPI](spi-contract.md) |
+| Device I/O (frozen, to be removed: use Zephyr's APIs, see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)) | [GPIO](gpio-contract.md), [I2C](i2c-contract.md), [SPI](spi-contract.md) |
+| Boot and update | [Image state contract](image-state-contract.md) (Experimental; Host test double only) |
 | Secure management | The [glossary](management-glossary.md) first, then the [access](access-contract.md), [credential store](credential-store.md), [web](web-contract.md), [command line](cli-contract.md) and [SSH provider](ssh-provider-contract.md) contracts. The [README](../README.md#secure-management) has the full table |
 
 ### Approved contracts under `superpowers/`
@@ -121,11 +145,11 @@ When a page says "M2", "M3" or "M5" without more, check its date and its neighbo
 | Stable | Covered by a compatibility promise. Only from `v1.0` |
 | Deprecated | Still works, with a compiler warning and a named replacement |
 
-Nothing is Stable, because no `v1.0` exists. The tier of each component in [Component readiness](component-readiness.md) is provisional: ADR-0001's assignment of a tier to every public interface (its follow-up change 5) is not done, and only some public headers, those of the management services and Configuration, carry a `Status: Experimental` line. Separately, `thread`, `sync`, `queue` and `serial` are **frozen for new product code**. The freeze is not a tier; see [Choosing an API](choosing-an-api.md).
+Nothing is Stable, because no `v1.0` exists. The tier of each component in [Component readiness](component-readiness.md) is provisional: ADR-0001's assignment of a tier to every public interface (its follow-up change 5) is not done, and only some public headers, those of the management services, Configuration and the image-state contract, carry a `Status: Experimental` line. Separately, `thread`, `sync`, `queue` and `serial` are **frozen for new product code**, and `gpio`, `i2c` and `spi` are frozen as Experimental and to be removed (ADR-0001 owner decision D4). A freeze is not a tier; see [Choosing an API](choosing-an-api.md).
 
 ## Decisions
 
-Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md). ADR-0001 to ADR-0006 are accepted. The titles of ADR-0004 to ADR-0006 still carry the word "proposal", and the status line at the top of the decisions index names only the first three; the table in that index lists all six as accepted.
+Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md). ADR-0001 to ADR-0006 are accepted. The titles of ADR-0004 to ADR-0006 still carry the word "proposal", which is a leftover of their drafting: the index lists all six as accepted.
 
 ## Concepts glossary
 
@@ -137,12 +161,24 @@ Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.
 | **Composition** (platform composition) | The board- or project-specific configuration and initialisation that choose OS implementations and bind hardware resources, such as Kconfig, providers and device bindings. A **composition interface** is the one formal way composition code reaches a provider that must be bound to Zephyr resources ([rules](composition-interfaces.md)) |
 | **Provider** | The implementation behind a Crux interface for one environment, for example a Linux Host provider or a Zephyr provider |
 | **Zephyr-direct** | Product code that uses Zephyr's own APIs for OS and hardware facilities, such as threads, locks, queues, devices and buses, instead of going through a Crux wrapper. The [developer rule](choosing-an-api.md) makes this the default for those facilities |
-| **Frozen for new product code** | The status of `thread`, `sync`, `queue` and `serial`: no new features, existing users keep working, and any deprecation waits for a separate decision. Their public headers can print an opt-in compiler warning (`CRUX_WARN_FROZEN_HEADERS`) |
+| **Frozen for new product code** | The status of `thread`, `sync`, `queue` and `serial`: no new features, existing users keep working, and any deprecation waits for a separate decision. Their public headers can print an opt-in compiler warning (`CRUX_WARN_FROZEN_HEADERS`). `gpio`, `i2c` and `spi` are frozen differently: ADR-0001 decision D4 freezes them as Experimental and plans their removal after the first tag |
+| **Decision codes** (P3, R4, O4, D10, I5, Q2 ...) | A letter and a number name a row in one decision record or proposal. The letter depends on the document. **P1 to P10** are the platform decisions of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md). **R1 to R6** are the results of [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md). **D1 to D10** are the owner decisions at the end of [ADR-0001](decisions/0001-application-boundary-and-api-stability.md#owner-decisions) (other pages, such as the secure boot development plan, have their own D rows: read the document that is linked beside the code). **I1 to I9** and **Q1 to Q9** are the decisions and open questions of the [image state contract proposal](plans/image-state-contract-proposal.md). **Q1 to Q8** in ADR-0006 are its own questions. **O1 to O5** are option labels for the internals of Thread and Sync (P9 of ADR-0002 and its result in ADR-0003): O4 keeps a narrow Crux Thread and Sync inside the services, O2 moves the services to Zephyr kernel objects, and O5 is the later evaluation of a POSIX subset for a Linux product. Follow the link next to a code to find its row; a bare code does not decide anything by itself |
+| **D4** (of ADR-0001) | The owner decision to freeze the I2C, SPI and GPIO APIs now as Experimental, announce deprecation at the first tag and remove them in the next tagged release. Not to be confused with "Decision 4" of the same ADR, which is the API stability policy |
+| **Build A and Build B** (ADR-0001, D10) | The two builds of the phase 1 experiment in ADR-0001: Build A uses plain Zephyr, Build B uses Crux with an adapter. They exist to compare the two ways of building the same product |
+| **EVKB** | The NXP i.MX RT1060 evaluation kit, revision B (`mimxrt1060_evk@B//qspi`), the first board of the project. It has QSPI NOR and a microSD slot and no eMMC |
+| **The Pilot** | The original Time Pilot, the first phase of this repository. Its milestones M0 to M5 are historical ([Milestones](#milestones)). "The platform" means Crux as it is developed now |
+| **west groups `crux-boot`, `crux-reliance`, `crux-secure-management`** | Optional groups of projects in `west.yml`, off by default and turned on by a workspace that needs them: MCUboot, the Reliance Edge file system (GPLv2), and the wolf projects for SSH |
+| **Mbed profile, Wolf profile** | The two cryptographic and TLS profiles of the management services: Mbed TLS with PSA gives HTTPS only, wolfSSL with wolfSSH gives HTTPS and SSH. See the [management glossary](management-glossary.md) and [Secure management in a product](management-in-a-product.md) |
+| **Bench image** | The management image built for the RT1060 EVKB board (`tests/zephyr/management_rt1060_compile`), planned in [the bench image plan](rt1060-bench-image-plan.md). Not a product image |
+| **WP1a** | The first work package of milestone M8 (boot platform), tasks 0 to 7 of issue #296. See the [boot overview](boot-overview.md#2-the-stages) |
+| **Sysbuild** | Zephyr's way to build several images, here MCUboot and the application, in one build |
+| **RAM load, trailer** | The MCUboot mode that copies the signed application to RAM and starts it there. The trailer is the state area at the end of an image slot (magic, `image_ok`, `copy_done`) that MCUboot and the image-state contract read and write |
+| **HAB** | The i.MX RT boot ROM's check of the first-stage image. See the [HAB status page](boot-hab-status.md) |
 | **Host** | The Linux development and test composition on a developer machine or in CI. It is not an Embedded Linux product variant |
 | **`native_sim`** | Zephyr's simulated board, which runs a Zephyr image as a process on the Host. A `native_sim` result does not prove behaviour on a board |
 | **Evidence levels** | E1 Host test, E2 `native_sim`, E3 EVKB build, E4 physical board, as defined in [Component readiness](component-readiness.md#how-to-read-this). None implies another |
 | **ADR** | Architecture decision record: one platform-wide decision with its context, options, trade-offs and the recorded decision ([index](decisions/README.md)) |
-| **The owner** | The project owner, who approves decisions and the merge of every pull request. A page that says a decision was "approved by the owner" cites the owner's approval |
+| **The owner** | The repository maintainer: the person who approves platform decisions and the merge of every pull request. A page that says a decision was "approved by the owner" cites that maintainer's approval. See [Who to ask](#who-to-ask) |
 | **AGENTS.md and CLAUDE.md** | Instructions for AI agents that work in this repository: what they may do on their own, what needs the owner's approval, which paths are protected, and which checks to run. A human contributor reads [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | **Draft PR, reviewer PASS** | Substantive changes arrive as Draft pull requests with recorded validation evidence and an independent review. A review PASS does not authorise a merge |
 
