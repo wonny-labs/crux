@@ -1,6 +1,6 @@
 # Taking the boot composition to an RT1062 product board
 
-> **Status:** Guidance, current on 15 November 2026. It adopts nothing and decides nothing. Every product value below is an input that the product team supplies.
+> **Status:** Guidance, current on 15 November 2026, with the image-state statements updated on 18 November 2026 for #496. It adopts nothing and decides nothing. Every product value below is an input that the product team supplies.
 > **Verified:** What the repository's own records and the pinned Zephyr source show about the RT1060-EVK Rev B composition (by build, by command, on pinned source), and which of those facts belong to the EVKB and not to the SoC. Each row carries its label.
 > **Not verified:** Everything that needs a board. Nothing has been booted: not the EVKB, and not any product board with QSPI NOR or eMMC. No product value exists in this repository. No build of a product board was run for this page.
 > **Read this first / then:** the [boot overview](boot-overview.md) and the [boot composition](boot-composition.md) page, then this page, then the [secure boot development plan](plans/secure-boot-development-plan.md) (section 6, decision D8) and, before any bench work, the [board test procedure](secure-boot-board-test-procedure.md).
@@ -115,9 +115,9 @@ Everything in this section is a desk result or a simulator result. The [eMMC inv
 
 **The dependency.** An eMMC product needs the flash-API backend, which is decision D2 (adopt it, and where it lives). Until D2 is taken and a target exists, slots on eMMC cannot be built or tested end to end. eMMC adds no M8 or M9 exit criterion (plan, section 2).
 
-## 5. The image-state prototype and the recovery note on an RT1062 product
+## 5. The image-state contract and the recovery note on an RT1062 product
 
-The image-state contract is a proposal that the owner adopted as Experimental for rows I1 to I7 on 15 November 2026, with I8 and I9 still open ([image-state contract proposal](plans/image-state-contract-proposal.md)). No code of it is merged. A host prototype of it and a design note on recovery options are in Draft pull requests (#462 and #459). Neither is merged, and this page does not cite their text. The table uses the merged proposal and the investigation records.
+The image-state contract is adopted as Experimental for rows I1 to I7 (15 November 2026), with I8 and I9 still open ([image-state contract proposal](plans/image-state-contract-proposal.md)). Its first code is merged (#496): the public header `crux/image_state.h`, the pure functions, the portable core and a Host test double, tested on Host and in CI ([image state contract](image-state-contract.md)). No bootloader provider exists, and nothing ran on `native_sim`, in a bootloader or on a board. A design note on recovery options is a Draft pull request (#459), not merged, and this page does not cite its text. An earlier Draft prototype (#462) is still open and is not the merged code. The table uses the proposal and the investigation records.
 
 | Question | QSPI NOR product | eMMC product |
 | --- | --- | --- |

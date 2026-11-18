@@ -30,7 +30,13 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
 - **Direction ([ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md), the P9 result, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
 - **Checked by a script:** `templates/product/check_domain_includes.py` rejects these four headers, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. With `--product ROOT` it also rejects the four headers in every source file of a product repository, adapters included, and `--exclude PATH` lists legacy files that have not moved yet. See [the template README](../templates/product/README.md#check-the-whole-product-repository).
 - **Checked by the compiler, if the product asks:** define `CRUX_WARN_FROZEN_HEADERS` for the product's own targets and each of the four headers emits a `#warning` that names it and points here. The default is off, so no existing build changes, including a `-Werror` build. The targets that Crux's own CMake creates define `CRUX_INTERNAL_BUILD` as a private directory definition, so the warning stays silent in them and the definition reaches no consumer. Crux sources that a composition compiles into the product's own target, such as the service sources that a Zephyr image adds to `app`, are not covered and do warn, so define the macro only for targets that compile no Crux source, or accept the warnings there. A product that adds `-Werror` turns the warning into an error, and GCC with `-Wpedantic` in C17 mode adds its own note that `#warning` is an extension.
-- **Not checked:** Crux's own trees and D10's Build B are exempt, and a product that does not run either check is not stopped.
+- **Not checked:** Crux's own trees and the Build B of ADR-0001 decision D10 (the experiment build that uses Crux with an adapter, in a separate repository) are exempt, and a product that does not run either check is not stopped.
+
+## Frozen, then removed: GPIO, I2C and SPI
+
+`<crux/gpio.h>`, `<crux/i2c.h>` and `<crux/spi.h>` are frozen as Experimental by [ADR-0001](decisions/0001-application-boundary-and-api-stability.md) (owner decision D4, accepted 12 November 2026). The ADR's plan is to announce their deprecation at the first tag and remove them in the next tagged release. The removal is follow-up change 4 and is not done: no tag exists, and the headers carry no frozen-header warning yet ([component readiness](component-readiness.md) records the same status).
+
+For new product code, including an SPI backplane or other bus I/O, use the Zephyr APIs directly in an adapter (Question 1): `gpio_dt_spec`, `i2c_dt_spec` and `spi_dt_spec`, with a product port above them. Do not build on `crux::gpio`, `crux::i2c` or `crux::spi`.
 
 ## Coexistence in one image
 
@@ -61,3 +67,5 @@ The product template shows the pattern in `templates/product/app/src/main.c`: on
 - [Native-free consumer policy](native-interface-policy.md)
 - [Component readiness](component-readiness.md)
 - [Thread and Sync contract](thread-sync.md), [messaging contract](messaging-contract.md) and [serial contract](serial-contract.md) (frozen for new product code)
+- [GPIO](gpio-contract.md), [I2C](i2c-contract.md) and [SPI](spi-contract.md) contracts (frozen, to be removed)
+- [Glossary](README.md#concepts-glossary), for decision codes such as P1, O4 and D10
