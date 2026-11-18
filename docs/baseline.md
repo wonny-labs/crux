@@ -1419,7 +1419,7 @@ claimed as the source of the already identified firmware bundle above.
 ## M4 physical UART and RTC acceptance (2026-10-17)
 
 Used the previously confirmed MIMXRT1060-EVKB PCB revision B, SW4 OFF–OFF–ON–OFF,
-without HyperFlash rework; external J-Link PLUS S/N <probe-serial> on J2, with J9/J10 isolation
+without HyperFlash rework; external J-Link PLUS S/N `<probe-serial>` on J2, with J9/J10 isolation
 as previously confirmed. USB discovery again identified that probe and the DAPLink device.
 UART was `/dev/cu.usbmodem11102` via J41, 115200 baud. Commander V9.86a identified the
 Cortex-M7 at 400 kHz SWD and VTref 3.322 V; the GDB Server reported about 3.33 V.

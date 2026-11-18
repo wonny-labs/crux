@@ -31,7 +31,7 @@ preserved and are not retrospectively passed. A component result does not establ
 simultaneous controller integration or final M3 completion.
 
 The target remains the confirmed EVKB PCB B, i.MX RT1062, standard 8 MiB QSPI
-and J-Link PLUS <probe-serial>. Software cannot detect an unreported wiring/jumper
+and J-Link PLUS `<probe-serial>`. Software cannot detect an unreported wiring/jumper
 change. DAPLink/UART USB also supplies board power; its removal is a power-off.
 The Mac management connection is excluded from the dedicated Ethernet tests.
 
@@ -443,7 +443,7 @@ An observed mismatch during confirmed hold stops further hardware attempts.
 
 The manual Shell observation prompted re-identification rather than an assumed
 M3 continuation. The mapped firmware matched the complete 65,964-byte Time sample,
-not either M3 image. J-Link <probe-serial> reset then produced one fresh Time boot and
+not either M3 image. J-Link `<probe-serial>` reset then produced one fresh Time boot and
 READY on the identified DAPLink UART after 1.291543 s. Independent raw review
 confirmed operational UART/J-Link target association for that session.
 
