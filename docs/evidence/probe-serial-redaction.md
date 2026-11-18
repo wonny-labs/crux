@@ -1,26 +1,66 @@
 # Probe serial redaction of the evidence
 
 The debug probe used for the physical runs has a serial number. It is a personal identifier of the
-maintainer's equipment and was removed from the committed evidence. Every occurrence of the serial
-(as the J-Link serial and as the USB serial with leading zeros) in the files listed below was
-replaced by the text `<probe-serial>`. No other byte of these files changed. In particular every
-measurement, time, address, count and result is unchanged.
+maintainer's equipment and was removed from the committed evidence.
 
-Eight empty lock files were named after the serial. They were renamed to `evkb-probe-serial.lock`
-(a file name cannot hold `<` and `>` on every platform). Their content, the empty file, is unchanged, so
-their SHA-256 is the same as before.
+## What was done
+
+- In the files in the table below, every occurrence of the serial (as the J-Link serial and as the USB
+  serial with leading zeros) was replaced by the text `<probe-serial>`. In Markdown files, where the
+  placeholder would otherwise be read as an HTML tag and hidden, it is written in backticks. No other
+  byte of these files changed. In particular every measurement, time, address, count and result is
+  unchanged. The files `SHA256SUMS.tsv` (three) and the three `README.md` files of the networking runs
+  are the exceptions described below.
+- Eight empty lock files were named after the serial. They were renamed to `evkb-probe-serial.lock`
+  (a file name cannot hold `<` and `>` on every platform). Their content, the empty file, is unchanged, so
+  their SHA-256 is the same as before. In the three `SHA256SUMS.tsv` files only the `path` of these rows
+  changed for that reason.
+- The three `README.md` files of the networking runs gained one sentence that names this record.
+  `microsd-physical`, `microsd-card-states-stack` and `psa-crypto/rt1060-board-2026-11-07` gained a
+  closing sentence of the same kind in their `README.md`.
 
 ## How the digests stay consistent
 
 - The three `SHA256SUMS.tsv` files of the networking runs keep the digest of the file as it was
   recorded in `original_sha256`, hold the digest of the committed file in `committed_sha256`, and
   use the state `redacted` for each file that changed (the same state that recorded the earlier
-  replacement of absolute paths). For the lock files only the `path` column changed.
+  replacement of absolute paths). In these three files the serial in the lock file names was
+  replaced by `probe-serial` (no angle brackets), which is why their `count` below is the number of
+  such paths and not a number of `<probe-serial>` replacements. They also carry the changed
+  `committed_sha256` and `state` columns.
 - Digests that a run recorded about its own inputs, such as `plan_sha256` and `approval_sha256` in the
   `inputs.json` files and in the run plans, and the `sha256` fields of `m5-physical-preparation.json`
   and `m5-physical-integration.json`, describe the files as they were at run time. They are kept
   unchanged. They match the `original_sha256` column or the table below, not the committed copy.
+- The `plan_sha256` stored inside the plan and approval JSON files is a different value: it is the
+  SHA-256 of the canonical JSON of the plan as prepared, and that plan contained the original serial.
+  It cannot be recomputed from the committed copies, and running the approval check of the tools on
+  the committed copies is not expected to pass.
 - Directories without a `SHA256SUMS.tsv` are covered by the table below.
+
+## Files that still hold the serial
+
+These files are byte-pinned or read by tests that run the hardware tools' identity check against the
+real transcripts, so they change together with those tools:
+
+- `microsd-card-states-stack/blank-flash.log`
+- `microsd-card-states-stack/blank-preflight.log`
+- `microsd-card-states-stack/blank-reset.log`
+- `networking-physical-stage1-run3/01-third-run/program/03-program-m5.log`
+- `networking-physical-stage1-run3/01-third-run/restore/02-load-normal.log`
+- `networking-physical-stage1-run3/01-third-run/restore/03-verify-normal.log`
+- `networking-physical-stage1-run3/01-third-run/restore/04-start-normal.log`
+- `networking-physical-stage1/05-restore-fixed-driver/restore/02-load-normal.log`
+- `tests/build/fixtures/host-2026-11-08/jlink-identity-only.log`
+- `tests/build/fixtures/host-2026-11-08/jlink-loadfile-verifybin-quit-diagnostic.log`
+- `tests/build/fixtures/host-2026-11-08/jlink-loadfile-verifybin-restart.log`
+- `tests/build/fixtures/host-2026-11-08/jlink-verifybin-ishalted-match.log`
+- `tests/build/fixtures/host-2026-11-08/jlink-verifybin-mismatch.log`
+- `tests/build/fixtures/programmer-split/fixed-driver-restore-02-load-normal-skipped.log`
+- `tests/build/fixtures/programmer-split/run3-program-03-program-m5.log`
+- `tests/build/fixtures/programmer-split/run3-restore-02-load-normal.log`
+- `tests/build/fixtures/programmer-split/run3-restore-03-verify-normal.log`
+- `tests/build/fixtures/programmer-split/run3-restore-04-start-normal.log`
 
 ## Files changed
 
@@ -42,7 +82,7 @@ committed file. `count` is the number of replacements in the file.
 | `microsd-card-states-stack/stack-flash.log` | `69253da36ecf3611f732b574aaec1d71780f0e55160be66f200314f1789c2c9c` | `81d1dfac17fd1126ffd1b229a8d9fb725298cabc96c3b68486b65605285a11b2` | 1 |
 | `microsd-card-states-stack/stack-preflight.log` | `dd96811cbd55f5e93b2605c327ec38c66a48f9e1099017c84b84a04b2946414c` | `16ce5b009522d1afc06e3f165b4763cd24f5761a1579548c38df2978b511f510` | 1 |
 | `microsd-card-states-stack/stack-restore.log` | `6d5a2b849b2fb98e14d695e99fed73e47062331fb77bce54d744c8d81072de93` | `8bc029b99de80729c2ddfbf202c11e1d0362881097deb4d1d021cbefb01b2919` | 1 |
-| `microsd-physical/README.md` | `811a8e76ae22201b02fe0dd99b24fda0530e321c296414d72d4eb1ac1d5cd403` | `302e7da37b34260301b02254e9215367773752179c21054537d4fb172359ba35` | 1 |
+| `microsd-physical/README.md` | `811a8e76ae22201b02fe0dd99b24fda0530e321c296414d72d4eb1ac1d5cd403` | `2626642ca6f645744d72cbf5abf38176625d21e841660b6cc2f6ab905c77e81c` | 1 |
 | `microsd-physical/preflight-jlink.log` | `6b8b31e427145058a9a5fcabd254b59e4507ced7189fba96689b92e2338d8166` | `27416e6238d7639520550469665929b22d60f24d976c7b238ecbc70e4ffee249` | 1 |
 | `microsd-physical/run1-flash-jlink.log` | `32c9d13d79c6264f8125f96dee7493d7f2b44c5c6dff970060ed27bf8ea74a3c` | `25920f806e251ec019c6e6e4057718400f6cae0e3908b162b3df7b7d0372fa57` | 1 |
 | `microsd-physical/run1-reset-jlink.log` | `274f04ca2de7dc9d813a9604b1c99d63803bc53ee5cb4fb27192803f8ddcc995` | `2a4974cebc1b86da8fa1e4cb19eca9b9c887b331de15ea964a01bff8ab3d2318` | 1 |
@@ -76,7 +116,7 @@ committed file. `count` is the number of replacements in the file.
 | `networking-physical-stage1-run2/01-second-run/restore/03-verify-normal.log` | `533939a95badfd13850999cb2190efbb82c65259ccee9db5f65a01a91c544843` | `a0dbbca4df8882561043f25f4fae546cf7dcfbf15e961b16b73c782d5455f31e` | 2 |
 | `networking-physical-stage1-run2/01-second-run/restore/04-start-normal.jlink` | `de9b6c1ab34f54acce30fc57118814a57dce0c3d332e2689cd2924b15673cbc5` | `fc8c4f89424460cb009b08e95e4c8b304bd3584882ad45d6c08a95ca42ef42fa` | 1 |
 | `networking-physical-stage1-run2/01-second-run/restore/04-start-normal.log` | `7362759d3a95cb9216498a03a23e411e3e6b92e974fa75ef51bada6906595735` | `46cbecd21c5ef6a6743dbda753078cea99cbf4196490754aa41f315e74eaa45d` | 2 |
-| `networking-physical-stage1-run2/README.md` | `81e62e98061502ccb6a69a92e1fdb0f60ecfb6877957aa04d16a3d9f0d7d5f96` | `c72a5affdd758caa5aad5ab75a91e154dc2689c116ddf09ec89b89349a8a3b29` | 1 |
+| `networking-physical-stage1-run2/README.md` | `81e62e98061502ccb6a69a92e1fdb0f60ecfb6877957aa04d16a3d9f0d7d5f96` | `6d963d80e35f5bda400744c48c5da57f22f44c6950d048c02508ac9134ed71e7` | 1 |
 | `networking-physical-stage1-run2/SHA256SUMS.tsv` | `34421214e9e546bacc86a8fa9ea540254de5a342c5ed299c4bc2e7680787b412` | `12b2ea9eea6108b4f5e853740935f401cbe490fe6caf1a770bcb1b5b8a2a6afb` | 1 |
 | `networking-physical-stage1-run2/inputs/approval-m5-stage1-b44b66a.json` | `1093a742a4971e96f62e5d2e6840e9a0c05c6c2e88f808b886f1ca362982725c` | `d0be39109f93755632d550a2582aafebcb4309a569836509be7e5aa08923866d` | 1 |
 | `networking-physical-stage1-run2/inputs/plan-m5-stage1-b44b66a.json` | `025b7527c0f46632ed86678501ab5e2992eb74b7ec567903b46730df41ee19d2` | `31189fc7ceec87499277a108cd002124a29be99e72c8aba48fe7bb6b70514611` | 2 |
@@ -100,7 +140,7 @@ committed file. `count` is the number of replacements in the file.
 | `networking-physical-stage1-run3/01-third-run/restore/02-load-normal.jlink` | `609544efa65282163e999e0b512498488c728e5531481be3cfd56c916931465c` | `01ae74874fc0a03720772f19ef9429fae59c38e4033f328f1eac9ed9c1262bdd` | 1 |
 | `networking-physical-stage1-run3/01-third-run/restore/03-verify-normal.jlink` | `23f10896d11d218acb9b95c729e0bde8a8c1e4881bc853010750390c7267ff34` | `c4b5c1af5d495aa5f3f5a8193792db2b9098ffad12b3d3d9bc3a5a3839868ab4` | 1 |
 | `networking-physical-stage1-run3/01-third-run/restore/04-start-normal.jlink` | `de9b6c1ab34f54acce30fc57118814a57dce0c3d332e2689cd2924b15673cbc5` | `fc8c4f89424460cb009b08e95e4c8b304bd3584882ad45d6c08a95ca42ef42fa` | 1 |
-| `networking-physical-stage1-run3/README.md` | `f7f3f047a4bd6e62cd07b904d7e8634df8c8f5eaef1044f423c03083ff06a502` | `658edef5cc55a81e395522c802d365726982f0d9f66bdaacac87f1655958fab8` | 1 |
+| `networking-physical-stage1-run3/README.md` | `f7f3f047a4bd6e62cd07b904d7e8634df8c8f5eaef1044f423c03083ff06a502` | `d968d42d669317a16afb8155d7dc47c3c1e08759800a5c3c53ed317dcf4f4902` | 1 |
 | `networking-physical-stage1-run3/SHA256SUMS.tsv` | `b373f5d41d6eaa6311edc10300ea6969132384c75f0b62e8e1311fc12bbdbf7b` | `5e129f0becfa3b36e749ac7b3bb866ba0ca75e9e45b4b8eadc69a14284e51768` | 1 |
 | `networking-physical-stage1-run3/inputs/approval-m5-stage1-94a4a7d.json` | `f315aabf05082b715ab6ecc6188e84f278d8c8dd971c372606dd545198b73a1e` | `0ebaa8c246ba683932cc0b2a83612950206a161c96839ef1229d3bb08e1a7153` | 1 |
 | `networking-physical-stage1-run3/inputs/plan-m5-stage1-94a4a7d.json` | `39cda83484621544686a8c423d0037c8aa6f1dc04391fdd580217089f83742b7` | `8d8cbbef3a92c5b128cd0ff0688a83e327924d804faeffafad334d3a37f3aadf` | 2 |
@@ -147,14 +187,14 @@ committed file. `count` is the number of replacements in the file.
 | `networking-physical-stage1/06-main-run-program-capture-restore/restore/03-verify-normal.log` | `c031e27ec6133c0b8eb7b234cf1a16f498587ef905240773a24b58b77e72b5d9` | `baf53654acee7175d0da2b75e5b10446f48d9e710055dd5e391909a866de4676` | 2 |
 | `networking-physical-stage1/06-main-run-program-capture-restore/restore/04-start-normal.jlink` | `de9b6c1ab34f54acce30fc57118814a57dce0c3d332e2689cd2924b15673cbc5` | `fc8c4f89424460cb009b08e95e4c8b304bd3584882ad45d6c08a95ca42ef42fa` | 1 |
 | `networking-physical-stage1/06-main-run-program-capture-restore/restore/04-start-normal.log` | `dd39970c91d28d67513d902b63fb6a4d628d4999c7017976f348b2b5408f4f16` | `6d070103f095ec64b91ba0c8cd88de0bc8aae3bd93d47d1814dc8d3c0d8093fc` | 2 |
-| `networking-physical-stage1/README.md` | `a2c61398fdc133dfc28639e2403c6a52bde2fb7f31a057f4522e3757f85da886` | `412ca3fd919c0c899a5c761950d6ef53df06864f7323bab5ddb591f94e3d2284` | 2 |
-| `networking-physical-stage1/SHA256SUMS.tsv` | `c4bb812942ec83f2667e4717fe3e4f81a01f139fae89f9ff080cabf3b918e64b` | `caa365d4f0299f253c6df4dfe017194c45fc074dc5915ed8098b25fce5b4b40c` | 6 |
+| `networking-physical-stage1/README.md` | `a2c61398fdc133dfc28639e2403c6a52bde2fb7f31a057f4522e3757f85da886` | `8aeb02023d4778ad12cc1c5f882b8966572e6df0b43add1bca27311b398add62` | 2 |
+| `networking-physical-stage1/SHA256SUMS.tsv` | `c4bb812942ec83f2667e4717fe3e4f81a01f139fae89f9ff080cabf3b918e64b` | `8d5298ae4e1e64e7228239cfc134d32b6f9bbfdb195af2ed10e91ea8302c4c58` | 6 |
 | `networking-physical-stage1/inputs/approval-m5-stage1-3ef758d.json` | `52425b6d95cd9d8a59882c8952449142939778247ca732f3fe0e88631d295808` | `83ce5d1be955e3c4ac6007482a3853bdefe9c2a2892ac6cc14dfe2116e653d47` | 1 |
 | `networking-physical-stage1/inputs/plan-m5-stage1-3ef758d.json` | `bfdd1fb6ca66311bf2ff5670097f626b249e8ef68a61066b2498eec0f2a6cbe2` | `3b16f75c0181ac4a5b98721e54c4f0c82c86de08342c4d85c757b35322b8e292` | 2 |
-| `networking-physical-stage1/inputs/plans/stage1-phase-b-plan-r4.md` | `4940f271ba23faa49700f61d26177d4e2de92f6477974323cc7151acff7fdd4e` | `54a37486bee3e1714b49a777d0b2898a2bd368b2201cfa1c2ec90b71bd16fab2` | 1 |
+| `networking-physical-stage1/inputs/plans/stage1-phase-b-plan-r4.md` | `4940f271ba23faa49700f61d26177d4e2de92f6477974323cc7151acff7fdd4e` | `8029e7a5847bc77433ebf57f806531bd4372493e2673e99149c4f86a362e4db9` | 1 |
 | `networking-physical-stage1/inputs/plans/stage1-phase-b-plan.md` | `0f7970b13f41feee5538ba76cb2d200c47b192ae0e7cbb08e0e0ca38ba72c82b` | `8617fa2497bb25de2a5cb77d122ae2951a42377c250a0aaf345e6b2a1d00d3bb` | 3 |
 | `networking-physical/preflight-red.log` | `fee51e5571c2940575694f174c61cc80e5bf7a00382e32ad9159895092ec8b80` | `aecff082fabf1d4aaa79ae612ea04a201cd7b8645e2535ce1b7c868b295309f1` | 6 |
-| `psa-crypto/rt1060-board-2026-11-07/README.md` | `f6d27e268331b1ff6299bf0cd5588ad892d13e46dc3d4f0c7959e1f5466907a1` | `d003a3031efed705e04db6937573e42857ea90e9e029bea64cd8e62c769bb98e` | 1 |
+| `psa-crypto/rt1060-board-2026-11-07/README.md` | `f6d27e268331b1ff6299bf0cd5588ad892d13e46dc3d4f0c7959e1f5466907a1` | `ac780ab657304608dafe6eccb6d90fe35bf491eecb749c6922b79e23e06c138c` | 1 |
 | `psa-crypto/rt1060-board-2026-11-07/run-1-events.log` | `f4f55386d3ca8cd87a796df9b1f1bbf6eaa301b9a36f4a9034b3f693ba34dfc3` | `a6be75ecc7e9822f3866f21ce9363b72034aa9dab84d17c1567bdb122f13e7c9` | 4 |
 | `psa-crypto/rt1060-board-2026-11-07/run-1-result.json` | `c4894af55c2553efd9d5914ffaeb528ad35e5d00208e243a1dba6464984e79e6` | `c78b1319375be3c9a8b82d7f729f11e26d5c4e78386a2d37753d350abfee1c76` | 4 |
 | `psa-crypto/rt1060-board-2026-11-07/run-2-events.log` | `e3674a1396d0475c1567cd46966b339464880ca82a6509fb02ac2504521f05b0` | `d662a512a12d1aa15288d7aec78823053b1c900726633c7293311dcc953b7e02` | 7 |
