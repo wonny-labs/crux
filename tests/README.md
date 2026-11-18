@@ -404,8 +404,9 @@ Access core, with fake ports for the reset, the sleep, the events that are still
 the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
 configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
 `Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
-`Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
-board. `Reboot.start_faults` fails the creation of the service's semaphore and counts the live Sync mutexes, which shows that a failed start gives back the mutex it had created. See [reboot service](../docs/reboot-service.md).
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. `Reboot.start_faults` fails the creation
+of the service's semaphore and counts the live Sync mutexes, which shows that a failed start gives back the mutex it had created.
+Nothing here resets a device or operates a board. See [reboot service](../docs/reboot-service.md).
 
 ### Reboot suites on `native_sim` (pilot, Stage A)
 

@@ -1,7 +1,7 @@
 /* A start that cannot create its semaphore. The service creates a mutex and then a semaphore, and
  * a failure of the second must not keep the first: each retry would otherwise use up one Sync
- * slot for good. --wrap=crux_semaphore_create fails the first creation, and the wraps of the
- * mutex calls count the mutexes that are alive. */
+ * slot for good. --wrap=crux_semaphore_create fails a set number of creations with the result
+ * of an exhausted pool, and the wraps of the mutex calls count the mutexes that are alive. */
 #include "reboot_test.h"
 
 // NOLINTBEGIN(bugprone-reserved-identifier): GNU linker wrapping ABI
@@ -44,7 +44,7 @@ crux_status_t __wrap_crux_semaphore_create(uint32_t initial, uint32_t maximum,
         return __real_crux_semaphore_create(initial, maximum, out);
     }
     --semaphore_failures_left;
-    return CRUX_ERR_BUSY;
+    return CRUX_ERR_NO_RESOURCES;
 }
 
 static void a_failed_semaphore_does_not_keep_the_mutex(void)
@@ -58,6 +58,10 @@ static void a_failed_semaphore_does_not_keep_the_mutex(void)
         CHECK(crux_reboot_start(&config) == CRUX_REBOOT_ERR_NOT_READY);
         CHECK(live_mutexes == before);
     }
+
+    /* Once the semaphore can be created again, a start succeeds and keeps one mutex. */
+    CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
+    CHECK(live_mutexes == before + 1);
 }
 
 int main(void)
