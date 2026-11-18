@@ -26,7 +26,7 @@ Store immutable per-image/per-run raw UART, host receive times, reset/program/ve
 ## Reproduction and preparation status
 
 The maintained macOS runner is `tests/target/capture_execution.py`. It requires explicit
-`--program --mode native|controller --uart /dev/cu.usbmodem11102 --probe `<probe-serial>`
+`--program --mode native|controller --uart /dev/cu.usbmodem11102 --probe <probe-serial>
 --board mimxrt1060_evk@B//qspi --manifest <identified-image.json> --evidence <new-output-directory>`.
 It validates manifest artefact hashes, acquires exclusive UART, checks probe/CPU/voltage,
 programs and verifies the full BIN, then resets/captures three runs. It does not erase
