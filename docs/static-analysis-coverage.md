@@ -1,12 +1,11 @@
 # Static-analysis coverage of the host build
 
-Status (2026-11-15): **stages 1 and 2 are in pull request #477, which is a Draft until CI is green and
-the independent review has passed.** Stage 1 added [scripts/tidy-sources.py](../scripts/tidy-sources.py), its
+Status (re-read 2026-11-18): **stages 1 and 2 are merged, in pull request #477 (merged 2026-11-15).** Stage 1 added [scripts/tidy-sources.py](../scripts/tidy-sources.py), its
 configuration [scripts/tidy-sources.conf](../scripts/tidy-sources.conf) and the host tests
 [tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py). Stage 2 replaced the 90 hand-written
 paths of `scripts/analyze-host.sh` by a call to the generator, with the owner's approval of that one protected
 change (given in the session chat on 2026-11-15). Stage 3, removing the 12 duplicate per-component clang-tidy
-calls, has not started. See [Stage 1: the generator](#stage-1-the-generator) and
+calls, has not started (13 scripts under `scripts/` still call clang-tidy, as of 2026-11-18). See [Stage 1: the generator](#stage-1-the-generator) and
 [Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
 implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
 shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
