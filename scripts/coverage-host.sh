@@ -32,7 +32,12 @@ if [[ "$mode" == run ]]; then
         -DFETCHCONTENT_BASE_DIR="$CRUX_CACHE_DIR/cmake" \
         -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DCMAKE_EXE_LINKER_FLAGS=--coverage
     cmake --build "$build"
-    ctest --test-dir "$build" --output-on-failure --output-junit "$build/ctest-junit.xml"
+    # Ssh.cli_entry_symbols reads the undefined symbols of the SSH entry points' object files
+    # and refuses any it does not know. --coverage adds llvm_gcda_* and llvm_gcov_init
+    # references, so the test fails only in this instrumented build and says nothing here. It
+    # still runs, un-instrumented, in the normal Host job (host.yml). Exclude only that test.
+    ctest --test-dir "$build" --output-on-failure --output-junit "$build/ctest-junit.xml" \
+        -E '^Ssh\.cli_entry_symbols$'
     exit 0
 fi
 

@@ -173,6 +173,27 @@ class CoverageWorkflowTest(unittest.TestCase):
                 self.assertIn(flag, script)
         self.assertNotIn("--coverage", (REPO / "CMakePresets.json").read_text())
 
+    def test_the_instrumented_host_run_skips_only_the_symbol_inspecting_test(self):
+        # Ssh.cli_entry_symbols runs nm on the entry points' object files and refuses any
+        # undefined symbol it does not know. --coverage adds llvm_gcda_* and llvm_gcov_init
+        # references, so the test fails only in the instrumented build. It is excluded there
+        # by its exact name, with a reason, and still runs in the normal Host job.
+        script = (REPO / "scripts/coverage-host.sh").read_text()
+        match = re.search(r"-E '([^']+)'", script)
+        self.assertIsNotNone(match, "ctest in coverage-host.sh excludes a test with -E")
+        pattern = match.group(1)
+        self.assertEqual(r"^Ssh\.cli_entry_symbols$", pattern, "exactly one test, by full name")
+        self.assertIn("Ssh.cli_entry_symbols", (REPO / "tests/ssh/cli/CMakeLists.txt").read_text())
+        joined = script.replace("\\\n", " ")
+        ctest = [line for line in joined.splitlines() if line.lstrip().startswith("ctest ")]
+        self.assertEqual(1, len(ctest))
+        self.assertIn("-E '^Ssh\\.cli_entry_symbols$'", ctest[0])
+        self.assertIn("llvm_gcda", script, "the script says why the test is excluded")
+        readme = (REPO / "tests/README.md").read_text()
+        section = readme[readme.index("## Advisory test coverage"):]
+        self.assertIn("Ssh.cli_entry_symbols", section, "tests/README.md documents the exclusion")
+        self.assertIn("llvm_gcda", section)
+
     def test_native_sim_measures_a_named_set_and_keeps_repository_sources_only(self):
         script = (REPO / "scripts/coverage-native-sim.sh").read_text()
         for suite in ("tests/time/zephyr", "tests/logging/zephyr", "tests/system/zephyr",
