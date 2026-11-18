@@ -1039,3 +1039,38 @@ No consumer calls a provider here. See the [qualification record](../docs/psa-cr
 `tests/native/management_ssh` is that services image with the wolfSSH provider beside the HTTPS listener, so that the command line over SSH and SFTP run next to the web on the same Access core, credential store and file service. It is the Wolf profile only, and `CONFIG_CRUX_SSH` in `zephyr/Kconfig` selects the provider. `scripts/test-ssh-integrated.sh [guards|build|controls|run|all]` builds it, runs `check_ssh_guard.py` (the guards that refuse its test-form host key outside a declared `native_sim` test image, which need only `cmake` and `cc`), and runs `driver.py` against the running image with OpenSSH `ssh` and `sftp` and `curl`. It needs the `crux-secure-management` group, and no default workflow runs it; see [the integrated image](../docs/ssh-integrated-image.md).
 
 `scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
+
+## Advisory test coverage
+
+The [`coverage.yml`](../.github/workflows/coverage.yml) workflow measures how many lines and
+branches of the component sources (`components/`) the tests execute. It is advisory: no
+threshold, badge or required status exists, and nothing is uploaded outside GitHub. It runs by
+hand (`workflow_dispatch`), weekly and on each push to `main` that changes more than
+documentation. Pull requests do not start it, so their CI time is unchanged.
+
+| Part | Script | What runs |
+| --- | --- | --- |
+| Host | `scripts/coverage-host.sh run` then `report` | The root CMake tree with `--coverage` added on the command line (the `host-debug` settings otherwise, `CMakePresets.json` unchanged) and its CTest set, built with Clang 18 and read with `llvm-cov gcov` through gcovr |
+| `native_sim` | `scripts/coverage-native-sim.sh run` then `report` | The Time, Logging, System and FatFs File Twister suites on `native_sim/native/64`, with the module arguments of their own scripts (System without the consumer root `tests/system_consumer/zephyr`, FatFs on `native_sim/native/64` only), through gcovr |
+
+The four `native_sim` suites are a first, cheap and representative set. Other suites are not
+measured yet, and a suite that cannot be built with coverage is named in the run's log without
+stopping the others. The Host part does not include the consumer suites that `host.yml` builds
+in separate trees.
+
+Each job writes a per-component table (lines and branches, one row per directory under
+`components/`) to the run summary and uploads an HTML report, `coverage.json`, a text report
+and `summary.md` as an artifact, `coverage-host-*` or `coverage-native-sim-*`, kept for 14 days.
+`scripts/coverage-summary.py` builds the table and is tested by
+`tests/build/test_coverage_summary.py`; `tests/build/test_coverage_workflow.py` keeps the
+workflow advisory.
+
+To run the report step locally, install gcovr 8.3 and LLVM 18 (`llvm-cov-18`) by hand: neither is in the Dev Container image. The workflow installs them.
+
+A build or test failure fails the job. Only the report step may fail for a tool reason, and it
+then leaves a warning and a note in the run summary instead of failing the job.
+
+Not measured: hardware and physical-board runs, the Python and shell checks, suites outside the
+list above, and Zephyr, kernel, vendor and fetched test-library code, which fall outside the
+repository root or the `components/` filter. Test sources are excluded. The figures show which
+code the tests execute, not whether the tests check it, and they qualify nothing on hardware.
