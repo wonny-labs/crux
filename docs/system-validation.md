@@ -171,8 +171,10 @@ separate final-HEAD acceptance criterion, with current results on the PR.
 - Normal Host reset/cause services are NOT_SUPPORTED; it never resets/exits the
   process or machine. Zephyr releases metadata before native cold reboot dispatch;
   success normally does not return, but a failed native reboot can hang instead.
-  Public reset never returns OK. It does not drain logging, save state or establish
-  Flash/QSPI/application safe state.
+  Public reset never returns OK. With Zephyr logging enabled it calls `log_panic()`
+  before the reboot, so records waiting for the deferred logging thread are written
+  out first (`crux.system.log_panic` on `native_sim`). It does not save state or
+  establish Flash/QSPI/application safe state.
 - Task context after startup only; detected ISR/pre-kernel use is unsupported.
   Serialization can block. No worst-case call, feed, scheduling or fairness bound.
   No allocation, new thread or timer worker; native mutex metadata is boot-local.
