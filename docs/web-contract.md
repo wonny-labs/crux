@@ -259,8 +259,8 @@ still keep the interface busy, at the cost of a TCP connection, and over TLS a h
 reading the body and answers again; every byte restarts the inactivity timer. So a client that sends, for example,
 `POST` to a path with no resource with a large `Content-Length`, then one byte per period, and reads the answers, holds a
 slot with no time limit, and three such clients block the interface as trickled headers did. This is read from the
-server's source at the pin and has not been run. Bounding it is a change beyond the decided option and is left to a
-follow-up issue.
+server's source at the pin and has not been run. Bounding it is a change beyond the decided option, recorded for a decision in
+[Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529).
 
 ### Flow control for large transfers
 

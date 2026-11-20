@@ -241,5 +241,5 @@ connection; their results are recorded in the pull request that adds the patch, 
 limits stay declared. A client that reconnects holds a slot for up to the deadline per connection. A body on a request the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it: the
 server stays in its request state reading the body, and every byte restarts the inactivity timer, so a client that
 trickles such a body, and reads the answers, holds a slot with no time limit. Bounding that is a change beyond the
-decided option and is left to a follow-up. The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
+decided option, recorded in [Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529). The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
 list has not been changed here. The upstream Kconfig option is the intended end state and needs its own approval.
