@@ -95,8 +95,10 @@ run_native() {
     grep -q ' [tT] fnmatch$' "$build/symbols.txt" || fail "the image has no Zephyr fnmatch"
     grep -qx 'CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y' "$build/zephyr/.config" ||
         fail "the image must use the native socket offload"
+    # Both images run, so that a failure of one does not hide the other.
+    local failed=0
     python3 "$repo/tests/native/web_http/test_driver.py" "$build/zephyr/zephyr.exe" \
-        --results "$output/native-results.json"
+        --results "$output/native-results.json" || failed=1
     printf 'native_sim result, plain HTTP on loopback, not device evidence: %s\n' "$output/native-results.json"
     # A bind text that is not an address must stop the start, and not open every address.
     local refused="$output/native-bad-bind"
@@ -107,7 +109,8 @@ run_native() {
     grep -qx 'CONFIG_CRUX_WEB_BIND_ADDRESS="127.0.0.300"' "$refused/zephyr/.config" ||
         fail "the refused image does not hold the bad bind text"
     python3 "$repo/tests/native/web_http/test_driver.py" "$refused/zephyr/zephyr.exe" --expect-start-refused \
-        --results "$output/native-bad-bind-results.json"
+        --results "$output/native-bad-bind-results.json" || failed=1
+    ((failed == 0)) || fail "a native web case failed; see the output above"
 }
 
 run_https() { # profile
