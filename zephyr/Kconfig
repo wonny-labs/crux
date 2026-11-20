@@ -495,6 +495,20 @@ config CRUX_WEB_REQUEST_DEADLINE_MS
       Every received byte restarts the server's inactivity timer, so that timer does not bound a
       client that trickles a body. A composition passes this in crux_web_config_t.
 
+config CRUX_WEB_HEADER_DEADLINE_MS
+    int "Longest time from a request's first byte to the end of its headers"
+    default 10000
+    range 100 600000
+    help
+      Every received byte restarts the Zephyr server's inactivity timer, and headers run no
+      callback, so without this a client that trickles an incomplete request head holds a client
+      slot for as long as the parser accepts headers. The web adapter builds the server with a
+      build-local patch (patches/zephyr/http-header-deadline.patch) that closes such a client this
+      long after the request's first byte, whatever it sends meanwhile. A client idle between
+      requests stays under the inactivity timer, and a body under CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS.
+      The default is one period of the server's default inactivity timeout of 10 s (Issue #268). A
+      client that reconnects still holds a slot for up to this long per connection.
+
 config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     bool "Plain HTTP on loopback, for tests of the adapter only"
     depends on BOARD_NATIVE_SIM
