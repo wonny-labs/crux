@@ -17,5 +17,6 @@ int main(void)
         return 1;
     }
     printk("CRUX_WEB_READY %d\n", CONFIG_CRUX_WEB_PORT);
+    web_probe_serve_second_start(&config);
     return 0;
 }
