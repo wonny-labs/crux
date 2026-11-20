@@ -1,6 +1,6 @@
 # ADR-0001: Application boundary and public API stability
 
-Status: **Accepted**, with D10 limited to phase 1 (Host and `native_sim`, no hardware). **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md).** The decided outcomes are listed under [Decided](#owner-decisions).
+Status: **Accepted**, with D10 limited to phase 1 (Host and `native_sim`, no hardware). **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md).** The decided outcomes are listed under [Owner decisions](#owner-decisions).
 
 Each decision that this record puts into effect is its own change, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
 
@@ -450,9 +450,8 @@ None of these is part of this ADR. Each is its own reviewed change, and a change
 7. Run the experiment, phase 1 first.
 
 <a id="the-owners-decision"></a>
-<a id="owner-decisions"></a>
 
-## Decided
+## Owner decisions
 
 - **D1.** Three layers: domain, adapters and Crux services (Decision 1).
 - **D2.** Zephyr only in adapters, composition, providers, samples' Zephyr folders and tests. Crux keeps its checks, and products get an include check and a Host build of the domain through the template (Decision 2).
