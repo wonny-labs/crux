@@ -206,3 +206,36 @@ attempt. When the read works, the number is the hash of the key and the tuple pl
 `scripts/prepare-wolf-tls-zephyr.sh` has made the copy and applied the TLS socket patch, and checks the hash of the original, the patch and the result.
 It extends the one marker of the copy, `.crux-wolf-tls`, from `<pin> <tls patch sha256>` to `<pin> <tls patch sha256> <isn patch sha256>`, and writes no marker of its own (on a bare copy without the TLS marker it writes none). The bench guard compares that marker with the pin and the declared patches' hashes in order, and checks every patched file's hash (`patched_zephyr`, schema 2, in `bench_declaration.json`). The patch is the intended end
 state only until Zephyr fixes the two defects upstream; the upstream status was not checked.
+
+# HTTP header-phase deadline
+
+`http-header-deadline.patch` changes one file, `subsys/net/lib/http/http_server_core.c`, of Zephyr
+`dccb09599635bdff17633fa7e9dab014b91dce90` (SHA-256 `f0d0ce91…`, and `1361df15…` after the patch). The file is
+copyright Emna Rekik and Nordic Semiconductor ASA, Apache-2.0 licensed, and its notices remain. Owner decision of
+14 November 2026, option B of [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268).
+
+At the pin, every read that returns data restarts the client's inactivity timer, and request headers run no resource
+callback. A client that trickles an incomplete request head, one byte per period, holds its client slot for as long as
+the parser accepts headers, and three such clients hold every slot of the web adapter.
+
+With the patch, after each read that leaves the client open, the server checks whether the client is in the header
+phase: bytes received in the preface state, or the HTTP/1 request state before the parser has the complete headers.
+The phase starts at the first read of a request. While it lasts, the inactivity timer is set to the earlier of its usual
+period and the end of `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS`, and a read past that end closes the client. A client idle
+between requests keeps the usual inactivity timer, and a body is under the adapter's request deadline. The phase is
+cleared when a client slot is initialised. The copy refuses to build without the Kconfig value or with HTTP/2, whose
+frame states it does not cover; the web adapter already builds HTTP/1.1 only.
+
+`components/web/ports/zephyr/prepare_header_deadline.py` checks the exact original source hash, applies the patch in a
+temporary directory and verifies the generated hash. `components/web/ports/zephyr/header_deadline.cmake` replaces
+exactly one `http_server_core.c` in the existing `subsys__net__lib__http` library with the build-local copy, for every
+image with `CONFIG_CRUX_WEB`. It never edits the Zephyr checkout. The generated `.json` records original, patch and
+output hashes. Source drift or a missing or ambiguous library member fails configuration. The script sits beside the
+web adapter rather than under `scripts/`, as the Settings File copy of `tests/native/configuration_settings_file` does.
+
+`tests/native/web_http/test_prepare_header_deadline.py` checks the drift and output-path refusals. The `native_sim`
+suites `tests/native/web_http` and `tests/native/web_https` close three trickling clients at the deadline while a
+fourth is served, and serve a head sent in pieces within the deadline on each request of a kept connection. These are
+not device evidence. The residual limit stays declared: a client that reconnects holds a slot for up to the deadline
+per connection. The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
+list has not been changed here. The upstream Kconfig option is the intended end state and needs its own approval.

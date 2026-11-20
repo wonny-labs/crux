@@ -165,7 +165,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | Before the header deadline, all three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s. With it, each is closed at the deadline, 2 s in the suite, and the fourth client is served | See [below](#trickled-headers-the-header-phase-deadline). A client that reconnects holds a slot for up to the deadline per connection. |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
 | Reader that reads nothing, 8 MB body (slow-read attack) | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
@@ -235,20 +235,24 @@ stream. Telling it apart would need state the server does not expose. Mutation c
 The injected send proves the path runs: `send_eagain` in `/probe/stats` counts each one, because the suite reached it zero
 times before. Real `-EAGAIN` on Zephyr's own stack has not been run.
 
-### Trickled headers: a decision for the owner
+### Trickled headers: the header-phase deadline
 
 Headers run no callback, so the adapter cannot see a client that is still sending them, and the inactivity timer restarts
-on every received byte. A client can hold a slot for as long as the parser accepts headers, 80 KiB, at one byte per
-inactivity period: about 9.5 days at the 10 s default. Three such clients block the whole web interface, and need almost
-no bandwidth. The serial console, the control work and any other network service stay unaffected.
+on every received byte. Without a deadline, a client could hold a slot for as long as the parser accepts headers, 80 KiB,
+at one byte per inactivity period: about 9.5 days at the 10 s default, and three such clients blocked the whole web
+interface with almost no bandwidth.
 
-| Option | Effect | Cost |
-| --- | --- | --- |
-| **A. Declare it, as this pull request does** | No change | The interface can be blocked by anyone who can reach the port, for as long as they keep it up |
-| **B. A Zephyr patch, recommended.** A `k_work_schedule` in the header phase, so the timer stops being extended there, gated on `server_state` because HTTP/2 stays at parser state 0 | Headers get one inactivity period in all | A small patch to maintain, delivered as `scripts/prepare-nxp-mdio.py` does, with an upstream Kconfig offered. **A client that reconnects still holds a slot for one period per connection.** |
-| C. Raise the client limit | Only raises the number of clients needed | RAM per client |
+The owner chose option B of Issue #268 on 2026-11-14: a build-local patch of the Zephyr server,
+`patches/zephyr/http-header-deadline.patch`, which the web adapter's build applies to a copy of `http_server_core.c`
+([patches README](../patches/zephyr/README.md#http-header-phase-deadline)). From the first byte of a request until its
+headers are complete, gated on the server state and the HTTP/1 parser state, received bytes no longer extend the time the
+client has: it is closed `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS` after that byte, 10 s by default, one period of the default
+inactivity timer. A client idle between requests keeps the inactivity timer, and the deadline starts again with each
+request on a kept connection. The rejected options were to declare the limit, or to raise the client limit, which only
+raises the number of clients needed and costs RAM per client.
 
-This pull request does not take B, because the issue leaves it to the owner. New issue #268 records it.
+**A client that reconnects still holds a slot for up to the deadline per connection**, so three clients in a loop can
+still keep the interface busy, at the cost of a TCP connection, and over TLS a handshake, per period.
 
 ### Flow control for large transfers
 

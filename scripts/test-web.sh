@@ -84,6 +84,8 @@ run_host() {
 
 run_native() {
     local build="$output/native"
+    # The build-local server core with the header-phase deadline refuses drift. See patches/zephyr/README.md.
+    ZEPHYR_BASE="$workspace/zephyr" python3 "$repo/tests/native/web_http/test_prepare_header_deadline.py"
     ZEPHYR_BASE="$workspace/zephyr" cmake -S "$repo/tests/native/web_http" -B "$build" -G Ninja \
         -DBOARD="$native_board" "-DZEPHYR_MODULES=$repo" "-DPython3_EXECUTABLE=$(command -v python3)"
     ninja -C "$build" -j "$jobs"

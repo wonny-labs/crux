@@ -1,0 +1,85 @@
+--- a/subsys/net/lib/http/http_server_core.c
++++ b/subsys/net/lib/http/http_server_core.c
+@@ -67,6 +67,65 @@
+ #endif
+ 
+ static void close_client_connection(struct http_client_ctx *client);
++
++/* Header-phase deadline. Every read that returns data restarts the inactivity timer, so that
++ * timer alone does not bound a client that trickles an incomplete request head. From the first
++ * byte of a request until its headers are complete, the timer is set to the earlier of the
++ * inactivity timeout and the end of CONFIG_CRUX_WEB_HEADER_DEADLINE_MS, and a read past that
++ * end closes the client.
++ */
++#if !defined(CONFIG_CRUX_WEB_HEADER_DEADLINE_MS)
++#error "the header-phase deadline needs CONFIG_CRUX_WEB_HEADER_DEADLINE_MS"
++#endif
++BUILD_ASSERT(!IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_2),
++	     "the header-phase deadline covers the HTTP/1 request states only");
++
++static struct {
++	bool active;
++	int64_t started_ms;
++} header_phase[HTTP_SERVER_MAX_CLIENTS];
++
++static bool client_in_header_phase(const struct http_client_ctx *client)
++{
++	switch (client->server_state) {
++	case HTTP_SERVER_PREFACE_STATE:
++		/* Bytes of a request line wait here until the preface check can be made. With
++		 * nothing received the client is idle between requests: the inactivity timer.
++		 */
++		return client->data_len > 0;
++	case HTTP_SERVER_REQUEST_STATE:
++		return client->parser_state < HTTP1_RECEIVED_HEADER_STATE;
++	default:
++		return false;
++	}
++}
++
++/* After a read that left the client open. Returns false if the client was closed here. */
++static bool header_deadline_check(struct http_client_ctx *client)
++{
++	size_t index = ARRAY_INDEX(server_ctx.clients, client);
++	int64_t now = k_uptime_get();
++	int64_t left;
++
++	if (!client_in_header_phase(client)) {
++		header_phase[index].active = false;
++		return true;
++	}
++	if (!header_phase[index].active) {
++		header_phase[index].active = true;
++		header_phase[index].started_ms = now;
++	}
++	left = (int64_t)CONFIG_CRUX_WEB_HEADER_DEADLINE_MS - (now - header_phase[index].started_ms);
++	if (left <= 0) {
++		LOG_DBG("Client %p header deadline", client);
++		close_client_connection(client);
++		return false;
++	}
++	if (left < (int64_t)CONFIG_HTTP_SERVER_CLIENT_INACTIVITY_TIMEOUT * MSEC_PER_SEC) {
++		k_work_reschedule(&client->inactivity_timer, K_MSEC(left));
++	}
++	return true;
++}
+ 
+ HTTP_SERVER_CONTENT_TYPE(html, "text/html")
+ HTTP_SERVER_CONTENT_TYPE(css, "text/css")
+@@ -439,6 +498,7 @@
+ 
+ 	memset(client->buffer, 0, sizeof(client->buffer));
+ 	memset(client->url_buffer, 0, sizeof(client->url_buffer));
++	header_phase[ARRAY_INDEX(server_ctx.clients, client)].active = false;
+ 	k_work_init_delayable(&client->inactivity_timer, client_timeout);
+ 	http_client_timer_restart(client);
+ 
+@@ -735,6 +795,8 @@
+ 				 */
+ 				LOG_ERR("RX buffer too small to handle request");
+ 				close_client_connection(client);
++			} else {
++				(void)header_deadline_check(client);
+ 			}
+ 		}
+ 	}
