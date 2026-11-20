@@ -38,7 +38,6 @@ class ExternalApplicationTest(unittest.TestCase):
                 ('serial', {'serial'}, 'crux_serial_open'),
                 ('logging', {'logging'}, 'crux_log_write'),
                 ('system', {'system'}, 'crux_system_status_get'),
-                ('messaging', {'queue', 'time', 'thread'}, 'crux_queue_create'),
                 ('parent', set(), None)):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 result, build = self.configure(Path(temporary), profile)
@@ -50,7 +49,7 @@ class ExternalApplicationTest(unittest.TestCase):
                     file = entry['file'].replace('\\', '/')
                     match = re.search(r'/components/([^/]+)/', file)
                     if match:
-                        self.assertIn(match[1], selected | ({'interrupt'} if selected & {'time', 'thread', 'sync', 'queue', 'system'} else set()), file)
+                        self.assertIn(match[1], selected | ({'interrupt'} if selected & {'time', 'thread', 'sync', 'system'} else set()), file)
                     self.assertNotIn('googletest', file)
                     self.assertNotIn('/samples/', file)
                     if Path(file).name in ('consumer.c', 'consumer.cpp'):
@@ -244,11 +243,3 @@ class ExternalApplicationTest(unittest.TestCase):
             result, _ = self.configure(Path(temporary), 'system', '-DCONFLICT_PROVIDER=ON')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('CRUX_SYSTEM_PROVIDER', result.stdout + result.stderr)
-
-    def test_missing_native_composition_fails_at_link(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            result, build = self.configure(Path(temporary), 'messaging', '-DOMIT_PROVIDER=ON')
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            result = subprocess.run([CMAKE, '--build', str(build)], text=True, capture_output=True)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('undefined reference', result.stdout + result.stderr)

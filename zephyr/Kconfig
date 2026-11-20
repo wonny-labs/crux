@@ -175,13 +175,6 @@ config CRUX_NETIF
     bool "Crux primary interface status"
     depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4
 
-config CRUX_QUEUE
-    bool "Crux bounded copy queue"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
-    select TIMEOUT_64BIT
-    help
-      Initial qualification profile: four queues, sixteen records, sixty-four bytes.
-
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"
     depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL

@@ -1,5 +1,17 @@
 # Portable event and queue contract
 
+**Removed (20 November 2026).** Crux Queue is removed: `components/queue`, `<crux/queue.h>`, the `crux::queue` and `crux::queue_linux` targets, `CONFIG_CRUX_QUEUE`, `CRUX_BUILD_QUEUE` (which now stops the configure) and the Queue tests and runners. The owner decided it in the Crux Pilot session after 20:20 UTC. No Crux component used Queue, it was frozen for new product code under P2 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md), and its fixed limits (four queues of sixteen 64-byte records) were not made configurable, because every slot reserves the largest capacity and record size. **Replacement: Zephyr `k_msgq`** in the product's Zephyr code ([Choosing an API](choosing-an-api.md)). [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) R3 records the decision.
+
+**Migration note.** Crux Queue was not a thin copy of `k_msgq`, and a product keeps the following properties after the move only if its adapter provides them ([platform direction review](research/platform-direction-review.md#56-what-it-asks-of-each-consumer), section 5.6):
+- It was a ring buffer in common code, under one metadata `k_mutex` with a `k_condvar` per queue on Zephyr.
+- Handles carried a slot and a generation, so stale handles were rejected.
+- Destroy returned BUSY while calls were active or waiting.
+- Waits were finite: zero polled, there was no forever, and one deadline covered lock admission and the wait.
+- It was thread context only. The default was a cooperative stop, and a purge was not an abort.
+- The pool was fixed at 4 × 16 × 64 bytes.
+
+The rest of this document is the historical contract and design rationale. Its file paths name code that no longer exists.
+
 **Freeze notice (13 November 2026).** Queue is frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision under P9 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md). The product template's [domain include check](../templates/product/README.md#zones-and-the-domain-include-check) rejects the header in a product's domain.
 
 Status: Queue/event policy remains approved from Issue #26. The typed Time redesign supersedes the original Monotonic API; current timing rules are in [Time](time-contract.md) and [Thread/Sync](thread-sync.md). Historical provider evaluations and alternatives below are rationale, not current timing configuration instructions.

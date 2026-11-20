@@ -108,7 +108,7 @@ A contract page defines one component's public behaviour, its limits and its val
 | Area | Pages |
 | --- | --- |
 | Time | [Time contract](time-contract.md), [CPU Busy-wait](time-busy-wait.md) |
-| Execution and messaging | [Thread and Sync](thread-sync.md), [event and queue](messaging-contract.md), [validation](messaging-validation.md) |
+| Execution and messaging | [Thread and Sync](thread-sync.md), [event and queue](messaging-contract.md) and its [validation](messaging-validation.md) (Queue removed) |
 | Communication and networking | [Serial](serial-contract.md), [serial validation](serial-validation.md), [networking](networking-contract.md) |
 | Storage and configuration | [File](file-contract.md), [Configuration](configuration-contract.md), [File root binding](file-composition-interface.md) |
 | Diagnostics and system | [Logging](logging-contract.md), [System health and reset](system-validation.md) |

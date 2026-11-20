@@ -40,7 +40,7 @@ The serial console start (ADR-0004 phase 1b, Experimental) is a composition inte
 
 ### Linux Host composition targets
 
-Rules 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::queue_linux`, which name `linux` in place of `zephyr`. **Rule 2 does not apply to them.** On Linux Host no Kconfig selects a provider, so the composition target is the provider itself: in `components/queue/CMakeLists.txt`, `crux::queue_linux` is an ALIAS of the STATIC provider library `crux_queue_linux`. Its negative test, `test_linux_composition_targets_are_rejected_in_portable_consumers` in `tests/build/test_consumer_boundary.py`, covers a direct link, an INTERFACE wrapper, a STATIC wrapper and an application alias. It does not run the usage check on the target, because the portable-consumer guard rejects the target by identity first (the ADR's reading; the test asserts the rejection, not the order of checks).
+Rules 3, 4 and 6 also cover a Linux Host composition target, which names `linux` in place of `zephyr`. **Rule 2 does not apply to it.** On Linux Host no Kconfig selects a provider, so such a target is the provider itself. None exists now: the only one, `crux::queue_linux`, was removed with Crux Queue on 20 November 2026, together with its identity check in `cmake/CruxConsumerBoundary.cmake` and its negative test. A new one needs both again: a rejection by identity in the portable-consumer guard and a negative test for a direct link, an INTERFACE wrapper, a STATIC wrapper and an application alias.
 
 ## What is not an escape hatch
 

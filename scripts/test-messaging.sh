@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Crux Queue was removed (docs/messaging-contract.md). This runner keeps the checks that did not
+# depend on it: the portable controller timing scenario (samples/messaging/controller.c) on Host,
+# and the fractional Thread timing suite on native_sim.
 set -euo pipefail
 repo="$(git rev-parse --show-toplevel)"
 mode="${1:-all}"
@@ -14,14 +17,6 @@ if [[ "$mode" == --host-only ]]; then exit 0; fi
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/tests/queue/zephyr" -T "$repo/tests/thread/zephyr_fractional" \
-    -T "$repo/tests/messaging_consumer/zephyr" \
+    -T "$repo/tests/thread/zephyr_fractional" \
     -O "$repo/build/zephyr/twister-messaging" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
-mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
-modules+=("$repo")
-modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
-(cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/messaging-evkb" "$repo/tests/messaging_consumer/zephyr" -- \
-    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
-# Cross-build only. No hardware operation is performed.

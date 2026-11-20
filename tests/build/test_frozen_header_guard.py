@@ -1,4 +1,4 @@
-"""The opt-in warning of the four frozen public headers, and how Crux keeps it out of its own build.
+"""The opt-in warning of the three frozen public headers, and how Crux keeps it out of its own build.
 
 ``CRUX_WARN_FROZEN_HEADERS`` is set by a product, never by Crux. ``CRUX_INTERNAL_BUILD`` is set by
 Crux's own CMake directories, as a directory compile definition, so it reaches no consumer.
@@ -16,7 +16,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 CC = shutil.which(os.environ.get("CC", "cc"))
 CMAKE = shutil.which("cmake")
-FROZEN = ("thread", "sync", "queue", "serial")
+FROZEN = ("thread", "sync", "serial")
 INCLUDES = sorted(str(path) for path in REPO.glob("components/*/include"))
 DOCS_POINTER = "docs/choosing-an-api.md"
 
@@ -66,7 +66,7 @@ class FrozenHeaderWarningTest(unittest.TestCase):
     def test_any_value_of_the_opt_in_macro_enables_it(self):
         for value in ("CRUX_WARN_FROZEN_HEADERS=1", "CRUX_WARN_FROZEN_HEADERS=0", "CRUX_WARN_FROZEN_HEADERS="):
             with self.subTest(value=value):
-                _status, diagnostics = preprocess("#include <crux/queue.h>\n", f"-D{value}")
+                _status, diagnostics = preprocess("#include <crux/serial.h>\n", f"-D{value}")
                 self.assertIn(DOCS_POINTER, diagnostics)
 
     def test_inside_crux_the_opt_in_stays_silent(self):
@@ -113,14 +113,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CRUX_BUILD_TIME ON CACHE BOOL "")
 set(CRUX_BUILD_THREAD ON CACHE BOOL "")
 set(CRUX_BUILD_SYNC ON CACHE BOOL "")
-set(CRUX_BUILD_QUEUE ON CACHE BOOL "")
 set(CRUX_BUILD_SERIAL ON CACHE BOOL "")
 set(CRUX_TIME_PROVIDER memory CACHE STRING "")
 add_subdirectory("@REPO@" crux)
 add_library(product STATIC product.c)
-target_link_libraries(product PRIVATE crux::thread crux::sync crux::queue crux::serial)
-foreach(target IN ITEMS crux_thread_host crux_sync_host crux_queue_linux crux_serial_linux crux_thread_api
-                        crux_sync_api crux_serial_api crux_queue product)
+target_link_libraries(product PRIVATE crux::thread crux::sync crux::serial)
+foreach(target IN ITEMS crux_thread_host crux_sync_host crux_serial_linux crux_thread_api
+                        crux_sync_api crux_serial_api product)
     if(TARGET ${target})
         get_target_property(usage ${target} INTERFACE_COMPILE_DEFINITIONS)
         message(STATUS "USAGE ${target} [${usage}]")
@@ -188,7 +187,7 @@ endforeach()
         root, result = self.configure("-DCMAKE_C_FLAGS=-DCRUX_WARN_FROZEN_HEADERS")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         build = subprocess.run([CMAKE, "--build", str(root / "build"), "--target", "product", "crux_thread_host",
-                                "crux_sync_host", "crux_queue_linux", "crux_serial_linux"],
+                                "crux_sync_host", "crux_serial_linux"],
                                capture_output=True, text=True)
         self.assertEqual(0, build.returncode, build.stdout + build.stderr)
         lines = (build.stdout + build.stderr).splitlines()

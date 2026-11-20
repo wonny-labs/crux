@@ -56,12 +56,11 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_messaging_consumers_reject_native_leakage(self):
-        for path in ("tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
-                     "samples/messaging/controller.c"):
+        for path in ("samples/messaging/controller.c",):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/queue.h>\n#include <crux/time.h>\n", path)
+                good = self.check_source("#include <crux/thread.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_rejects_native_header_families_and_include_spacing(self):
@@ -106,10 +105,10 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_rejects_direct_paths_into_component_ports(self):
-        for header in ("../ports/linux/queue_port.h", "../ports/zephyr/queue_port.h"):
+        for header in ("../ports/linux/example_port.h", "../ports/zephyr/example_port.h"):
             for path in ("components/example/include/crux/example.h",
                          "components/example/src/example.c",
-                         "tests/messaging_consumer/runtime.c"):
+                         "tests/thread_sync_consumer/consumer.c"):
                 with self.subTest(header=header, path=path):
                     result = self.check_source(f'#include "{header}"\n', path)
                     self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -173,8 +172,6 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/sync/ports/zephyr/sync_native.c",
                      "tests/thread_sync_consumer/native_worker.c",
                      "tests/thread_sync_consumer/zephyr/native_worker.c",
-                     "components/queue/ports/linux/queue_port.c",
-                     "components/queue/ports/zephyr/queue_port.c",
                      "components/time/ports/linux/time_clock_linux.c",
                      "components/time/ports/zephyr/time_clock_zephyr.c",
                      "samples/controller/zephyr/main.c",
