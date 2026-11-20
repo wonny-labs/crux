@@ -21,6 +21,10 @@ void access_fake_reset(void);
 
 void access_fake_clock_set(uint64_t now_ms);
 void access_fake_clock_advance(uint64_t delta_ms);
+/* Makes every clock read report CRUX_ACCESS_CLOCK_FAILED, or stops doing so. */
+void access_fake_clock_fail(bool fail);
+/* Lets this many reads succeed, then fails every read until access_fake_clock_fail(false). */
+void access_fake_clock_fail_after(uint64_t reads);
 
 void access_fake_random_fail(bool fail);
 void access_fake_hmac_fail(bool fail);

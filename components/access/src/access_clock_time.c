@@ -5,20 +5,17 @@
 #include <crux/time.h>
 
 /*
- * The port has no way to report a failure, so a clock that failed reads as 0, like one that ran
- * backwards. crux_monotonic_now fails only for a NULL argument, in an ISR or on a provider error.
- *
- * While it reads 0, sessions from before the fault expire, and a bucket with a window stays closed.
- * Two limits follow, and tests/access/clock_fault.c holds them. A login during the fault succeeds,
- * and that session stays valid while the clock is broken. A failure during the fault sets a
- * bucket's last failure to 0 and shrinks its window, so once the clock returns past the quiet
- * period the bucket clears, however recent its real failures were.
+ * crux_monotonic_now fails only for a NULL argument, in an ISR or on a provider error. A failure,
+ * or a negative reading, gives CRUX_ACCESS_CLOCK_FAILED, which no reading reaches: INT64_MAX ns is
+ * about 9.2e12 ms. The core then refuses a login or a key attempt with NOT_READY, creates no
+ * session and leaves every bucket as it was, and a session from before the fault expires.
+ * tests/access/clock_fault.c holds this.
  */
 uint64_t crux_access_port_now_ms(void)
 {
     crux_monotonic_time_t now;
     if (crux_monotonic_now(&now) != CRUX_OK || now.private_ns < 0) {
-        return 0;
+        return CRUX_ACCESS_CLOCK_FAILED;
     }
     return (uint64_t)now.private_ns / UINT64_C(1000000);
 }
