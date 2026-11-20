@@ -8,7 +8,9 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/ztest.h>
-#if defined(CONFIG_LOG)
+/* Deferred logging only (scenario crux.system.log_panic): in immediate mode, which a test image
+ * may have by default, a record is written at once and there is nothing for the reset to flush. */
+#if defined(CONFIG_LOG_MODE_DEFERRED)
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_backend.h>
 #include <zephyr/logging/log_ctrl.h>
@@ -127,7 +129,7 @@ static int reboot_type;
 FUNC_NORETURN void __wrap_sys_reboot(int type)
 {
     reboot_type = type;
-#if defined(CONFIG_LOG)
+#if defined(CONFIG_LOG_MODE_DEFERRED)
     records_at_reboot = atomic_get(&probe_records);
     pending_at_reboot = log_data_pending();
 #endif
@@ -251,7 +253,7 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(crux_system_reset_cause_get(&report), CRUX_OK);
     zassert_equal(report.causes, 0);
     zassert_equal(retained.causes, CRUX_RESET_CAUSE_POR);
-#if defined(CONFIG_LOG)
+#if defined(CONFIG_LOG_MODE_DEFERRED)
     /* A deferred record that nothing has processed yet: the reset must flush it before the
      * native reboot. Nothing lets time pass or blocks before the reset, so the logging thread
      * cannot process it first. */
@@ -269,7 +271,7 @@ ZTEST(system, test_public_boot_episode)
     k_sem_give(&reset_release);
     zassert_equal(k_thread_join(&reset_thread, K_SECONDS(1)), 0);
     zassert_equal(reboot_type, SYS_REBOOT_COLD);
-#if defined(CONFIG_LOG)
+#if defined(CONFIG_LOG_MODE_DEFERRED)
     zassert_true(records_at_reboot > records_before,
                  "the record reached the backend before the reboot");
     zassert_false(pending_at_reboot, "nothing was left to process at the reboot");
