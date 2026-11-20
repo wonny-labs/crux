@@ -16,6 +16,13 @@
 #ifndef CRUX_GPIO_H
 #define CRUX_GPIO_H
 
+/* Frozen for new product code (ADR-0001 follow-up change 4, retirement). A product opts in to this
+ * warning by defining CRUX_WARN_FROZEN_HEADERS for its own targets. Crux's own targets define
+ * CRUX_INTERNAL_BUILD privately, so the warning never fires inside Crux. Off by default. */
+#if defined(CRUX_WARN_FROZEN_HEADERS) && !defined(CRUX_INTERNAL_BUILD)
+#warning "<crux/gpio.h> is frozen for new product code, see docs/choosing-an-api.md"
+#endif
+
 #include <crux/status.h>
 #include <stdbool.h>
 #include <stdint.h>

@@ -33,7 +33,17 @@ For application/composition responsibilities, see the [architecture](architectur
   No global service locator or consumer-accessible native object lookup is added.
 - Pools are bounded at build time. Default resource profile: four thread
   slots, eight mutexes, eight semaphores, 4096 usable stack bytes per Zephyr worker.
-  These are defaults, not a platform-wide product resource budget. Creation failure
+  These are defaults, not a platform-wide product resource budget. The ceilings that
+  stay fixed (they are internals of Crux's services; product code uses Zephyr threads
+  and locks, see [choosing an API](choosing-an-api.md)): Zephyr thread slots are 1 to 64
+  by `CONFIG_CRUX_THREAD_COUNT`, but all slots share one compile-time stack of
+  `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`),
+  and the per-thread stack option only rejects a larger request. Host thread slots are
+  fixed at 4, each with a 64 KiB stack and the priority ignored
+  (`components/thread/src/thread_internal.h:10-11`,
+  `components/thread/ports/linux/thread_native.c:77-90`). Only the LOW, NORMAL and HIGH
+  priorities exist. Sync is fixed at 8 mutexes and 8 semaphores in every build
+  (`components/sync/src/sync_internal.h:10-13`). Creation failure
   leaves the output invalid and rolls back reservations. No public allocator.
 - Operations return `crux_status_t`. Relevant values include
   `CRUX_ERR_BUSY=-6`, `CRUX_ERR_TIMEOUT=-7`, `CRUX_ERR_NO_RESOURCES=-8`,
