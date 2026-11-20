@@ -171,6 +171,33 @@ static void a_password_change_during_the_fault_is_not_ready(void)
     CHECK(login(ACCESS_TEST_PASSWORD, &session) == CRUX_ACCESS_OK);
 }
 
+/* The clock fails after the current password was derived: nothing is counted or cleared, and the
+ * verification flag is given back. */
+static void a_fault_after_a_password_change_verification_is_not_ready(void)
+{
+    crux_access_session_t session = {0};
+    uint32_t retry_after_ms = 0;
+    static const char next[] = "another long password here";
+    start();
+    CHECK(login(ACCESS_TEST_PASSWORD, &session) == CRUX_ACCESS_OK);
+    access_fake_derive_counters_clear();
+    /* One read for the session check, one before the derivation, and the one after it fails. */
+    for (unsigned attempt = 0; attempt < CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 2u; ++attempt) {
+        access_fake_clock_fail_after(2u);
+        CHECK(crux_access_account_change_password(session, wrong, strlen(wrong), next, strlen(next),
+                                                  &retry_after_ms) == CRUX_ACCESS_ERR_NOT_READY);
+    }
+    CHECK(access_fake_derive_count() == CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 2u);
+    access_fake_clock_fail(false);
+    for (unsigned attempt = 0; attempt < CRUX_ACCESS_DELAY_FREE_ATTEMPTS; ++attempt) {
+        CHECK(crux_access_account_change_password(session, wrong, strlen(wrong), next, strlen(next),
+                                                  &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
+    }
+    CHECK(crux_access_account_change_password(session, ACCESS_TEST_PASSWORD,
+                                              strlen(ACCESS_TEST_PASSWORD), next, strlen(next),
+                                              &retry_after_ms) == CRUX_ACCESS_OK);
+}
+
 int main(void)
 {
     a_session_from_before_the_fault_expires();
@@ -180,5 +207,6 @@ int main(void)
     attempts_during_the_fault_leave_a_bucket_unchanged();
     a_key_attempt_during_the_fault_is_not_ready();
     a_password_change_during_the_fault_is_not_ready();
+    a_fault_after_a_password_change_verification_is_not_ready();
     return access_test_finish("access under a failed clock");
 }

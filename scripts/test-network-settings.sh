@@ -6,7 +6,7 @@
 #   scripts/test-network-settings.sh
 #
 # What it runs is Host only. It never applies an address to an interface, and it never touches a board:
-# the apply port is a fake here. The client's checks against the same vectors run in web with
+# the apply port is a fake here, or the no-op port that applies nothing. The client's checks against the same vectors run in web with
 # `npm run test:unit`, and the specification lint with scripts/check-management-api.sh.
 set -euo pipefail
 
