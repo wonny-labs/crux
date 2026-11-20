@@ -26,8 +26,11 @@ static crux_status_t validate(const char *tag, const char *text)
         return CRUX_ERR_OUT_OF_RANGE;
     }
 
+    /* No C0 control byte and no DEL: text cannot split a record or send a terminal sequence. Bytes
+     * from 0x80 pass, so UTF-8 text is accepted as it is. */
     for (n = 0; n <= CRUX_LOG_TEXT_MAX && text[n] != '\0'; ++n) {
-        if (text[n] == '\r' || text[n] == '\n') {
+        unsigned char c = (unsigned char)text[n];
+        if (c < 0x20U || c == 0x7FU) {
             return CRUX_ERR_INVALID_ARGUMENT;
         }
     }

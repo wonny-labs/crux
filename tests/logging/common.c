@@ -31,6 +31,14 @@ static void validation(void)
     assert(crux_log_write(CRUX_LOG_INFO, "bad tag", "x") == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_log_write(CRUX_LOG_INFO, "app", "bad\nline") == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_log_write(CRUX_LOG_INFO, "app", "bad\rline") == CRUX_ERR_INVALID_ARGUMENT);
+    /* Every C0 control byte and DEL, so text cannot steer a terminal or split a record. */
+    assert(crux_log_write(CRUX_LOG_INFO, "t", "\x1b[2J") == CRUX_ERR_INVALID_ARGUMENT);
+    assert(crux_log_write(CRUX_LOG_INFO, "app", "tab\there") == CRUX_ERR_INVALID_ARGUMENT);
+    assert(crux_log_write(CRUX_LOG_INFO, "app", "del\x7f") == CRUX_ERR_INVALID_ARGUMENT);
+    for (unsigned c = 1; c < 0x20; ++c) {
+        char text[] = {'a', (char)c, 'b', '\0'};
+        assert(crux_log_write(CRUX_LOG_INFO, "app", text) == CRUX_ERR_INVALID_ARGUMENT);
+    }
     char tag[26], text[258];
     memset(tag, 'T', 25);
     tag[25] = 0;
@@ -44,6 +52,10 @@ static void validation(void)
     assert(crux_log_write(CRUX_LOG_INFO, tag, text) == CRUX_OK);
     assert(strlen(saved_tag) == 24 && strlen(saved_text) == 256);
     assert(crux_log_write(CRUX_LOG_INFO, "a-Z_9.x", "") == CRUX_OK);
+    /* Printable ASCII and bytes from 0x80 (UTF-8) stay accepted. */
+    assert(crux_log_write(CRUX_LOG_INFO, "app", " ~") == CRUX_OK);
+    assert(crux_log_write(CRUX_LOG_INFO, "app", "caf\xc3\xa9") == CRUX_OK);
+    assert(strcmp(saved_text, "caf\xc3\xa9") == 0);
 }
 static void filtering(void)
 {
