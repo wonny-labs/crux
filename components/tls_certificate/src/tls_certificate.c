@@ -45,6 +45,7 @@ typedef struct {
     uint8_t fingerprint[32];
     char fingerprint_text[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
     unsigned taken;
+    uint32_t generation; /* The generation that made this buffer active last. */
 } slot_t;
 
 static state_t state;
@@ -246,6 +247,7 @@ static void make_active(slot_t *slot)
 {
     active = (size_t)(slot - slots);
     generation += 1u;
+    slot->generation = generation;
     state = STATE_ACTIVE;
 }
 
@@ -652,7 +654,9 @@ crux_tls_certificate_material_release(const crux_tls_certificate_material_t *mat
     }
     crux_tls_certificate_result_t result = CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
     for (size_t i = 0; i < 2u; ++i) {
-        if (material->certificate == slot_der(&slots[i]) && slots[i].taken > 0u) {
+        /* The generation too: a buffer reused since this material was taken holds another. */
+        if (material->certificate == slot_der(&slots[i]) &&
+            material->generation == slots[i].generation && slots[i].taken > 0u) {
             slots[i].taken -= 1u;
             result = CRUX_TLS_CERTIFICATE_OK;
         }
