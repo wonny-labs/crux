@@ -30,6 +30,9 @@ bool crux_netif_ipv4_eligible(const uint8_t address[4], uint32_t netmask)
         ip = (ip << 8) | address[i];
     }
 
+    /* Up to /30 the all-zero host part is the network address and the all-ones one the directed
+     * broadcast. /31 and /32 have neither. */
     uint32_t hostmask = ~netmask;
-    return hostmask <= 1 || (ip & hostmask) != hostmask;
+    uint32_t host = ip & hostmask;
+    return hostmask <= 1 || (host != 0 && host != hostmask);
 }

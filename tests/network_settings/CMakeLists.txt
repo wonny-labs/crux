@@ -50,6 +50,22 @@ target_compile_options(network_settings_no_provider PRIVATE -Wall -Wextra -Wpeda
 add_test(NAME NetworkSettings.no_provider COMMAND network_settings_no_provider)
 set_tests_properties(NetworkSettings.no_provider PROPERTIES TIMEOUT 60)
 
+# On the apply port that applies nothing, which a composition links by name, in place of the fake one.
+add_library(network_settings_test_fixture_no_apply OBJECT net_test.c fake_port.c)
+target_include_directories(network_settings_test_fixture_no_apply PUBLIC . ../configuration)
+target_compile_definitions(network_settings_test_fixture_no_apply PRIVATE NET_TEST_REAL_APPLY_PORT=1)
+target_link_libraries(network_settings_test_fixture_no_apply PUBLIC network_settings_test_logic)
+target_compile_options(network_settings_test_fixture_no_apply PRIVATE -Wall -Wextra -Wpedantic -Werror)
+add_executable(network_settings_no_apply no_apply.c
+    $<TARGET_OBJECTS:network_settings_test_fixture_no_apply>
+    $<TARGET_OBJECTS:crux_network_settings_no_apply>)
+target_link_libraries(network_settings_no_apply PRIVATE network_settings_test_fixture_no_apply
+    crux_configuration_fake_provider)
+target_compile_options(network_settings_no_apply PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+target_compile_definitions(network_settings_no_apply PRIVATE _GNU_SOURCE)
+add_test(NAME NetworkSettings.no_apply COMMAND network_settings_no_apply)
+set_tests_properties(NetworkSettings.no_apply PROPERTIES TIMEOUT 60)
+
 # Every public declaration must also compile for a C++ consumer.
 add_library(network_settings_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(network_settings_cpp_headers PRIVATE crux_network_settings_api)
