@@ -13,6 +13,11 @@ For current behaviour start at the [repository README](../../README.md) and the 
 | [`secure-boot-product-board-handoff.md`](secure-boot-product-board-handoff.md) | An example product-board hand-off checklist for secure boot. A product team keeps its own |
 | [`secure-management-board-test-procedure.md`](secure-management-board-test-procedure.md) | An unrun bench procedure for the management services |
 | [`secure-boot-first-bench-session-notes.md`](secure-boot-first-bench-session-notes.md) | Open questions and one-board observations removed from the secure boot board test procedure |
+| [`adr-0001-record.md`](adr-0001-record.md), [`adr-0002-record.md`](adr-0002-record.md), [`adr-0003-record.md`](adr-0003-record.md), [`adr-0005-record.md`](adr-0005-record.md) | Drafting narration, measurements, open questions and approval records of ADR-0001, 0002, 0003 and 0005 |
+| [`component-readiness-record.md`](component-readiness-record.md) | The readiness table with its provenance, run records and progress markers |
+| [`secure-boot-verification-ladder-record.md`](secure-boot-verification-ladder-record.md) | The verification ladder with its dated status, open points and method |
+| [`rt1060-bench-freeze-and-capture-record.md`](rt1060-bench-freeze-and-capture-record.md) | The bench freeze and capture design as proposed: facts, options not taken, owner questions, order of work |
+| [`management-in-a-product-record.md`](management-in-a-product-record.md) | Owner-decision logistics and run notes of the secure management product guide |
 | [`execution-contract-proposal.md`](execution-contract-proposal.md), [`execution-validation.md`](execution-validation.md) | Superseded execution proposal and validation snapshot; current behaviour is in the [Thread and Sync contract](../thread-sync.md) |
 
 ## Historical records elsewhere in `docs/`
