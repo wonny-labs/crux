@@ -23,7 +23,7 @@ Not in the image: SSH, SFTP, the serial console and command line (composed in no
 
 ## Where it lives, and why
 
-`samples/management_rt1060_mbed/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is also shaped as a product would be: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
+`samples/management_rt1060_mbed/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is an evaluation image, not a product base. It does show the composition style: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
 
 ## Build
 
@@ -71,7 +71,7 @@ Flashing is the team's, with the standard NXP or Zephyr tools: `west flash` with
 In this order, each possibly behind a log prefix. The fingerprint and the TRNG node name are the board's.
 
 ```text
-MBED-MGMT image=crux-mgmt-rt1060-mbed board=mimxrt1060_evk@B/mimxrt1062/qspi tls=mbedtls address=192.168.77.2 test-first-account=1
+MBED-MGMT evaluation image, not a product: image=crux-mgmt-rt1060-mbed board=mimxrt1060_evk@B/mimxrt1062/qspi tls=mbedtls address=192.168.77.2 test-first-account=1
 CRUX-ENTROPY first-read=ok source=random@400cc000 compatible=nxp,kinetis-trng bytes=32 status=0 device-ready=1
 MBED-MGMT file-medium ram-disk 524288 B in SDRAM, formatted at this boot, mounted=1: nothing persists across a reset
 MBED-MGMT TEST ONLY first account created: user=admin role=administrator

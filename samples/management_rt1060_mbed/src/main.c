@@ -24,8 +24,8 @@
 
 static int image_main(void)
 {
-    printk("MBED-MGMT image=crux-mgmt-rt1060-mbed board=%s tls=mbedtls address=%s "
-           "test-first-account=%d\n",
+    printk("MBED-MGMT evaluation image, not a product: image=crux-mgmt-rt1060-mbed board=%s "
+           "tls=mbedtls address=%s test-first-account=%d\n",
            CONFIG_BOARD_TARGET, CONFIG_CRUX_MBED_MGMT_IPV4_ADDRESS,
            IS_ENABLED(CONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT));
     /* The first random read, through the same function that makes every key, and one CRUX-ENTROPY

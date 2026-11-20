@@ -205,6 +205,15 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | TLS | TLS 1.3 only, `TLS_AES_128_GCM_SHA256`. Clients without TLS 1.3 cannot connect: Windows 10's SChannel, Java before 8u261, Android before 10 (by their published support, not tested). | [HTTPS composition](https-composition.md) |
 | First connection on the Wolf profile | About 1 s late for a new connection in the first request, **unexplained**: [Issue #280](https://github.com/wonny-labs/crux-pilot/issues/280) | [HTTPS composition](https-composition.md) |
 
+## Ties to RT1062, Logging and System
+
+These are limits of the current code that a product on another SoC, or one that wants another log or watchdog arrangement, meets before anything else. A design proposal to remove these ties is in progress; until a change is adopted and merged, plan around the limits below.
+
+- **Access needs Crux Logging.** `CONFIG_CRUX_ACCESS` refuses an image without `CONFIG_CRUX_LOGGING` (`zephyr/CMakeLists.txt:192-195`), because the security events write their records through it.
+- **Logging has one shape.** It requires deferred mode with the UART backend, autostart and text output (`components/logging/ports/zephyr/CMakeLists.txt:11-17`) and refuses the other log backends, including RTT, network, file and semihost, and several other options (`CMakeLists.txt:19-28`). The binding accepts only the `native_sim` UART emulator or an enabled LPUART on an RT1062 board (LPUART1 only on the RT1060-EVKB), at 115200 baud, 8N1, no flow control (`components/logging/ports/zephyr/logging_binding.c:12-38`). Any other SoC stops the build with an `#error` or a failed assertion.
+- **System builds on two targets only.** `native_sim`, or a board with the RT1062 SoC whose `crux-watchdog0` alias is the SoC's `wdog0` (WDOG1) at `0x400b8000`; any other SoC stops with `Crux System unsupported SoC or watchdog resource` (`components/system/ports/zephyr/system_binding.c:37-66`).
+- **Status and Reboot need System.** `CONFIG_CRUX_MGMT_STATUS` and `CONFIG_CRUX_REBOOT` both state in their Kconfig help that they need Crux System (`zephyr/Kconfig:612-614` and `zephyr/Kconfig:699-701`), and the configuration refuses an image without it (`zephyr/CMakeLists.txt:215-219` and `:242-245`), so they inherit the System limits above.
+
 ## Routes
 
 [`web/api/openapi.yaml`](../web/api/openapi.yaml) is the authority for paths, schemas and status codes. The table lists what Crux itself defines. Access classes: **public** needs no session, **session** needs a session and the service decides what it sees, and any other class is a permission string compared exactly by Access.

@@ -1,4 +1,4 @@
-"""The opt-in warning of the three frozen public headers, and how Crux keeps it out of its own build.
+"""The opt-in warning of the six frozen public headers, and how Crux keeps it out of its own build.
 
 ``CRUX_WARN_FROZEN_HEADERS`` is set by a product, never by Crux. ``CRUX_INTERNAL_BUILD`` is set by
 Crux's own CMake directories, as a directory compile definition, so it reaches no consumer.
@@ -16,7 +16,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 CC = shutil.which(os.environ.get("CC", "cc"))
 CMAKE = shutil.which("cmake")
-FROZEN = ("thread", "sync", "serial")
+FROZEN = ("thread", "sync", "serial", "gpio", "i2c", "spi")
 INCLUDES = sorted(str(path) for path in REPO.glob("components/*/include"))
 DOCS_POINTER = "docs/choosing-an-api.md"
 
