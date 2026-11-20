@@ -32,5 +32,5 @@ target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 target_link_options(app PUBLIC -Wl,--wrap=settings_subsys_init)
 if(NOT CONFIG_SETTINGS_RELIANCE_TEST_INIT_FAILURE)
   target_link_options(app PUBLIC -Wl,--wrap=fs_read -Wl,--wrap=fs_write -Wl,--wrap=fs_open
-    -Wl,--wrap=fs_close)
+    -Wl,--wrap=fs_close -Wl,--wrap=fs_stat)
 endif()
