@@ -16,25 +16,11 @@ Linux Host is a development and test composition, **not** a qualified production
 
 ## Development environment
 
-**First set-up on native Linux or Windows with WSL2:** read [Getting started on Linux and Windows with WSL2](getting-started-linux-wsl2.md) first. It covers the Git clone, the folder layout, line endings, network access and sizing, which are summarised below.
+**First set-up:** read [Getting started](getting-started.md) first. It covers the Git clone, the folder layout and the folder name the scripts require, Windows with WSL2, line endings, network and proxy access, and disk and memory.
 
 Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory.
 
-**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](#disk-and-memory) below, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
-
-### Requirements for the checkout
-
-- **Crux must be a Git clone.** The scripts call `git rev-parse --show-toplevel`. Prefer a real clone made inside Linux or WSL2, which keeps the executable bits and LF line endings. An exported archive is a fallback with caveats, described on the [WSL2 page](getting-started-linux-wsl2.md#1-use-a-git-clone).
-- **The repository folder must be named `crux-pilot`, and its parent folder is the west workspace.** The Dev Container mounts the parent (`${localWorkspaceFolder}/..`) as `/workspaces/crux`, and `scripts/bootstrap-zephyr.sh` stops unless the repository is at `<workspace>/crux-pilot`. West then writes `zephyr/` and `modules/` into that parent. `bootloader/` appears only when the optional group `crux-boot` is enabled, for example by `scripts/test-boot-composition.sh`. Use an empty folder only for Crux, for example `~/work/crux-ws/crux-pilot`. Do not clone directly into your home directory: it would become the mounted workspace.
-- **On Windows, use WSL2.** Clone inside the WSL2 file system, never under `/mnt/c`, with `core.autocrlf` set to `false`. Use Docker Desktop with the WSL2 backend, or Docker Engine in WSL2. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
-
-### Network and proxy prerequisites
-
-The first set-up downloads from `mcr.microsoft.com` (base image), the Ubuntu archive, PyPI (the Dev Container's `postCreateCommand`, the Zephyr requirements in `scripts/bootstrap-zephyr.sh`, and the MCUboot requirements in `scripts/test-boot-composition.sh`), and `github.com` (the west projects of `west.yml`, the GoogleTest archive that CMake fetches, and the Zephyr SDK, which `west sdk install` looks up through the GitHub REST API). The scripts set no proxy: behind one, configure Docker's proxy and pass `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` into the container. The wolfSSL and tuxera projects are fetched only when their optional west groups are enabled. If the unauthenticated GitHub API limit stops the SDK download, export `CRUX_GITHUB_TOKEN=<read-only token>` before `scripts/bootstrap-zephyr.sh --install-sdk`; the script passes it to `west sdk install`. A proxy allowlist may also need `api.github.com`, `codeload.github.com` and the hosts of the SDK release files. The [WSL2 page](getting-started-linux-wsl2.md#4-network-and-proxy-prerequisites) lists each source and the script that uses it.
-
-### Disk and memory
-
-These are estimates, not measured minimums. The container runs with `--memory=4g` and `--cpus=2` (`devcontainer.json`), so Docker Desktop or the WSL2 virtual machine must offer at least that. The recorded planning headroom is 30 to 40 GiB free; in the recorded run free space fell by about 10 GiB (41 to 31 GiB) for the image, the SDK and the west workspace. Plan for at least 30 GiB free before `--install-sdk`. The 10 GiB figure comes from an early macOS run on 2026-10-16, when builds were smaller, so treat it as a lower bound. See [baseline](baseline.md) for the record.
+**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
 
 Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
@@ -49,6 +35,8 @@ Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**
 Run the commands below from `/workspaces/crux/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspaces/crux` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
+
+**What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
 The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. For the initial build, dependency acquisition and Host CTest run:
 
@@ -127,7 +115,7 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 ## RT1060-EVKB debugging
 
-**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started on Linux and Windows with WSL2](getting-started-linux-wsl2.md#7-boards-and-debug-probes).
+**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started](getting-started.md#7-boards-and-debug-probes).
 
 The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
 
@@ -255,7 +243,7 @@ by this example, and it does not access a physical device.
 
 Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
-The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#getting-started).
+The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#quick-start).
 
 ## Capability and provider selection
 

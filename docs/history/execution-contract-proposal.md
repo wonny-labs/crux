@@ -127,7 +127,7 @@ These inform the comparison; they are not compliance obligations for Crux.
   other's resource state. Providers own their native objects, stacks, build
   configuration and private headers. This authorized ownership migration removes
   the old Execution header/target while retaining all C identifiers, handle layouts
-  and behavioral clauses below. See [current build usage](../../README.md#architecture).
+  and behavioral clauses below. See [current build usage](../../README.md#what-it-provides).
 - Handles are distinct portable value types per resource kind, backed by a slot
   and generation. Zero is invalid. Validate null output pointers and invalid/stale
   handles; generation wrap must retire a slot rather than make an old handle valid.

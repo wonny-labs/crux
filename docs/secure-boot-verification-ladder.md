@@ -3,7 +3,7 @@
 > **Status:** Orientation and review page, current on 16 November 2026, with the image-state statements updated on 18 November 2026 for #496. It decides nothing and approves no hardware operation, key, fuse operation, purchase or merge. The decisions are in the pages it points to.
 > **Verified:** Only what the cited pages record, read on 16 November 2026: build and host results of the merged boot work (by build and by command), and what the repository's records say about the simulators. This page ran no build, no test and no hardware. Where it says "open" or "not merged" for a pull request, that is the state known to the author on 16 November 2026 and was not re-read from GitHub.
 > **Not verified:** Every boot, refusal, confirm, revert, update, power-cut, recovery, HAB and eMMC claim on a board. **No boot experiment has run on any board** (see the [boot overview](boot-overview.md)), so every board row below is Not verified.
-> **Read this first / then:** the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md), then this page. People who will bring up a product board continue with the [product board hand-off checklist](secure-boot-product-board-handoff.md).
+> **Read this first / then:** the [boot overview](boot-overview.md) and the [secure boot and update review](secure-boot-and-update-review.md), then this page. A product team that brings up its own board keeps its board-specific checklist with its own documentation.
 
 Labels are those of the boot records: **Verified by build**, **Verified by command** (a host test, a `native_sim` run, a model run or a tool run), **Verified on pinned source**, **Verified by public vendor document**, **Verified in repository**, **Inference**, **Not verified**. A build proves that something configures, builds and signs. It never proves that a board boots. A statement without a label points to a page that carries the label.
 
@@ -166,7 +166,7 @@ Summary first. "Next" is who runs the next step: **automation** (Crux sessions a
 | Lowest level | **L5.** Whether the ROM boots an eMMC from the EVKB microSD socket is not known and would need fuse or pin settings that are not approved, so no claim of ROM boot is made below L5. |
 | Current state | **Not verified, not started.** No first-stage image for eMMC exists (issue B of the plan was not created as of 15 November 2026; its state was not re-read), no boot header for it is built, and no target exists. Whether the image vector table offset `0x400` counts from the start of a boot partition, whether the ROM accepts a Zephyr-laid-out header, and the card state at hand-over are Not verified. The provisioning settings of the [profile record](plans/emmc-provisioning-profile.md) (boot partition enable, boot bus, write protection, reset pin function, partition settings) are all deferred until the product's inputs; several are one-time-programmable. |
 | Evidence | [eMMC investigation](boot-emmc-investigation.md), [provisioning profile](plans/emmc-provisioning-profile.md), [porting guide, section 4](boot-porting-rt1062.md). |
-| Next step | The product team on the product board, after the board owner supplies the inputs of the [hand-off checklist](secure-boot-product-board-handoff.md), and after the owner decides D2 and the first-stage issue. Crux supplies the checkers, the porting guide and the simulator results. |
+| Next step | The product team on the product board, after the board owner supplies the inputs its own board bring-up checklist needs, and after the owner decides D2 and the first-stage issue. Crux supplies the checkers, the porting guide and the simulator results. |
 | Stays unproven | All of it. The profile's order is a proposal: partition settings, then content and reversible fields, then a boot test, then protection and one-time-programmable fields, each write with its own approval. |
 
 ### C10. Update transport
@@ -193,7 +193,7 @@ Summary first. "Next" is who runs the next step: **automation** (Crux sessions a
 
 ## 6. What stays for the product team
 
-The product team's final verification covers what only L5 proves: ROM boot of the first stage from the eMMC boot partition, the eMMC provisioning on the product's wiring, HAB in closed configuration with the product's keys and fuses, hardware anti-rollback, power cuts on the product's supply, the product's recovery path and the update over the product's network. The [hand-off checklist](secure-boot-product-board-handoff.md) lists what to supply and the order to work in.
+The product team's final verification covers what only L5 proves: ROM boot of the first stage from the eMMC boot partition, the eMMC provisioning on the product's wiring, HAB in closed configuration with the product's keys and fuses, hardware anti-rollback, power cuts on the product's supply, the product's recovery path and the update over the product's network. The product team's own bring-up checklist lists what to supply and the order to work in; an earlier example checklist is kept in the [project history](history/secure-boot-product-board-handoff.md).
 
 ## 7. Open points
 
