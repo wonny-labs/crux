@@ -93,7 +93,7 @@ flowchart TB
         direction LR
         CON["Public contracts<br/>Time, Logging, File, Config, System, Sockets"]
         MGT["12 management services<br/>10 use Crux Sync"]
-        FRZ["Frozen API<br/>Thread, Sync, Queue, Serial"]
+        FRZ["Frozen API<br/>Thread, Sync, Serial"]
         MGT -->|"10 use Sync, cli uses Thread and Serial"| FRZ
     end
     subgraph VAR["Platform variants"]
@@ -116,7 +116,7 @@ flowchart TB
 
 The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the three frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider yet: [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) (R5) records that an integration is expected and will be designed at the service boundary when its first product is defined, with no date set. The dashed edge marks where it would attach.
 
-**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. An Embedded Linux integration is expected, with no date, and will be designed at the service boundary when its first product is defined (ADR-0003 R5). Until then the Linux providers remain test providers.
+**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync and Serial frozen for new product code (Queue was removed on 20 November 2026). An Embedded Linux integration is expected, with no date, and will be designed at the service boundary when its first product is defined (ADR-0003 R5). Until then the Linux providers remain test providers.
 
 **Thread and Sync after ADR-0003.** [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) accepted option O4 on 14 November 2026: Crux's own services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers, and do not move to Zephyr kernel objects. The recorded target is that Thread and Sync become internal to Crux, which is a later, separate change that needs the owner's approval; until then they stay frozen for new product code, and product code uses the OS natively.
 
@@ -441,7 +441,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 `components/interrupt/src/interrupt.h` declares the shared private
 `crux_is_in_isr()` query. Linux and Zephyr implementations are selected internally;
 there is no public Interrupt header or `crux::interrupt` usage target. Time,
-Thread, Sync, Queue and System use this mechanism while retaining their own
+Thread, Sync and System use this mechanism while retaining their own
 eligibility policy (including System's pre-kernel rejection). Non-ISR context
 alone is not a general API eligibility or POSIX signal-safety guarantee. Base
 remains header-only and OS-independent; Time never depends on Thread or Sync.

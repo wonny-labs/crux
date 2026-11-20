@@ -229,12 +229,12 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Time/Thread and Base-only parent projects.
+Base/Time, Busy-wait, Thread/Time, Sync-only, Serial-only, Logging-only, System-only and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing the Queue Linux composition target. Existing
+incompatible Time/Serial/Logging/System providers. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging

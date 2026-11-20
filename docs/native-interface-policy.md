@@ -120,8 +120,11 @@ The usage guard recognises a complete `--sysroot=<path>` compile option only
 when its normalised absolute path exactly equals the selected toolchain's
 `SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
 roots, child paths, compound flag strings, include paths and link options remain
-subject to the existing native checks. New Queue/Time/Thread/Sync combined
-consumer probes cover this distinction on Host, native_sim and EVKB builds.
+subject to the existing native checks. `test_real_messaging_facades_preserve_selected_toolchain_flags`
+in `tests/build/test_consumer_boundary.py` covers this distinction for the Thread and Sync facades
+with a mocked Zephyr toolchain, and the Zephyr module's deferred usage checks apply it in every
+Zephyr build. The combined Queue consumer probes that also covered it on native_sim and EVKB were
+removed with Crux Queue.
 
 ### Scoped #28 integration
 

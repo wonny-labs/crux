@@ -46,7 +46,7 @@ When Zephyr code and Crux run together:
 2. **The product sets Crux's resource budgets:** thread and mutex pools, and one stack size for every worker. Product callbacks that run on a Crux worker use those stacks.
 3. **One lock kind per piece of state.** Do not guard the same state with both a Crux lock and a Zephyr lock. Do not hold a lock across a Crux call that can call back into code that takes it.
 4. **No unbounded scheduler or interrupt lock in Crux.** Any such section must state a bound measured on the target.
-5. **Real-time code calls only Crux APIs that take no lock,** such as the monotonic clock read. Realtime Time, File, System, Queue and Serial take global locks.
+5. **Real-time code calls only Crux APIs that take no lock,** such as the monotonic clock read. Realtime Time, File, System and Serial take global locks.
 
 Rules 1 and 4 describe the direction the platform follows. The per-service priority settings of rule 1 exist (P3). The scheduler-lock review is separate, later work and is not part of this guide.
 

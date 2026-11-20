@@ -109,7 +109,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(logging)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::time OR TARGET crux::sync '
+                'OR TARGET crux::thread OR TARGET crux::time OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "Logging changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -133,7 +133,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(system)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::time OR TARGET crux::sync '
+                'OR TARGET crux::thread OR TARGET crux::time OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "System changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')

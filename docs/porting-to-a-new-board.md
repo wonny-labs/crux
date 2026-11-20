@@ -25,7 +25,7 @@ Crux components are portable C17 behind public contracts. The platform compositi
 | Storage, network and boot choices | Which medium holds files, which interface carries management, which boot loader starts the image | The product, with the composition pages cited in section 3 |
 | Crux bindings that name a board | A few Crux Zephyr ports check the board and refuse any other. Section 3.3 lists them | Crux source: a reviewed change, not a product setting |
 
-**What Crux does not provide.** Crux has no hardware abstraction layer and no universal OS layer. Threads, locks, queues, UART, GPIO, I2C, SPI, network drivers and the network stack are Zephyr's, used directly in the product's Zephyr code. Crux supplies platform services (management, configuration, files, time, logging, system health) and the composition rules around them. The rule for each piece of code is in [Choosing an API](choosing-an-api.md). Four older Crux headers (`thread`, `sync`, `queue`, `serial`) are frozen for new product code.
+**What Crux does not provide.** Crux has no hardware abstraction layer and no universal OS layer. Threads, locks, queues, UART, GPIO, I2C, SPI, network drivers and the network stack are Zephyr's, used directly in the product's Zephyr code. Crux supplies platform services (management, configuration, files, time, logging, system health) and the composition rules around them. The rule for each piece of code is in [Choosing an API](choosing-an-api.md). Three older Crux headers (`thread`, `sync`, `serial`) are frozen for new product code, and Crux Queue was removed in favour of Zephyr `k_msgq`.
 
 ## 2. Prerequisites and the test ladder
 
@@ -166,7 +166,7 @@ The first target. Everything in sections 2 and 3 was written against it. What ex
 
 | Area | Exists | Level |
 | --- | --- | --- |
-| Time, Thread, Sync, Queue, Serial, Logging, System | Zephyr ports, bindings for this board | E3 and below. Earlier physical runs were of the controller sample or earlier code and are not counted |
+| Time, Thread, Sync, Serial, Logging, System | Zephyr ports, bindings for this board | E3 and below. Earlier physical runs were of the controller sample or earlier code and are not counted |
 | Netif and Sockets | Port plus the M5 network image | E4, narrow slice: a reduced, non-qualifying, one-boot run of one image on 2026-11-08 completed its phases 1 to 6. Link loss, recovery and the final idle phase were not run ([run 3](evidence/networking-physical-stage1-run3/README.md)). Two earlier runs were inconclusive |
 | File on microSD (FatFs) | Provider, composition, samples | E4, narrow slice, one board and one card ([evidence](evidence/microsd-physical/README.md)) |
 | File on Reliance Edge, eMMC | Provider and composition | E3 link only. The board has no eMMC |
