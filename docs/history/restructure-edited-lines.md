@@ -207,3 +207,35 @@ The product team's final verification covers what only L5 proves: ROM boot of th
 ~~~text
 Status: a guide for a reviewer who must judge the secure communication and management stack of Crux for a real product, from the documents alone. It adds no behaviour and no decision. Each claim cites the code, a test or a document that was read on `origin/main` for this guide, and a claim that could not be checked is marked **unverified**. The bench checks that go with it are in the [board test procedure](secure-management-board-test-procedure.md). Terms are in [the glossary](management-glossary.md), and the product integration steps are in [secure management in a product](management-in-a-product.md).
 ~~~
+
+## Lines edited after the independent review
+
+`docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md`:
+
+~~~text
+8. **P8. `README.md:5` is reworded:** Embedded Linux is not planned for the foreseeable future, and if needed it would be designed at the service boundary.
+~~~
+
+`docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md`:
+
+~~~text
+1. Documentation: `docs/architecture.md`, `docs/native-interface-policy.md`, `docs/thread-sync.md`, `docs/messaging-contract.md`, `docs/serial-contract.md`, `docs/component-readiness.md`, `README.md:5` (P8) and `README.md:9,14-15`.
+~~~
+
+`docs/decisions/0003-p9-result-services-keep-narrow-thread-sync.md`:
+
+~~~text
+5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of `README.md:5` and `:37` follows this wording in its own change.
+~~~
+
+`docs/decisions/0003-p9-result-services-keep-narrow-thread-sync.md`:
+
+~~~text
+1. Documentation that still says P9 is undecided or that Embedded Linux is not planned: `README.md:5,37`, `docs/architecture.md`, `docs/thread-sync.md` (its freeze notice and the remark at `:150` that workers may become native threads under P9), and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`.
+~~~
+
+`docs/decisions/README.md`:
+
+~~~text
+- Each record has a status line: **Proposed**, **Accepted** (with the owner's words, their date and where they were given), **Amended by ADR-NNNN** (the body stays and the later record names what it changes), **Superseded by ADR-NNNN** or **Withdrawn**.
+~~~
