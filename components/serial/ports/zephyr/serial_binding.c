@@ -16,8 +16,8 @@
 #define SUPPORTED_TARGET_UART 0
 #else
 /* Any other board with the RT1062 SoC: any enabled LPUART, accepted by SoC and devicetree,
- * not by board name, with the mode and owner checks below. Apart from the CSI rule below,
- * Crux checks no pin conflict on such a board; reviewing its pins is the product's duty.
+ * not by board name, with the mode and owner checks below. Crux checks no pin conflict on such
+ * a board (the CSI rule below is the EVK's); reviewing its pins is the product's duty.
  * Accepted is not qualified. */
 #define SUPPORTED_TARGET_UART DT_NODE_HAS_COMPAT(SERIAL_NODE, nxp_lpuart)
 #endif
@@ -61,9 +61,11 @@ REJECT_OWNER(DT_CHOSEN(zephyr_bt_uart), "Crux Serial conflicts with Bluetooth UA
 REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Serial conflicts with Bluetooth UART");
 #endif
 /* On the EVK the CSI pins conflict with LPUART3 and LPUART8 (Zephyr's mimxrt1060_evk pinctrl);
- * the EVKB admits Serial only on LPUART3, so this rule covers its reachable conflict. Keyed on
- * SoC labels: it also refuses another board whose LPUART3 pins do not collide with CSI. */
-#if DT_NODE_EXISTS(DT_NODELABEL(lpuart3)) && DT_NODE_EXISTS(DT_NODELABEL(csi))
+ * the EVKB admits Serial only on LPUART3, so this rule covers its reachable conflict. It applies to
+ * that board only: another board's pins are its own, and their conflicts are the product's to
+ * review. */
+#if defined(CONFIG_BOARD_MIMXRT1060_EVK) && DT_NODE_EXISTS(DT_NODELABEL(lpuart3)) &&               \
+    DT_NODE_EXISTS(DT_NODELABEL(csi))
 #if DT_SAME_NODE(SERIAL_NODE, DT_NODELABEL(lpuart3)) && DT_NODE_HAS_STATUS(DT_NODELABEL(csi), okay)
 #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
 #endif
