@@ -216,6 +216,8 @@ The tools, the profile roles, `check_image` and the list declaration are in the 
 
 ## The read-only `watch` mode
 
+This is option X of the original design; the options not taken are in the [history record](history/rt1060-bench-freeze-and-capture-record.md).
+
 A fourth driver mode, **`watch`**, that only reads the UART and **runs no probe command**: no identity probe, no verify, no load, no reset. It runs after `program` has finished and released the port. The full decision list and failure orders are in [board image profiles](board-image-profiles.md#the-read-only-watch-mode-blocker-b4-option-x).
 
 | # | Decision | Value |

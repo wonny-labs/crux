@@ -33,7 +33,7 @@ The review found, in brief:
 5. **P5. D10 phase 1** runs Build B as approved, plus **Build B'**: Build B's domain without Crux Thread, behind a Zephyr shell. A `native_sim` sanitizer probe and a spike of a slimmed internal Sync are added. B against B' measures O1 against O4. A against B' measures O4 against plain Zephyr. The GPLv2 limit that applies to Build B applies to B' too.
 6. **P6. #174 is not merged as it is.** The defect is fixed by slimming internal Sync, or by #174's third alternative, with no scheduler lock. The pool maximum of 256 is dropped and #174's test is kept. The runtime port's agreement that its recursive locks stay native is to be obtained.
 7. **P7. Linux providers stay as test providers.** None is added without a Crux test need. The rest is decided under P9.
-8. **P8. `README.md:5` is reworded:** Embedded Linux is not planned for the foreseeable future, and if needed it would be designed at the service boundary.
+8. **P8. The README is reworded:** Embedded Linux is not planned for the foreseeable future, and if needed it would be designed at the service boundary.
 9. **P9. The later decisions wait for D10, the probe and the spike**, and the rule, proposed in P9 and approved with it, is fixed before the runs:
    - **Deprecations.** Deprecate Thread, Sync, Queue and Serial for products if Build B' stays within 1.3 times Build B's effort and its domain tests run on Host.
    - **Internals.** Choose O2 if `native_sim` sanitizers run within twice the `host-sanitize` time and the services' concurrency tests can move to them. Otherwise keep the slim shim (O4).
@@ -77,7 +77,7 @@ The review's section 9 carries the full wording and trade-offs. The options O1 t
 
 None of these is part of this ADR. Each is its own reviewed change, and a change on a protected path needs approval of that change. Item 2 is done: the product template carries the include check and the shared-state example. Item 3 is done: Crux's service threads have per-service priority Kconfig symbols. Item 8 is done: [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md) decided P9.
 
-1. Documentation: `docs/architecture.md`, `docs/native-interface-policy.md`, `docs/thread-sync.md`, `docs/messaging-contract.md`, `docs/serial-contract.md`, `docs/component-readiness.md`, `README.md:5` (P8) and `README.md:9,14-15`.
+1. Documentation: `docs/architecture.md`, `docs/native-interface-policy.md`, `docs/thread-sync.md`, `docs/messaging-contract.md`, `docs/serial-contract.md`, `docs/component-readiness.md`, the README (P8) and the README.
 2. `templates/product`: the include check, the shared-state example, their tests.
 3. Per-service priority Kconfig, by test-driven development.
 4. `CONTRIBUTING.md:45` (protected).

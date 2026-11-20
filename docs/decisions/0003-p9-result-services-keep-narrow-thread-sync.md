@@ -6,9 +6,9 @@ Each change that this record puts into effect is its own reviewed change, listed
 
 ## Context
 
-P9 of ADR-0002 left the internals choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). The rule was fixed before the runs. A pilot on the `reboot` service supplied the evidence: its 79 cases ran on `native_sim` over the unchanged Crux providers, and the service was then moved to `k_mutex`, `k_sem`, `k_thread` and `k_msleep` with a small change that passed the flake bar.
+P9 of ADR-0002 left the internals choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). The rule was fixed before the runs. A pilot on the `reboot` service supplied the evidence: its 79 cases ran on `native_sim` over the unchanged Crux providers, and a move of the service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep` was trialled on a pilot branch that passed the flake bar and was not merged. The service on `main` keeps Crux Sync (R1).
 
-O2 needs every criterion of the rule to hold, and four fail, two of them (M4 and M6) on one suite:
+O2 needs every criterion of the rule to hold, and four fail, two of them (M4 and M6) on one suite. The criteria M1 to M7 are those of the [reboot pilot results](../research/reboot-native-sim-stage-a.md#results), and B1 to B4 are the blockers that pilot left without an answer ([history record](../history/adr-0003-record.md)):
 
 - **M2.** On the same suites, the `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run, against a limit of 2.
 - **M4 and M6, narrowly.** The 9 checks of `sleep_provider` no longer run.
@@ -33,7 +33,7 @@ Reasons and alternatives are taken from the pilot records, ADR-0002 and the [pla
 2. **R2. Principle.** Product code uses the OS natively: Zephyr products call Zephyr, Linux products call Linux. Crux's services use the narrow Crux Thread and Sync. Other OS facilities (drivers, networking, storage) are used natively in adapters. This is P1 with the services' inside named.
 3. **R3. Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after the PLC runtime port, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then.
 4. **R4. Known exception.** `ssh` uses native threads.
-5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of `README.md:5` and `:37` follows this wording in its own change.
+5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of the README and `:37` follows this wording in its own change.
 6. **R6. O5, candidate.** Moving the services' internals to a documented POSIX subset is evaluated when a Linux product is defined. Known blocker: Zephyr's POSIX layer needs picolibc or newlib, and the workspace has neither. That evaluation must also check that the PLC runtime's timing needs are met: distinct run-time priorities and sub-millisecond waits.
 
 ## What this amends in ADR-0002
@@ -54,7 +54,7 @@ Reasons and alternatives are taken from the pilot records, ADR-0002 and the [pla
 
 None of these is part of this ADR. Each is its own reviewed change.
 
-1. Documentation that still says P9 is undecided or that Embedded Linux is not planned: `README.md:5,37`, `docs/architecture.md`, `docs/thread-sync.md` (its freeze notice and the remark at `:150` that workers may become native threads under P9), and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`.
+1. Documentation that still says P9 is undecided or that Embedded Linux is not planned: the README, `docs/architecture.md`, `docs/thread-sync.md` (its freeze notice and the remark at `:150` that workers may become native threads under P9), and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`.
 2. The switch that makes Thread and Sync internal, with the decision for Queue and Serial. It needs the owner's approval and follows the migrations in R3.
 3. The O5 evaluation, when a Linux product is defined.
 
