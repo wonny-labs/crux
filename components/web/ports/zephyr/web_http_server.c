@@ -40,6 +40,7 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
 #include <zephyr/posix/fnmatch.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
 
 /* A registered resource can be held by one client, so a slot per client is one per request. */
@@ -83,8 +84,8 @@ HTTP_SERVER_REGISTER_HEADER_CAPTURE(crux_web_capture_length, "Content-Length");
 static uint16_t crux_web_port = CONFIG_CRUX_WEB_PORT;
 
 /* The one address to listen on, or NULL for the server's default of every address. The server falls
- * back to that default for a host text that is not an address, so a composition that sets
- * CONFIG_CRUX_WEB_BIND_ADDRESS checks the text itself. */
+ * back to that default for a host text that is not an address of an enabled family, so
+ * crux_web_start() refuses such a text before the server starts. */
 #if defined(CONFIG_CRUX_WEB_BIND_ADDRESS)
 #define CRUX_WEB_HOST                                                                              \
     (sizeof(CONFIG_CRUX_WEB_BIND_ADDRESS) > 1u ? CONFIG_CRUX_WEB_BIND_ADDRESS : NULL)
@@ -145,6 +146,11 @@ static struct {
     size_t response_url_length;
     uint32_t response_generation;
 } crux_web_slots[CRUX_WEB_SLOTS];
+
+/* Set from the start of a crux_web_start() that may succeed until crux_web_stop() succeeds, so that
+ * a second start returns before it touches the slots and the core, which the server thread is
+ * using. */
+static atomic_t crux_web_started;
 
 /* Used only on the server thread, for a response that is sent before the next callback. */
 static struct http_header crux_web_response_headers[CRUX_WEB_RESPONSE_HEADERS_MAX];
@@ -456,20 +462,49 @@ static bool wildcard_pass_behaves(void)
            fnmatch("/a", "/A", flags) != 0;
 }
 
+/* Whether the server listens where the composition said. The server tries IPv6 and then IPv4, each
+ * only when its family is enabled, and takes every address for a text that neither accepts. */
+static bool bind_text_valid(const char *host)
+{
+    union {
+        struct net_in_addr ipv4;
+        struct net_in6_addr ipv6;
+    } address;
+
+    if (host == NULL) {
+        return true;
+    }
+    return (IS_ENABLED(CONFIG_NET_IPV6) &&
+            zsock_inet_pton(NET_AF_INET6, host, &address.ipv6) == 1) ||
+           (IS_ENABLED(CONFIG_NET_IPV4) && zsock_inet_pton(NET_AF_INET, host, &address.ipv4) == 1);
+}
+
 crux_web_result_t crux_web_start(const crux_web_config_t *config)
 {
     if (config == NULL) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
     }
-    if (!wildcard_pass_behaves() || !crux_web_routes_valid()) {
+    if (!atomic_cas(&crux_web_started, 0, 1)) {
+        return CRUX_WEB_ERR_FAILED;
+    }
+    if (!wildcard_pass_behaves() || !crux_web_routes_valid() || !bind_text_valid(CRUX_WEB_HOST)) {
+        atomic_clear(&crux_web_started);
         return CRUX_WEB_ERR_FAILED;
     }
     memset(crux_web_slots, 0, sizeof(crux_web_slots));
     crux_web_core_init(config);
-    return http_server_start() == 0 ? CRUX_WEB_OK : CRUX_WEB_ERR_FAILED;
+    if (http_server_start() != 0) {
+        atomic_clear(&crux_web_started);
+        return CRUX_WEB_ERR_FAILED;
+    }
+    return CRUX_WEB_OK;
 }
 
 crux_web_result_t crux_web_stop(void)
 {
-    return http_server_stop() == 0 ? CRUX_WEB_OK : CRUX_WEB_ERR_FAILED;
+    if (http_server_stop() != 0) {
+        return CRUX_WEB_ERR_FAILED;
+    }
+    atomic_clear(&crux_web_started);
+    return CRUX_WEB_OK;
 }
