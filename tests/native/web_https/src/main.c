@@ -114,5 +114,6 @@ int main(void)
     }
     printk("CRUX_WEB_READY %d tls %s rdhup %s\n", CONFIG_CRUX_WEB_PORT,
            no_tls_credential ? "none" : "test-certificate", no_rdhup ? "off" : "on");
+    web_probe_serve_second_start(&config);
     return 0;
 }

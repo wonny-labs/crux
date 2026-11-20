@@ -98,6 +98,16 @@ run_native() {
     python3 "$repo/tests/native/web_http/test_driver.py" "$build/zephyr/zephyr.exe" \
         --results "$output/native-results.json"
     printf 'native_sim result, plain HTTP on loopback, not device evidence: %s\n' "$output/native-results.json"
+    # A bind text that is not an address must stop the start, and not open every address.
+    local refused="$output/native-bad-bind"
+    ZEPHYR_BASE="$workspace/zephyr" cmake -S "$repo/tests/native/web_http" -B "$refused" -G Ninja \
+        -DBOARD="$native_board" "-DZEPHYR_MODULES=$repo" "-DPython3_EXECUTABLE=$(command -v python3)" \
+        "-DEXTRA_CONF_FILE=$repo/tests/native/web_http/bad-bind.conf"
+    ninja -C "$refused" -j "$jobs"
+    grep -qx 'CONFIG_CRUX_WEB_BIND_ADDRESS="127.0.0.300"' "$refused/zephyr/.config" ||
+        fail "the refused image does not hold the bad bind text"
+    python3 "$repo/tests/native/web_http/test_driver.py" "$refused/zephyr/zephyr.exe" --expect-start-refused \
+        --results "$output/native-bad-bind-results.json"
 }
 
 run_https() { # profile
