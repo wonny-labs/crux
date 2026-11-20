@@ -448,6 +448,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | Limit | Shown by |
 | --- | --- |
 | No certificate chain: intermediates are neither kept nor served | By design. The record holds one certificate. |
+| A release names material by its buffer and generation, not by the take. A stale release after the buffer was reused is refused, but a second release of material from the current generation decrements another holder's count of the same material. Closing that needs a per-take token, a public API change. | `test_stale_release_after_slot_reuse` shows the refused stale release. The double release within a generation is **not shown**. |
 | The private key is in RAM as PKCS #8 for the program's life | By design, for Zephyr's TLS credentials. The store's confidentiality basis applies to the stored copy. |
 | Mbed profile: the signature port and TLS share one PSA core with no lock, as the [PSA design](psa-crypto-design.md#what-a-provider-must-take-care-of) states | **Not shown by #190.** The module ran in [the services image](native-composition-242.md), but no case was written for this race. |
 | `psa_sign_hash` is outside the qualified subset | Run here on TF-PSA-Crypto on Host only. #142 ran it in tests on both providers. |

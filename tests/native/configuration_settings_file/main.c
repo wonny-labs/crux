@@ -598,9 +598,10 @@ ZTEST(configuration_settings_file, test_missing_file_with_a_compaction_leftover_
 
     /* Only "not found" for the leftover means a first boot. Any other answer from fs_stat leaves
      * the leftover's presence unknown, so it is an I/O error too, and not defaults. */
+    crux_config_param_t q = {0};
     fail_stat_cmp = -EIO;
-    fresh(&p, &spec, 99);
-    rc = crux_config_load(&p);
+    fresh(&q, &spec, 99);
+    rc = crux_config_load(&q);
     zassert_equal(fail_stat_cmp, 0, "fault must reach the leftover check");
     zassert_equal(rc, CRUX_CONFIG_ERR_IO, "a failed leftover check reads as %d", rc);
     zassert_ok(fs_unlink(FIXTURE_ROOT "/settings/cfg.cmp"));
