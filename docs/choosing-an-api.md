@@ -39,7 +39,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>` or `<crux/serial.h>` in new produc
 
 ## Frozen, then removed: GPIO, I2C and SPI
 
-`<crux/gpio.h>`, `<crux/i2c.h>` and `<crux/spi.h>` are frozen as Experimental by [ADR-0001](decisions/0001-application-boundary-and-api-stability.md) (owner decision D4, accepted 12 November 2026). The ADR's plan is to announce their deprecation at the first tag and remove them in the next tagged release. The removal is follow-up change 4 and is not done: no tag exists, and the three headers carry the same opt-in frozen-header warning as the four above ([component readiness](component-readiness.md) records the same status).
+`<crux/gpio.h>`, `<crux/i2c.h>` and `<crux/spi.h>` are frozen as Experimental by [ADR-0001](decisions/0001-application-boundary-and-api-stability.md) (owner decision D4, accepted 12 November 2026). The ADR's plan is to announce their deprecation at the first tag and remove them in the next tagged release. The removal is follow-up change 4 and is not done: no tag exists, and the three headers carry the same opt-in frozen-header warning as the three above ([component readiness](component-readiness.md) records the same status).
 
 For new product code, including an SPI backplane or other bus I/O, use the Zephyr APIs directly in an adapter (Question 1): `gpio_dt_spec`, `i2c_dt_spec` and `spi_dt_spec`, with a product port above them. Do not build on `crux::gpio`, `crux::i2c` or `crux::spi`.
 

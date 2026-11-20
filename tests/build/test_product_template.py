@@ -280,7 +280,7 @@ int main(void)
 
 
 class DomainIncludeCheckTest(unittest.TestCase):
-    """The check rejects the four frozen Crux headers and every Zephyr header in the domain."""
+    """The check rejects the three frozen Crux headers, the removed queue header and every Zephyr header in the domain."""
 
     @classmethod
     def setUpClass(cls):
