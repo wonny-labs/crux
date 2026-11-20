@@ -509,7 +509,7 @@ config CRUX_WEB_HEADER_DEADLINE_MS
       under CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS. The default is one period of the server's default
       inactivity timeout of 10 s (Issue #268). Two limits remain: a client that reconnects holds a
       slot for up to this long per connection, and a body trickled after a plain 404 or 405 that the
-      server sends itself runs no callback, so only the inactivity timer bounds it.
+      server sends itself runs no callback and has no time limit (Issue #529).
 
 config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     bool "Plain HTTP on loopback, for tests of the adapter only"
