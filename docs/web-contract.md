@@ -117,7 +117,7 @@ the first three byte for byte.
 | Plain `409` | Another client holds the resource. The connection then closes. | `HTTP/1.1 409 Conflict`, and no body |
 | Plain `500` | A malformed request, or a URL over 255 bytes | `Internal Server Error` |
 | Plain `426` | A request with `Upgrade`. The server then runs the resource, so the adapter closes first and no handler runs. | `Wrong upgrade` |
-| No answer | A request of under 24 bytes waits for more until the inactivity timer. A browser's request is always longer. | |
+| No answer | A request of under 24 bytes waits for more until the header deadline or the inactivity timer, whichever ends first. A browser's request is always longer. | |
 
 A deeper path under a route that has the method reaches the core and gets the JSON `404`: `/api/v1/status/x` does, as
 the specification says. A value equal to a fixed neighbour is shadowed: `GET /api/v1/config/save` gets the plain `405`,
@@ -154,6 +154,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | --- | --- | --- | --- |
 | `HTTP_SERVER_CLIENT_INACTIVITY_TIMEOUT` | 3 s | 10 s | Upstream's |
 | `CRUX_WEB_REQUEST_DEADLINE_MS` | 2,000 | 5,000 | Whole request, from first callback to last body byte |
+| `CRUX_WEB_HEADER_DEADLINE_MS` | 2,000 | 10,000 | From a request's first byte to the end of its headers, in the patched server |
 | `CRUX_WEB_SEND_TIMEOUT_MS` | 500 | 250 | One socket send, not one response |
 | `CRUX_WEB_RESPONSE_DEADLINE_MS` | 1,500 | 3,000 | One response, checked only between pieces |
 | `HTTP_SERVER_MAX_CLIENTS` | 3 | 3 | Upstream's |
@@ -165,7 +166,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | Before the header deadline, all three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s. With it, each is closed at the deadline, 2 s in the suite, and the fourth client is served | See [below](#trickled-headers-the-header-phase-deadline). A client that reconnects holds a slot for up to the deadline per connection. |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | Before the header deadline, all three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s. With it, the case expects each closed at the deadline, 2 s in the suite, and the fourth client served; the result is recorded in the pull request that adds the deadline | See [below](#trickled-headers-the-header-phase-deadline). A client that reconnects holds a slot for up to the deadline per connection, and a body trickled after a plain `404` or `405` is not bounded. |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
 | Reader that reads nothing, 8 MB body (slow-read attack) | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
@@ -253,6 +254,13 @@ raises the number of clients needed and costs RAM per client.
 
 **A client that reconnects still holds a slot for up to the deadline per connection**, so three clients in a loop can
 still keep the interface busy, at the cost of a TCP connection, and over TLS a handshake, per period.
+
+**A body after a plain answer is not bounded either.** A body on a request the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it. The server stays in its request state
+reading the body and answers again; every byte restarts the inactivity timer. So a client that sends, for example,
+`POST` to a path with no resource with a large `Content-Length`, then one byte per period, and reads the answers, holds a
+slot with no time limit, and three such clients block the interface as trickled headers did. This is read from the
+server's source at the pin and has not been run. Bounding it is a change beyond the decided option and is left to a
+follow-up issue.
 
 ### Flow control for large transfers
 

@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 
 BASE_SHA256 = "f0d0ce9123bb2b07fd512c04a8f94d8b0142e80c54894adddd83b61e0e1e5150"
-PATCHED_SHA256 = "1361df15056810006c98e7f4a66c5de84dcf15ebf6f2cd0413acccffa77774ef"
+PATCHED_SHA256 = "0aa79d1a411bdf2b29f485fa2c8c0ec563d0d3799e145c85c7b1b516d2fd0124"
 RELATIVE_SOURCE = Path("subsys/net/lib/http/http_server_core.c")
 PATCH = Path(__file__).resolve().parents[4] / "patches/zephyr/http-header-deadline.patch"
 

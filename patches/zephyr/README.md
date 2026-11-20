@@ -210,7 +210,7 @@ state only until Zephyr fixes the two defects upstream; the upstream status was 
 # HTTP header-phase deadline
 
 `http-header-deadline.patch` changes one file, `subsys/net/lib/http/http_server_core.c`, of Zephyr
-`dccb09599635bdff17633fa7e9dab014b91dce90` (SHA-256 `f0d0ce91…`, and `1361df15…` after the patch). The file is
+`dccb09599635bdff17633fa7e9dab014b91dce90` (SHA-256 `f0d0ce91…`, and `0aa79d1a…` after the patch). The file is
 copyright Emna Rekik and Nordic Semiconductor ASA, Apache-2.0 licensed, and its notices remain. Owner decision of
 14 November 2026, option B of [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268).
 
@@ -222,7 +222,8 @@ With the patch, after each read that leaves the client open, the server checks w
 phase: bytes received in the preface state, or the HTTP/1 request state before the parser has the complete headers.
 The phase starts at the first read of a request. While it lasts, the inactivity timer is set to the earlier of its usual
 period and the end of `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS`, and a read past that end closes the client. A client idle
-between requests keeps the usual inactivity timer, and a body is under the adapter's request deadline. The phase is
+between requests keeps the usual inactivity timer, and the body of a request that reaches a web route is under the
+adapter's request deadline. The phase is
 cleared when a client slot is initialised. The copy refuses to build without the Kconfig value or with HTTP/2, whose
 frame states it does not cover; the web adapter already builds HTTP/1.1 only.
 
@@ -234,8 +235,11 @@ output hashes. Source drift or a missing or ambiguous library member fails confi
 web adapter rather than under `scripts/`, as the Settings File copy of `tests/native/configuration_settings_file` does.
 
 `tests/native/web_http/test_prepare_header_deadline.py` checks the drift and output-path refusals. The `native_sim`
-suites `tests/native/web_http` and `tests/native/web_https` close three trickling clients at the deadline while a
-fourth is served, and serve a head sent in pieces within the deadline on each request of a kept connection. These are
-not device evidence. The residual limit stays declared: a client that reconnects holds a slot for up to the deadline
-per connection. The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
+suites `tests/native/web_http` and `tests/native/web_https` hold cases that expect three trickling clients closed at
+the deadline while a fourth is served, and a head sent in pieces within the deadline served on each request of a kept
+connection; their results are recorded in the pull request that adds the patch, and are not device evidence. Two
+limits stay declared. A client that reconnects holds a slot for up to the deadline per connection. A body on a request the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it: the
+server stays in its request state reading the body, and every byte restarts the inactivity timer, so a client that
+trickles such a body, and reads the answers, holds a slot with no time limit. Bounding that is a change beyond the
+decided option and is left to a follow-up. The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
 list has not been changed here. The upstream Kconfig option is the intended end state and needs its own approval.
