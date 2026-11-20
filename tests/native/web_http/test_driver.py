@@ -7,6 +7,7 @@ device evidence: they come from an emulated container on a loaded machine, with 
 (see prj.conf). Measurements are printed as one JSON object, and bounds here allow for that.
 
     test_driver.py <zephyr.exe> [--results file] [--only name,name]
+    test_driver.py <zephyr.exe> --expect-start-refused [--results file]
 """
 import argparse
 import json
@@ -50,6 +51,8 @@ SECURITY_HEADERS = {
 }
 # 256 bits in base64url, the size Issue #186 specifies for each.
 TOKEN = "A" * 43
+# The value of CRUX_WEB_ERR_FAILED in <crux/web.h>.
+CRUX_WEB_ERR_FAILED = -5
 BROWSER_COOKIE = f"crux_session=admin{'0' * 38}; XSRF-TOKEN={TOKEN}"
 
 results = {}
@@ -648,6 +651,24 @@ def case_split_headers_within_deadline_are_served():
                                                 "idle_between_s": HEADER_DEADLINE_S + 0.3}
 
 
+def case_second_start_is_refused_and_changes_nothing():
+    """A second crux_web_start() while a request is open, from another thread than the server's."""
+    before = stats()
+    client = Client()
+    try:
+        response = client.request("GET", "/probe/second-start")
+    finally:
+        client.close()
+    check(response.status == 200, f"the open request completes: {response.status}")
+    check(response.json() == {"second_start": CRUX_WEB_ERR_FAILED}, f"body {response.body!r}")
+    after = stats()
+    # The stats request counts itself, so an untouched core shows two more: the open one and this.
+    check(after["requests"] == before["requests"] + 2, f"the core was reset: {before} {after}")
+    results["second_start"] = {"result": response.json()["second_start"],
+                               "requests_before": before["requests"],
+                               "requests_after": after["requests"]}
+
+
 def case_client_slots():
     idle = [Client() for _ in range(3)]
     for client in idle:
@@ -1060,12 +1081,56 @@ def start_server(executable, log):
     raise SystemExit("the image did not start listening")
 
 
+def expect_start_refused(executable, log_path, results_path=None):
+    """An image whose start must fail: it prints the failure and nothing listens on the port."""
+    with open(log_path, "w", encoding="utf-8") as log:
+        process = subprocess.Popen([str(executable)], stdout=log, stderr=subprocess.STDOUT)
+        try:
+            deadline = time.monotonic() + 60.0
+            printed = ""
+            while time.monotonic() < deadline and "CRUX_WEB_" not in printed:
+                time.sleep(0.2)
+                printed = pathlib.Path(log_path).read_text(encoding="utf-8", errors="replace")
+            # The server opens its listener on its own thread, after crux_web_start() returns.
+            time.sleep(1.0)
+            try:
+                socket.create_connection((HOST, PORT), timeout=1.0).close()
+                listening = True
+            except OSError:
+                listening = False
+        finally:
+            process.kill()
+            process.wait()
+    printed = pathlib.Path(log_path).read_text(encoding="utf-8", errors="replace")
+    failures = 0
+    for condition, message in (("CRUX_WEB_START_FAILED" in printed, "the start was not refused"),
+                               ("CRUX_WEB_READY" not in printed, "the image reported ready"),
+                               (not listening, f"something listens on {HOST}:{PORT}")):
+        if not condition:
+            failures += 1
+            print(f"FAIL start_refused: {message}", flush=True)
+    if not failures:
+        print("PASS start_refused", flush=True)
+    outcome = {"start_refused": {"start_failed_printed": "CRUX_WEB_START_FAILED" in printed,
+                                 "ready_printed": "CRUX_WEB_READY" in printed,
+                                 "listening": listening}}
+    print(json.dumps(outcome, indent=2, sort_keys=True))
+    if results_path:
+        results_path.write_text(json.dumps(outcome, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return 1 if failures else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("executable", type=pathlib.Path)
     parser.add_argument("--results", type=pathlib.Path)
     parser.add_argument("--only", default="")
+    parser.add_argument("--expect-start-refused", action="store_true",
+                        help="the image's start must fail, as for a bind text that is no address")
     args = parser.parse_args()
+    if args.expect_start_refused:
+        log = args.results.with_suffix(".log") if args.results else pathlib.Path("/tmp/web_http.log")
+        return expect_start_refused(args.executable, log, args.results)
     selected = [case for case in CASES
                 if not args.only or case.__name__[5:] in args.only.split(",")]
     failures = 0

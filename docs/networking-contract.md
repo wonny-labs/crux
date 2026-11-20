@@ -111,9 +111,10 @@ Successful output is caller-owned and contains no native pointers:
 - `ipv4_address[4]`: network-order octets, zero when unavailable.
 
 Address eligibility excludes unspecified/0-prefix, multicast/reserved high
-addresses, limited/directed broadcast, IPv4 link-local, and tentative/duplicate
-states where the provider reports them. /31 point-to-point and /32 endpoints
-are not incorrectly classified as directed broadcasts. Selection is the lowest
+addresses, limited/directed broadcast, the subnet's network address (an all-zero
+host part, up to /30), IPv4 link-local, and tentative/duplicate states where the
+provider reports them. /31 point-to-point and /32 endpoints are not incorrectly
+classified as directed broadcasts or network addresses. Selection is the lowest
 eligible address in network byte order when several exist; this is an observation
 policy, not multiple-interface management or source-address selection.
 

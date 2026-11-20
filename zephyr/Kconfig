@@ -443,16 +443,16 @@ config CRUX_WEB_PORT
     range 0 65535
 
 config CRUX_WEB_BIND_ADDRESS
-    string "The one IPv4 address the web service listens on, or empty for every address"
+    string "The one address the web service listens on, or empty for every address"
     default ""
-    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     help
-      Dotted IPv4 text of a local address, which must already be on an interface when the service
-      starts. Empty keeps the Zephyr server's default: every address, and IPv6 as well when it is
-      enabled. The RT1060-EVKB bench image sets the bench address (D10 of
-      docs/rt1060-management-image-feasibility.md). A text that is not an IPv4 address makes the
-      Zephyr server fall back to every address, so a composition that sets this checks the text
-      itself, as the bench image's guards do.
+      Dotted IPv4 text of a local address (or IPv6 text, with IPv6 enabled), which must already be
+      on an interface when the service starts. Empty keeps the Zephyr server's default: every
+      address, and IPv6 as well when it is enabled. The RT1060-EVKB bench image sets the bench
+      address (D10 of docs/rt1060-management-image-feasibility.md). The Zephyr server falls back to
+      every address for a text that is not an address of an enabled family, so crux_web_start()
+      returns CRUX_WEB_ERR_FAILED for such a text and the server does not start. The plain HTTP test
+      build takes it too, so that tests/native/web_http can check both.
 
 config CRUX_WEB_BACKLOG
     int "Connections the listening socket queues"
@@ -673,7 +673,8 @@ config CRUX_NETWORK_SETTINGS_NO_APPLY
     depends on CRUX_NETWORK_SETTINGS
     help
       Experimental. Builds the no-op apply port of components/network_settings: it reports that it
-      applied the settings and reports no running values, so GET shows none. For native_sim and for an
+      applied nothing, so the boot report reads applied false and source default, and it reports no
+      running values, so GET shows none. For native_sim and for an
       image whose application applies nothing. Do not set it in an image that implements the apply port
       itself: the two would define the same symbols twice.
 

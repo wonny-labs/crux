@@ -7,6 +7,9 @@
 crux_web_auth_t web_probe_authenticate(const crux_web_request_head_t *head,
                                        crux_access_session_t *session, void *context);
 void web_probe_fill_large_body(void);
+/* On the main thread after a successful start: makes the second crux_web_start() that the route
+ * /probe/second-start asks for, each time it asks. Never returns. */
+void web_probe_serve_second_start(const crux_web_config_t *config);
 /* The socket shim, on the server thread. After @p skip more sends, one send returns -EAGAIN. */
 void web_probe_fail_send_after(unsigned skip);
 void web_probe_set_next_send_buffer(int size);

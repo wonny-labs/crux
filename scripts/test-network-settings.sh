@@ -6,7 +6,7 @@
 #   scripts/test-network-settings.sh
 #
 # What it runs is Host only. It never applies an address to an interface, and it never touches a board:
-# the apply port is a fake here. The client's checks against the same vectors run in web with
+# the apply port is a fake here, or the no-op port that applies nothing. The client's checks against the same vectors run in web with
 # `npm run test:unit`, and the specification lint with scripts/check-management-api.sh.
 set -euo pipefail
 
@@ -20,6 +20,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(network_settings_validation network_settings_boot network_settings_service
     network_settings_power_loss network_settings_foreign_save network_settings_busy
     network_settings_concurrency network_settings_lock_faults network_settings_no_provider
+    network_settings_no_apply
     network_settings_cli network_settings_cpp_headers
     web_network_routes web_network_fuzz web_network_short_reads web_network_no_provider web_network_openapi_fixture
     web_network_openapi_fixture_no_provider web_network_cpp_header)

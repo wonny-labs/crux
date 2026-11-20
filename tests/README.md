@@ -324,7 +324,8 @@ hardware.
 ## Frozen header warning
 
 `tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,
-`<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. With a C compiler it shows that the
+`<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`, `<crux/gpio.h>`, `<crux/i2c.h>` and
+`<crux/spi.h>`. With a C compiler it shows that the
 headers are silent by default, even under `-Werror`, that `CRUX_WARN_FROZEN_HEADERS` makes each one
 warn once and name itself and `docs/choosing-an-api.md`, and that `CRUX_INTERNAL_BUILD` silences it.
 On Linux it configures Crux as a subdirectory and reads `compile_commands.json`: Crux's own sources

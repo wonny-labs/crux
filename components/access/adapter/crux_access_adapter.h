@@ -47,7 +47,8 @@ typedef struct {
  * @retval CRUX_ACCESS_ERR_BUSY Another verification is running on this channel's slot.
  * @retval CRUX_ACCESS_ERR_NO_RESOURCES No session slot; nothing was verified.
  * @retval CRUX_ACCESS_ERR_INVALID_ARGUMENT A missing argument, or a name no account can hold.
- * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, store unusable, or a crypto provider failure.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, store unusable, a crypto provider failure, or
+ * a failed clock, which creates no session and counts nothing.
  */
 crux_access_result_t crux_access_login_password(const char *user, const char *password,
                                                 size_t length, const crux_access_origin_t *origin,
@@ -69,7 +70,8 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
  * @retval CRUX_ACCESS_ERR_DENIED The key is not listed.
  * @retval CRUX_ACCESS_ERR_RETRY_LATER Inside a delay window; nothing was counted.
  * @retval CRUX_ACCESS_ERR_INVALID_ARGUMENT A missing argument, or a name no account can hold.
- * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, store unusable, or a crypto provider failure.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, store unusable, a crypto provider failure, or
+ * a failed clock, which creates no session and counts nothing.
  */
 crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8_t *key,
                                                    size_t key_length, bool signed_request,
@@ -87,7 +89,7 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
  * @retval CRUX_ACCESS_ERR_DENIED Refused.
  * @retval CRUX_ACCESS_ERR_NO_RESOURCES No session slot.
  * @retval CRUX_ACCESS_ERR_INVALID_ARGUMENT A missing argument, or a name no account can hold.
- * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised or store unusable.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, store unusable, or a failed clock.
  */
 crux_access_result_t crux_access_login_verified(const char *user, const uint8_t *key,
                                                 size_t key_length,
@@ -95,7 +97,8 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
                                                 crux_access_session_t *session);
 
 /**
- * Record a failed signature against the source delay, from the provider's failure branch.
+ * Record a failed signature against the source delay, from the provider's failure branch. While
+ * the clock has failed it counts nothing, because no key attempt can then succeed.
  * @param user Supplied name, used in the event only if an account has it. May be NULL.
  * @param origin Where the attempt came from. Without it nothing is recorded.
  */

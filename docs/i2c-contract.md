@@ -1,6 +1,6 @@
 # I2C contract
 
-> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries no frozen-header warning yet, and no tag exists. New product code uses the Zephyr `i2c_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
+> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries the opt-in frozen-header warning, and no tag exists. New product code uses the Zephyr `i2c_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
 
 `crux_i2c_transfer` performs one synchronous transfer through the controller selected by the
 Zephyr composition's `crux-i2c0` alias. The target address is supplied per call and must be a
@@ -43,7 +43,11 @@ lengths. Transfer serialization is specific to the selected provider and driver.
 and makes no concurrency guarantee; separate calls are not an atomic application-level transaction.
 
 The Host provider is a deterministic loopback fixture: received bytes echo transmitted bytes, and
-read-only transfers return zero bytes. It is for portable consumer tests, not a bus model. The
+read-only transfers return zero bytes. It is for portable consumer tests, not a bus model: it ignores the target address
+(`components/i2c/host/i2c_port_host.c`), so a transfer to any address succeeds, and a Zephyr build
+cannot select it (`zephyr/CMakeLists.txt:95-97` adds only `ports/zephyr`). The retirement of this
+capability is follow-up change 4 of
+[ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the plan, not yet done. The
 `native_sim` test uses Zephyr's I2C emulation controller and a register-backed emulated target to
 exercise writes and combined repeated-start reads. No physical bus is selected by this increment,
 and these results do not qualify hardware.
