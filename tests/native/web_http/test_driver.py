@@ -1042,7 +1042,7 @@ def start_server(executable, log):
     raise SystemExit("the image did not start listening")
 
 
-def expect_start_refused(executable, log_path):
+def expect_start_refused(executable, log_path, results_path=None):
     """An image whose start must fail: it prints the failure and nothing listens on the port."""
     with open(log_path, "w", encoding="utf-8") as log:
         process = subprocess.Popen([str(executable)], stdout=log, stderr=subprocess.STDOUT)
@@ -1072,6 +1072,12 @@ def expect_start_refused(executable, log_path):
             print(f"FAIL start_refused: {message}", flush=True)
     if not failures:
         print("PASS start_refused", flush=True)
+    outcome = {"start_refused": {"start_failed_printed": "CRUX_WEB_START_FAILED" in printed,
+                                 "ready_printed": "CRUX_WEB_READY" in printed,
+                                 "listening": listening}}
+    print(json.dumps(outcome, indent=2, sort_keys=True))
+    if results_path:
+        results_path.write_text(json.dumps(outcome, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 1 if failures else 0
 
 
@@ -1085,7 +1091,7 @@ def main():
     args = parser.parse_args()
     if args.expect_start_refused:
         log = args.results.with_suffix(".log") if args.results else pathlib.Path("/tmp/web_http.log")
-        return expect_start_refused(args.executable, log)
+        return expect_start_refused(args.executable, log, args.results)
     selected = [case for case in CASES
                 if not args.only or case.__name__[5:] in args.only.split(",")]
     failures = 0
