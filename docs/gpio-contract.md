@@ -1,6 +1,6 @@
 # Portable GPIO contract
 
-> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries no frozen-header warning yet, and no tag exists. New product code uses the Zephyr `gpio_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
+> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries the opt-in frozen-header warning, and no tag exists. New product code uses the Zephyr `gpio_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
 
 `crux::gpio` provides synchronous access to one statically composed logical
 line through `<crux/gpio.h>`. The initial profile supports input configuration

@@ -39,11 +39,12 @@ For application/composition responsibilities, see the [architecture](architectur
   by `CONFIG_CRUX_THREAD_COUNT`, but all slots share one compile-time stack of
   `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`),
   and the per-thread stack option only rejects a larger request. Host thread slots are
-  fixed at 4, each with a 64 KiB stack and the priority ignored
+  fixed at 4, each with a 64 KiB stack (raised to the libc minimum where that is larger) and the priority ignored
   (`components/thread/src/thread_internal.h:10-11`,
   `components/thread/ports/linux/thread_native.c:77-90`). Only the LOW, NORMAL and HIGH
-  priorities exist. Sync is fixed at 8 mutexes and 8 semaphores in every build
-  (`components/sync/src/sync_internal.h:10-13`). Creation failure
+  priorities exist. On the Host, Sync is fixed at 8 mutexes and 8 semaphores
+  (`components/sync/src/sync_internal.h:10-13`); on Zephyr `CONFIG_CRUX_SYNC_MUTEX_COUNT` and
+  `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` set 1 to 64 each (`zephyr/Kconfig:150-161`). Creation failure
   leaves the output invalid and rolls back reservations. No public allocator.
 - Operations return `crux_status_t`. Relevant values include
   `CRUX_ERR_BUSY=-6`, `CRUX_ERR_TIMEOUT=-7`, `CRUX_ERR_NO_RESOURCES=-8`,

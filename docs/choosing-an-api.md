@@ -34,7 +34,7 @@ Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial
   - Zephyr: `CONFIG_CRUX_THREAD_COUNT` sets 1 to 64 thread slots (`zephyr/Kconfig:51-58`), but every slot has the same compile-time stack of `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`). The per-thread `stack_size_bytes` option only rejects a request above that size (`thread_native.c:94`); it never gives one thread a larger or smaller stack.
   - Host: 4 thread slots (`components/thread/src/thread_internal.h:10-11`), one 64 KiB stack for every thread, raised to the libc minimum where that is larger, and the priority is ignored (`components/thread/ports/linux/thread_native.c:77-90`).
   - Priorities: only `LOW`, `NORMAL` and `HIGH` exist (`components/thread/include/crux/thread.h:34-36`).
-  - Sync: 8 mutexes and 8 semaphores in every build (`components/sync/src/sync_internal.h:10-13`); the Host build has no option to change them.
+  - Sync: the Host build is fixed at 8 mutexes and 8 semaphores with no option to change them (`components/sync/src/sync_internal.h:10-13`). On Zephyr `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` set 1 to 64 each (`zephyr/Kconfig:150-161`).
 - **Not checked:** Crux's own trees and the Build B of ADR-0001 decision D10 (the experiment build that uses Crux with an adapter, in a separate repository) are exempt, and a product that does not run either check is not stopped.
 
 ## Frozen, then removed: GPIO, I2C and SPI
