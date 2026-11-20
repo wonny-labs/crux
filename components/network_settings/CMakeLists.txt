@@ -27,7 +27,8 @@ add_library(crux::network_settings ALIAS crux_network_settings)
 target_link_libraries(crux_network_settings INTERFACE crux_network_settings_api crux_network_settings_core)
 
 # The apply port for a composition that applies nothing, such as `native_sim` today: it reports that
-# it applied the settings, and reports no running values, so that GET shows none. Chosen by name,
+# it applied nothing, so the boot report reads applied false, and reports no running values, so that
+# GET shows none. Chosen by name,
 # like crux_configuration_no_provider. An object target, so that a final link always takes it.
 add_library(crux_network_settings_no_apply OBJECT src/network_settings_no_apply.c)
 target_include_directories(crux_network_settings_no_apply PRIVATE src)

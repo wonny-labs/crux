@@ -35,8 +35,11 @@ extern "C" {
  * reported in the boot report and not retried. A product that refuses a value should expect up to
  * two calls.
  *
+ * A port that applies nothing, such as the one that CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY selects,
+ * returns false for every call, so the boot report reads applied false and source default.
+ *
  * @param settings Borrowed for the call.
- * @return false if the interface refused the settings.
+ * @return false if the interface refused the settings or the port applies nothing.
  */
 bool crux_network_settings_port_apply(const crux_network_settings_t *settings);
 
