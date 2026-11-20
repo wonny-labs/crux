@@ -40,7 +40,7 @@ A product image never links the Host double. A provider over a real bootloader w
 
 | Cases of the record | Covered on Host | Notes |
 | --- | --- | --- |
-| S1 to S12 | Yes | S1 to S6 and S11, S12 for the slot that is not running. S7 to S10 for the running slot, including a failed `copy_done` write and a magic that is not good. Two further cases (S2b, S10b) pin where the table is silent: see below. |
+| S1 to S12 | Yes | S1 to S6 and S11, S12 for the slot that is not running. S7 to S10 for the running slot, including a failed `copy_done` write and a magic that is not good. Three further cases (S2b, S10b, S11b) pin where the table is silent: see below. |
 | B1 to B4 | Yes | Plus a failed start that can be repeated, an unreadable slot, argument checks and running from slot 1 |
 | R1 to R8 | Yes | R1 covers both directions (the B63a regression). R8 is the failure injection of the double. |
 | C1 to C3 | Yes | |
@@ -66,6 +66,7 @@ The record fixes the decisions and leaves some details open. The implementation 
 | --- | --- |
 | A running slot with no valid header, an `image_ok` flag outside set and unset, or, while `image_ok` is unset, a `copy_done` flag outside set and unset | `crux_image_start()` fails with `CRUX_IMAGE_ERR_BOOT_STATE` (fail closed, row I6). The table only says that a running slot with a magic that is not good fails. With `image_ok` set the table says `copy_done` is "any", so the slot is `RUNNING_CONFIRMED` whatever `copy_done` holds (case S7). |
 | A slot that is not running, with the magic unset and a stale flag | `INVALID`, not `STAGED`. A request on `STAGED` with `image_ok` set would create a permanent request, which row I2 excludes, and with `copy_done` set the slot would be erased at the next reset. `STAGED` needs an erased trailer. |
+| A slot that is not running, with a magic other than good, unset or bad (a value the port should never report) | `INVALID` (case S11b), so `crux_image_request_test()` refuses it with `ERR_SLOT_STATE` and writes nothing. Before, such a value was read as good and could yield `PENDING_TEST`, whose repeat request returns `OK` without writing. |
 | A missing mode key, or a running slot above 1 | A missing mode key is `ERR_NO_BOOT_DATA`. A mode other than RAM load, or a running slot above 1, is `ERR_BOOT_STATE`. |
 | Unreadable slot at start | `ERR_IO`. The start caches nothing and may be repeated. |
 | `ERR_BUSY` | One try-lock serialises start, request and confirm. A caller that finds it taken gets `ERR_BUSY` at once: the bounded wait of the record is zero. The record's text sets no bound. |

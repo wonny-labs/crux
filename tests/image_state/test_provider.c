@@ -97,6 +97,17 @@ static void slot_state_table(void)
     image_state_host_slot_put(1, &v);
     CHECK_INT(CRUX_IMAGE_SLOT_INVALID, slot1_state());
 
+    /* A magic outside good, unset and bad is not a trailer this contract knows: fail closed. */
+    CASE("S11b not running, magic outside good, unset and bad: INVALID");
+    image_state_host_init();
+    started();
+    v = make_view(v110, (crux_image_port_magic_t)3, UNSET, UNSET);
+    image_state_host_slot_put(1, &v);
+    CHECK_INT(CRUX_IMAGE_SLOT_INVALID, slot1_state());
+    crux_image_slot_state_t derived = CRUX_IMAGE_SLOT_PENDING_TEST;
+    CHECK_INT(CRUX_IMAGE_OK, crux_image_slot_state_derive(false, &v, &derived));
+    CHECK_INT(CRUX_IMAGE_SLOT_INVALID, derived);
+
     CASE("S12 not running, a flag outside set and unset: INVALID");
     image_state_host_init();
     started();
@@ -422,6 +433,9 @@ static void request_cases(void)
     CHECK_INT(CRUX_IMAGE_ERR_SLOT_STATE, crux_image_request_test(1));
     view_t badmagic = make_view(ver(1, 1, 0, 0), CRUX_IMAGE_PORT_MAGIC_BAD, UNSET, UNSET);
     image_state_host_slot_put(1, &badmagic);
+    CHECK_INT(CRUX_IMAGE_ERR_SLOT_STATE, crux_image_request_test(1));
+    view_t unknown = make_view(ver(1, 1, 0, 0), (crux_image_port_magic_t)3, UNSET, UNSET);
+    image_state_host_slot_put(1, &unknown);
     CHECK_INT(CRUX_IMAGE_ERR_SLOT_STATE, crux_image_request_test(1));
     CHECK_INT(0, image_state_host_write_count());
 
