@@ -255,10 +255,10 @@ ZTEST(system, test_public_boot_episode)
     /* A deferred record that nothing has processed yet: the reset must flush it before the
      * native reboot. Nothing lets time pass or blocks before the reset, so the logging thread
      * cannot process it first. */
-    atomic_val_t before = atomic_get(&probe_records);
+    atomic_val_t records_before = atomic_get(&probe_records);
     LOG_INF("record before reset");
     zassert_true(log_data_pending(), "the record waits for the logging thread");
-    zassert_equal(atomic_get(&probe_records), before);
+    zassert_equal(atomic_get(&probe_records), records_before);
 #endif
     k_thread_create(&reset_thread, reset_stack, K_THREAD_STACK_SIZEOF(reset_stack), reset_entry,
                     NULL, NULL, NULL, 5, 0, K_NO_WAIT);
@@ -270,7 +270,8 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(k_thread_join(&reset_thread, K_SECONDS(1)), 0);
     zassert_equal(reboot_type, SYS_REBOOT_COLD);
 #if defined(CONFIG_LOG)
-    zassert_true(records_at_reboot > before, "the record reached the backend before the reboot");
+    zassert_true(records_at_reboot > records_before,
+                 "the record reached the backend before the reboot");
     zassert_false(pending_at_reboot, "nothing was left to process at the reboot");
 #endif
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_OK);

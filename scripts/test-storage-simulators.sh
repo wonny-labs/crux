@@ -160,7 +160,11 @@ import sys
 root = Path(sys.argv[1])
 for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
-    ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
+    # Two scenarios: the default pools and CONFIG_CRUX_FILE_POOL_SIZE=8 (crux.file.fatfs.pool8).
+    ('twister-storage-fatfs', {('native_sim/native', 'crux.file.fatfs'): 19,
+                               ('native_sim/native/64', 'crux.file.fatfs'): 19,
+                               ('native_sim/native', 'crux.file.fatfs.pool8'): 19,
+                               ('native_sim/native/64', 'crux.file.fatfs.pool8'): 19}),
     ('twister-storage-file-roots', {'native_sim/native': 5, 'native_sim/native/64': 5}),
     ('twister-storage-credential', {'native_sim/native': 2, 'native_sim/native/64': 2}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
@@ -175,15 +179,20 @@ for directory, expected in [
     ('twister-storage-settings-file', {'native_sim/native/64': 26}),
 ]:
     suites = json.loads((root / directory / 'twister.json').read_text())['testsuites']
-    if len(suites) != len(expected) or {s['platform'] for s in suites} != set(expected):
+    # A key is a platform, or a (platform, scenario) pair where a directory has several scenarios.
+    by_scenario = isinstance(next(iter(expected)), tuple)
+    def key(suite):
+        return ((suite['platform'], suite['name'].rsplit('/', 1)[-1]) if by_scenario
+                else suite['platform'])
+    if len(suites) != len(expected) or {key(s) for s in suites} != set(expected):
         raise RuntimeError(f'{directory}: unexpected or missing simulator suites')
     for suite in suites:
         cases = suite.get('testcases', [])
         if (suite.get('status') != 'passed' or not suite.get('runnable') or
-                len(cases) != expected[suite['platform']] or
+                len(cases) != expected[key(suite)] or
                 any(c.get('status') != 'passed' for c in cases)):
             raise RuntimeError(f'{directory}: provider cases did not all execute and pass')
-        print(f"{directory} {suite['platform']}: {len(cases)} executed cases PASS")
+        print(f"{directory} {key(suite)}: {len(cases)} executed cases PASS")
 PY
 
 # Source staging must not patch the original Zephyr checkout.

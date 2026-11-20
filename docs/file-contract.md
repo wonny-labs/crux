@@ -152,7 +152,8 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   kernel refuses a destination that another process creates at the last moment. When the kernel
   or the file system lacks that flag (ENOSYS or EINVAL), the provider falls back to a check and a
   replacing `renameat`, and another process can then create the destination in between and lose
-  it. Zephyr has no rename that refuses an existing destination, so the Zephyr providers check the
+  it. A container whose seccomp profile refuses `renameat2` with EPERM gets ACCESS
+  from every rename, with no fallback. Zephyr has no rename that refuses an existing destination, so the Zephyr providers check the
   destination with `fs_stat` and then call `fs_rename`: a native client that bypasses File and
   creates the destination between the two has its file replaced. File callers cannot race either
   check, because both run under the File lock.
