@@ -171,7 +171,7 @@ The gate runs while `CONFIG_CRUX_MODULE` is on, so an application that sets it t
 
 ### Master switch name
 
-The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` is a different symbol that Zephyr makes from the west project name `crux-pilot`; it is unchanged here.
+The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` is a different symbol that Zephyr makes from the module's directory name, `crux-pilot` by default (`self: path` in `west.yml`); it is unchanged here.
 
 ## Modifying third-party code
 
