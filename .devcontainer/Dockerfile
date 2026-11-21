@@ -45,5 +45,8 @@ ARG CRUX_JLINK=
 ARG CRUX_JLINK_DEB=
 ARG CRUX_JLINK_DEB_SHA256=
 COPY .devcontainer/jlink/ /tmp/crux-jlink/
-RUN if [ "$CRUX_JLINK" = 1 ]; then sh /tmp/crux-jlink/install-jlink.sh /tmp/crux-jlink/packages; fi \
+RUN if [ "$CRUX_JLINK" = 1 ]; then \
+        sh /tmp/crux-jlink/install-jlink.sh /tmp/crux-jlink/packages \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi \
     && rm -rf /tmp/crux-jlink

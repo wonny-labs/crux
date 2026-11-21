@@ -45,7 +45,8 @@ fi
 
 apt-get update
 apt-get install -y --no-install-recommends usbutils "./$deb"
-rm -rf /var/lib/apt/lists/*
+# The Dockerfile removes the apt lists after this script, so the script
+# deletes nothing itself.
 
 # The probe's device node belongs to group plugdev on the host (see
 # 99-crux-jlink.rules). Debian and Ubuntu give plugdev the same fixed ID (46).

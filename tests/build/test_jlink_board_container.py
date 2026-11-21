@@ -7,6 +7,7 @@ real probe, usbipd or a board.
 """
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import subprocess
@@ -71,6 +72,12 @@ class BoardContainerConfigTest(unittest.TestCase):
         install = INSTALL.read_text().lower()
         for forbidden in ("curl", "wget", "segger.com", "--no-check-certificate", "insecure"):
             self.assertNotIn(forbidden, install)
+
+    def test_install_script_deletes_nothing(self):
+        # The unit tests run the script on the CI host; any rm there would act on host files.
+        code = [line.strip() for line in INSTALL.read_text().splitlines()
+                if line.strip() and not line.strip().startswith("#")]
+        self.assertFalse([line for line in code if re.search(r"(^|[;&|]\s*)rm\s", line)])
 
     def test_package_folder_tracks_no_package(self):
         tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", ".devcontainer/jlink/packages"],

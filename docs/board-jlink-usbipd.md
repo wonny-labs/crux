@@ -74,6 +74,8 @@ To use it:
    command -v JLinkExe JLinkGDBServer
    ~~~
 
+Build provenance records the default `.devcontainer/devcontainer.json` and the Dockerfile, not this configuration or its `CRUX_JLINK=1` argument, so a build in the board container is recorded as if it ran in the default one. Use the default container for builds whose provenance matters.
+
 The Dockerfile copies `.devcontainer/jlink/` into every image build, including the default container's, and deletes it in the next step. A package left in `packages/` therefore enlarges a default image that is rebuilt while it is there, without installing anything.
 
 ## 4. Read-only check: attach and compare
@@ -119,7 +121,7 @@ Common options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The runner's default is `auto`. The recorded value that worked on the EVKB is 400 kHz, and 100 kHz on a first connection. One board also connected at 4000 kHz, J-Link's usual default. The existing launcher uses 400 |
+| `--speed <kHz>` | SWD speed. The runner's default is `auto`. The recorded value that worked on the EVKB is 400 kHz, and 100 kHz on a first connection. The maintainer reported that one board also connected at 4000 kHz, J-Link's usual default (not recorded as evidence). The existing launcher uses 400 |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by its serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
@@ -140,7 +142,7 @@ Before you start: close every Windows J-Link tool and GDB Server, and put the J-
 | 7 | Board container | `lsusb -d 1366:`, `id -nG`, `command -v JLinkExe JLinkGDBServer` | The J-Link is listed, `plugdev` is among the groups, both tools are found |
 | 8 | Board container | The ELF of the image on the board: reuse it, or build it from the same revision with `scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'` | `build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf` exists |
 | 9 | Board container | `west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400` | The GDB Server connects to the target and GDB stops at a prompt |
-| 10 | GDB prompt | `compare-sections`, then `detach` and `quit` | Every section reports `matched`. The board runs again after `detach` |
+| 10 | GDB prompt | `compare-sections`, then `detach` and `quit` | Every section reports `matched`. The board should run again after `detach` (not verified on this route) |
 | 11 | PowerShell | `usbipd detach --busid <BUSID>` | The probe is back on Windows |
 
 If step 9 cannot connect, retry once with `--speed 100`. If step 6 or 7 fails, the default container still works: reopen it with **Crux Pilot (Ubuntu 24.04 amd64)**. Record the results in the pull request or issue for this route, with the J-Link software version, the usbipd-win version and the speed used.
