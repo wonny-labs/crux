@@ -8,5 +8,5 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-controller.py
                 $<TARGET_FILE:crux-controller-host>
                 --log ${CMAKE_CURRENT_BINARY_DIR}/controller.log)
-    set_tests_properties(Controller.HostScenario PROPERTIES TIMEOUT 15)
+    set_tests_properties(Controller.HostScenario PROPERTIES LABELS sample TIMEOUT 15)
 endif()
