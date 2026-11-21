@@ -109,7 +109,7 @@ A reviewer or an author can walk these rules, and the files around a driver, wit
 
 ### What the Crux boundary check covers
 
-The product-side include check, `templates/product/check_domain_includes.py`, is lexical. In `domain/` it rejects every `<zephyr/...>` header, the Crux composition interfaces, and the four frozen headers (`<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`). With `--product ROOT` it also rejects the four frozen headers in every C, C++ and assembly source of the repository, driver sources included. [The template README](../templates/product/README.md#check-the-whole-product-repository) lists its rules.
+The product-side include check, `templates/product/check_domain_includes.py`, is lexical. In `domain/` it rejects every `<zephyr/...>` header, the Crux composition interfaces, and four Crux headers: the three frozen ones (`<crux/thread.h>`, `<crux/sync.h>`, `<crux/serial.h>`) and the removed `<crux/queue.h>`. With `--product ROOT` it also rejects those four headers in every C, C++ and assembly source of the repository, driver sources included. [The template README](../templates/product/README.md#check-the-whole-product-repository) lists its rules.
 
 It does not police anything else in this section. In particular it does not check:
 

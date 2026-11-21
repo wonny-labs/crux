@@ -62,7 +62,7 @@ jobs:
       - name: Validate the File service on Host and its independent consumer
         run: ./scripts/test-file-service.sh
 
-      - name: Validate independent messaging consumers
+      - name: Validate the independent controller timing consumer
         run: ./scripts/test-messaging.sh --host-only
       - name: Check build provenance safeguards
         env:

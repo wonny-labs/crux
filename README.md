@@ -11,7 +11,7 @@ Applications select the components they need, and choose where each kind of code
 | Area | Components | Purpose |
 | --- | --- | --- |
 | Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
-| Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
+| Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync` | Threads, mutexes and semaphores. Crux Queue was removed; use Zephyr `k_msgq` ([migration note](docs/messaging-contract.md)) |
 | Communication and networking | `serial` (frozen for new product code), `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load. The File type for Reliance Edge (`CRUX_FS_RELIANCE_EDGE`, `<crux/file_reliance_edge_zephyr.h>`) is described in the [File composition interface](docs/file-composition-interface.md) and under [Boot and storage work](#boot-and-storage-work) |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
@@ -23,7 +23,7 @@ All listed components have implemented source, but available OS implementations 
 
 ## Architecture
 
-Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets, except that `thread`, `sync`, `queue` and `serial` are frozen for new product code (existing users keep working; see [Choosing an API](docs/choosing-an-api.md)). OS and device services remain within the selected platform integration.
+Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets, except that `thread`, `sync` and `serial` are frozen for new product code (existing users keep working; Crux Queue was removed in favour of Zephyr `k_msgq`; see [Choosing an API](docs/choosing-an-api.md)). OS and device services remain within the selected platform integration.
 
 See the [architecture overview](docs/architecture.md) for component ownership, portability boundaries and build dependencies.
 

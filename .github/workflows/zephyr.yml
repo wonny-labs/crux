@@ -170,12 +170,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-time-busy-wait.sh
 
-      - name: Validate portable messaging without hardware
+      - name: Validate the portable controller scenario and fractional Thread timing without hardware
         if: matrix.shard == 'runtime'
         working-directory: crux-pilot
-        run: |
-          scripts/test-messaging.sh
-          scripts/measure-messaging.sh
+        run: scripts/test-messaging.sh
 
       - name: Validate portable Serial without hardware
         if: matrix.shard == 'io'
@@ -356,12 +354,6 @@ jobs:
             crux-pilot/build/serial-consumer/ctest-junit.xml
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/serial-evkb/zephyr/.config
-            crux-pilot/build/messaging-resource-evidence/
-            crux-pilot/build/zephyr/messaging-resources-*/zephyr/zephyr.map
-            crux-pilot/build/zephyr/messaging-resources-*/zephyr/.config
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/.config
             crux-pilot/build/zephyr/native_sim_time/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json

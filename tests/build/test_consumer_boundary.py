@@ -96,33 +96,28 @@ class ConsumerBoundaryTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse((REPO / 'components/monotonic/CMakeLists.txt').exists())
 
-    def test_linux_composition_targets_are_rejected_in_portable_consumers(self):
-        for target in ('crux::queue_linux', 'crux_queue_linux'):
-            for route in ('direct', 'interface', 'static_private', 'alias'):
-                with self.subTest(target=target, route=route):
-                    body = ('set(CRUX_BUILD_QUEUE ON CACHE BOOL "")\n'
-                            f'add_subdirectory("{REPO}" crux)\n'
-                            'file(WRITE "${CMAKE_BINARY_DIR}/probe.c" "int probe(void) { return 0; }")\n'
-                            'add_library(consumer STATIC "${CMAKE_BINARY_DIR}/probe.c")\n')
-                    if route == 'interface':
-                        body += ('add_library(wrapper INTERFACE)\n'
-                                 f'target_link_libraries(wrapper INTERFACE {target})\n')
-                        edge = 'wrapper'
-                    elif route == 'static_private':
-                        body += ('add_library(wrapper STATIC "${CMAKE_BINARY_DIR}/probe.c")\n'
-                                 f'target_link_libraries(wrapper PRIVATE {target})\n')
-                        edge = 'wrapper'
-                    elif route == 'alias':
-                        implementation = 'crux_queue_linux'
-                        body += f'add_library(application_alias ALIAS {implementation})\n'
-                        edge = 'application_alias'
-                    else:
-                        edge = target
-                    body += (f'target_link_libraries(consumer PRIVATE {edge})\n'
-                             'crux_assert_portable_consumer(consumer)\n')
-                    result = self.configure(body)
-                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                    self.assertIn('native consumer requirement', result.stdout + result.stderr)
+    def test_removed_queue_composition_is_unavailable(self):
+        result = self.configure('set(CRUX_BUILD_TIME ON CACHE BOOL "")\n'
+                                'set(CRUX_TIME_PROVIDER memory CACHE STRING "")\n'
+                                'set(CRUX_BUILD_THREAD ON CACHE BOOL "")\n'
+                                'set(CRUX_BUILD_SYNC ON CACHE BOOL "")\n'
+                                f'add_subdirectory("{REPO}" crux)\n'
+                                'if(TARGET crux::queue OR TARGET crux_queue '
+                                'OR TARGET crux::queue_linux OR TARGET crux_queue_linux)\n'
+                                'message(FATAL_ERROR "removed Queue composition remains")\n'
+                                'endif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((REPO / 'components/queue').exists())
+        self.assertNotRegex((REPO / 'zephyr/Kconfig').read_text(), r'(?m)^config CRUX_QUEUE$')
+        self.assertNotIn('CONFIG_CRUX_QUEUE', (REPO / 'zephyr/CMakeLists.txt').read_text())
+
+    def test_obsolete_queue_selection_is_rejected_even_when_off(self):
+        for value in ('ON', 'OFF'):
+            with self.subTest(value=value):
+                result = self.configure(f'set(CRUX_BUILD_QUEUE {value} CACHE BOOL "")\n'
+                                        f'add_subdirectory("{REPO}" crux)\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('k_msgq', result.stdout + result.stderr)
 
     def test_linux_composition_builds_and_runs_with_portable_facades(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -131,7 +126,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
             build = root / 'build'
             for command in (
                     [CMAKE, '-S', str(root / 'application'), '-B', str(build), '-G', 'Ninja',
-                     f'-DCRUX_SOURCE_DIR={REPO}', '-DPROFILE=messaging',
+                     f'-DCRUX_SOURCE_DIR={REPO}', '-DPROFILE=thread',
                      '-DFETCHCONTENT_FULLY_DISCONNECTED=ON'],
                     [CMAKE, '--build', str(build), '--parallel', '2'],
                     [str(build / 'external_app')]):
@@ -360,7 +355,6 @@ class ConsumerBoundaryTest(unittest.TestCase):
     def test_real_messaging_facades_preserve_selected_toolchain_flags(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
                                 'set(CONFIG_CRUX_TIME ON)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
-                                'set(CONFIG_CRUX_QUEUE ON)\n'
                                 'add_custom_target(zephyr_generated_headers)\n'
                                 'function(zephyr_append_cmake_library name)\n'
                                 'set_property(GLOBAL APPEND PROPERTY ZEPHYR_LIBS "${name}")\n'
@@ -368,7 +362,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'set(SYSROOT_DIR "/sdk/zephyr/standard")\n'
                                 'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
-                                'crux_assert_portable_usage(crux::thread crux::sync crux::queue crux::time)\n'
+                                'crux_assert_portable_usage(crux::thread crux::sync crux::time)\n'
                                 'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
                                 'foreach(component IN ITEMS thread sync)\n'
                                 'if(NOT "crux_${component}_zephyr" IN_LIST libraries)\n'
@@ -382,10 +376,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'get_target_property(sources crux_${component}_zephyr SOURCES)\n'
                                 'if(NOT "${sources}" MATCHES "src/${component}[.]c" OR NOT "${sources}" MATCHES "ports/zephyr/${component}_native[.]c")\n'
                                 'message(FATAL_ERROR "missing native ${component} implementation")\nendif()\n'
-                                'endforeach()\n'
-                                'get_target_property(flags crux_queue INTERFACE_COMPILE_OPTIONS)\n'
-                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
-                                'message(FATAL_ERROR "toolchain flags lost")\nendif()\n')
+                                'endforeach()\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_real_zephyr_networking_facades_are_portable(self):
