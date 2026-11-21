@@ -86,7 +86,7 @@ static const crux_config_spec_t spec_interval = {
     .validate = interval_valid};
 static const crux_config_spec_t spec_label = {
     .key = "device_label",
-    .default_value = {.type = CRUX_CONFIG_STRING, .data.string = {"pilot", 5u}},
+    .default_value = {.type = CRUX_CONFIG_STRING, .data.string = {"lab-unit", 8u}},
     .validate = label_valid};
 static const crux_config_spec_t spec_secret = {
     .key = "link_secret",

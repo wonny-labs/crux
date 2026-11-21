@@ -448,7 +448,7 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await page.getByRole('group').count(), 5, 'a parameter the session may not see is not listed');
     await parameter(page, 'verbose').getByText('Current value: Off', { exact: true }).waitFor();
     await parameter(page, 'report_interval').getByText('Current value: 5', { exact: true }).waitFor();
-    await parameter(page, 'device_label').getByText('Current value: pilot', { exact: true }).waitFor();
+    await parameter(page, 'device_label').getByText('Current value: lab-unit', { exact: true }).waitFor();
     await parameter(page, 'link_secret').getByText('A sensitive value is never shown.').waitFor();
     await parameter(page, 'build_limit').getByText('Read only for this account.').waitFor();
     await parameter(page, 'build_limit').getByText('Current value: 64', { exact: true }).waitFor();
@@ -818,7 +818,7 @@ export function sharedCases(config: AppConfig): void {
     await block.getByText('A sensitive value is never shown.').waitFor();
     assert.equal(await block.getByRole('button').count(), 0);
     assert.equal(await block.getByRole('textbox').count(), 0);
-    assert.equal((await page.locator('body').innerText()).includes('pilot'), false);
+    assert.equal((await page.locator('body').innerText()).includes('lab-unit'), false);
     assert.equal(requests.some((request) => request.path === '/api/v1/config/device_label'), false);
   });
 

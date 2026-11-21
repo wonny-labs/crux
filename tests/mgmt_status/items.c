@@ -79,7 +79,7 @@ static void builtin_values(void)
     expect_text_item(s_viewer, "net.ipv4", "192.0.2.10");
 
     expect_text_item(s_viewer, "version.platform", "1.2.3");
-    expect_text_item(s_viewer, "version.project", "pilot-7");
+    expect_text_item(s_viewer, "version.project", "demo-7");
 
     /* Every field of the store's declaration, so that a state never appears without its basis. */
     expect_text_item(s_viewer, "security.credential_state", "valid");
@@ -145,7 +145,7 @@ static void per_entry_failures(void)
     /* One failed source hides nothing else. */
     status_fake_uptime(CRUX_ERR_IO, 0);
     expect_failed_item(s_viewer, "system.uptime_ms", CRUX_ERR_IO);
-    expect_text_item(s_viewer, "version.project", "pilot-7");
+    expect_text_item(s_viewer, "version.project", "demo-7");
     status_fake_uptime(CRUX_OK, 2000);
 
     status_fake_clock(CRUX_ERR_NOT_READY, CRUX_MGMT_STATUS_CLOCK_UNSET);
