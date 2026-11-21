@@ -28,7 +28,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 ## Before you open a pull request
 
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on each pull request, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). On GitHub, the workflow files under `.github/workflows/` define what CI covers.
 
 | Change | Command |
 | --- | --- |
@@ -868,7 +868,8 @@ the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script. Its composition test also
 configures and compiles the Serial library on the fictional RT1062 board of
 `tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
-the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+the mode, owner and resource checks still refuse there, and that an enabled CSI builds
+there (the CSI check is the RT1060-EVK's alone). On the revision-B EVKB, Serial
 stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging

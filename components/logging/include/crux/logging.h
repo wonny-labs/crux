@@ -35,7 +35,8 @@ crux_status_t crux_log_set_level(crux_log_level_t maximum_level);
  * Submit a completed text record, not a printf-style format string.
  * @param level Severity subject to the current filter.
  * @param tag NUL-terminated ASCII [A-Za-z0-9_.-], 1..CRUX_LOG_TAG_MAX bytes.
- * @param text NUL-terminated text, at most CRUX_LOG_TEXT_MAX bytes, without CR/LF.
+ * @param text NUL-terminated text, at most CRUX_LOG_TEXT_MAX bytes, with no control byte (below
+ *             0x20, which includes CR, LF and TAB, or 0x7F).
  * @return CRUX_OK means filtered or submitted, not delivered or persisted.
  * Strings are borrowed until return; backends may drop records. Host output may block.
  */

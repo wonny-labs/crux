@@ -24,6 +24,7 @@ HOST = "127.0.0.1"
 PORT = 18184
 INACTIVITY_S = 3.0
 DEADLINE_S = 2.0
+HEADER_DEADLINE_S = 2.0
 SEND_TIMEOUT_S = 0.5
 RESPONSE_DEADLINE_S = 1.5
 # Allowance for scheduling in an emulated container.
@@ -563,53 +564,91 @@ def case_deadline_then_silent_closes_before_inactivity():
 
 # Slots.
 
-def case_trickled_headers_hold_slots():
-    """Headers run no callback, so the adapter cannot see these. The result is a declared limit."""
-    window = 4 * INACTIVITY_S
+def peer_closed(client):
+    """Whether the server has closed the connection, looking for a moment only."""
+    try:
+        return client.is_closed_within(0.05)
+    except OSError:
+        return True
+
+
+def case_trickled_headers_closed_by_deadline():
+    """Received bytes restart the inactivity timer but not the header-phase deadline (#268)."""
     interval = INACTIVITY_S / 3.0
     prefix = b"GET /api/v1/status HTTP/1.1\r\nHost: padding-so-the-preface-passes\r\nX-Slow: "
     holders = [Client() for _ in range(3)]
+    started = time.monotonic()
     for holder in holders:
         holder.send(prefix)
-    before = time.monotonic()
     waiting = {}
 
-    def blocked_client():
-        client = Client(timeout=window * 3)
-        started = time.monotonic()
+    def fourth_client():
+        client = Client(timeout=4 * INACTIVITY_S)
+        begun = time.monotonic()
         client.send(encode("GET", "/probe/stats"))
-        client.read_response()
-        waiting["served_after_s"] = time.monotonic() - started
+        waiting["status"] = client.read_response().status
+        waiting["served_after_s"] = time.monotonic() - begun
         client.close()
 
     time.sleep(0.3)
-    thread = threading.Thread(target=blocked_client)
+    thread = threading.Thread(target=fourth_client)
     thread.start()
-    alive = 0
-    while time.monotonic() - before < window:
+    closed_at = [None] * len(holders)
+    sent = [0] * len(holders)
+    while None in closed_at and time.monotonic() - started < 4 * INACTIVITY_S:
         time.sleep(interval)
-        alive = 0
-        for holder in holders:
+        for index, holder in enumerate(holders):
+            if closed_at[index] is not None:
+                continue
+            if peer_closed(holder):
+                closed_at[index] = time.monotonic() - started
+                continue
             try:
                 holder.send(b"a")
-                alive += 1
+                sent[index] += 1
             except OSError:
-                pass
-    check(alive == 3, f"{alive} of 3 trickling clients survived past the inactivity timer")
-    check(thread.is_alive(), "a fourth client must still be waiting: the interface is blocked")
-    held = time.monotonic() - before
+                closed_at[index] = time.monotonic() - started
     for holder in holders:
         holder.close()
-    thread.join()
+    thread.join(4 * INACTIVITY_S)
+    check(None not in closed_at, f"trickling clients still open after {4 * INACTIVITY_S} s: {closed_at}")
+    for when in closed_at:
+        check(HEADER_DEADLINE_S - 0.5 <= when <= HEADER_DEADLINE_S + SLACK_S + interval,
+              f"closed at {when:.2f} s, the header deadline is {HEADER_DEADLINE_S} s")
+    check(min(sent) >= 1, f"each client sent bytes after its first, which restart the timer: {sent}")
+    check(not thread.is_alive() and waiting.get("status") == 200, f"the fourth client: {waiting}")
+    check(waiting["served_after_s"] <= HEADER_DEADLINE_S + SLACK_S + interval,
+          f"the fourth client waited {waiting['served_after_s']:.2f} s")
     results["trickled_headers"] = {
-        "clients": 3,
-        "held_s": round(held, 2),
+        "clients": len(holders),
+        "header_deadline_s": HEADER_DEADLINE_S,
         "inactivity_s": INACTIVITY_S,
-        "bytes_each": int(window / interval),
+        "closed_after_s": [round(when, 2) for when in closed_at],
+        "bytes_after_first_send": sent,
         "fourth_client_served_after_s": round(waiting["served_after_s"], 2),
-        "parser_header_limit_bytes": 80 * 1024,
-        "worst_case_hold_at_10s_timer_days": round(80 * 1024 * 10 / 86400, 1),
     }
+
+
+def case_split_headers_within_deadline_are_served():
+    """An ordinary slow client: a head in pieces that ends within the deadline is served, and the
+    deadline starts again with each request on a kept connection, after an idle gap longer than it."""
+    client = Client()
+    try:
+        for _ in range(2):
+            data = encode("GET", "/probe/stats")
+            pieces = (data[:20], data[20:40], data[40:])
+            for index, piece in enumerate(pieces):
+                if index:
+                    time.sleep(HEADER_DEADLINE_S / 3.0)
+                client.send(piece)
+            check(client.read_response().status == 200, "a head that ends within the deadline")
+            # Idle past the header deadline, within the inactivity timer.
+            time.sleep(HEADER_DEADLINE_S + 0.3)
+    finally:
+        client.close()
+    results["split_headers_kept_connection"] = {"requests": 2,
+                                                "head_spread_s": round(2 * HEADER_DEADLINE_S / 3.0, 2),
+                                                "idle_between_s": HEADER_DEADLINE_S + 0.3}
 
 
 def case_second_start_is_refused_and_changes_nothing():

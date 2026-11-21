@@ -346,12 +346,12 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | No HSTS and no CORS header. Plain HTTP is not offered, and no redirect exists. | Real on `native_sim` | [Web session](web-session.md#rules) |
 | TLS 1.3 only. | Declared, not yet final: [decided and open](#decided-and-open) | [HTTPS composition](https-composition.md) |
 | A listener accepts on its interface. Which interface is the product's. | Not built | [Integrated image](ssh-integrated-image.md) |
-| Trickled headers and silent clients hold server resources: a bound, not a defence. | Declared | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268), [Web contract](web-contract.md) |
+| Silent clients hold server resources: a bound, not a defence. A web client that trickles its headers is closed at `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS` from its first byte, 10 s by default, but one that reconnects holds a slot for up to that long per connection, and a body trickled after the server's own plain `404` or `405` has no time limit. | Declared; the header deadline's `native_sim` cases are recorded in the pull request that adds it | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268), [Web contract](web-contract.md#trickled-headers-the-header-phase-deadline) |
 | A refusal by the SSH provider before a callback emits no event. A refused CSRF token or `Origin`, the SSH limit and a missing host key do emit. | Reserved for the SSH refusal; the others tested on the Host only | See the events table |
 
 ## What CI covers
 
-"CI" means the workflows under `.github/workflows` on a pull request. A row marked local ran only on a developer's machine, and its result is recorded in the cited document.
+"CI" means the automated checks that run on a pull request; on GitHub they are the workflows under `.github/workflows`, which the table names. A row marked local ran only on a developer's machine, and its result is recorded in the cited document.
 
 | Area | In CI | Only local |
 | --- | --- | --- |
@@ -374,7 +374,7 @@ Decided, and so a limit or a task for a product:
 - **SSH security events.** `ssh.auth_limit` and `ssh.host_key_missing` are emitted; refusals before the first callback stay reserved. Built, and tested on the Host only.
 - **User key registration.** The product registers keys itself ([how](#registering-a-user-key)); a command and a web API come only when a consumer needs one.
 - **Events for a refused CSRF token or `Origin`.** Emitted, with rate limiting. Built, and tested on the Host only.
-- **A server deadline for trickled headers.** A header-phase deadline, as a build-local patch ([Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268)). Not implemented yet.
+- **A server deadline for trickled headers.** A header-phase deadline, as a build-local patch ([Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268)). Implemented as `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS`, `native_sim` cases only ([patches README](../patches/zephyr/README.md#http-header-phase-deadline)).
 - **Events for file operations refused with no identifier.** The direction is accepted, and the row-by-row table in the [SFTP design](sftp-design.md#each-refusal-and-its-event) is a proposal ([Issue #270](https://github.com/wonny-labs/crux-pilot/issues/270)). No event is implemented yet.
 
 Not decided:

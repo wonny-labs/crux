@@ -231,8 +231,23 @@ crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, c
         return result;
     }
 
-    /* renameat replaces its destination, so this check under the File lock is what refuses one. A
-     * link or directory counts as existing. */
+    /* The kernel refuses an existing destination of any type, a link or directory included, in
+     * the same step as the rename, so no other writer can slip in a file between a check and the
+     * rename. */
+    if (renameat2(roots[r].fd, from, roots[r].fd, to, RENAME_NOREPLACE) == 0) {
+        return CRUX_FILE_OK;
+    }
+    if (errno == EEXIST || errno == ENOTEMPTY) {
+        return CRUX_FILE_ERR_EXISTS;
+    }
+    if (errno != EINVAL && errno != ENOSYS) {
+        return crux_file_linux_error(errno);
+    }
+
+    /* Fallback for a kernel without renameat2 (ENOSYS) or a file system without
+     * RENAME_NOREPLACE (EINVAL): check, then a replacing renameat. Under the File lock no File
+     * caller can come between the two, but another process or a native client of the same
+     * directory can, and its file is then replaced (docs/file-contract.md). */
     struct stat st;
     if (fstatat(roots[r].fd, to, &st, AT_SYMLINK_NOFOLLOW) == 0) {
         return CRUX_FILE_ERR_EXISTS;

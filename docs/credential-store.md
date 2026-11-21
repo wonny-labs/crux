@@ -242,6 +242,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 | Creating a slot writes FAT sectors that can hold the other slot's chain | **Not shown.** A Host fake cannot. |
 | `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
+| A reset can undo an interrupted erase. Erase zeroes slot A, then slot B, then removes both files. A reset after slot A is zeroed and before slot B is reached leaves slot B valid, and the next start reads `VALID` with slot B's records, until erase runs again. Only an erase that returned `OK` reached both slots. | `test_interrupted_erase_states` |
 | No unauthenticated wipe (S4). The reference has no command for erase, and the Pilot recovers with a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
 
 ## Tests

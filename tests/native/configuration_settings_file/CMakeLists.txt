@@ -28,4 +28,4 @@ if(NOT CRUX_SETTINGS_FILE_CONTROL)
   include(${CMAKE_CURRENT_LIST_DIR}/candidate.cmake)
 endif()
 target_link_options(app PUBLIC -Wl,--wrap=fs_read -Wl,--wrap=fs_write -Wl,--wrap=fs_open
-  -Wl,--wrap=fs_close)
+  -Wl,--wrap=fs_close -Wl,--wrap=fs_stat)

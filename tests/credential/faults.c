@@ -7,6 +7,7 @@
 #include "fake_file.h"
 
 #include <crux/sync.h>
+#include <stdio.h>
 
 static uint8_t image_a[CRUX_CREDENTIAL_SLOT_BYTES];
 static uint8_t image_b[CRUX_CREDENTIAL_SLOT_BYTES];
@@ -1054,10 +1055,12 @@ static void test_failed_second_write(void)
 static void test_full_file_pool(void)
 {
     crux_file_t *held[CRUX_FILE_POOL_SIZE] = {NULL};
-    static const char *const names[CRUX_FILE_POOL_SIZE] = {"held0", "held1", "held2", "held3"};
+    /* Any configured pool size (CRUX_FILE_POOL_SIZE is 4 to 32). */
+    char names[CRUX_FILE_POOL_SIZE][24];
 
     test_fresh_empty();
     for (size_t index = 0; index < CRUX_FILE_POOL_SIZE; ++index) {
+        CHECK(snprintf(names[index], sizeof(names[index]), "held%zu", index) > 0);
         CHECK(crux_file_open_at(TEST_ROOT_A, names[index], CRUX_FILE_CREATE_REPLACE,
                                 &held[index]) == CRUX_FILE_OK);
     }

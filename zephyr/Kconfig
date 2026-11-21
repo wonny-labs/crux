@@ -382,6 +382,35 @@ config CRUX_FILE_RELIANCE_EDGE
       format and the recovery. The image links GPLv2 source, so it is for testing and is not
       distributed. No physical-board result exists for this selection.
 
+config CRUX_FILE_POOL_SIZE
+    int "Crux File open-handle pool size"
+    depends on CRUX_PILOT_MODULE
+    range 4 32
+    default 4
+    help
+      How many Crux File handles can be open at once in the image. A full pool makes
+      crux_file_open return CRUX_FILE_ERR_NO_RESOURCES. The value is the public compile
+      definition CRUX_FILE_POOL_SIZE of crux::file. Every user of File in the image shares the
+      pool: the Access credential store takes one handle while it saves or reads a record, and
+      the file service keeps its transfers below this value (CRUX_FILE_SERVICE_TRANSFER_MAX).
+      The file system must hold every handle as well: on FatFs raise CONFIG_FS_FATFS_NUM_FILES
+      to cover this value and any native files of the image, and with Reliance Edge
+      CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT must cover this value plus
+      CONFIG_CRUX_FILE_DIR_POOL_SIZE (the build checks it). The Host build has the CMake cache
+      variable CRUX_FILE_POOL_SIZE with the same default.
+
+config CRUX_FILE_DIR_POOL_SIZE
+    int "Crux File listing pool size"
+    depends on CRUX_PILOT_MODULE
+    range 1 8
+    default 2
+    help
+      How many Crux File listings can be open at once. A full pool makes crux_file_dir_open
+      return CRUX_FILE_ERR_NO_RESOURCES. The value is the compile definition
+      CRUX_FILE_DIR_POOL_SIZE of crux::file. On FatFs CONFIG_FS_FATFS_NUM_DIRS must cover it
+      (the build checks it). The Host build has the CMake cache variable
+      CRUX_FILE_DIR_POOL_SIZE with the same default.
+
 # The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
 # RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
 # cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
@@ -494,6 +523,22 @@ config CRUX_WEB_REQUEST_DEADLINE_MS
     help
       Every received byte restarts the server's inactivity timer, so that timer does not bound a
       client that trickles a body. A composition passes this in crux_web_config_t.
+
+config CRUX_WEB_HEADER_DEADLINE_MS
+    int "Longest time from a request's first byte to the end of its headers"
+    default 10000
+    range 100 600000
+    help
+      Every received byte restarts the Zephyr server's inactivity timer, and headers run no
+      callback, so without this a client that trickles an incomplete request head holds a client
+      slot for as long as the parser accepts headers. The web adapter builds the server with a
+      build-local patch (patches/zephyr/http-header-deadline.patch) that closes such a client this
+      long after the request's first byte, whatever it sends meanwhile. A client idle between
+      requests stays under the inactivity timer, and the body of a request that reaches a route
+      under CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS. The default is one period of the server's default
+      inactivity timeout of 10 s (Issue #268). Two limits remain: a client that reconnects holds a
+      slot for up to this long per connection, and a body trickled after a plain 404 or 405 that the
+      server sends itself runs no callback and has no time limit (Issue #529).
 
 config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     bool "Plain HTTP on loopback, for tests of the adapter only"

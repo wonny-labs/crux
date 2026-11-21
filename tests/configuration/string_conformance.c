@@ -298,6 +298,39 @@ static void read_and_update_cases(void)
     CHECK(current_is(&parameter, "cdef"));
 }
 
+/* A shorter value leaves no byte of the longer one it replaced in the storage. */
+static void tail_cleared_cases(void)
+{
+    config_fault_reset();
+    crux_config_spec_t spec = spec_of("name", "first");
+    char storage[8];
+    memset(storage, 'x', sizeof(storage));
+    crux_config_param_t parameter = {0};
+    CHECK(crux_config_init_string(&parameter, &spec, storage, sizeof(storage)) == CRUX_CONFIG_OK);
+    for (size_t i = strlen("first") + 1; i < sizeof(storage); ++i) {
+        CHECK(storage[i] == '\0');
+    }
+
+    crux_config_value_t candidate = text("1234567");
+    CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+    candidate = text("ab");
+    CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+    CHECK(current_is(&parameter, "ab"));
+    for (size_t i = 2; i < sizeof(storage); ++i) {
+        CHECK(storage[i] == '\0');
+    }
+
+    /* A candidate that aliases a tail of the current value. */
+    candidate = text("1234567");
+    CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+    candidate = sized(storage + 4, 3);
+    CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+    CHECK(current_is(&parameter, "567"));
+    for (size_t i = 3; i < sizeof(storage); ++i) {
+        CHECK(storage[i] == '\0');
+    }
+}
+
 static void validator_cases(void)
 {
     config_fault_reset();
@@ -596,6 +629,7 @@ int crux_configuration_string_conformance(void)
     init_cases();
     default_cases();
     read_and_update_cases();
+    tail_cleared_cases();
     validator_cases();
     encoding_cases();
     maximum_length_cases();

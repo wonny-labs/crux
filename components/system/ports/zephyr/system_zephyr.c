@@ -5,6 +5,7 @@
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log_ctrl.h>
 #include <zephyr/sys/reboot.h>
 
 K_MUTEX_DEFINE(system_mutex);
@@ -89,6 +90,12 @@ crux_status_t crux_system_reset_status(void)
 
 crux_status_t crux_system_impl_reset(void)
 {
+    /* Deferred logging keeps records for its thread, and a reset would lose them. Panic mode
+     * writes every pending record out synchronously first, and keeps logging synchronous until the
+     * reset. Minimal logging has no deferred records and no log_panic(). */
+#if defined(CONFIG_LOG) && !defined(CONFIG_LOG_MODE_MINIMAL)
+    log_panic();
+#endif
     sys_reboot(SYS_REBOOT_COLD);
     /* Native declaration is nonreturning: no fabricated success result. */
 }

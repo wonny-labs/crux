@@ -239,3 +239,57 @@ Status: a guide for a reviewer who must judge the secure communication and manag
 ~~~text
 - Each record has a status line: **Proposed**, **Accepted** (with the owner's words, their date and where they were given), **Amended by ADR-NNNN** (the body stays and the later record names what it changes), **Superseded by ADR-NNNN** or **Withdrawn**.
 ~~~
+
+## Merged from main during the restructure
+
+`docs/management-in-a-product.md` (the decision table row as updated on main by #526, before the table became the decided list):
+
+~~~text
+| A server deadline for trickled headers | [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) | Decided 2026-11-14, option B (a header-phase deadline, as a build-local patch); implemented as `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS`, `native_sim` cases only ([patches README](../patches/zephyr/README.md#http-header-phase-deadline)) |
+~~~
+
+## CI wording made general
+
+Lines that named the CI workflow files, before CI was described generally for a reader of any copy of the repository:
+
+`README.md`:
+
+~~~text
+| `.devcontainer/`, `.github/workflows/` | Development environment; CI definitions |
+~~~
+
+`README.md`:
+
+~~~text
+None of these commands programs or resets a board. Debugging, resets and programming need a separately approved procedure: see [RT1060-EVKB debugging](docs/build.md#rt1060-evkb-debugging). The [test guide](tests/README.md) lists the other suites and the checks to run before a pull request.
+~~~
+
+`docs/build.md`:
+
+~~~text
+For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). The Zephyr workflow runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
+~~~
+
+`docs/getting-started.md`:
+
+~~~text
+- **Container limits.** `devcontainer.json` starts the container with `--memory=4g` and `--cpus=2`. Docker Desktop or WSL2 must offer at least that. Full Zephyr suites are slow at 2 CPUs; push a draft pull request to see the CI results.
+~~~
+
+`tests/README.md`:
+
+~~~text
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+~~~
+
+`tests/README.md`:
+
+~~~text
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on each pull request, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+~~~
+
+`docs/management-in-a-product.md`:
+
+~~~text
+"CI" means the workflows under `.github/workflows` on a pull request. A row marked local ran only on a developer's machine, and its result is recorded in the cited document.
+~~~

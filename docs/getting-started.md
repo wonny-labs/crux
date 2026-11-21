@@ -86,7 +86,7 @@ What the code does about the network:
 
 These figures are estimates. No minimum has been measured.
 
-- **Container limits.** `devcontainer.json` starts the container with `--memory=4g` and `--cpus=2`. Docker Desktop or WSL2 must offer at least that. Full Zephyr suites are slow at 2 CPUs; push a draft pull request to see the CI results.
+- **Container limits.** `devcontainer.json` starts the container with `--memory=4g` and `--cpus=2`. Docker Desktop or WSL2 must offer at least that. Full Zephyr suites are slow at 2 CPUs; a draft pull request runs them in CI instead.
 - **Disk.** Plan for 30 to 40 GiB free before the SDK installation, and more if you keep several build directories. One early run went from 41 GiB to 31 GiB free after the image, the SDK and the west workspace, and to 26 GiB after an image rebuild for the sanitizer runtime ([baseline](baseline.md)). Builds were smaller then, so treat the 10 GiB drop as a lower bound.
 - **WSL2.** The Docker disk lives in a virtual disk file that grows and does not shrink by itself. Check the free space of the Windows drive that holds it.
 - **Where it goes.** The SDK, the Python virtual environment and the caches are in the Docker volume `crux-host-cache`, mounted at `/opt/crux-cache`. The west checkouts are in the parent folder of the repository. Builds go to `build/` in the repository, which Git ignores.
