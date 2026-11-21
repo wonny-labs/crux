@@ -171,7 +171,16 @@ The gate runs while `CONFIG_CRUX_MODULE` is on, so an application that sets it t
 
 ### Master switch name
 
-The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` is a different symbol that Zephyr makes from the module's directory name, `crux-pilot` by default (`self: path` in `west.yml`); it is unchanged here.
+The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_MODULE` is a different symbol that Zephyr makes from the module name, see [Module name](#module-name).
+
+### Module name
+
+`zephyr/module.yml` sets `name: crux`, so the symbols Zephyr generates for the module no longer depend on the folder Crux is checked out in. They are `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig and `ZEPHYR_CRUX_MODULE_DIR` in CMake. Before, Zephyr took the name from the folder, so a `crux-pilot` checkout and a checkout under another folder name gave different symbols. Zephyr keeps no alias for the old names. To migrate a product:
+
+- Replace `ZEPHYR_CRUX_PILOT_MODULE_DIR` by `ZEPHYR_CRUX_MODULE_DIR` in CMake files.
+- Replace `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` by `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig, `prj.conf`, overlays and C code.
+
+The master switch `CONFIG_CRUX_MODULE` is unchanged. The west project and its folder keep their names: `west.yml` still places Crux at `crux-pilot`, and `scripts/bootstrap-zephyr.sh` still expects that folder.
 
 ## Modifying third-party code
 
