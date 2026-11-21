@@ -1,5 +1,5 @@
 # Private implementation only: deliberately no public alias or include interface.
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     add_library(crux_interrupt STATIC ports/zephyr/interrupt_zephyr.c)
     target_link_libraries(crux_interrupt PRIVATE zephyr_interface)
     zephyr_append_cmake_library(crux_interrupt)

@@ -167,7 +167,11 @@ The Crux Zephyr module compares the release numbers of the Zephyr in use with th
 
 `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` turns the warning into an error that stops the build.
 
-The gate runs while `CONFIG_CRUX_PILOT_MODULE` is on, so an application that sets it to `n` turns the gate off with the module.
+The gate runs while `CONFIG_CRUX_MODULE` is on, so an application that sets it to `n` turns the gate off with the module.
+
+### Master switch name
+
+The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` is a different symbol that Zephyr makes from the west project name `crux-pilot`; it is unchanged here.
 
 ## Modifying third-party code
 

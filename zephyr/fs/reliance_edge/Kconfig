@@ -2,7 +2,7 @@
 
 config CRUX_FS_RELIANCE_EDGE
     bool "Reliance Edge file system in the Zephyr VFS"
-    depends on CRUX_PILOT_MODULE && FILE_SYSTEM && DISK_ACCESS
+    depends on CRUX_MODULE && FILE_SYSTEM && DISK_ACCESS
     help
       Register Reliance Edge as an external Zephyr file system on a disk_access
       disk. It needs the Reliance Edge source from the optional west group

@@ -16,7 +16,7 @@ if(CONFIG_CRUX_ACCESS AND NOT CONFIG_HWINFO)
                         "comes from it")
 endif()
 
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
 
@@ -29,7 +29,7 @@ endif()
 
 # The per-service priority placement of the services' workers (ADR-0002 P3). It exposes nothing by
 # itself: a composition links crux_service_priority_placement to the target that compiles a worker.
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
         "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
 endif()
@@ -58,7 +58,7 @@ endif()
 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::base)
 endif()
 if(CONFIG_CRUX_TIME)
