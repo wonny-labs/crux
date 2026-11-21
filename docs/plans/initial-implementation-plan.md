@@ -29,7 +29,7 @@ This file is a specification, not a record of completed builds or tests. Creatin
 
 ### Current execution boundary
 
-The checkout is `/Users/jiwonkim/Projects/crux-workspace/crux-pilot`; the parent `crux-workspace`
+The checkout is `<workspace>/crux-pilot`; the parent `crux-workspace`
 is a west workspace, not a Git repository. The M0–M1 text in
 `docs/plans/codex-start-instructions.md` is a historical handoff. `AGENTS.md` and
 `docs/implementation-status.md` identify the active software scope and execution boundaries.
@@ -48,7 +48,7 @@ is a west workspace, not a Git repository. The M0–M1 text in
 
 ### Excluded
 
-No custom AI Harness, runner framework, agent orchestration, generic HAL/OSAL, service registry, dynamic backend discovery, C++ wrapper framework, multi-device abstraction, external RTC, Abingdon BSP, CODESYS, networking, SFTP, configuration service, secure boot, release system, alarm, wake-up, clock synchronisation, local time, DST, leap seconds, milliseconds, drift qualification or power-loss retention guarantee.
+No custom AI Harness, runner framework, agent orchestration, generic HAL/OSAL, service registry, dynamic backend discovery, C++ wrapper framework, multi-device abstraction, external RTC, a product BSP, a commercial PLC runtime, networking, SFTP, configuration service, secure boot, release system, alarm, wake-up, clock synchronisation, local time, DST, leap seconds, milliseconds, drift qualification or power-loss retention guarantee.
 
 Narrow adapters or missing driver support may be proposed when evidence shows they are necessary. An upstream driver defect or missing hardware feature is a bounded investigation, not permission to implement a broad replacement.
 
@@ -394,7 +394,7 @@ Write progress to one `docs/implementation-status.md` table linking AC IDs to ev
 | Local checkout and GitHub owner/visibility | Required before creating/publishing a remote. Use an authorised local checkout for independent work; do not assume a remote exists. Keep personal experiment private unless instructed otherwise. |
 | EVK part number, revision, flash and probe | Required for exact target configuration and flash. No silent default to revision A or another MCU. |
 | Actual UART device, baud and reset method | Required for M4; discover where possible, otherwise ask one focused question. |
-| Tool baseline and sample adaptation | Codex resolves compatible pinned versions in M0 and documents evidence; this is an engineering task, not a reason to ask about every package. |
+| Tool baseline and sample adaptation | The implementing agent resolves compatible pinned versions in M0 and documents evidence; this is an engineering task, not a reason to ask about every package. |
 | Contract review | Required at the M2 gate, consistent with the existing first-slice host-review rationale. |
 | Physical execution approval | Required for identified board/image/actions; approval does not cover fuses, production equipment or company targets. |
 | SNVS gap or native date-range failure | Investigate narrowly, report evidence and alternatives. Do not silently replace the Time semantics, add an external RTC or patch upstream extensively. |
@@ -405,7 +405,7 @@ Existing planning documents remain unchanged. `components/time`, `samples/time` 
 
 Company RTC implementations, BSPs, proprietary runtime sources, internal Harness assets, credentials and signing material must not enter the personal repo, image, AI context or CI without the applicable authorisation. This prototype does not complete the separate company Extended Pilot or validate its Harness.
 
-## 11. Minimal Codex guidance and review rules
+## 11. Minimal agent guidance and review rules
 
 Create a concise implementation-repo `AGENTS.md` covering scope, dependency direction, owned-code quality, standard commands, approvals and completion reporting. Do not copy the entire specification into it. Keep this plan as the single milestone/AC source and record material deviations next to their rationale.
 

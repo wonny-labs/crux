@@ -33,7 +33,18 @@ For application/composition responsibilities, see the [architecture](architectur
   No global service locator or consumer-accessible native object lookup is added.
 - Pools are bounded at build time. Default resource profile: four thread
   slots, eight mutexes, eight semaphores, 4096 usable stack bytes per Zephyr worker.
-  These are defaults, not a platform-wide product resource budget. Creation failure
+  These are defaults, not a platform-wide product resource budget. The ceilings that
+  stay fixed (they are internals of Crux's services; product code uses Zephyr threads
+  and locks, see [choosing an API](choosing-an-api.md)): Zephyr thread slots are 1 to 64
+  by `CONFIG_CRUX_THREAD_COUNT`, but all slots share one compile-time stack of
+  `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`),
+  and the per-thread stack option only rejects a larger request. Host thread slots are
+  fixed at 4, each with a 64 KiB stack (raised to the libc minimum where that is larger) and the priority ignored
+  (`components/thread/src/thread_internal.h:10-11`,
+  `components/thread/ports/linux/thread_native.c:77-90`). Only the LOW, NORMAL and HIGH
+  priorities exist. On the Host, Sync is fixed at 8 mutexes and 8 semaphores
+  (`components/sync/src/sync_internal.h:10-13`); on Zephyr `CONFIG_CRUX_SYNC_MUTEX_COUNT` and
+  `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` set 1 to 64 each (`zephyr/Kconfig:150-161`). Creation failure
   leaves the output invalid and rolls back reservations. No public allocator.
 - Operations return `crux_status_t`. Relevant values include
   `CRUX_ERR_BUSY=-6`, `CRUX_ERR_TIMEOUT=-7`, `CRUX_ERR_NO_RESOURCES=-8`,
@@ -139,17 +150,18 @@ Decision P3 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-cru
 | Network settings service worker | `crux_network_settings_start_worker()` | 6, `LOW` | `CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY` | 6 |
 | Web session login worker | `crux_web_session_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY` | 6 |
 | Web management save worker | `crux_web_management_start_worker()` | 6, `LOW` | `CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY` | 6 |
+| Serial console thread | `crux_cli_serial_start()` of `<crux/cli_zephyr.h>` (phase 1b, Experimental) | 6, `LOW` | `CONFIG_CRUX_CLI_CONSOLE_PRIORITY` | 6 |
 | SSH listener | the SSH provider's start, a native `k_thread` | `K_LOWEST_APPLICATION_THREAD_PRIO`, which is `CONFIG_NUM_PREEMPT_PRIORITIES - 1` (14 at Zephyr's default of 15) | `CONFIG_CRUX_SSH_LISTENER_PRIORITY` | -1, the same |
 | SSH connection workers, up to `CONFIG_CRUX_SSH_MAX_CONNECTIONS` | the listener, one per connection, native `k_thread`s | The same | `CONFIG_CRUX_SSH_WORKER_PRIORITY` | -1, the same |
 | A product's own Crux Thread workers (existing users) | `crux_thread_create()` | 4, 5 or 6 by class | None: the class decides | — |
 
-The command line's serial console runs on the thread that the composition calls `crux_cli_console_run()` from, and SSH commands run on their connection's worker. A status read runs on its caller's thread. None of them creates a thread. The web adapter's HTTP server thread is Zephyr's: it runs at the lowest preemptive priority, or cooperatively with `CONFIG_NET_TC_THREAD_COOPERATIVE` (see [Web sessions](web-session.md)), and Crux has no setting for it. Zephyr's network, logging and work queue threads are set by Zephyr's own Kconfig. The product's map lists them too.
+SSH commands run on their connection's worker, and a status read runs on its caller's thread; neither creates a thread. The command line's serial console runs on its own thread, the Serial console thread row above, when a product starts it with `crux_cli_serial_start()`; without that call the console runs on the thread that a composition calls `crux_cli_console_run()` from. The web adapter's HTTP server thread is Zephyr's: it runs at the lowest preemptive priority, or cooperatively with `CONFIG_NET_TC_THREAD_COOPERATIVE` (see [Web sessions](web-session.md)), and Crux has no setting for it. Zephyr's network, logging and work queue threads are set by Zephyr's own Kconfig. The product's map lists them too.
 
 **Values.** Each setting is a Zephyr preemptive priority, from 0 to `CONFIG_NUM_PREEMPT_PRIORITIES - 1`, where a lower number runs first. The two SSH settings also take -1, their default, which keeps `K_LOWEST_APPLICATION_THREAD_PRIO` and so follows `CONFIG_NUM_PREEMPT_PRIORITIES`. Kconfig cannot subtract, so each range ends at `CONFIG_NUM_PREEMPT_PRIORITIES`, the idle thread's priority. A value above the range or below it fails Kconfig, and the idle priority itself fails a `BUILD_ASSERT` in `components/service_priority` or in the SSH provider. Cooperative (negative) priorities are refused, as Crux's workers have always been preemptible and Thread promises no cooperative threads. Thread itself still requires more than six preemptive levels for its 4/5/6 mapping, whatever these settings are.
 
 **Why numbers, not classes.** A setting names a Zephyr priority, not one of Thread's three classes. A class would tie the setting to the shim and to 4, 5 and 6, which is the per-class alternative that P3 did not choose. A number places a worker anywhere in the map, for example below the product's real-time threads, and it keeps its meaning if the workers later become native threads under P9.
 
-**How a setting is applied.** Each service worker is still created by `crux_thread_create()` at the `LOW` class. On Zephyr its entry first calls a private placement, `crux_service_priority_place()` in `components/service_priority`, which sets the calling thread's priority to the setting. At the default the priority is already 6 and nothing changes. The Crux module builds the placement with Crux Thread, and defines a private interface target, `crux_service_priority_placement`, with no `crux::` alias. It carries the private include directory and `CRUX_SERVICE_PRIORITY_PLACEMENT`, and nothing else gets them. A composition or test that compiles one of the five worker sources links that target to the target that compiles them, as the compositions under `tests/native` and `tests/zephyr` do. `tests/service_priority/check_placement.py` fails a Zephyr CMake file that compiles a worker source without the link, so a worker cannot be left at 6 unnoticed. The Linux Host calls nothing, as Host Thread has no priorities. Two limits follow from the frozen Thread API:
+**How a setting is applied.** Each service worker is still created by `crux_thread_create()` at the `LOW` class. On Zephyr its entry first calls a private placement, `crux_service_priority_place()` in `components/service_priority`, which sets the calling thread's priority to the setting. At the default the priority is already 6 and nothing changes. The Crux module builds the placement with Crux Thread, and defines a private interface target, `crux_service_priority_placement`, with no `crux::` alias. It carries the private include directory and `CRUX_SERVICE_PRIORITY_PLACEMENT`, and nothing else gets them. A composition or test that compiles one of the six worker sources links that target to the target that compiles them, as the compositions under `tests/native` and `tests/zephyr` do. `tests/service_priority/check_placement.py` fails a Zephyr CMake file that compiles a worker source without the link, so a worker cannot be left at 6 unnoticed. The Linux Host calls nothing, as Host Thread has no priorities. Two limits follow from the frozen Thread API:
 
 - Until a worker first runs, it is at 6. A worker set below 6 can therefore run its first instructions, the placement call, at 6 before it drops to its setting. A worker set above 6 starts when 6 is next scheduled. Each start does this once. The compositions start each worker once and do not join it. Only the security event drain can be stopped, joined and started again, through `crux_security_event_test_stop_drain()`, which exists in test builds only.
 - The workers take slots from `CONFIG_CRUX_THREAD_COUNT` and stacks of `CONFIG_CRUX_THREAD_STACK_BYTES`, as before. The product sets those budgets ([coexistence rule 2](choosing-an-api.md#coexistence-in-one-image)).
@@ -163,13 +175,14 @@ CONFIG_CRUX_REBOOT_WORKER_PRIORITY=10
 CONFIG_CRUX_NETWORK_SETTINGS_WORKER_PRIORITY=10
 CONFIG_CRUX_WEB_SESSION_WORKER_PRIORITY=11
 CONFIG_CRUX_WEB_MANAGEMENT_WORKER_PRIORITY=11
+CONFIG_CRUX_CLI_CONSOLE_PRIORITY=11
 CONFIG_CRUX_SSH_LISTENER_PRIORITY=12
 CONFIG_CRUX_SSH_WORKER_PRIORITY=13
 ```
 
 The numbers are an illustration, not a measured recommendation. The web session worker at 11 still preempts the HTTP server thread at 14, as it does at its default.
 
-**Stability.** These are Kconfig symbols, which are interface under rule 5 of [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#42-change-rules). No Zephyr image outside `tests/` starts the services they place: the security event drain, the network settings worker and the two web workers are started only by images under `tests/native` and `tests/zephyr`, and no Zephyr image starts the reboot worker at all. By [Decision 4.1](decisions/0001-application-boundary-and-api-stability.md#41-tiers) they therefore start as Experimental. `components/service_priority` is private.
+**Stability.** These are Kconfig symbols, which are interface under rule 5 of [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#42-change-rules). No Zephyr image outside `tests/` starts the services they place: the security event drain, the network settings worker and the two web workers are started only by images under `tests/native` and `tests/zephyr`, and no Zephyr image starts the reboot worker or the serial console thread at all. By [Decision 4.1](decisions/0001-application-boundary-and-api-stability.md#41-tiers) they therefore start as Experimental. `components/service_priority` is private.
 
 **Evidence.** `tests/service_priority/zephyr` reads the priorities back with `k_thread_priority_get()` on `native_sim`, from a `LOW` Crux Thread worker that places itself as a service worker does, at the defaults and with every worker moved (0 to 14). It also checks that the class mapping stays 4/5/6. The services and the SSH provider are not started there, as they need their whole composition and SSH needs wolfSSH, so `tests/service_priority/check_placement.py` checks statically which entry calls which identifier, the defaults, the SSH provider's two priorities and that no service creates a thread outside this table. Nothing has been measured on a target.
 
@@ -302,8 +315,8 @@ Limits:
 | Integration | Selection | Resource and native limits |
 | --- | --- | --- |
 | Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for controlled Host realtime); top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker, raised to the libc's `PTHREAD_STACK_MIN` where that is larger (131072 on aarch64 glibc; on x86-64 glibc the fixed minimum is 16384, and the run-time value can be higher on machines with large signal frames, but the effective stack stays 65536), and rejects requests above 65536 |
-| Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 4, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 4096, range 1024..65536 usable bytes) |
-| Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (each default 8, range 1..64) |
+| Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 8 with `CONFIG_CRUX_ACCESS` and 4 without it, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 8192 with `CONFIG_CRUX_WEB_SESSION` or `CONFIG_CRUX_CLI_CONSOLE` and 4096 otherwise, range 1024..65536 usable bytes) |
+| Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (range 1..64; mutexes default 24 with `CONFIG_CRUX_ACCESS` and 8 without it, semaphores 8) |
 
 Zephyr Thread and Sync each require multithreading and select 64-bit timeouts.
 Thread selects Time for monotonic sleep without requiring RTC.

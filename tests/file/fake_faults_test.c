@@ -7,6 +7,7 @@
 
 #define CUT_EXIT 77
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, (name, text) in fixed order
 static void put(const char *name, const char *text)
 {
     crux_file_t *file = NULL;
@@ -17,6 +18,7 @@ static void put(const char *name, const char *text)
     assert(crux_file_close(&file) == CRUX_FILE_OK);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, (name, text) in fixed order
 static void expect(const char *name, const char *text)
 {
     crux_file_t *file = NULL;

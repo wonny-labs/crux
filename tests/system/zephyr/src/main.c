@@ -8,6 +8,31 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/ztest.h>
+/* Deferred logging only (scenario crux.system.log_panic): in immediate mode, which a test image
+ * may have by default, a record is written at once and there is nothing for the reset to flush. */
+#if defined(CONFIG_LOG_MODE_DEFERRED)
+#include <zephyr/logging/log.h>
+#include <zephyr/logging/log_backend.h>
+#include <zephyr/logging/log_ctrl.h>
+LOG_MODULE_REGISTER(system_test, LOG_LEVEL_INF);
+
+/* A backend that counts the records it is given, to see which reached output before the reset. */
+static atomic_t probe_records;
+static void probe_process(const struct log_backend *const backend, union log_msg_generic *msg)
+{
+    ARG_UNUSED(backend);
+    ARG_UNUSED(msg);
+    atomic_inc(&probe_records);
+}
+static void probe_panic(const struct log_backend *const backend)
+{
+    ARG_UNUSED(backend);
+}
+static const struct log_backend_api probe_api = {.process = probe_process, .panic = probe_panic};
+LOG_BACKEND_DEFINE(system_test_probe, probe_api, true);
+static atomic_val_t records_at_reboot;
+static bool pending_at_reboot;
+#endif
 
 /* Real Zephyr driver dispatch and mutexes; only physical effects are doubled. */
 static bool running, ready = true;
@@ -104,6 +129,10 @@ static int reboot_type;
 FUNC_NORETURN void __wrap_sys_reboot(int type)
 {
     reboot_type = type;
+#if defined(CONFIG_LOG_MODE_DEFERRED)
+    records_at_reboot = atomic_get(&probe_records);
+    pending_at_reboot = log_data_pending();
+#endif
     k_sem_give(&reset_seen);
     (void)k_sem_take(&reset_release, K_FOREVER);
     k_thread_abort(k_current_get());
@@ -224,6 +253,15 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(crux_system_reset_cause_get(&report), CRUX_OK);
     zassert_equal(report.causes, 0);
     zassert_equal(retained.causes, CRUX_RESET_CAUSE_POR);
+#if defined(CONFIG_LOG_MODE_DEFERRED)
+    /* A deferred record that nothing has processed yet: the reset must flush it before the
+     * native reboot. Nothing lets time pass or blocks before the reset, so the logging thread
+     * cannot process it first. */
+    atomic_val_t records_before = atomic_get(&probe_records);
+    LOG_INF("record before reset");
+    zassert_true(log_data_pending(), "the record waits for the logging thread");
+    zassert_equal(atomic_get(&probe_records), records_before);
+#endif
     k_thread_create(&reset_thread, reset_stack, K_THREAD_STACK_SIZEOF(reset_stack), reset_entry,
                     NULL, NULL, NULL, 5, 0, K_NO_WAIT);
     zassert_equal(k_sem_take(&reset_seen, K_SECONDS(1)), 0);
@@ -233,6 +271,11 @@ ZTEST(system, test_public_boot_episode)
     k_sem_give(&reset_release);
     zassert_equal(k_thread_join(&reset_thread, K_SECONDS(1)), 0);
     zassert_equal(reboot_type, SYS_REBOOT_COLD);
+#if defined(CONFIG_LOG_MODE_DEFERRED)
+    zassert_true(records_at_reboot > records_before,
+                 "the record reached the backend before the reboot");
+    zassert_false(pending_at_reboot, "nothing was left to process at the reboot");
+#endif
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_OK);
     zassert_equal(owner.reserved, 1);
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_INVALID_STATE);

@@ -10,8 +10,9 @@ list(TRANSFORM CRUX_NETWORK_SETTINGS_SOURCES PREPEND "${CMAKE_CURRENT_LIST_DIR}/
 set(CRUX_NETWORK_SETTINGS_SOURCES "${CRUX_NETWORK_SETTINGS_SOURCES}" CACHE INTERNAL
     "Portable network settings sources")
 
-# The core calls the private ports in src/network_settings_port.h: the apply port, which is private
-# native code, and the event port. No provider is linked here, so that an image links only once a
+# The core calls the apply port, which the product implements and
+# <crux/network_settings_apply_port.h> declares, and the private event port in
+# src/network_settings_port.h. No provider is linked here, so that an image links only once a
 # composition chooses one, as for the Configuration service. The fakes in tests/network_settings are
 # a test composition that exists only when Crux builds its own tests.
 add_library(crux_network_settings_core STATIC ${CRUX_NETWORK_SETTINGS_SOURCES})
@@ -26,7 +27,8 @@ add_library(crux::network_settings ALIAS crux_network_settings)
 target_link_libraries(crux_network_settings INTERFACE crux_network_settings_api crux_network_settings_core)
 
 # The apply port for a composition that applies nothing, such as `native_sim` today: it reports that
-# it applied the settings, and reports no running values, so that GET shows none. Chosen by name,
+# it applied nothing, so the boot report reads applied false, and reports no running values, so that
+# GET shows none. Chosen by name,
 # like crux_configuration_no_provider. An object target, so that a final link always takes it.
 add_library(crux_network_settings_no_apply OBJECT src/network_settings_no_apply.c)
 target_include_directories(crux_network_settings_no_apply PRIVATE src)

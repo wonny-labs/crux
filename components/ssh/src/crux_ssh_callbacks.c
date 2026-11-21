@@ -12,6 +12,7 @@ static const crux_ssh_callbacks_t table = {
     .sftp_close = crux_ssh_sftp_close,
     .session_alive = crux_ssh_access_session_alive,
     .connection_closed = crux_ssh_access_connection_closed,
+    .auth_limit = crux_ssh_access_auth_limit,
 };
 
 const crux_ssh_callbacks_t *crux_ssh_callback_table(void)

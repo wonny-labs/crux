@@ -1,0 +1,90 @@
+/*
+ * Copyright 2023, 2025 NXP
+ * Copyright 2024 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * A fictional board: an i.MX RT1062 with a QSPI flash, a console UART and one I2C bus that carries
+ * the example temperature sensor. It has no SDRAM and no other peripheral. A product starts from
+ * this file and describes its own hardware.
+ *
+ * Modelled on two files of Zephyr v4.4.0, which carry the copyright lines above: the board
+ * skeleton on boards/nxp/mimxrt1062_fmurt6/mimxrt1062_fmurt6.dts (Copyright 2023, 2025 NXP) and
+ * the QSPI flash node on boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts (Copyright
+ * 2024 NXP).
+ */
+
+/dts-v1/;
+
+#include <nxp/imxrt/nxp_rt1060.dtsi>
+#include "example_rt1062-pinctrl.dtsi"
+#include <freq.h>
+
+/ {
+	model = "Example RT1062 board, a fictional board of the product template";
+	compatible = "nxp,mimxrt1062";
+
+	chosen {
+		zephyr,flash-controller = &ext_flash_ctrl;
+		zephyr,flash = &ext_flash;
+		zephyr,sram = &ocram;
+		zephyr,itcm = &itcm;
+		zephyr,dtcm = &dtcm;
+		zephyr,console = &lpuart1;
+		zephyr,shell-uart = &lpuart1;
+	};
+};
+
+&flexspi {
+	status = "okay";
+	pinctrl-0 = <&pinmux_flexspi1>;
+	pinctrl-names = "default";
+	ahb-prefetch;
+	ahb-read-addr-opt;
+	rx-clock-source = <1>;
+	reg = <0x402a8000 0x4000>, <0x60000000 DT_SIZE_M(8)>;
+
+	ext_flash_ctrl: flash-controller@0 {
+		compatible = "nxp,imx-flexspi-nor";
+		size = <DT_SIZE_M(8 * 8)>;
+		reg = <0>;
+		spi-max-frequency = <DT_FREQ_M(104)>;
+		status = "okay";
+		jedec-id = [9d 70 17];
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x0 0x60000000 DT_SIZE_M(8)>;
+
+		ext_flash: flash@0 {
+			compatible = "soc-nv-flash";
+			reg = <0x0 DT_SIZE_M(8)>;
+			erase-block-size = <DT_SIZE_K(4)>;
+			write-block-size = <1>;
+		};
+	};
+};
+
+&lpuart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&pinmux_lpuart1>;
+	pinctrl-names = "default";
+};
+
+&lpi2c1 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_lpi2c1>;
+	pinctrl-names = "default";
+
+	/* The part that the example driver serves. The address is the one the part answers on. */
+	example_temp0: example-temp@48 {
+		compatible = "vnd,example-temp";
+		reg = <0x48>;
+		status = "okay";
+	};
+};
+
+&systick {
+	status = "okay";
+};

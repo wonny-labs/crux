@@ -1,0 +1,7 @@
+# Example RT1062 board configuration
+
+# Modelled on boards/nxp/mimxrt1060_evk/Kconfig.mimxrt1060_evk of Zephyr (Copyright (c) 2018, NXP).
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_EXAMPLE_RT1062
+	select SOC_PART_NUMBER_MIMXRT1062DVL6A

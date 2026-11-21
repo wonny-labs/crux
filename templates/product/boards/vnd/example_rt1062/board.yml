@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# A fictional board that carries an i.MX RT1062 and has a name of its own. It is not a variant of
+# another board: a variant added with "board: extend:" keeps the name of the board it extends, and
+# so keeps that board's CONFIG_BOARD_* symbol, which code that tests for a board name then accepts.
+board:
+  name: example_rt1062
+  full_name: Example RT1062 board
+  vendor: vnd
+  socs:
+    - name: mimxrt1062

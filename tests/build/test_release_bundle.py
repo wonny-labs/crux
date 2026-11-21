@@ -318,6 +318,21 @@ class VendorDeliveriesAndReplacedModules(BundleTestCase):
                 problems = CHECKER.check(make_bundle(base, vendor_deliveries=[delivery]))
                 self.assertRefused(problems, "vendor_deliveries[0]")
 
+    def test_a_delivery_tag_in_the_guides_vendor_and_work_forms_is_accepted(self):
+        # The Product Composition Guide tags a delivery vendor/<delivery> and a released
+        # working-branch commit work/<delivery>-<org><n>.
+        for tag in ("vendor/1.1.0", "work/1.0.1-acme1"):
+            with self.subTest(tag=tag), tempfile.TemporaryDirectory() as base:
+                bundle = make_bundle(base, vendor_deliveries=[{**self.DELIVERY, "delivery_tag": tag}])
+                self.assertEqual([], CHECKER.check(bundle))
+
+    def test_a_delivery_tag_refuses_empty_absolute_and_dot_segments(self):
+        for tag in ("/vendor/1.1.0", "vendor//1.1.0", "vendor/", "vendor/../x", "vendor/.x", ""):
+            with self.subTest(tag=tag), tempfile.TemporaryDirectory() as base:
+                delivery = {**self.DELIVERY, "delivery_tag": tag}
+                problems = CHECKER.check(make_bundle(base, vendor_deliveries=[delivery]))
+                self.assertRefused(problems, "vendor_deliveries[0]")
+
     def test_vendor_deliveries_must_be_a_list_of_objects(self):
         for value in ({}, "x", ["x"]):
             with self.subTest(value=value), tempfile.TemporaryDirectory() as base:

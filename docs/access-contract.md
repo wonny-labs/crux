@@ -17,7 +17,7 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Portable core | Builds on Host. `crux::access` links no port provider. The root build defines targets for the clock (the object target `crux_access_time_clock`), the store (the static library `crux_credential_access_store`) and the events (the object target `crux_security_event_access_port`) when those components are built, and none for derivation, random and keyed hash, because it has no PSA. A composition links them and lists the PSA sources, and an image without them does not link, as the [`native_sim` composition](native-management-composition.md) shows. No product composition exists yet. |
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
 | PSA derivation, random and keyed hash | `components/access/ports/psa`, which a composition selects. The root build has no PSA. [Results](native-management-composition.md#provider-results) on both providers. |
-| Clock on the Time contract | `crux_access_time_clock`. A clock that fails reads as one that ran backwards. |
+| Clock on the Time contract | `crux_access_time_clock`. A clock that fails, or reads negative, returns `CRUX_ACCESS_CLOCK_FAILED`. |
 | Credential store | Merged in #235 for Issue #178, with `crux_credential_access_store` as this contract's store port. Its [own suite](credential-store.md#tests) runs this core on it for A6, and these suites still use a fake store. |
 | Event identifiers and Logging output | In the [Security event contract](security-event-contract.md), Issue #182, whose provider implements the event port. Access's own Host tests keep their recording fake. |
 | Zephyr composition | [On `native_sim`](native-management-composition.md), for tests |
@@ -40,7 +40,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | Changing one's own password | Takes the session and no name, because the account is the session's | A name could only disagree with the session |
 | Listing more accounts than fit | Fills the buffer, and returns `OK` with the total count | The caller can size a buffer by passing zero capacity |
 | Name and permission sizes | `CRUX_ACCESS_NAME_SIZE` is 32 for users and roles, and `CRUX_ACCESS_PERMISSION_MAX` is 63 | The proposal bounds user names only, and requires rejecting an over-long name |
-| Public key size and type | `CRUX_ACCESS_KEY_SIZE_MAX`, default 192 bytes. A key is an SSH public key blob of type `ssh-ed25519`, `ecdsa-sha2-nistp256`, `ecdsa-sha2-nistp384` or `ecdsa-sha2-nistp521`. Any other type or form is `INVALID_ARGUMENT`, and a stored record holding one is malformed. | The owner's decision: Ed25519 and ECDSA user keys only. The size holds the largest, P-521, at 172 bytes. Size alone would not refuse a small RSA key. The core checks the blob's form, and the provider checks the key itself when it verifies a signature. |
+| Public key size and type | `CRUX_ACCESS_KEY_SIZE_MAX`, default 192 bytes. A key is an SSH public key blob of type `ssh-ed25519` or `ecdsa-sha2-nistp256`, the two user key types that the SSH provider offers. Any other type or form, ECDSA on P-384 and P-521 included, is `INVALID_ARGUMENT`, and a stored record holding one is malformed ([what that does to an existing store](#user-key-types-issue-316)). | The owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316), 2026-11-14, option A: Access accepts only what SSH offers, so that an account never holds a key that no login can use. The size holds the largest accepted blob, P-256, at 104 bytes, and its default stays 192 for the reason given in [User key types](#user-key-types-issue-316). Size alone would not refuse a small RSA key, or a P-384 or P-521 blob, which fit. The core checks the blob's form, and the provider checks the key itself when it verifies a signature. |
 | Querying a permission without a denial | `crux_access_permitted` answers as `crux_access_check` does, and false during a forced change. It emits no event, refreshes no timer, touches no storage and changes no state, so an expired session stays for the next operation to end and report. | AC1. Hiding items through a check would emit a denial per hidden item. |
 | Where a session came from | `crux_access_session_origin` copies the channel, source and source length, with unused source bytes zero. The channel is 1 for serial, 2 for web and 3 for SSH. It has the same lack of side effects as `crux_access_permitted`. | AC4 and AC7. A service holds only a session, and its records carry a channel and source. The adapter's channel type is not reachable from the public header, so the values are stated. |
 | Result of a repeated `crux_access_init` | `CRUX_ACCESS_ERR_ALREADY_EXISTS`, and nothing changes | Changing a policy under live sessions has no safe meaning |
@@ -70,7 +70,8 @@ open to review, and a changed choice is small while nothing depends on it.
 | --- | --- | --- |
 | Second delay check at step 3 | Steps 2 and 3 share one lock hold | Claiming the slot never waits, so nothing can change between them |
 | Clock | Read under the state lock | Stored times are then in order, so an elapsed time cannot wrap and clear a bucket or expire a live session. This is a new requirement on the provider: the clock must not wait. |
-| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. **One exception:** a clock that fails reads 0 through `crux_access_port_now_ms`, and a bucket dated 0 during the fault does clear once the clock returns past the quiet period, as `tests/access/clock_fault.c` shows. See [the composition's port choices](native-management-composition.md#what-each-port-maps). |
+| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. |
+| Clock that fails | `crux_access_port_now_ms` returns `CRUX_ACCESS_CLOCK_FAILED` (`UINT64_MAX`, which no monotonic millisecond count reaches). A password login, a password change's verification, a key pre-check and a provider-verified login return `NOT_READY` with a not-ready event, create no session and leave every bucket unchanged, also when the clock fails after the derivation. A failed signature reported then counts nothing. A session from before the fault is ended by the next call that looks it up for use (a check, a touch, a name query, a logout or an account operation). A read-only query such as `crux_access_permitted` or `crux_access_session_origin` answers `SESSION_INVALID` during the fault and leaves the session in place. | Fails closed. No time means no session can be dated and no delay can be measured, so nothing that needs one proceeds. `tests/access/clock_fault.c` holds this. See [the composition's port choices](native-management-composition.md#what-each-port-maps). |
 | Serial bucket after a success | Not cleared | "Success clears the name bucket only", and serial has no name bucket. A user who mistypes keeps counting until the quiet period. |
 | Serial when slot 0 is taken | May use any free slot | Slot 0 is reserved against the network, not a limit on serial |
 | Own password change | Rule first, then the delay, then the verification slot for the current password only. A new verifier takes no slot, in this or any other operation. | The rule result never confirms the current password, and a login flood cannot block an administrator's reset. |
@@ -112,6 +113,61 @@ The accepted request AC3 adds rejection events. The identifiers are final in the
 | `PROVISION_REFUSED` | `access.provision_refused` | Any refused provisioning. A failed save is `CHANGE_FAILED`. |
 | `CHANGE_FAILED` | `access.change_failed` | A save failed. Names the target only if it already exists. |
 | `CHANGE_REJECTED` | `access.change_rejected` | An account operation refused for its arguments or state, or a wrong current password. Names the target only if it is known to exist. |
+
+## User key types (Issue #316)
+
+Decided 2026-11-14, option A of [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316): `crux_access_account_add_key` accepts only the user key types that the SSH provider offers. Before this change it also accepted ECDSA on P-384 and P-521, so an account could hold a key that SSH never accepts, stored with no sign to the person who added it.
+
+**Stability.** `crux_access_account_add_key` is in `<crux/access.h>`, whose `Status:` line reads Experimental (ADR-0001 decision 4), and [the readiness table](component-readiness.md) gives Access the same provisional tier: it has no Zephyr composition outside `tests/`. An Experimental interface may change in any release, listed in the release notes, so this narrowing is not a breaking change under the policy. No release or tag exists yet. The change is listed here and in the pull request.
+
+| Key type | `crux_access_account_add_key` | SSH provider (`WOLF_USER_KEY_LIST`) |
+| --- | --- | --- |
+| `ssh-ed25519`, 32-byte point | Accepted | Offered |
+| `ecdsa-sha2-nistp256`, `nistp256`, 65-byte uncompressed point | Accepted | Offered |
+| `ecdsa-sha2-nistp384`, `ecdsa-sha2-nistp521` | **`INVALID_ARGUMENT` since #316**, was accepted | Refused before any callback |
+| RSA, DSA, Ed448, certificates, security keys | `INVALID_ARGUMENT`, unchanged | Refused before any callback |
+
+```mermaid
+flowchart TD
+    add["crux_access_account_add_key(blob)"] --> form{"Type name, curve name,<br/>point size and form match<br/>ssh-ed25519 or P-256?"}
+    form -->|"no, including any P-384 or P-521 blob"| refuse["INVALID_ARGUMENT<br/>nothing stored"]
+    form -->|yes| store["Listed on the account"]
+    boot["crux_access_init reads the stored record"] --> decode{"Every key in the record<br/>passes the same check?"}
+    decode -->|yes| ready["Table loaded"]
+    decode -->|"no: an earlier revision stored a P-384 or P-521 key"| unusable["Treated as UNUSABLE<br/>init returns NOT_READY"]
+```
+
+**A store that holds a removed type.** The record decoder runs the same check on every stored key, so a record saved by an earlier revision with a P-384 or P-521 key is malformed as a whole, as the table above already said. The effects, from the [existing malformed-record rule](#choices-the-proposal-left-open) (the row "A record the store calls `VALID` that cannot be decoded"), which this change does not alter:
+
+| What | Result | Test |
+| --- | --- | --- |
+| `crux_access_init` | `NOT_READY`, and the store counts as `UNUSABLE` until the next reset | `malformed_record_cases` in `tests/access/faults.c` |
+| Logins, by password or by key, on every channel | `NOT_READY`: **every account is locked out, not only the one with the key** | The same case |
+| Provisioning | `DENIED`, because a store that cannot be read is not an empty one | The same case |
+| Removing the key through Access | Not possible: Access is not ready | |
+| The stored bytes | Not modified. A save never ran. | |
+| Recovery | The documents show whole-store recovery only: the credential store has an internal erase that no Crux code calls, and the Pilot recovers with a card reader ([credential store](credential-store.md)), after which provisioning starts again. They show no way to rewrite only the accounts record. Running the earlier revision, removing the key and upgrading also works. | |
+
+This is the one consequence that a reader should weigh. It follows from fail-closed decoding, and it means that an upgrade over a store with such a key does not degrade to "that key is ignored", it stops Access. No Crux release exists, and Access has no Zephyr composition outside `tests/`, so a store of this kind can only come from a bench or a test image. A tolerant decoder that dropped the key, and said so with an event, would be a separate decision: it changes what a "valid" record may hold and rewrites data on the next save. It is recorded as a [decision for review](#decisions-for-review-issue-316).
+
+**Which profile can verify which type.** Access never verifies a key signature. It compares the blob byte for byte (`crux_access_key_is_authorised`), and its PSA ports (`components/access/ports/psa/access_psa.c`) hold only derivation, random and HMAC, so the choice of TLS/PSA profile does not change what `crux_access_account_add_key` accepts. The signature is verified by the SSH provider, which exists on the Wolf profile only.
+
+| Profile | SSH provider | `ssh-ed25519` user key | `ecdsa-sha2-nistp256` user key | What the documents and code show |
+| --- | --- | --- | --- | --- |
+| Wolf (wolfSSL, wolfSSH, wolfPSA) | Yes | Verified by wolfSSH, built with `CONFIG_WOLFSSL_CURVE25519` and `WOLFSSL_ED25519_STREAMING_VERIFY` | Verified by wolfSSH | [`wolf_ssh_settings.cmake`](../components/ssh/ports/zephyr/wolf_ssh_settings.cmake), [`wolf-ssh.conf`](../components/ssh/ports/zephyr/wolf-ssh.conf). The Zephyr conformance client fails to compile unless Ed25519 and P-256 are present and P-384 and P-521 are absent (`tests/zephyr/ssh_provider/src/conformance_client.c`). Key logins ran on `native_sim` ([provider record](ssh-wolf-provider.md#results)). |
+| Mbed (Mbed TLS, TF-PSA-Crypto) | **No.** [A build that enables CLI or SFTP with it fails at configuration time.](plans/secure-management-design.md#provider-profiles) | No SSH to verify with. TF-PSA-Crypto also declares Ed25519 unsupported ([qualification](psa-crypto-qualification.md)), which concerns the credential store's key generation, not user key verification | No SSH to verify with. TF-PSA-Crypto supports P-256 | No Access path verifies a key on this profile. A stored user key is inert there, whatever its type. |
+
+So the accepted set is the SSH provider's set, not a per-profile set. Access does not ask a provider which types it can verify: that would be a new port in `access_port.h`, and nothing in this change needs one. On an image without SSH, such as the Mbed profile, the added key is stored and no login can use it. That is the same situation as before for a key of any type, and this change does not address it. It is listed as a decision for review below.
+
+**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare. Lowering it is not needed for this change. Any value of 104 or more keeps every decodable record readable, because records are variable length and every key a record can hold is now Ed25519 (51 bytes) or P-256 (104 bytes). It would, however, change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
+
+### Decisions for review (Issue #316)
+
+| # | Decision taken for lack of an answer | Recommendation | Impact if the owner decides otherwise |
+| --- | --- | --- | --- |
+| 1 | A stored record holding P-384 or P-521 stays malformed, so the whole store is unusable after an upgrade (above) | Keep, while no release exists. If a release carries Access before this is revisited, add a tolerant decoder that drops the key and emits an event | A separate change in `access_record.c`, with a record-version or event decision |
+| 2 | `CRUX_ACCESS_KEY_SIZE_MAX` stays 192 | Keep for this change. A default of 104 or more would still read every decodable record, and would lower `CRUX_ACCESS_RECORD_SIZE_MAX` and per-account RAM | A separate change to the default, with the RAM saving measured |
+| 3 | Access does not depend on the profile: Ed25519 and P-256 blobs are accepted on the Mbed profile too, where no SSH provider exists to use them | Keep. A capability port would be a new private interface for no consumer | A provider declaration read by `crux_access_key_acceptable` |
 
 ## Declared limits
 
@@ -173,7 +229,7 @@ Access sources, and the boundary check. The root build also runs the suites as `
 | `tests/access/conformance.c` | Two different policies: permitted, unauthenticated, unpermitted, expired, stale, reused slot, generation wrap, invalid policy, provisioning, the permission and origin queries |
 | `tests/access/accounts.c` | Each operation, session ending rules, forced change, last administrator including concurrent changes, save failure, power loss, a login during a save, a check that does not wait on a save or derivation |
 | `tests/access/security.c` | Equal treatment of unknown and disabled names, table-filling probe, delay rules, guessing bound, collisions, flooding, serial independence, verification slots, races with a login, cost upgrade |
-| `tests/access/keys.c` | Key types and malformed blobs, signed and unsigned attempts, failed signatures, provider-verified login |
-| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation of a record and a chosen set of field corruptions, 64-bit time, provider failures, lock failure including around the first account's save, concurrent logins |
+| `tests/access/keys.c` | Key types (Ed25519 and P-256 accepted, P-384 and P-521 refused as `INVALID_ARGUMENT` although they fit the size bound) and malformed blobs, signed and unsigned attempts, failed signatures, provider-verified login |
+| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation of a record and a chosen set of field corruptions, a stored record holding a P-384 or P-521 key, 64-bit time, provider failures, lock failure including around the first account's save, concurrent logins |
 | `tests/access/secrets.c` | Known password and key values absent from every event type, and no plain password on the medium |
 | `tests/access/events.c` | Each rejection path produces its event with its fields, every event runs with no lock held, and the two silent queries emit nothing |

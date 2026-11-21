@@ -10,7 +10,10 @@ Invalid setters preserve the old level. Each valid submission samples the level
 once; later filter changes do not withdraw already submitted native records.
 
 Tags contain 1–24 ASCII letters, digits, `_`, `-` or `.`. Text contains 0–256
-bytes without CR or LF. Limits exclude the terminating NUL. Both strings must
+bytes with no control byte: every byte below 0x20 (CR, LF and TAB included) and
+0x7F are rejected, so a record stays one line and cannot carry a terminal
+sequence. Bytes from 0x80 are accepted as they are, so UTF-8 text passes
+unchecked. Limits exclude the terminating NUL. Both strings must
 be readable and unchanged until return. The caller may modify or free both strings after return. Zephyr packages
 writable strings and can reference immutable image-resident strings. Percent characters are literal; applications own any
 formatting they perform before submission. Invalid inputs are rejected even
@@ -41,7 +44,9 @@ DEBUG source ceiling, visible severity, a native line boundary and the common Cr
 processing, UART TEXT output, autostart, drop-new, no capacity wait, no runtime
 native filter or extra backend. An explicit single enabled chosen log UART is
 required. Native_sim uses a dedicated UART emulator separate from its harness
-Console. The approved revision-B EVKB LPUART1 profile compiles UART_CONSOLE as the
+Console. The approved revision-B EVKB LPUART1 profile (the EVKB accepts no other log UART),
+and any other RT1062 board under the same conditions (any enabled LPUART, accepted by SoC and
+devicetree), compiles UART_CONSOLE as the
 pinned backend's prerequisite but disables direct Console stdout, input and
 subsystem helpers, early Console and Shell; printk routes through native Logging.
 Build checks reject other Console-sharing configurations. See validation evidence

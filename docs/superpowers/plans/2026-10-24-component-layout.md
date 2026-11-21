@@ -1,6 +1,6 @@
 # Component Layout Implementation Plan
 
-> **For agentic workers:** Use superpowers:executing-plans with independent Reviewer and Challenger checks for each PR. Steps use checkbox syntax for tracking.
+> **Execution:** independent review and adversarial review checks for each PR. Steps use checkbox syntax for tracking.
 
 **Goal:** Adopt component-owned OS ports without changing public APIs or behaviour.
 

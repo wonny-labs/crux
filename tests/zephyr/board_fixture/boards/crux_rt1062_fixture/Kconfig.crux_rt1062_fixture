@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Fictional, compile-only test board (see board.yml).
+
+config BOARD_CRUX_RT1062_FIXTURE
+	select SOC_PART_NUMBER_MIMXRT1062DVL6A

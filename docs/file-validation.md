@@ -1,6 +1,6 @@
 # File software qualification
 
-See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification.
+See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification. The FatFs provider on `native_sim` and on the EVKB microSD slot is described in [microsd-composition.md](microsd-composition.md).
 
 Issue [#23](https://github.com/wonny-labs/crux-pilot/issues/23) implements the
 [approved contract](file-contract.md) as a bounded portable C17 component with a
@@ -21,9 +21,11 @@ process lifetime; process exit releases it. Rebinding/unmounting is unsupported.
 Files are opened relative to that descriptor, symlinks are not followed, and only
 regular files are accepted. This is a qualification profile, not a security sandbox.
 
-The private `file_port.h` permits provider build overrides of
-`CRUX_FILE_POOL_SIZE` (default/minimum 4) and `CRUX_FILE_NAME_MAX`
-(default/minimum 63), applied consistently to shared/provider translation units.
+The pools follow the CMake cache variables `CRUX_FILE_POOL_SIZE` (default and
+minimum 4) and `CRUX_FILE_DIR_POOL_SIZE` (default 2), or `CONFIG_CRUX_FILE_POOL_SIZE`
+and `CONFIG_CRUX_FILE_DIR_POOL_SIZE` on Zephyr. The private `file_port.h` also
+permits a provider build override of `CRUX_FILE_NAME_MAX` (default/minimum 63),
+applied consistently to shared/provider translation units.
 These are build-time bounds, not runtime configuration. There is no heap allocation
 in the component. A C17 atomic flag protects pool state and serializes complete
 calls, including blocking provider I/O; contention can spin without a latency bound.

@@ -292,6 +292,7 @@ static void status_credential_words(void)
     CHECK(untouched.state == NULL);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): test helper, fixed order at each call
 static void credential_event_row(const crux_credential_event_t *event, crux_security_event_id_t id,
                                  crux_security_event_result_t result, const char *subject)
 {

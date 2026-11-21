@@ -63,7 +63,7 @@ UART main and observer streams share a record lock, but observation timestamps p
 
 Use the accepted M3 isolated topology only after fresh verification: RT1060 EVKB revision B, QSPI image base `0x60000000`, 8 MiB geometry; board `192.168.77.2/24`, dedicated AX88179 peer `192.168.77.1/24`, TCP 42420 and UDP 42421. The unchanged M3 overlay gives GPIO1.9 exclusively to PHY reset, uses fixed test MAC `02:43:52:55:58:03`, and polls the PHY every 500 ms with its IRQ path excluded. The host adapter, route and USB identities must match the approved inventory. No alternate interface, default route, bridge, Internet path, DHCP or runtime address change is part of this test. Netif status observes the configured primary interface; it neither binds sockets nor proves routing or peer reachability. Host peer composition explicitly owns SIGPIPE policy; reusable consumer code changes no process policy.
 
-Before any physical operation, bind written approval to the final source and runner revision, independently verified manifest hash, exact ELF/BIN/configuration hashes and the identified normal entry/recovery images. Obtain fresh target/probe/UART ownership, root USB mount guard, isolated interface/route checks and exclusive debugger/serial ownership using the accepted M3 procedures. Preserve J-Link executable/DLL hashes, probe serial `602003106`, firmware-update disabling, explicit selection and bounded process handling. Unknown firmware maintenance, transport, mount or ownership state is a hard stop.
+Before any physical operation, bind written approval to the final source and runner revision, independently verified manifest hash, exact ELF/BIN/configuration hashes and the identified normal entry/recovery images. Obtain fresh target/probe/UART ownership, root USB mount guard, isolated interface/route checks and exclusive debugger/serial ownership using the accepted M3 procedures. Preserve J-Link executable/DLL hashes, probe serial `<probe-serial>`, firmware-update disabling, explicit selection and bounded process handling. Unknown firmware maintenance, transport, mount or ownership state is a hard stop.
 
 Each operation needs explicit authorisation:
 
@@ -306,7 +306,7 @@ found the following, so every identity gate failed closed.
 | macOS service name | `AX88179` | `AX88179 3` (static `192.168.77.1/255.255.255.0`, no router) | yes |
 | UART device | `/dev/cu.usbmodem11302` | `/dev/cu.usbmodem11402` | yes |
 | DAPLink USB serial | `0229…9905` | unchanged | no |
-| J-Link probe serial | `602003106` | unchanged | no |
+| J-Link probe serial | `<probe-serial>` | unchanged | no |
 | Board, image base, addresses, ports | EVKB rev B, `0x60000000`, `192.168.77.2/24`, TCP 42420, UDP 42421 | unchanged | no |
 
 The adapter USB serial (`0000249B6EF77F`, hub `0-2.1` port 3) was seen in the inventory but is not used by any gate and is not recorded in the code. The service name is a label that macOS can renumber. Duplicate stale services named
@@ -512,7 +512,7 @@ flowchart TD
 
 | Property | Behaviour |
 | --- | --- |
-| Reuses | `capture_m3.commander` (pinned `JLinkExe` and DLL hashes, probe `602003106`, firmware-update guard, 30 s limit, or for a load or read-back the size-derived limit of at most 80 s described in [the image profiles](board-image-profiles.md#bounded-split-runs-of-program-blocker-b1-row-c7)), `capture_m3_network.image_commands`, `guard_check`, `check_owners`, `select_uart`, `verify_manifest`, `prepare_m5_network.verify`, the runner's approval check, and the lease's owned-port inventory |
+| Reuses | `capture_m3.commander` (pinned `JLinkExe` and DLL hashes, probe `<probe-serial>`, firmware-update guard, 30 s limit, or for a load or read-back the size-derived limit of at most 80 s described in [the image profiles](board-image-profiles.md#bounded-split-runs-of-program-blocker-b1-row-c7)), `capture_m3_network.image_commands`, `guard_check`, `check_owners`, `select_uart`, `verify_manifest`, `prepare_m5_network.verify`, the runner's approval check, and the lease's owned-port inventory |
 | Before every probe command | fresh guard check; ownership inventory (before the UART is taken: nobody owns it; afterwards: only this process owns it and no debugger runs); the dedicated adapter's MAC and static address (carrier **not** required, since the running firmware may have the Ethernet down); at least 120 s of series budget; for a step that uses an image: the file hash against the approval and a full manifest reverification; exact image-path validation before the first command |
 | After the guard | at least 45 s of series budget remain, as in the accepted wrappers |
 | After every probe command | core, debug port, probe serial and 3.0 to 3.6 V target voltage must match; `Verify successful` is required where a step programs or verifies |
@@ -534,8 +534,7 @@ accepted M3 runners. Not shown on a device: real Commander output for a verify m
 The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
 (zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (littlefs and fatfs in
 the default groups), and the provenance recorder lists every active project, so a real freeze on current `main`
-was refused with "Unexpected/missing/duplicate dependencies". Owner decision, relayed from the owner's chat
-of 2026-11-08 (Korea time): "방안 A승인".
+was refused with "Unexpected/missing/duplicate dependencies". Owner decision of 2026-11-08 (Korea time), relayed second-hand: approve option A.
 
 | Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
 | --- | --- | --- |

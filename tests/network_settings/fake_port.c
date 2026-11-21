@@ -1,4 +1,6 @@
-/* The fake apply and event ports. They exist only when Crux builds its own tests. */
+/* The fake apply and event ports. They exist only when Crux builds its own tests. With
+ * NET_TEST_REAL_APPLY_PORT the suite links a real apply port instead, and only the event port and
+ * the recording helpers come from here. */
 #include "net_test.h"
 
 #include <pthread.h>
@@ -13,7 +15,6 @@ static bool running_override;
 static bool running_has;
 static crux_network_settings_t running_value;
 static bool last_ok;
-static crux_network_settings_t last_applied;
 static net_event_t events[EVENTS];
 static size_t event_count;
 
@@ -52,6 +53,9 @@ void net_port_set_running(bool has_running, const crux_network_settings_t *setti
     }
 }
 
+#ifndef NET_TEST_REAL_APPLY_PORT
+static crux_network_settings_t last_applied;
+
 bool crux_network_settings_port_apply(const crux_network_settings_t *settings)
 {
     bool ok = true;
@@ -86,6 +90,7 @@ bool crux_network_settings_port_running(crux_network_settings_t *settings)
     pthread_mutex_unlock(&guard);
     return has;
 }
+#endif
 
 void net_events_clear(void)
 {

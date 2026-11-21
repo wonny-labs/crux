@@ -50,7 +50,7 @@ flowchart LR
 | 2 | The target does not link the provider library | The provider is selected by Kconfig and appended to the Zephyr link by the module. The target only gives the header, so a product that selects a provider through Kconfig does not pick a second one by linking. |
 | 3 | Only the declarations that already existed are published | No new function, no rename. The Linux names stay in `file_linux.h`. |
 | 4 | The private header stays | Renaming every user is a larger change with no consumer benefit. |
-| 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy is a precedent for a documented composition target. The owner approved the public target and header ("a안으로 진행해줘", chat of the Crux Pilot session, 8 November 2026); the location and the composition role are this change's reading of that approval. |
+| 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy was a precedent for a documented composition target (removed with Crux Queue on 20 November 2026). The project owner approved the public target and header on 8 November 2026 (option A); the location and the composition role are this change's reading of that approval. |
 | 6 | Management and HTTPS composition are not covered | They need a separate design that also depends on the Zephyr TLS socket route and licence decisions of the owner. |
 
 ## What a consuming product needs to do
@@ -68,4 +68,52 @@ A product that wants a strict boundary for its application code needs a composit
 | The native-free consumer check rejects a consumer that links the target: a direct link, a transitive wrapper and the usage check, with the real guard and the real target definition, and the same projects pass against a weakened copy of the guard | `tests/build/test_file_zephyr_boundary.py`, Host | run locally and in Host CI |
 | The follow-up builds: the three microSD samples (RT1060 compile, `scripts/test-file-rt1060-compile.sh`), `storage_emmc` (RT1060 link, `scripts/test-file-emmc-compile.sh`), `storage_reliance_sd` (RT1060 link, `scripts/test-file-emmc-compile.sh`; `native_sim` build only, `scripts/test-storage-emmc.sh`), and the two eMMC `native_sim` fixtures, which also compile `emmc_storage.c` (`scripts/test-storage-emmc.sh`) | Zephyr CI | **not run locally** (Docker, disk); left to CI |
 | A product repository builds against the target | not done; the first product consumer is the evaluation of this interface | open |
+| Any run on a board | none | not authorised and not part of this change |
+
+## The Reliance Edge file system type
+
+Status: **Experimental**, software only, for [Issue #510](https://github.com/wonny-labs/crux-pilot/issues/510). The project owner approved the recommendation in the Crux Pilot chat on 17 November 2026: a public constant, not a mount wrapper.
+
+### The gap
+
+The File provider on Reliance Edge needs a mounted volume, and a composition mounts it with Zephyr's `fs_mount()`. For FatFs the mount type is Zephyr's public `FS_FATFS`. For Reliance Edge it is `CRUX_FS_RELIANCE_EDGE`, which was declared only in the private header `zephyr/fs/reliance_edge/fs_reliance_edge.h`. A consumer outside the Crux tree could name the file system only by adding a path inside the Crux tree to its include path, and Crux's own samples and several native tests did that.
+
+### What is built
+
+| Change | Where |
+|---|---|
+| Public header `<crux/file_reliance_edge_zephyr.h>`: one macro, `CRUX_FS_RELIANCE_EDGE`, with the value it had (`FS_TYPE_EXTERNAL_BASE`), and the rules for the mount and the format call. It includes only `<zephyr/fs/fs.h>` and declares no function | `components/file/ports/zephyr/include/crux/file_reliance_edge_zephyr.h` (new) |
+| The private header only includes the public one, so there is one definition and code that names the private header by its path keeps working | `zephyr/fs/reliance_edge/fs_reliance_edge.h` |
+| The header reaches a product through the existing target `crux::file_zephyr`; the target and its definition are unchanged | `components/file/ports/zephyr/CMakeLists.txt` |
+| The samples `storage_emmc` and `storage_reliance_sd` and the fixtures `file_emmc_composition` and `configuration_settings_reliance` use the public header and no longer add `zephyr/fs/reliance_edge` as an include path. `file_reliance` keeps the private spelling, so that the private header stays covered, and `emmc_powercut` does not link a Crux target and keeps it too | the four builds above |
+| Host checks | `tests/build/test_file_reliance_edge_zephyr_public.py` |
+
+### Decisions
+
+**Approved by the owner** (the recommendation of 17 November 2026):
+
+| # | Decision | Why |
+|---|---|---|
+| 1 | A constant, with no mount or bind function | ADR-0001 rejects pass-through wrappers. A composition already mounts with Zephyr's own `fs_mount()`, as it does for FatFs, and binds with `crux_file_zephyr_bind()` |
+| 2 | No new Kconfig symbol and no behaviour change | The adapter, its formatter option and the rule that a mount never formats are unchanged |
+| 3 | Experimental | The interface has no physical-board result and no composition outside `tests/` and the samples |
+
+**The author's choices within the owner's approval.** The header name is pending the owner; the rest can change in review without a new approval.
+
+| # | Choice | Why |
+|---|---|---|
+| A | The header sits with the File port, under `components/file/ports/zephyr/include/crux/`, and ships under the existing target `crux::file_zephyr` | It follows the placement of decision 5 of the root binding above, and the owner's recommendation was to put it next to the file contracts |
+| B | The header is named `file_reliance_edge_zephyr.h`. **The name is pending the owner** | Rule 1 of the [composition interface rules](composition-interfaces.md) names one header per capability, `<crux/file_zephyr.h>` for File, so a second provider-named header under the same target extends rule 1. The suffix `_zephyr` comes from `templates/product/check_domain_includes.py`, which rejects `<crux/NAME_zephyr.h>` in product domain code only; a name without it would not be rejected there. The name carries `file` because the header ships with the File port, and `reliance_edge` because it names the provider's file system |
+| C | It includes `<zephyr/fs/fs.h>` | Rule 5 allows it where the binding needs one: the value is Zephyr's `FS_TYPE_EXTERNAL_BASE`, and a composition includes `<zephyr/fs/fs.h>` for `fs_mount_t` anyway. Copying the number would make a second definition |
+| D | The public header holds the definition and the private one includes it | One definition, and no consumer of the private header breaks. The private header reaches the public one by a relative path, so no build needs a new include root |
+
+### Verification and what is untested
+
+| Check | Where | Status |
+|---|---|---|
+| The header compiles alone against a stand-in for `<zephyr/fs/fs.h>`, includes no other native header, has one definition, and gives the same value through the private header; the samples and fixtures name the type through the public header; this document and the readiness table record the tier | `tests/build/test_file_reliance_edge_zephyr_public.py`, Host | run locally; Host CI had not run when this was written |
+| The product template's domain check rejects the new header as a composition interface | `tests/build/test_product_template.py`, Host | run locally; Host CI had not run when this was written |
+| A consumer mounts and formats a Reliance Edge volume on the eMMC simulator using only the public header | `tests/native/file_emmc_composition`, `native_sim`: `scripts/test-storage-emmc.sh` | **not run locally** (Docker); left to CI |
+| The two samples and the configuration fixture build without the private include path | Zephyr CI: `scripts/test-file-emmc-compile.sh` and `scripts/test-storage-emmc.sh` | **not run locally** (Docker); left to CI |
+| The tier is Experimental | The header's `Status:` line and the readiness table | recorded |
 | Any run on a board | none | not authorised and not part of this change |

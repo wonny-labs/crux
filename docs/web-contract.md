@@ -117,7 +117,7 @@ the first three byte for byte.
 | Plain `409` | Another client holds the resource. The connection then closes. | `HTTP/1.1 409 Conflict`, and no body |
 | Plain `500` | A malformed request, or a URL over 255 bytes | `Internal Server Error` |
 | Plain `426` | A request with `Upgrade`. The server then runs the resource, so the adapter closes first and no handler runs. | `Wrong upgrade` |
-| No answer | A request of under 24 bytes waits for more until the inactivity timer. A browser's request is always longer. | |
+| No answer | A request of under 24 bytes waits for more until the header deadline or the inactivity timer, whichever ends first. A browser's request is always longer. | |
 
 A deeper path under a route that has the method reaches the core and gets the JSON `404`: `/api/v1/status/x` does, as
 the specification says. A value equal to a fixed neighbour is shadowed: `GET /api/v1/config/save` gets the plain `405`,
@@ -154,6 +154,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | --- | --- | --- | --- |
 | `HTTP_SERVER_CLIENT_INACTIVITY_TIMEOUT` | 3 s | 10 s | Upstream's |
 | `CRUX_WEB_REQUEST_DEADLINE_MS` | 2,000 | 5,000 | Whole request, from first callback to last body byte |
+| `CRUX_WEB_HEADER_DEADLINE_MS` | 2,000 | 10,000 | From a request's first byte to the end of its headers, in the patched server |
 | `CRUX_WEB_SEND_TIMEOUT_MS` | 500 | 250 | One socket send, not one response |
 | `CRUX_WEB_RESPONSE_DEADLINE_MS` | 1,500 | 3,000 | One response, checked only between pieces |
 | `HTTP_SERVER_MAX_CLIENTS` | 3 | 3 | Upstream's |
@@ -165,7 +166,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | Before the header deadline, all three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s. With it, the case expects each closed at the deadline, 2 s in the suite, and the fourth client served; the result is recorded in the pull request that adds the deadline | See [below](#trickled-headers-the-header-phase-deadline). A client that reconnects holds a slot for up to the deadline per connection, and a body trickled after a plain `404` or `405` is not bounded. |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
 | Reader that reads nothing, 8 MB body (slow-read attack) | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
@@ -235,20 +236,31 @@ stream. Telling it apart would need state the server does not expose. Mutation c
 The injected send proves the path runs: `send_eagain` in `/probe/stats` counts each one, because the suite reached it zero
 times before. Real `-EAGAIN` on Zephyr's own stack has not been run.
 
-### Trickled headers: a decision for the owner
+### Trickled headers: the header-phase deadline
 
 Headers run no callback, so the adapter cannot see a client that is still sending them, and the inactivity timer restarts
-on every received byte. A client can hold a slot for as long as the parser accepts headers, 80 KiB, at one byte per
-inactivity period: about 9.5 days at the 10 s default. Three such clients block the whole web interface, and need almost
-no bandwidth. The serial console, the control work and any other network service stay unaffected.
+on every received byte. Without a deadline, a client could hold a slot for as long as the parser accepts headers, 80 KiB,
+at one byte per inactivity period: about 9.5 days at the 10 s default, and three such clients blocked the whole web
+interface with almost no bandwidth.
 
-| Option | Effect | Cost |
-| --- | --- | --- |
-| **A. Declare it, as this pull request does** | No change | The interface can be blocked by anyone who can reach the port, for as long as they keep it up |
-| **B. A Zephyr patch, recommended.** A `k_work_schedule` in the header phase, so the timer stops being extended there, gated on `server_state` because HTTP/2 stays at parser state 0 | Headers get one inactivity period in all | A small patch to maintain, delivered as `scripts/prepare-nxp-mdio.py` does, with an upstream Kconfig offered. **A client that reconnects still holds a slot for one period per connection.** |
-| C. Raise the client limit | Only raises the number of clients needed | RAM per client |
+The owner chose option B of Issue #268 on 2026-11-14: a build-local patch of the Zephyr server,
+`patches/zephyr/http-header-deadline.patch`, which the web adapter's build applies to a copy of `http_server_core.c`
+([patches README](../patches/zephyr/README.md#http-header-phase-deadline)). From the first byte of a request until its
+headers are complete, gated on the server state and the HTTP/1 parser state, received bytes no longer extend the time the
+client has: it is closed `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS` after that byte, 10 s by default, one period of the default
+inactivity timer. A client idle between requests keeps the inactivity timer, and the deadline starts again with each
+request on a kept connection. The rejected options were to declare the limit, or to raise the client limit, which only
+raises the number of clients needed and costs RAM per client.
 
-This pull request does not take B, because the issue leaves it to the owner. New issue #268 records it.
+**A client that reconnects still holds a slot for up to the deadline per connection**, so three clients in a loop can
+still keep the interface busy, at the cost of a TCP connection, and over TLS a handshake, per period.
+
+**A body after a plain answer is not bounded either.** A body on a request the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it. The server stays in its request state
+reading the body and answers again; every byte restarts the inactivity timer. So a client that sends, for example,
+`POST` to a path with no resource with a large `Content-Length`, then one byte per period, and reads the answers, holds a
+slot with no time limit, and three such clients block the interface as trickled headers did. This is read from the
+server's source at the pin and has not been run. Bounding it is a change beyond the decided option, recorded for a decision in
+[Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529).
 
 ### Flow control for large transfers
 
@@ -332,8 +344,8 @@ The table was written for the issues that followed #184, and each now uses these
 
 | Issue | What it uses | From |
 | --- | --- | --- |
-| #186 | `crux_web_authenticate_t`, which returns `crux_web_auth_t` and sets the session | `crux_web_adapter.h` |
-| #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h` |
+| #186 | `crux_web_authenticate_t`, which returns `crux_web_auth_t` and sets the session | `crux/web.h` (moved from `crux_web_adapter.h` by ADR-0004 phase 1a) |
+| #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h`, and for a product `<crux/web_zephyr.h>` (target `crux::web_zephyr`, ADR-0004 phase 1a), with `crux_web_config_t` in `<crux/web.h>` |
 | #186 | `crux_web_request_head(request)`, for `Origin` on login and `X-Crux-Request` on the poll | `crux_web_adapter.h` |
 | #186 | `crux_web_add_header(request, "Set-Cookie", value)`, up to four headers and 384 bytes | `crux/web.h` |
 | Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, whose list is mandatory with resources, and which fails the build on a public or session-only route that is not on it | `cmake/CruxWebRoutes.cmake` |

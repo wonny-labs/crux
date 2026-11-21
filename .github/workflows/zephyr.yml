@@ -140,6 +140,11 @@ jobs:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
         run: python3 tests/native/flash_safety/test_driver.py
 
+      - name: Check the Zephyr workspace with the smoke builds
+        if: matrix.shard == 'controller'
+        working-directory: crux-pilot
+        run: scripts/check-zephyr-smoke.sh
+
       - name: Compare controller execution candidates without hardware
         if: matrix.shard == 'controller'
         working-directory: crux-pilot
@@ -165,12 +170,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-time-busy-wait.sh
 
-      - name: Validate portable messaging without hardware
+      - name: Validate the portable controller scenario and fractional Thread timing without hardware
         if: matrix.shard == 'runtime'
         working-directory: crux-pilot
-        run: |
-          scripts/test-messaging.sh
-          scripts/measure-messaging.sh
+        run: scripts/test-messaging.sh
 
       - name: Validate portable Serial without hardware
         if: matrix.shard == 'io'
@@ -281,6 +284,15 @@ jobs:
           CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
           scripts/test-file-emmc-compile.sh
 
+      # MCUboot is the optional west group crux-boot, and bootstrap-zephyr.sh runs a plain west
+      # update, so the script enables the group itself. It is the last runtime check, so that no
+      # earlier check runs with the group enabled. Build only: the images are signed with MCUboot's
+      # published public test key and nothing is programmed or booted. No output is uploaded.
+      - name: Build, sign and check the MCUboot RAM load composition (software-only)
+        if: matrix.shard == 'runtime'
+        working-directory: crux-pilot
+        run: scripts/test-boot-composition.sh
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence
         if: always()
@@ -342,12 +354,6 @@ jobs:
             crux-pilot/build/serial-consumer/ctest-junit.xml
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/serial-evkb/zephyr/.config
-            crux-pilot/build/messaging-resource-evidence/
-            crux-pilot/build/zephyr/messaging-resources-*/zephyr/zephyr.map
-            crux-pilot/build/zephyr/messaging-resources-*/zephyr/.config
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/messaging-evkb/zephyr/.config
             crux-pilot/build/zephyr/native_sim_time/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json

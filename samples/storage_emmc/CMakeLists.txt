@@ -19,4 +19,3 @@ if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
   # expose: the composition wires it itself.
   target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/ports/zephyr)
 endif()
-target_include_directories(app PRIVATE ${CRUX_ROOT}/zephyr/fs/reliance_edge)

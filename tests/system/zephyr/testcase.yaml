@@ -6,3 +6,14 @@ tests:
     tags:
       - system
       - portable
+  # Deferred logging: a reset flushes the records that wait for the logging thread first.
+  crux.system.log_panic:
+    timeout: 20
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - system
+      - portable
+    extra_configs:
+      - CONFIG_LOG=y
+      - CONFIG_LOG_MODE_DEFERRED=y

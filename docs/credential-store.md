@@ -4,7 +4,8 @@ Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) f
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
-Owner: `components/credential`. Public header `<crux/credential_store.h>`, usage target `crux::credential_store`. Adapter
+Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
+state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
 `components/credential/src/credential_port.h`.
 
@@ -67,7 +68,7 @@ flowchart TB
 
 | Target | Who links it | What it exposes |
 | --- | --- | --- |
-| `crux::credential_store` | A project that displays the basis, the status service | The public header only. It links the core, which needs providers, so an image without them does not link. |
+| `crux::credential_store` | A product that starts the store, a project that displays the basis, the status service | The public header only, with the File contract that it includes. On Host it links the core, which needs providers, so an image without them does not link. In the Zephyr module (`CONFIG_CRUX_ACCESS`) it is an INTERFACE target that adds the include root and links `crux::base` and `crux::file`, and the module links the library itself. |
 | `crux_credential_adapter` | The bridge, TLS and SSH providers, a composition, always `PRIVATE` | The adapter header. `cmake/CruxCredentialBoundary.cmake` rejects any path by which it reaches a consumer. |
 | `crux_credential_access_store` | A composition | Nothing. It implements a private port of Access. |
 | `crux_credential_test_composition` and `_small` | Only `tests/credential` | Exist only under `CRUX_BUILD_TESTS`. |
@@ -76,10 +77,10 @@ flowchart TB
 
 | Step | Call | Notes |
 | --- | --- | --- |
-| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store |
+| 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store. Public: `<crux/credential_store.h>` |
 | 2 | `crux_access_init(policy)` | Loads accounts through the bridge. Its `EMPTY` is the absence of the account record. |
-| 3 | `crux_credential_key_ensure(record, type)` | For each key the build needs. A failure stops that listener. |
-| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot |
+| 3 | `crux_credential_key_ensure(record, type)` | Private, and a product does not call it. `crux_tls_certificate_start` ensures the TLS key (`components/tls_certificate/src/tls_certificate.c`), and `crux_ssh_host_key_load` in the SSH composition code (`components/ssh/access/crux_ssh_host_key.c`, phase 3) ensures the SSH host key before the provider starts. A failure stops that listener |
+| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot. Private: a product that composes the file service passes the two roots that it gave to `crux_credential_start` |
 
 ## Slot format
 
@@ -239,8 +240,9 @@ These are the proposal's, and each has a test where a Host test can show it.
 | `key_ensure` also makes a fallback to the older slot permanent, as the next save does, and with a corrupt newest slot it does so at boot with no save | **Not shown.** Found in the review of #235. |
 | The two-slot assumption depends on the medium: a card's mapping can disturb another sector | **Not shown.** A Host fake cannot. |
 | Creating a slot writes FAT sectors that can hold the other slot's chain | **Not shown.** A Host fake cannot. |
-| The pinned FatFs lacks a range check on its direct-write path that upstream labels `CVE-2026-6685`, and every save uses that path | **Not assessed.** It is for dependency review. |
+| `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
+| A reset can undo an interrupted erase. Erase zeroes slot A, then slot B, then removes both files. A reset after slot A is zeroed and before slot B is reached leaves slot B valid, and the next start reads `VALID` with slot B's records, until erase runs again. Only an erase that returned `OK` reached both slots. | `test_interrupted_erase_states` |
 | No unauthenticated wipe (S4). The reference has no command for erase, and the Pilot recovers with a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
 
 ## Tests

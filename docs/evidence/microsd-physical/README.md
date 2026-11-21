@@ -3,7 +3,7 @@
 Physical-board evidence for the RT1060-EVKB microSD composition ([composition](../../microsd-composition.md), issues [#14](https://github.com/wonny-labs/crux-pilot/issues/14) and [#15](https://github.com/wonny-labs/crux-pilot/issues/15)). It is one board, one card and one session. **It is not power-loss, removal, endurance or timing evidence, and it does not qualify the card or the board.**
 
 ## Setup
-- Board: MIMXRT1060-EVKB Rev B per the owner (not independently verified by the agent; a build option cannot identify the fitted board), QSPI, SEGGER J-Link PLUS (serial 602003106) on J2, SWD 400 kHz (the `-speed 400` argument below), device `MIMXRT1062xxx6A`. Both images were built for `mimxrt1060_evk@B//qspi`; only Run 1's image contains the Rev B build guard of the open pull request #160. Target read over SWD: Cortex-M7 r1p1, CPUID 0x411FC271, VTref 3.32 V. Console: the on-board DAPLink virtual COM port at 115200 baud.
+- Board: MIMXRT1060-EVKB Rev B per the owner (not independently verified by the agent; a build option cannot identify the fitted board), QSPI, SEGGER J-Link PLUS (serial `<probe-serial>`) on J2, SWD 400 kHz (the `-speed 400` argument below), device `MIMXRT1062xxx6A`. Both images were built for `mimxrt1060_evk@B//qspi`; only Run 1's image contains the Rev B build guard of the open pull request #160. Target read over SWD: Cortex-M7 r1p1, CPUID 0x411FC271, VTref 3.32 V. Console: the on-board DAPLink virtual COM port at 115200 baud.
 - Card: 15.9 GB, MBR, one FAT32 partition, formatted by the owner. The `files` and `settings` directories were created on the Mac before the run (the firmware never creates them).
 - Owner approval: J-Link check, flash and the following steps for this task, and then the write/read/restart image and the host inspection (session chat, 2 November 2026; the chat does not carry a retained clock time).
 
@@ -45,3 +45,5 @@ Host inspection of the card afterwards ([host-verification.txt](host-verificatio
 - Logs: [preflight](preflight-jlink.log), [run 1 flash](run1-flash-jlink.log) and [reset](run1-reset-jlink.log), [run 2 flash](run2-flash-jlink.log) and resets [A](run2-reset-a-jlink.log) and [B](run2-reset-b-jlink.log). Two unreadable early console captures (9600 baud) were not kept.
 - The check reports a missing pattern file by creating it (`pattern_created=1`); on any boot after the first, `pattern_created=1` with `boot>1` means the file was lost. If the counter file cannot be rewritten the check stops with a counter error and later boots stop at an invalid counter (fail closed). Two cases (an extra trailing byte and a correct-but-short prefix) are covered by the native_sim suite.
 - [capture.py](capture.py) opens the serial port at a fixed rate and keeps it open.
+
+The debug probe serial number in the raw files of this record was replaced by `<probe-serial>`; see [probe-serial-redaction.md](../probe-serial-redaction.md), which also lists the files that still hold it.

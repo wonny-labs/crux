@@ -4,7 +4,9 @@ manifest:
   # ordinary workspace fetches no GPLv3 stack. See patches/zephyr/README.md.
   # The crux-reliance group is off by default for the same reason: an ordinary
   # workspace does not fetch the GPLv2 Reliance Edge source.
-  group-filter: [-crux-secure-management, -crux-reliance]
+  # The crux-boot group holds MCUboot (Apache-2.0). It is off by default only to
+  # keep an ordinary workspace's fetch small.
+  group-filter: [-crux-secure-management, -crux-reliance, -crux-boot]
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
@@ -24,16 +26,31 @@ manifest:
           - hal_nxp
           - littlefs
           - fatfs
-    # These two follow the revisions in Zephyr's own west.yml at the tag above.
+    # MCUboot follows the revision in Zephyr's own west.yml at the tag above.
+    # Zephyr puts mcuboot in its own bootloader group, which its group-filter keeps
+    # active, so a name-allowlist entry would fetch it unless Crux also filtered that
+    # group. It is a plain project in Crux's own optional group instead.
+    - name: mcuboot
+      remote: zephyrproject-rtos
+      revision: 6d3b3d2c38ab20c242e5b9abb04d050086383eb2
+      path: bootloader/mcuboot
+      groups:
+        - crux-boot
+    # Crypto library security pins (ADR-0006). Zephyr's own west.yml at the tag above pins mbedtls
+    # a3e190fe and tf-psa-crypto dc575a2d (Mbed TLS 4.1.0 and TF-PSA-Crypto 1.1.0). These two are the
+    # revisions of Zephyr's v4.4-branch from commit 9b9a84fc (13 August 2026, after v4.4.2): Mbed TLS
+    # 4.1.1 and TF-PSA-Crypto 1.1.1, which hold the fixes of the advisories of 7 July 2026. The reason
+    # and the evidence plan are in docs/dependency-review-mbed-tls-4.1.1.md. scripts/test-psa-crypto.sh
+    # accepts a pin that differs from Zephyr's manifest only for these two revisions.
     - name: mbedtls
       remote: zephyrproject-rtos
-      revision: a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+      revision: 098e120afb51877ed814bdc04443890ae12e0642
       path: modules/crypto/mbedtls
       groups:
         - crux-secure-management
     - name: tf-psa-crypto
       remote: zephyrproject-rtos
-      revision: dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+      revision: fa92349590a54959ee2efc21b668e5afdb144726
       path: modules/crypto/tf-psa-crypto
       groups:
         - crux-secure-management

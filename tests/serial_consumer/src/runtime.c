@@ -18,7 +18,9 @@ static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms)
     return CRUX_OK;
 }
 
+/* Test runtime; call sites name each value. */
 crux_status_t serial_runtime_transaction(crux_serial_port_t port,
+                                         // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                          const crux_serial_config_t *config, uint64_t nonce,
                                          uint32_t budget_ms, serial_runtime_result_t *result)
 {

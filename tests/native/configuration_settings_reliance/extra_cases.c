@@ -11,8 +11,8 @@
  * other scenario skips itself there, as the case of the other scenario does here. */
 #include "configuration_settings.h"
 #include "emmc_configuration.h"
-#include "fs_reliance_edge.h"
 #include <crux/configuration.h>
+#include <crux/file_reliance_edge_zephyr.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

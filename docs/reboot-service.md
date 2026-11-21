@@ -1,6 +1,6 @@
 # Reboot service
 
-Status: merged in [PR #290](https://github.com/wonny-labs/crux-pilot/pull/290) for Issue #214. Host only. Nothing here has run on a board, **no image composes this service, not even [the services image](native-composition-242.md)**, so no image serves these routes, and nothing here calls a real reset. Host results are interim results, and physical
+Status: merged in [PR #290](https://github.com/wonny-labs/crux-pilot/pull/290) for Issue #214. Host, and one `native_sim` test image. Nothing here has run on a board. [The services image](native-composition-242.md) does not compose this service, and no image serves these routes. The only image that starts it is the module fixture `tests/native/management_module` (`CONFIG_CRUX_REBOOT`, ADR-0004 phase 0), which starts the service and its worker with the real providers and reads its state: it makes no request, so no real reset runs and nothing calls a real reset. Host results are interim results, and physical
 evidence stays tracked apart. Decision W9 and the reboot section of [the frontend foundation
 design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
 (W13: reboot is Advanced and optional) are the basis.
@@ -9,7 +9,7 @@ Owner: `components/reboot`. Public header `<crux/reboot.h>`, usage target `crux:
 `components/web/management/web_management_reboot.c` and are described in [`web/api/openapi.yaml`](../web/api/openapi.yaml), which
 this change does not edit.
 
-`crux_system_reset()` does not flush storage, drain logs or perform safe-state actions: its contract says so, and a native failure
+`crux_system_reset()` does not flush storage or perform safe-state actions: its contract says so, and a native failure
 may hang. A restart that a person asks for over the network therefore goes through this service, which checks who asks, lets the
 application refuse, records the request, gives events and saves a bounded time, asks the application again, and only then resets.
 
@@ -296,10 +296,10 @@ reads has its record behind it. A session that ended before the worker ran leave
 | Limit | Consequence |
 | --- | --- |
 | A save that is accepted after the last poll is not waited for | The second policy check, a callback, runs after the last poll, and the reset follows at once. A save queued in that gap is cut, or stays queued and is lost with the RAM. Nothing blocks new saves while a reboot is pending. `Reboot.pending` pins this. |
-| The wait is a bound and not a guarantee about events | The counts say that Logging was handed the lines, not that a backend wrote them. A lost-records report counts as a line and can make the count read low. A backend that buffers is not seen. |
+| The wait is a bound and not a guarantee about events | The counts say that Logging was handed the lines, not that a backend wrote them. A lost-records report counts as a line and can make the count read low. On Zephyr the reset itself then calls `log_panic()` when logging is enabled and not in minimal mode, which writes out the records that still wait for the deferred logging thread before `sys_reboot`. A record that the native queue dropped is not brought back, and a backend that keeps its own buffer past its panic handler is not seen. |
 | A save that outlives 15 s stops the reset | A slow Configuration save can be waited out and a slower one cannot. The request fails, says so, and can be made again. No timing was measured on a target. **A save that hangs for ever leaves only a power cycle or the watchdog.** There is no override, and no CLI `reboot` command ([decision 16](#decisions-taken-without-an-answer)), so every later request fails the same way. This is the price of decision 7, which the owner should weigh with it. |
 | A source that does not block lets the reset cut its work | The composition's choice, in `blocks_reset`. The application's own save needs its own entry, or it is not seen. |
-| `crux_system_reset()` does not flush storage, drain logs or run safe-state actions | This service only gives events and the named saves a bounded time. Anything else is the application's, in its policy callback. |
+| `crux_system_reset()` does not flush storage or run safe-state actions | Besides releasing its own metadata, it only writes out pending deferred log records on Zephyr (`log_panic()`, `tests/system/zephyr` scenario `crux.system.log_panic` on `native_sim`); panic mode makes the remaining output blocking, so a large backlog on a slow UART lengthens the time to the reset. This service only gives events and the named saves a bounded time. Anything else is the application's, in its policy callback. |
 | A native reset failure may hang | Only a watchdog or an operator recovers it. No state can be reported. |
 | The policy callback runs on the server thread | A slow callback stalls every other client. It must be quick. |
 | A reason is shown to anyone with `system.reboot` | It is the application's text, held to a character rule and a length and not to a meaning. |
@@ -347,6 +347,7 @@ exits a `native_sim` image was not checked.
 | `Reboot.steps` | 22 | The order of the steps to the exact step, the delay, the wait to the exact poll and millisecond, a source that frees on the last poll and one poll later, blocking and non-blocking sources, events alone, the second check and its refusal, a reset that returns each status, a request after a failure, an ended session, an event recorded before the job can run, a blocking source that a later non-blocking one must not hide, the end event recorded before the state changes for each way a request ends, and a sleep that cannot sleep at the delay and in the wait |
 | `Reboot.concurrency` | 3 | Two posts at once for 200 rounds, 900 requests with readers and the real worker thread, a post, a get and a second worker from inside each sleep of the worker |
 | `Reboot.reason` | 2 | 26 named vectors, and 60,000 generated texts against an oracle written apart from the rule that the service uses |
+| `Reboot.start_faults` | 1 | A start whose semaphore cannot be created three times gives back the mutex each time, and the next start succeeds with one mutex |
 | `Reboot.lock_faults` | 4 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it |
 | `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and passes only if the output names `warn_unused_result`, so a build that fails for another reason does not pass. A sibling object that uses the result does build. |
 | `Reboot.sleep_provider` | 1 | The sleep provider with Sync's take wrapped: only a take that times out is a sleep, and an error, or a take that got the semaphore, is not |

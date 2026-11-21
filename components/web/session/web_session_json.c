@@ -216,7 +216,8 @@ static bool member(reader_t *reader, web_json_field_t *fields, size_t count)
 bool web_json_parse_strings(const uint8_t *body, size_t length, web_json_field_t *fields,
                             size_t count)
 {
-    reader_t reader = {body, body + length};
+    /* A null body has length zero, and adding zero to a null pointer is undefined. */
+    reader_t reader = {body, body != NULL ? body + length : NULL};
 
     for (size_t index = 0; index < count; ++index) {
         fields[index].seen = false;

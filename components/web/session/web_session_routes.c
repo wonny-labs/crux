@@ -136,6 +136,8 @@ static crux_web_result_t on_login(crux_web_request_t *request, crux_access_sessi
     (void)context;
     (void)crux_web_close_after_response(request);
     if (!web_session_origin_accepted(head)) {
+        /* No session yet, so the report has no user. */
+        web_session_report_refusal(WEB_REFUSAL_ORIGIN, head, (crux_access_session_t){0u});
         return crux_web_respond_error(request, 403, "origin_rejected");
     }
     if (!read_fields(request, fields)) {

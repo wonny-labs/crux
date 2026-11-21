@@ -45,6 +45,7 @@ static void fresh_password(char *out, size_t length)
 static size_t file_bytes(uint8_t *out, const char *password, bool newline)
 {
     size_t length = strlen(password);
+    // NOLINTNEXTLINE(bugprone-not-null-terminated-result): the bytes of a file, not a C string
     memcpy(out, password, length);
     if (newline) {
         out[length++] = '\n';
@@ -150,7 +151,7 @@ static void a_wrong_password_is_refused(void)
     CHECK(login(USER, longer, &session) == CRUX_ACCESS_ERR_DENIED);
     CHECK(login("nobody", password, &session) == CRUX_ACCESS_ERR_DENIED);
     /* None of that disturbed the account: the right password still works. */
-    access_fake_clock_advance(10u * 60u * 1000u);
+    access_fake_clock_advance((uint64_t)10u * 60u * 1000u);
     CHECK(login(USER, password, &session) == CRUX_ACCESS_OK);
 }
 

@@ -1,0 +1,15 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The part on the Arduino I2C header of the vendor board, for the hardware scenario. The part is
+ * fictional: nothing answers at this address, so the scenario is a build-only stub in this
+ * template. A product replaces the part and wires it.
+ */
+
+&arduino_i2c {
+	example_temp0: example-temp@48 {
+		compatible = "vnd,example-temp";
+		reg = <0x48>;
+		status = "okay";
+	};
+};

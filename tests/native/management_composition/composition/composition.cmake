@@ -59,6 +59,7 @@ function(crux_native_management_compose)
         "${component}/mgmt_status/src/source_security_events.c")
     target_include_directories(app PRIVATE
         "${CRUX_NATIVE_MANAGEMENT_DIR}"
+        "${CRUX_NATIVE_MANAGEMENT_DIR}/psa_threading_counter"
         "${root}/tests/native/tls_offload_probe/credentials"
         "${component}/access/include" "${component}/access/adapter" "${component}/access/src"
         "${component}/credential/include" "${component}/credential/adapter"
@@ -77,12 +78,11 @@ function(crux_native_management_compose)
         CRUX_MGMT_STATUS_REFRESH_MS=1000u)
     target_compile_options(app PRIVATE -Wall -Wextra -Werror)
     if(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
-        if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
-            message(FATAL_ERROR "The Mbed profile needs the core's locks: add mbed-threading.conf")
+        # The core's locks are the module's provider, which the test images take through the public option.
+        if(NOT CONFIG_CRUX_PSA_THREADING)
+            message(FATAL_ERROR "The Mbed profile needs the core's locks: add mbed-threading.conf "
+                                "(CONFIG_CRUX_PSA_THREADING=y)")
         endif()
-        target_sources(app PRIVATE
-            "${CRUX_NATIVE_MANAGEMENT_DIR}/tf_psa_threading/crux_tf_psa_threading.c")
-        zephyr_include_directories("${CRUX_NATIVE_MANAGEMENT_DIR}/tf_psa_threading")
     endif()
     if(CONFIG_WOLFPSA)
         # One wolfCrypt under wolfPSA, the socket backend and wolfSSH, so that they agree. The backend

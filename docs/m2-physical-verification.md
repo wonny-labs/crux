@@ -1,10 +1,12 @@
 # M2 physical verification plan
 
+> **Status: historical.** Plan and authorisation record of the first physical Flash, reset and UART verification of the reference controller's execution (platform milestone M2, issues #6 and #7; not the Time Pilot's M2), kept as written. It authorises nothing now. For the current state of components and evidence see [Component readiness](component-readiness.md).
+
 Authorisation: user explicitly permits current-task Flash, Reset and UART verification for PR #9. This supersedes the earlier software-only hardware prohibition for this task. No PR merging, issue closure, M2 completion declaration, fuse/security/boot-layout operations, full-chip erase, board rework or M3 functionality is authorised.
 
 ## Inputs and preflight
 
-- Reuse the previously user-confirmed MIMXRT1060-EVKB PCB B, MIMXRT1062, standard QSPI 8 MiB, SW4 OFF–OFF–ON–OFF, no HyperFlash rework, external J-Link PLUS 602003106 and J41 UART cu.usbmodem11102/115200. Current USB serials must match; connect must identify Cortex-M7 and plausible 3.3 V VTref. PCB/switch identity is the retained physical setup, not something a debugger can remeasure.
+- Reuse the previously user-confirmed MIMXRT1060-EVKB PCB B, MIMXRT1062, standard QSPI 8 MiB, SW4 OFF–OFF–ON–OFF, no HyperFlash rework, external J-Link PLUS `<probe-serial>` and J41 UART cu.usbmodem11102/115200. Current USB serials must match; connect must identify Cortex-M7 and plausible 3.3 V VTref. PCB/switch identity is the retained physical setup, not something a debugger can remeasure.
 - Confirm no active known debugger/serial process, acquire exclusive UART via pyserial+TIOCEXCL and probe by serial, keep exclusive UART during programming/reset/capture. Stop on identity/voltage/ownership mismatch. A hung lsof inventory is not evidence of exclusivity; OS-enforced UART and J-Link connection checks are required.
 - Use clean, frozen source and pinned Zephyr 684c9e8f / SDK 1.0.1. Record source/dependency/configuration identity, ELF/BIN/config/map hashes, build commands/logs and firmware footprint. Prefer fresh builds; a previously evidenced firmware must retain its actual revision and independently verified compiled-input equivalence, never be relabelled as a newer build.
 - Program only the named selected image to its established QSPI location through the existing SEGGER loader, no raw erase command. Verify programmed sections with SDK GDB (rom_start/text/rodata) or, if using Commander BIN loading, full BIN at its established link address. Save programming and verification logs. Release GDB Server before Commander reset, keeping UART exclusive.
@@ -24,7 +26,7 @@ Store immutable per-image/per-run raw UART, host receive times, reset/program/ve
 ## Reproduction and preparation status
 
 The maintained macOS runner is `tests/target/capture_execution.py`. It requires explicit
-`--program --mode native|controller --uart /dev/cu.usbmodem11102 --probe 602003106
+`--program --mode native|controller --uart /dev/cu.usbmodem11102 --probe <probe-serial>
 --board mimxrt1060_evk@B//qspi --manifest <identified-image.json> --evidence <new-output-directory>`.
 It validates manifest artefact hashes, acquires exclusive UART, checks probe/CPU/voltage,
 programs and verifies the full BIN, then resets/captures three runs. It does not erase
@@ -43,7 +45,7 @@ and failed on macOS path aliases and explicit Linux guards. Those failures are r
 and are not a firmware defect or a passing Linux suite. The focused physical-output
 validator tests pass on macOS; the full supported Linux suite must pass in hosted CI.
 The first Commander `q` preparation invocation did not connect to the target and was not
-accepted as preflight. Explicit `connect` then identified probe 602003106, Cortex-M7 r1p1
+accepted as preflight. Explicit `connect` then identified probe `<probe-serial>`, Cortex-M7 r1p1
 and VTref 3.327 V with exclusive UART access, without programming an image.
 
 ## First native capture and oracle correction
@@ -95,7 +97,7 @@ distinct identities: no firmware C, execution configuration or BIN changed for t
 | Native worker stack | 4096 usable / 4160 allocated / 64 reserved bytes; 3840 untouched, 256 observed used in every qualifying boot. |
 | Controller worker stack | 4096 usable / 4160 allocated / 64 reserved bytes; 3688 untouched, 408 observed used in every qualifying boot. Both exceed the unchanged 1024-byte short-run headroom objective. |
 | Static image allocation | Native FLASH 52,328 B / RAM 17,412 B; controller FLASH 37,536 B / RAM 8,704 B. Priority 5 and configured heap zero; observed stack usage is not total system-stack or worst-case resource qualification. |
-| Programming identity | Full BIN readback at ELF-verified `0x60000000` matched before every image's qualifying resets. Runtime preflight again identified probe 602003106, Cortex-M7 and VTref 3.322 V with exclusive UART. |
+| Programming identity | Full BIN readback at ELF-verified `0x60000000` matched before every image's qualifying resets. Runtime preflight again identified probe `<probe-serial>`, Cortex-M7 and VTref 3.322 V with exclusive UART. |
 
 Native BIN SHA-256:
 `59668e4e445e695c973f225a2a081a9c1278403ef76532ce8540da417cda4fc8`.
@@ -137,7 +139,7 @@ The portable evidence archive is `crux-m2-physical-b6db696-afb5160.tar.gz` (922,
 SHA-256 `f9863c2f9f543950d0fcceee1d94180d3c3cc8e59f0674638367cf216ae8cdc3`.
 Its internal `SHA256SUMS` covers 106 raw evidence/source/firmware/CI files, including
 failed preparation and the actual independent physical review at that stage. A durable
-copy is retained with this chat's output artefacts; ignored build copies remain under
+copy is retained with the output artefacts of that run; ignored build copies remain under
 `build/evidence/m2-physical`. Original manifest paths identify local source files; the
 archive contains their matching bytes under `firmware/` and `ci/` for portable inspection.
 Hosted artefacts have 14-day retention; this archive preserves the selected proof.

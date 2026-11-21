@@ -1,5 +1,7 @@
 # Issue #26 software qualification
 
+**Removed (20 November 2026).** Crux Queue, the subject of this record, is removed; Zephyr `k_msgq` replaces it. The [messaging contract](messaging-contract.md) holds the removal notice and the migration note. This record and `docs/evidence/m5-messaging/` stay as historical evidence. The suites, fixtures and scripts it names (`tests/queue`, the Queue consumers in `tests/messaging_consumer`, `tests/messaging_resources`, `scripts/measure-messaging.sh`) are gone, and `scripts/test-messaging.sh` now runs only the controller timing scenario and `tests/thread/zephyr_fractional`.
+
 Status: historical evidence for the pre-redesign Monotonic/Queue implementation.
 Removed API/target/test-path references below describe that revision, not current usage.
 Current timing contracts are [Time](time-contract.md) and [Thread/Sync](thread-sync.md).
@@ -14,7 +16,7 @@ or performed. No PR merge or issue closure is authorised by this record.
 ## Acceptance traceability
 
 Historical standalone tests were `Monotonic.LinuxPort` and
-`Monotonic.LinuxIntegration`; their [original test guide](https://github.com/wonny-labs/crux-pilot/blob/de3676f182659b37d357a65a31e3b33f57a3d7b8/tests/monotonic/README.md) is preserved in Git. Current typed Time/Thread coverage is in the [test guide](../tests/README.md#portable-queue-and-monotonic-timing).
+`Monotonic.LinuxIntegration`; their [original test guide](https://github.com/wonny-labs/crux-pilot/blob/de3676f182659b37d357a65a31e3b33f57a3d7b8/tests/monotonic/README.md) is preserved in Git. Current typed Time/Thread coverage is in the [test guide](../tests/README.md#monotonic-timing-queue-removed).
 The earlier names below are retained as part of the original qualification record.
 
 | Issue #26 criterion | Implementation | Verification/evidence |

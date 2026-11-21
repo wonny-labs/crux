@@ -131,8 +131,12 @@ crux_reboot_result_t crux_reboot_start(const crux_reboot_config_t *config)
         return checked;
     }
     if (!sync_created) {
-        if (crux_mutex_create(&state_lock) != CRUX_OK ||
-            crux_semaphore_create(0u, 1u, &work_signal) != CRUX_OK) {
+        if (crux_mutex_create(&state_lock) != CRUX_OK) {
+            return CRUX_REBOOT_ERR_NOT_READY;
+        }
+        if (crux_semaphore_create(0u, 1u, &work_signal) != CRUX_OK) {
+            /* Give the mutex back, so that a retry does not use up another Sync slot. */
+            (void)crux_mutex_destroy(&state_lock);
             return CRUX_REBOOT_ERR_NOT_READY;
         }
         sync_created = true;

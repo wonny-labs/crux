@@ -26,8 +26,7 @@ class ManagementTargetLists(unittest.TestCase):
         for name in ("composition.cmake", "services.cmake"):
             native |= sources(NATIVE / name)
         target = sources(TARGET)
-        # Mbed profile only: the vehicle is on the Wolf profile, which has no core lock shim.
-        native.discard("tf_psa_threading/crux_tf_psa_threading.c")
+        # The core's locks are the module's CONFIG_CRUX_PSA_THREADING, so no composition lists them.
         # The two native files whose copies are in the vehicle's own src/ (see the next test).
         native -= {"crux_native_management.c", "crux_native_management_services.c"}
         self.assertEqual(sorted(native - target), [], "a native source is missing from the vehicle")

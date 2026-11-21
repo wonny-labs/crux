@@ -4,6 +4,10 @@ Status: software scope of M6 and M7 by owner decision of 2 November 2026 (Issue 
 software-only evidence. Hardware verification is deferred to Issue #155, and the board is not a
 qualified or supported physical target until that evidence exists.
 
+Note of 15 November 2026: the project owner set the RT1170-EVK aside for now (see the
+[boot overview](boot-overview.md)). This record stays as software-only evidence and is not a
+current work item.
+
 ## Scope and evidence boundary
 
 This is a source and build-configuration review for Issue #33. No RT1170 board,
@@ -65,7 +69,7 @@ places:
 
 | Area | Current assumption | RT1170 consequence |
 | --- | --- | --- |
-| System/watchdog | The opt-in `CRUX_SYSTEM` provider accepts native_sim or `CONFIG_BOARD_MIMXRT1060_EVK`; the RT1060 branch requires `crux-watchdog0` to be `wdog0` at `0x400b8000` and reads its running state through `WDOG_GetStatusFlags`. | A separate System-enabled RT1170 app needs an explicit binding for Rev A's `wdog1` at `0x40030000`. The pinned Zephyr `nxp,imx-wdog` driver also uses `WDOG_GetStatusFlags`, but the Crux System provider rejects every board other than RT1060-EVK and native_sim outright with a build error, before any watchdog address check. This is outside the M3-only candidate below. |
+| System/watchdog | The opt-in `CRUX_SYSTEM` provider accepts native_sim or any board with the RT1062 SoC (`CONFIG_SOC_MIMXRT1062`, by SoC and devicetree, not by board name); the RT1062 branch requires `crux-watchdog0` to be `wdog0` at `0x400b8000` and reads its running state through `WDOG_GetStatusFlags`. | A separate System-enabled RT1170 app needs an explicit binding for Rev A's `wdog1` at `0x40030000`. The pinned Zephyr `nxp,imx-wdog` driver also uses `WDOG_GetStatusFlags`, but the Crux System provider rejects every SoC other than the RT1062 and native_sim outright with a build error (`#error "Crux System unsupported SoC or watchdog resource"`, `components/system/ports/zephyr/system_binding.c`), before any watchdog address check. This is outside the M3-only candidate below. |
 | Serial | `serial_binding.c` only allows the qualified RT1060 LPUART3 resource or native_sim. | A Rev A UART resource and any external connector route need an explicit composition decision. The board console is LPUART1, already owned by console output. |
 | Logging | `logging_binding.c` only allows the qualified RT1060 LPUART1 resource or native_sim, with RT1060-specific console sharing constraints. | The Rev A default console also uses LPUART1. A compatible logging selection and owner-conflict policy have not been established for this board. |
 | GPIO | The portable GPIO capability cross-builds for this target with the board's own `user_button` (`sw0`, GPIO13 pin 0) selected by an alias overlay; see its contract. | Compile and link evidence only. RT1170 is not an accepted GPIO target for physical use, and a cross-build does not establish pin routing, polarity or behavior. |

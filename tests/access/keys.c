@@ -271,16 +271,38 @@ static void key_type_cases(void)
     CHECK(crux_access_account_create(admin, other_user, "viewer", PASSWORD, strlen(PASSWORD)) ==
           CRUX_ACCESS_OK);
 
+    /* The accepted types are the ones SSH offers (#316): Ed25519 and ECDSA on P-256. The size bound
+     * holds the largest of them, P-256 at 104 bytes. */
+    const uint8_t ed_key[] = ACCESS_TEST_ED25519_KEY(0x5C);
+    CHECK(sizeof(ed_key) <= CRUX_ACCESS_KEY_SIZE_MAX);
+    CHECK(crux_access_account_add_key(admin, other_user, ed_key, sizeof(ed_key)) == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_remove_key(admin, other_user, ed_key, sizeof(ed_key)) ==
+          CRUX_ACCESS_OK);
     used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp256", 4);
-    CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp384", 97, "nistp384", 4);
-    CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp521", 133, "nistp521", 4);
+    CHECK(used == 104u);
     CHECK(used <= CRUX_ACCESS_KEY_SIZE_MAX);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
+
+    /* P-384 and P-521 are well formed and fit the size bound, so only their type refuses them. SSH
+     * never offers them, and a key that no login can use must not be stored. Nothing is listed,
+     * so removing one finds nothing. */
+    uint8_t wide[2][CRUX_ACCESS_KEY_SIZE_MAX];
+    size_t wide_size[2];
+    wide_size[0] = ecdsa_blob(wide[0], "ecdsa-sha2-nistp384", 97, "nistp384", 4);
+    wide_size[1] = ecdsa_blob(wide[1], "ecdsa-sha2-nistp521", 133, "nistp521", 4);
+    CHECK(wide_size[1] == 172u);
+    for (size_t index = 0; index < 2u; ++index) {
+        CHECK(wide_size[index] <= CRUX_ACCESS_KEY_SIZE_MAX);
+        CHECK(crux_access_account_add_key(admin, other_user, wide[index], wide_size[index]) ==
+              CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+        CHECK(crux_access_account_remove_key(admin, other_user, wide[index], wide_size[index]) ==
+              CRUX_ACCESS_ERR_NOT_FOUND);
+        /* An account's own keys need access.self only, and the type is refused for that too. */
+        crux_access_session_t own = access_test_session(USER, PASSWORD, &access_test_web);
+        CHECK(crux_access_account_add_key(own, USER, wide[index], wide_size[index]) ==
+              CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    }
 
     /* A small RSA key fits the size limit, and its type still refuses it. */
     used = blob_string(blob, "ssh-rsa", 7);
@@ -368,6 +390,12 @@ static void key_type_cases(void)
     used += blob_string(&blob[used], modulus, sizeof(modulus));
     CHECK(probe(USER, blob, used, true, &access_test_ssh) == CRUX_ACCESS_ERR_DENIED);
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_KEY_FAILURE) == 1);
+    /* So is a P-384 or a P-521 key. */
+    for (size_t index = 0; index < 2u; ++index) {
+        CHECK(probe(USER, wide[index], wide_size[index], true, &access_test_web_other) ==
+              CRUX_ACCESS_ERR_DENIED);
+    }
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_KEY_FAILURE) == 3);
 }
 
 int main(void)

@@ -38,6 +38,42 @@ Record the route chosen for each upstream that the product changes, and why that
 
 If nothing is modified, replace the table with the sentence "Nothing is modified in this release."
 
+## Vendor kits
+
+Fill this section for each vendor kit that the release compiles, following the recommended, Experimental convention of `docs/vendor-kits.md` in `crux-pilot`. If the release compiles no vendor kit, replace the tables with the sentence "No vendor kit is compiled in this release."
+
+Take the line, the delivery and the hash list digest from the configure output of the kit module, and the commit SHA from the frozen manifest. For a kit whose sources are held outside Git, write "sources held outside Git" in the Location column, leave the work tag and the commit SHA empty, and give the archive hash and where the archive is kept in the Receipt column.
+
+| Kit | Kit line | Delivery tag | Work tag | Commit SHA | Hash list digest | Location | Receipt | Licence record |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `<kit>` | `<line>` | `<vendor/delivery>` | `<work/delivery-orgN, or empty>` | `<commit SHA>` | `<SHA-256 printed by the module>` | `<west project, or sources held outside Git>` | `<receipt hash, archive location>` | `<SPDX identifier or LicenseRef, and where the licence text is kept>` |
+
+| Module | Tag | Commit SHA | Kit lines built | Kit lines tested on a board |
+| --- | --- | --- | --- | --- |
+| `<kit module>` | `<module tag>` | `<commit SHA>` | `<lines>` | `<lines, or none>` |
+
+Licence and identity inputs that no repository holds are recorded by hash only, never as files:
+
+- `<input name>`: expected SHA-256 `<hash>`, found `<hash>`, kept at `<location, readable by role>`
+
+Also record:
+
+- Release build flag set (`-DPRODUCT_RELEASE_BUILD=ON`): `<yes or no>`
+- Kit path overrides or extra Zephyr modules in the release build: `<none, or why>`
+- Frozen manifest with internal URLs, if the product repository is public: `<where the internal copy is kept>`
+
+## Build environment
+
+Record what the build record does not hold, so that the release can be rebuilt.
+
+- Build image digest: `<container or runner image digest, not a tag>`
+- Toolchain archive hash: `<SHA-256 of the SDK or toolchain archive>`
+- West, Python and Python dependency lock: `<versions, and the hash of the lock file>`
+- Build command, configuration fragments and overlays: `<command, and the hash of each file>`
+- Board revision: `<revision>`
+- Signing key identifier: `<identifier, never the key>`
+- Rebuild identity: `<result of two builds from the frozen manifest in fresh workspaces at different paths: same image hash and firmware identity, or the difference>`
+
 ## Support period
 
 The product sets the support period. Crux does not set one for a product, and this template names none.

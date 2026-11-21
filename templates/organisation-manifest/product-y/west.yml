@@ -1,0 +1,42 @@
+# West manifest of a fictional product repository, product-y, in an
+# organisation that keeps an organisation manifest. The product imports
+# acme-manifest, which imports Crux and names the shared hardware module.
+# The product repository is still the manifest repository (west's T2
+# topology). See ../README.md.
+manifest:
+  version: "1.2"
+
+  # Enable an optional Crux group for this product only, with no revision.
+  #
+  # group-filter: [+crux-secure-management]
+
+  remotes:
+    - name: acme
+      url-base: https://git.example/scm/acme
+
+  projects:
+    # The first definition of a name wins, so an entry here beats both the
+    # organisation manifest and Crux. Pin a tag or SHA of acme-manifest
+    # before a release; main is for development only.
+    - name: acme-manifest
+      remote: acme
+      revision: main
+      import: true
+
+    # A module that only this product uses stays in the product: a plain
+    # project entry here, or a directory in this repository.
+    # west crux-pins lists it as PRODUCT.
+    #
+    # - name: product-y-sensors
+    #   remote: acme
+    #   revision: 0123456789abcdef0123456789abcdef01234567 # v0.3.0
+    #   path: modules/product-y-sensors
+
+    # A product that pins acme-hw itself, at another revision, wins by the
+    # first definition, and west crux-pins still lists PRODUCT: it does not
+    # compare a product with its organisation manifest. Prefer moving the
+    # pin in acme-manifest. ../README.md shows how to drop an imported
+    # project with name-blocklist.
+
+  self:
+    path: product-y

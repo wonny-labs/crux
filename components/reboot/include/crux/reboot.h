@@ -2,8 +2,12 @@
  * @file
  * @brief A restart that an authorised user requests and the application can refuse.
  *
- * Thread context only. crux_system_reset() does not flush storage, drain logs or perform
- * safe-state actions, so a request for a restart goes through this service. It checks the
+ * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
+ * and a change is listed in the release notes.
+ *
+ * Thread context only. crux_system_reset() writes out pending deferred log records on Zephyr, but
+ * does not flush storage or perform safe-state actions, so a request for a restart goes through
+ * this service. It checks the
  * permission `system.reboot` and the composition's policy, records an event, and leaves the reset
  * to a worker, which gives events and saves a bounded time to finish before it checks the policy
  * again and resets.

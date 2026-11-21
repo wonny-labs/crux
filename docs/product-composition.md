@@ -22,6 +22,8 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 
 The optional organisation manifest is a shared layer. Add it only when two or more products share a composition.
 
+Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md). How vendor kits with several maintained lines fit across repositories, how a build proves which delivery it compiled and what a release records about each kit is in [Vendor kits across repositories](vendor-kits.md), a recommended convention that is not adopted.
+
 ```mermaid
 flowchart TB
     P["Product repository: product-x<br/>west.yml, app/, locks/"]
@@ -65,13 +67,14 @@ manifest:
 This resolves Zephyr and every allowlisted module at the revisions Crux pins. The product repeats no revision. Importing is recommended, not required. See [Pinning by hand](#pinning-by-hand).
 
 - **First definition wins.** West uses the first definition of a project name. Entries in the product manifest beat anything imported.
-- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them. A second group, `crux-reliance`, holds the Reliance Edge file system source, which is GPLv2 only, and is off for the same reason. The wolfSSL TLS backend of those stacks needs a [Zephyr patch](../patches/zephyr/README.md#wolfssl-tls-socket-backend) that is not stored in this repository. How a product applies it is the owner's open decision under Issue #185: [HTTPS composition](https-composition.md#how-a-product-applies-the-wolfssl-patch) recommends that the product's own manifest pin a Zephyr fork with the patch applied (option B), and adopts nothing.
+- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them. A second group, `crux-reliance`, holds the Reliance Edge file system source, which is GPLv2 only, and is off for the same reason. The wolfSSL TLS backend of those stacks needs a [Zephyr patch](../patches/zephyr/README.md#wolfssl-tls-socket-backend) that is not stored in this repository. How a product applies it is the owner's open decision under Issue #185: [HTTPS composition](https-composition.md#how-a-product-applies-the-wolfssl-patch) recommends that the product's own manifest pin a Zephyr fork with the patch applied (option B), and adopts nothing. Crux keeps MCUboot in the `crux-boot` group, at the revision in Zephyr's own manifest at Crux's Zephyr pin. It is Apache-2.0, so the group is off only to keep the fetch small. A product that builds a bootloader enables it with `group-filter: [+crux-boot]`, and does not add a plain `mcuboot` entry of its own. A `name-allowlist` entry would not do: Zephyr puts `mcuboot` in its own `bootloader` group, which Zephyr's `group-filter` keeps active, so MCUboot would be fetched unless Crux also filtered that group, and a product could not turn it on under a Crux group name.
 - **A filter only narrows.** A product `name-allowlist` on the Crux import can remove what Crux allows. It cannot add what Crux left out.
 
 | Goal | What to write | `west crux-pins` reports |
 | --- | --- | --- |
 | Use what Crux pins | `import: true` | `OK` |
 | Enable an optional set | `group-filter: [+crux-secure-management]` or `[+crux-reliance]`, with no revision | `OK` |
+| Enable the boot loader source | `group-filter: [+crux-boot]`, with no revision | `OK` |
 | Add a product-only module | A plain project entry with its revision | `PRODUCT` |
 | Replace a project Crux pins | An entry with the same name, its path, and `userdata: crux-override` | `OVERRIDE` |
 | Use fewer modules | `import: name-allowlist: [...]` on `crux-pilot`, including `zephyr` | `OK` for what remains |
@@ -194,7 +197,7 @@ flowchart TD
 
 ### Vendor branch
 
-Keep one vendor branch and one working branch per delivery line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
+Keep one vendor branch and one working branch per delivery line. [Vendor kits across repositories](vendor-kits.md) works through one kit with two lines, a module that compiles it and a product that pins one line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
 
 A fix delivery for an older line stays on that line. On one linear vendor branch it would drag the current tree back. Use branch names that git allows beside each other, such as `vendor-1.x` and `work-1.x`, never `vendor/1.x` beside a branch `vendor`.
 
@@ -340,6 +343,22 @@ flowchart TD
 - **Owner.** Each product names one owner.
 - **Maintenance branch.** A released product is maintained on a maintenance branch from its release tag.
 - **Support period.** Each product must set its own. This guide gives no number.
+
+### Crypto library pins
+
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. Since the pin move of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) (approved 14 November 2026) they are the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), not the revisions Zephyr's manifest pins at v4.4.2. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+
+A product **can**:
+
+- Take Crux's pins as they are.
+- Move both pins to a later Zephyr-fork revision in its own manifest, and declare each with `crux-override`, with the advisory and the review as the reason. Crux's evidence does not cover that pin, so the product owns its own.
+
+A product **must**:
+
+- Keep `mbedtls` and `tf-psa-crypto` from the same line, as Zephyr pins them.
+- Review the advisories against its own configuration and code with the [guide](dependency-review.md). Crux's review covers Crux's components and Mbed profile, not a product's TLS client, PKCS #7, RSA or certificate validation.
+- Record which crypto line and version each released product carries.
+- Meet the licence terms of every group it enables. The wolf projects are GPL-3.0-or-later or commercial.
 
 ### Taking a Zephyr patch release
 
@@ -499,7 +518,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 - A throwaway proof of concept built one small application that links `crux::time`. It used Zephyr v4.4.2, west 1.4.0 and SDK 1.0.1, in the amd64 Dev Container image under emulation. It was a cross-build only, for the current EVKB target. Nothing ran on a board. It exercised the composition, fork, `west patch`, SBOM, frozen-manifest and two-path image comparisons. Its copy of the application is not byte-for-byte the template's.
 - That proof of concept ran prototype versions of the pin check and the gate, not the ones in this repository. Its `.config` comparison across paths also removed `# CONFIG_X is not set`, which `firmware_identity` keeps.
-- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. West 1.4.0 is the version that the Zephyr workflow and the Dev Container pin, and the Host CI job has no west and skips the tests that need it. The tests use local throwaway repositories in place of every remote and build nothing with Zephyr.
+- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. West 1.4.0 is the version that the Zephyr workflow and the Dev Container pin, and the Host CI job installs it and runs the tests that need it. The tests use local throwaway repositories in place of every remote and build nothing with Zephyr.
 - A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
 - `scripts/test-product-template.sh <board>` runs in one shard of the Zephyr workflow, `storage`, and that workflow does not run for [documentation-only changes](ci-zephyr-shards.md#documentation-only-changes). It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
 - `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, delivery lines with a fix on the older one, the hash-list check, a commercial edition under a new project name, a reused project name that must fail, a hand-pinned manifest with no import or with a Zephyr-only import, and the steps for a Zephyr patch release. All of these used invented local repositories. None of these routes built anything with Zephyr.

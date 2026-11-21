@@ -25,7 +25,11 @@ TEST(Netif, PreservesOutputWhenObservationFails)
         observed = {};
         observed_result = error;
         EXPECT_EQ(crux_netif_get_status(&output), error);
-        EXPECT_EQ(std::memcmp(&saved, &output, sizeof output), 0);
+        EXPECT_EQ(output.administrative_up, saved.administrative_up);
+        EXPECT_EQ(output.link, saved.link);
+        EXPECT_EQ(output.ipv4_available, saved.ipv4_available);
+        EXPECT_EQ(std::memcmp(saved.ipv4_address, output.ipv4_address, sizeof output.ipv4_address),
+                  0);
     }
 }
 TEST(Netif, AddressRemainsConfiguredWhenLinkAndAdminDown)
@@ -49,13 +53,14 @@ TEST(Netif, ClearsBytesOfAbsentAddressAndReportsUnknownCarrier)
     for (auto octet : output.ipv4_address)
         EXPECT_EQ(octet, 0);
 }
-TEST(Netif, FiltersUnspecifiedMulticastBroadcastAndLinkLocal)
+TEST(Netif, FiltersUnspecifiedMulticastBroadcastNetworkAndLinkLocal)
 {
     const uint32_t mask = 0xffffff00u;
     for (auto address : {std::array<uint8_t, 4>{0, 0, 0, 0},
                          {224, 1, 2, 3},
                          {255, 255, 255, 255},
                          {192, 168, 77, 255},
+                         {192, 168, 77, 0},
                          {169, 254, 1, 2}})
         EXPECT_FALSE(crux_netif_ipv4_eligible(address.data(), mask));
     const uint8_t valid[] = {192, 168, 77, 2};
@@ -65,4 +70,8 @@ TEST(Netif, FiltersUnspecifiedMulticastBroadcastAndLinkLocal)
     const uint32_t point_to_point = 0xfffffffeu;
     const uint8_t endpoint[] = {192, 168, 77, 3};
     EXPECT_TRUE(crux_netif_ipv4_eligible(endpoint, point_to_point));
+    // /31 and /32 have no network address, so an all-zero host part is an endpoint.
+    const uint8_t even_endpoint[] = {192, 168, 77, 2};
+    EXPECT_TRUE(crux_netif_ipv4_eligible(even_endpoint, point_to_point));
+    EXPECT_TRUE(crux_netif_ipv4_eligible(even_endpoint, 0xffffffffu));
 }

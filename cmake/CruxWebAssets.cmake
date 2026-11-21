@@ -20,6 +20,10 @@ include_guard(GLOBAL)
 # DENY_STRINGS
 #            A file of strings, one per line, that must not appear in any file of the bundle.
 #
+# The two sources the function adds get their private directories and the body buffer size per source, and the
+# function links nothing to the target. The target must link crux::web itself, which also gives it the
+# toolchain flags that those sources compile with, as `app` has in Zephyr.
+#
 # Sets these target properties: CRUX_WEB_ASSETS_SOURCE, the generated source, and
 # CRUX_WEB_ASSETS_HASH_LIST, the JSON list of asset hashes for the product's SBOM.
 function(crux_web_assets target)
@@ -96,10 +100,26 @@ function(crux_web_assets target)
     # Building this target alone packages and checks the folder, for the hash list and a budget check.
     add_custom_target(crux_web_assets_${target} DEPENDS "${source}" "${hash_list}")
     target_sources(${target} PRIVATE "${source}" "${runtime}/web_assets.c")
-    # The private header is for these two sources. crux_web_adapter carries only the adapter's own.
-    set_source_files_properties("${source}" "${runtime}/web_assets.c" PROPERTIES
-        INCLUDE_DIRECTORIES "${runtime}")
-    target_link_libraries(${target} PRIVATE crux_web_adapter)
+    # The private header is for these two sources. They also need what crux_web_adapter and crux_web_api carry:
+    # the adapter's private header, the public headers and the size of the body buffer. They get all of it as
+    # per-source properties of the target and the function links nothing to the target, so that a product's own
+    # sources do not see components/web/adapter (ADR-0004 section 5: they see only components/<c>/include and
+    # components/<c>/ports/zephyr/include). The product links crux::web itself for its own routes.
+    get_filename_component(crux_web "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web" ABSOLUTE)
+    get_filename_component(crux_access_include "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/access/include"
+        ABSOLUTE)
+    set(added_sources "${source}" "${runtime}/web_assets.c")
+    set_property(SOURCE ${added_sources} TARGET_DIRECTORY ${target} APPEND PROPERTY INCLUDE_DIRECTORIES
+        "${runtime}" "${crux_web}/adapter" "${crux_web}/include" "${crux_access_include}")
+    if(TARGET crux_web_api)
+        # The size is the build's: Kconfig in Zephyr, a cache variable on the Host. Read it from the usage
+        # target that defines it, so that the two sources agree with the product's routes.
+        get_target_property(web_api_definitions crux_web_api INTERFACE_COMPILE_DEFINITIONS)
+        if(web_api_definitions)
+            set_property(SOURCE ${added_sources} TARGET_DIRECTORY ${target} APPEND PROPERTY
+                COMPILE_DEFINITIONS ${web_api_definitions})
+        endif()
+    endif()
     set_target_properties(${target} PROPERTIES CRUX_WEB_ASSETS_SOURCE "${source}"
         CRUX_WEB_ASSETS_MARK "crux_web_assets:${source}" CRUX_WEB_ASSETS_HASH_LIST "${hash_list}")
 endfunction()

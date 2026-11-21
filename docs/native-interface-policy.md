@@ -35,7 +35,7 @@ and changes none of its rules or checks. It prescribes no directory layout and a
 policy run on Crux's own trees as before. A product's own checks, an include check and a Host build of the domain, are
 the product's. The product template carries an example of the include check, for its domain, and does not carry a Host build script.
 
-**Frozen interfaces.** Thread, Sync, Queue and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). The freeze adds no check to this policy, and existing consumers, the `crux::queue_linux` composition target and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these four headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
+**Frozen interfaces.** Thread, Sync and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). Queue was frozen too and was removed on 20 November 2026, with its `crux::queue_linux` composition target. The freeze adds no check to this policy, and existing consumers and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
 
 The ADR names three layers for product code. Each maps onto a role of the dependency policy:
 
@@ -120,8 +120,11 @@ The usage guard recognises a complete `--sysroot=<path>` compile option only
 when its normalised absolute path exactly equals the selected toolchain's
 `SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
 roots, child paths, compound flag strings, include paths and link options remain
-subject to the existing native checks. New Queue/Time/Thread/Sync combined
-consumer probes cover this distinction on Host, native_sim and EVKB builds.
+subject to the existing native checks. `test_real_messaging_facades_preserve_selected_toolchain_flags`
+in `tests/build/test_consumer_boundary.py` covers this distinction for the Thread and Sync facades
+with a mocked Zephyr toolchain, and the Zephyr module's deferred usage checks apply it in every
+Zephyr build. The combined Queue consumer probes that also covered it on native_sim and EVKB were
+removed with Crux Queue.
 
 ### Scoped #28 integration
 
@@ -205,6 +208,16 @@ requirements and arbitrary compiler/linker flag encodings are outside this bound
 gate; no installed SDK/package is claimed. Source review remains necessary for
 transitive helper includes, aliases and third-party library semantics.
 
+One linker rule is checked by symbol identity (ADR-0005, S6): the guard refuses a
+link-time wrap (`--wrap`) of a symbol named `crux_*`, `__wrap_crux_*` or
+`__real_crux_*` in a target's link options or link libraries, in the spellings
+`-Wl,--wrap=S`, `-Wl,--wrap,S`, `LINKER:--wrap=S`, `-Xlinker --wrap -Xlinker S`
+and the single-dash and abbreviated forms of the linker. A wrap of any other
+symbol, such as a product's own wrap of a Zephyr function, is not refused by this
+rule. It does not see the legacy `LINK_FLAGS` properties, linker flags set outside
+target properties (`CMAKE_EXE_LINKER_FLAGS`), `@response` files or other linker
+options such as `--defsym`.
+
 Static providers retain PRIVATE native requirements at the composition boundary.
 Unqualified consumer/public requirements such as `Threads::Threads`, `pthread`
 and `-pthread` are rejected; a controlled Host provider can still use them privately.
@@ -238,10 +251,8 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final application executables declare
-the used public capabilities and may link the documented `crux::queue_linux` composition target. This alias is not a portable usage
-facade or an exception to recursive `LINK_ONLY` checks. The guard rejects the
-composition target and its backing implementation, including application aliases
-and transitive wrappers. This does not inspect all provider-private requirements
+the used public capabilities. No Linux composition-only target exists since `crux::queue_linux` was
+removed with Crux Queue (20 November 2026). This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
 
@@ -253,7 +264,7 @@ check through the `zephyr` token in its name and through its port include root u
 `components/file/ports/zephyr`. The negative test `tests/build/test_file_zephyr_boundary.py` shows
 that for a direct link, a transitive wrapper and the usage check. The check does not restrict `crux::file`, which stays the portable File target.
 [File root binding](file-composition-interface.md) states the role and its limits, and the general
-[composition interface rules](composition-interfaces.md) of ADR-0001 cover it, and rules 3, 4 and 6 also cover `crux::queue_linux`.
+[composition interface rules](composition-interfaces.md) of ADR-0001 cover it.
 
 ### System consumer boundary
 
