@@ -148,8 +148,17 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   No other Crux File call sees a partial state, because it runs under the File lock. **It is not
   atomic across power loss**: on FAT, a cut between the two directory writes of `f_rename` can
   leave two names on one cluster chain. This comes from reading `ff.c` and has not been
-  reproduced here. Native clients that bypass File can race the destination check.
-- **Listing.** A bounded pool of `CRUX_FILE_DIR_POOL_SIZE` handles, default 2, gives NO_RESOURCES
+  reproduced here. On Linux the provider renames with `renameat2(..., RENAME_NOREPLACE)`, so the
+  kernel refuses a destination that another process creates at the last moment. When the kernel
+  or the file system lacks that flag (ENOSYS or EINVAL), the provider falls back to a check and a
+  replacing `renameat`, and another process can then create the destination in between and lose
+  it. A container whose seccomp profile refuses `renameat2` with EPERM gets ACCESS
+  from every rename, with no fallback. Zephyr has no rename that refuses an existing destination, so the Zephyr providers check the
+  destination with `fs_stat` and then call `fs_rename`: a native client that bypasses File and
+  creates the destination between the two has its file replaced. File callers cannot race either
+  check, because both run under the File lock.
+- **Listing.** A bounded pool of `CRUX_FILE_DIR_POOL_SIZE` handles, default 2 (see
+  [Pool size and handle budget](#pool-size-and-handle-budget)), gives NO_RESOURCES
   when full. `crux_file_dir_read` returns entries in provider order and sets `end` at the finish,
   which then repeats without a provider call. It yields only regular files whose names pass the
   name rule, so subdirectories, Linux symbolic links and foreign files are skipped without an
@@ -171,7 +180,8 @@ The FatFs provider stores a name as `f` followed by the hex of its bytes. Listin
 skips anything else, including upper-case hex and an encoded NUL, so one file has one identity.
 `fatfs_rename` in Zephyr's `subsys/fs/fat_fs.c` calls `f_unlink` on an existing destination before
 `f_rename`, so the provider calls `fs_stat` on the destination first under the File lock and never
-reaches that path. The Linux provider uses `fstatat` and then `renameat` for the same reason.
+reaches that path. The Linux provider uses `renameat2` with `RENAME_NOREPLACE`, and the check
+followed by `renameat` only where the kernel or file system lacks that flag (see **Rename** above).
 `CONFIG_FS_FATFS_NUM_DIRS` must be at least the listing pool, and the build checks this.
 
 `struct fs_dirent` has no modification time, which is why decision F6 leaves time out. On
@@ -250,16 +260,22 @@ nothing more about it.
 - Every open file holds one slot of a pool of `CRUX_FILE_POOL_SIZE` handles. When all are in use,
   `crux_file_open` returns `CRUX_FILE_ERR_NO_RESOURCES`, before any provider call
   (`components/file/src/file.c:96-102`). A listing uses a separate pool, `CRUX_FILE_DIR_POOL_SIZE`.
-- `CRUX_FILE_POOL_SIZE` is a public compile definition of `crux::file`, so a product can state its
+- `CRUX_FILE_POOL_SIZE` and `CRUX_FILE_DIR_POOL_SIZE` are compile definitions of `crux::file`, so a product can state its
   budget at build time, for example `_Static_assert(PRODUCT_MAX_OPEN_FILES <= CRUX_FILE_POOL_SIZE,
   "...")`. Count the most handles that the product's code holds at once, and add those that other
   Crux services in the same image hold.
-- Today the value is 4 in every provider's CMake (`components/file/CMakeLists.txt:4` and
-  `components/file/ports/zephyr/CMakeLists.txt`), and 4 is the minimum
-  (`components/file/src/file.c:5`). A product cannot change it with a Kconfig symbol or a CMake
-  cache option, and none exists in the repository. [File validation](file-validation.md) says the private
-  `file_port.h` permits a provider build override, which is not a product setting. Whether to
-  expose one is a Crux decision and is not made here.
+- A Zephyr image sets the pools with `CONFIG_CRUX_FILE_POOL_SIZE` (default 4, range 4 to 32) and
+  `CONFIG_CRUX_FILE_DIR_POOL_SIZE` (default 2, range 1 to 8) in `zephyr/Kconfig`. The Host build has
+  the CMake cache variables `CRUX_FILE_POOL_SIZE` and `CRUX_FILE_DIR_POOL_SIZE` with the same
+  defaults and ranges (`components/file/CMakeLists.txt`). 4 is the minimum that File itself
+  requires (`components/file/src/file.c:5`). One value holds for the whole image: every user of
+  File shares the pool, including the Access credential store, which takes one handle while it
+  saves or reads a record, and the file service. The file system must hold the handles as well:
+  on FatFs `CONFIG_FS_FATFS_NUM_FILES` must cover the handle pool and any native files of the
+  image, and `CONFIG_FS_FATFS_NUM_DIRS` the listing pool (the build checks the listings only). With
+  Reliance Edge, `CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT` must cover both pools, and the build
+  checks it. On `native_sim`, the FatFs suite runs with a pool of 8 as well as the default
+  (`tests/native/file_fatfs/testcase.yaml`).
 - **The reserved handle is a known limit, not a guarantee.** The file service accepts at most
   `CRUX_FILE_SERVICE_TRANSFER_MAX` transfers (default 3) and the build fails unless that is below
   `CRUX_FILE_POOL_SIZE`, so one handle stays free for the credential store and the project. Project

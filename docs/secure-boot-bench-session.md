@@ -203,7 +203,7 @@ As procedure section 7, T1, with the wrappers. **Approvals.** D165, H1 to H4, H7
 **Why not the device-control `reset`.** `reset()` discards pending output, runs the reset command (`reset.jlink`: `r`, `g`, `q`) to completion, and only then starts reading the port (`tools/device_control/run.py`, `reset()` then `confirm_boot()`; **Verified in repository**). Everything MCUboot printed while Commander was still running is read afterwards in one burst, with nearly one time. A measurement from that file would be wrong, and `boot_timing.py` refuses such lines. The same applies to any timing taken from a device-control `reset` capture, including the cut timing in procedure section 7, T6.
 
 **Steps (route B).** For each of 10 boots, in a new case directory `<case>/boot-<n>`:
-1. Start the logger, so that it is reading before the reset (DTR and RTS low, nothing sent; the open must not reset the board, which is an open question of procedure section 10):
+1. Start the logger, so that it is reading before the reset (DTR and RTS low, nothing sent; the open must not reset the board, which is an [open question](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session)):
 
 ```bash
 python3 <crux>/tests/target/boot-bench/console_log.py --port <port> --out <case>/boot-<n>/events.jsonl \
@@ -271,7 +271,7 @@ The order puts everything that lets the bootloader write NOR after P, T0 and N, 
 2. `jlink-verify.sh time-baseline.bin`: the flash still holds R1. If not, stop and ask. The backup of session A is the reference for the as-found content and is **not** repeated: after R1 the first sectors differ from it, so a new read-back could not be compared with it anyway.
 3. `slot1-head.jlink`: no image magic.
 4. Procedure R with the T0 profile: the restore image boots (T0's boot evidence, in this session).
-5. `make_manifest.py check`; the same keys (if the development key was lost, rebuild MCUboot and every image: procedure section 10).
+5. `make_manifest.py check`; the same keys (if the development key was lost, rebuild MCUboot and every image: [open questions](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session)).
 6. `evidence_dir.py session` again, with the new approval references; it writes a new `session-<UTC>.json` and never replaces an earlier one.
 
 If DS is not approved, session B repeats P and T0 in full. That costs about 30 min (**Estimate**).
@@ -296,9 +296,9 @@ If DS is not approved, session B repeats P and T0 in full. That costs about 30 m
 - [ ] H12: is the R2 restore (6 MiB write) approved, or is reaching R2 a stop?
 - [ ] Which board connector carries the ROM serial downloader's USB device, and is it cabled during N-1? Without it N-1 cannot tell a downloader from a hang.
 - [ ] H6: where does the flashloader come from, under what licence, and who may run it? Until then #309's recovery acceptance stays open.
-- [ ] Does the installed J-Link Commander accept the `loadfile "<file>", <address>` and `verifybin "<file>", <address>` forms the wrappers write, and does `-ExitOnError 1` give a non-zero status on a failed script command? The procedure asks the first (section 10); the second is new. The wrappers never rely on the exit status alone for a verify.
+- [ ] Does the installed J-Link Commander accept the `loadfile "<file>", <address>` and `verifybin "<file>", <address>` forms the wrappers write, and does `-ExitOnError 1` give a non-zero status on a failed script command? The procedure's [open questions](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) ask the first; the second is new. The wrappers never rely on the exit status alone for a verify.
 - [ ] Does the device-control tool's start of a command keep `BENCH_PROBE_SERIAL` in the environment? Inference yes; a host test of the wrapper with a fake tool does not show it.
 - [ ] Who writes and reviews the IS-T4 image, and in which change? It is the one block of Part 2 that has no artefact.
 - [ ] Is a host-side figure at about 20 ms resolution (an Estimate) enough for D9, or does the owner want the instrumented measurement first? The answer decides whether M1 is worth the bench time. Does opening the port in `console_log.py` reset the board (DTR and RTS)?
 - [ ] Are the resets of M1 free of NOR writes? Inference from T1's boot 2; read slot 0's tail before and after the ten resets to see (the kit's `slot0-tail.jlink` of procedure section 5).
-- [ ] The other open questions of [procedure section 10](secure-boot-board-test-procedure.md#10-open-questions-for-the-first-bench-session) still apply and are not repeated.
+- [ ] The other open questions of [open questions of the first bench session](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) still apply and are not repeated.

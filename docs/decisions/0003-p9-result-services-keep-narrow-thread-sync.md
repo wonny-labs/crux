@@ -1,31 +1,26 @@
 # ADR-0003: P9 result: services keep a narrow Crux Thread and Sync
 
-Status: **Accepted** on 14 November 2026. See [the owner's decision](#the-owners-decision). Baseline: main `907acd67`. It decides P9 of [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and gives P8 new wording, so it **amends ADR-0002** as [What this amends](#what-this-amends-in-adr-0002) lists. ADR-0002's body is unchanged by this amendment.
+Status: **Accepted**. It decides P9 of [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and gives P8 new wording, so it **amends ADR-0002** as [What this amends](#what-this-amends-in-adr-0002) lists. The decided outcomes are under [Decided](#decided).
 
-This record is documentation only. It changes no code, check, contract or protected path. Each change that it puts into effect needs its own reviewed change afterwards, listed under [Follow-up changes](#follow-up-changes).
+Each change that this record puts into effect is its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
 
 ## Context
 
-P9 of ADR-0002 left the internals choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). It fixed the rule before the runs, and the pilot's exit criteria (D-D, section 3.5 of the pilot report, approved on 13 November 2026) refine it. The reboot pilot supplies the evidence:
+P9 of ADR-0002 left the internals choice open until evidence existed: keep a slim internal Crux Thread and Sync (O4), or move the services to Zephyr kernel objects (O2). The rule was fixed before the runs. A pilot on the `reboot` service supplied the evidence: its 79 cases ran on `native_sim` over the unchanged Crux providers, and a move of the service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep` was trialled on a pilot branch that passed the flake bar and was not merged. The service on `main` keeps Crux Sync (R1).
 
-- [Stage A](../research/reboot-native-sim-stage-a.md), merged, ran the 79 `reboot` cases on `native_sim` over the unchanged Crux providers: 79 cases, 0 failed.
-- Stage B, `docs/research/reboot-zephyr-direct-stage-b.md` on branch `pilot-reboot-zephyr-direct` (Draft PR #399, not merged), moved the `reboot` service to `k_mutex`, `k_sem`, `k_thread` and `k_msleep`. The service core changed by 47 lines added and 31 removed, and the flake bar passed (100 of 100 runs, then 200 of 200).
+O2 needs every criterion of the rule to hold, and four fail, two of them (M4 and M6) on one suite. The criteria M1 to M7 are those of the [reboot pilot results](../research/reboot-native-sim-stage-a.md#results), and B1 to B4 are the blockers that pilot left without an answer ([history record](../history/adr-0003-record.md)):
 
-Every figure here comes from those two records. They are local figures from arm64 containers. Neither record contains a CI run of the pilot suites. The only CI number in them, 268 s for the whole `host-sanitize` preset, is used as a context denominator. Nothing ran on a physical board.
-
-Against the D-D rule, O2 needs every criterion to hold, and four fail, two of them (M4 and M6) on one suite:
-
-- **M2.** On the same suites, the like-for-like basis that the pilot protocol fixed, Stage B's `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run (Stage A, under load: about 33 and 52), against a limit of 2.
+- **M2.** On the same suites, the `native_sim` run takes about 19 to 23 times the Host `host-sanitize` run, against a limit of 2.
 - **M4 and M6, narrowly.** The 9 checks of `sleep_provider` no longer run.
-- **Blockers B1 to B4** have no owner answer.
+- **Blockers B1 to B4** have no answer.
 
-D-D also keeps the slim shim if M2 is above 2, and on that basis it is. Dividing instead by the whole `host-sanitize` preset gives 0.19 to 0.69, but that divides different test sets, and the records do not count it as a pass. Not measured: the ThreadSanitizer suites (B4) and any physical board. Neither the Host nor the `native_sim` build has a race detector for these suites, so neither shows a data race.
+The figures are local runs, not CI runs. The ThreadSanitizer suites (B4) and any physical board were not measured. Neither the Host nor the `native_sim` build has a race detector for these suites, so neither shows a data race.
 
 ## Decisions
 
-Reasons and alternatives are taken from the pilot records, ADR-0002 and the [platform direction review](../research/platform-direction-review.md). The recommendation was put to the maintainer, who approved it as stated ([the owner's decision](#the-owners-decision)).
+Reasons and alternatives are taken from the pilot records, ADR-0002 and the [platform direction review](../research/platform-direction-review.md).
 
-| # | Recommendation | Reason | Alternative |
+| # | Decision | Reason | Alternative |
 | --- | --- | --- | --- |
 | R1 | O4: keep a narrow Crux Thread and Sync inside the services | O2's criteria do not all hold (above), and the service swap itself was small and passed the flake bar | O2: move the services to Zephyr kernel objects |
 | R2 | State the rule for both OSes, with Crux's services using the narrow Thread and Sync | It is P1 with the services' inside named, so product code sees no change under O4 | Leave P1 as it is, which does not say what the services use |
@@ -36,10 +31,10 @@ Reasons and alternatives are taken from the pilot records, ADR-0002 and the [pla
 
 1. **R1. P9 result: O4.** Crux's services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers. The services do not move to Zephyr kernel objects (O2).
 2. **R2. Principle.** Product code uses the OS natively: Zephyr products call Zephyr, Linux products call Linux. Crux's services use the narrow Crux Thread and Sync. Other OS facilities (drivers, networking, storage) are used natively in adapters. This is P1 with the services' inside named.
-3. **R3. Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after the PLC runtime port, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then.
+3. **R3. Target state.** Crux Thread and Sync become internal to Crux. That switch is a later, separate pull request. It needs the owner's approval, and it comes after the PLC runtime port, `crux-controller` and the samples have migrated. Queue and Serial are decided separately, because `cli` uses Serial. Deprecating and removing the public headers is part of that later decision. The P2 freeze stays until then. **Queue was decided on 20 November 2026:** the owner removed Crux Queue (header, targets, `CONFIG_CRUX_QUEUE`, tests and runners); Zephyr `k_msgq` replaces it, as the [messaging contract](../messaging-contract.md) records.
 4. **R4. Known exception.** `ssh` uses native threads.
-5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of `README.md:5` and `:37` follows this wording in its own change.
-6. **R6. O5, candidate.** Moving the services' internals to a documented POSIX subset is evaluated when a Linux product is defined. Known blocker: Zephyr's POSIX layer needs picolibc or newlib, and the workspace has neither (Stage A). That evaluation must also check that the PLC runtime's timing needs are met: distinct run-time priorities and sub-millisecond waits.
+5. **R5. P8, new wording.** An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined. No date is set. The Linux providers remain test providers (P7) until then. The text of the README and `:37` follows this wording in its own change.
+6. **R6. O5, candidate.** Moving the services' internals to a documented POSIX subset is evaluated when a Linux product is defined. Known blocker: Zephyr's POSIX layer needs picolibc or newlib, and the workspace has neither. That evaluation must also check that the PLC runtime's timing needs are met: distinct run-time priorities and sub-millisecond waits.
 
 ## What this amends in ADR-0002
 
@@ -57,19 +52,16 @@ Reasons and alternatives are taken from the pilot records, ADR-0002 and the [pla
 
 ## Follow-up changes
 
-None of these is part of this ADR. Each is its own reviewed change, and merging any of them needs the owner's authorisation (`AGENTS.md`, Gate 2).
+None of these is part of this ADR. Each is its own reviewed change.
 
-1. Documentation that still says P9 is undecided or that Embedded Linux is not planned: `README.md:5,37`, `docs/architecture.md`, `docs/thread-sync.md` (its freeze notice and the remark at `:150` that workers may become native threads under P9), and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`.
+1. Documentation that still says P9 is undecided or that Embedded Linux is not planned: the README, `docs/architecture.md`, `docs/thread-sync.md` (its freeze notice and the remark at `:150` that workers may become native threads under P9), and the freeze notices of `docs/messaging-contract.md` and `docs/serial-contract.md`.
 2. The switch that makes Thread and Sync internal, with the decision for Queue and Serial. It needs the owner's approval and follows the migrations in R3.
 3. The O5 evaluation, when a Linux product is defined.
 
-## The owner's decision
+<a id="the-owners-decision"></a>
 
-Accepted by the maintainer on 14 November 2026: recording the P9 result as O4, with the P8 wording, as recommended. The statement that an Embedded Linux integration is expected is the maintainer's, made before this decision. The switch to internal-only, hardware, tags and merging stay outside this approval.
+## Decided
 
-## Record
+R1 to R6 are decided as stated under [Decisions](#decisions). The statement that an Embedded Linux integration is expected is the owner's. The switch to internal-only (R3), hardware, tags and merging are outside this decision.
 
-- Author: Claude Code, from the two pilot records.
-- Review: this record's own independent review is in its pull request.
-- Acceptance: accepted by the maintainer on 14 November 2026.
-- Revision: 18 November 2026: chat quotes, relay wording and model names replaced with neutral wording, with the maintainer's approval; no decision, option, consequence or decision code changed.
+The drafting record, measurements and approval history are in [history/adr-0003-record.md](../history/adr-0003-record.md).

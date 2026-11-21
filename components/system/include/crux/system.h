@@ -90,7 +90,9 @@ crux_status_t crux_system_reset_cause_clear(void);
 /**
  * Request a system reset; a successful target dispatch does not return.
  * @return Never CRUX_OK. Normal Host returns CRUX_ERR_NOT_SUPPORTED; native failure may hang.
- * Does not flush storage, drain logs or perform application safe-state actions.
+ * On Zephyr with logging enabled (not in minimal mode), it first puts logging into panic mode,
+ * which writes out the records that wait for the deferred logging thread. It does not flush
+ * storage or perform application safe-state actions.
  */
 crux_status_t crux_system_reset(void);
 

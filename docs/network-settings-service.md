@@ -23,7 +23,7 @@ The routes are in `components/web/management/web_management_network.c` and are d
 | The routes' answers against the specification | **Built** | `Web.network_openapi`: real answers, with negative controls |
 | Serial recovery command `network recover` | **Built** | Host, on the real registry and the scripted access control of the command line suites |
 | The mock and the TypeScript client | **Changed, small** | Node.js unit tests, including the shared vectors |
-| Apply port: Host fake, and a no-op provider for a composition that applies nothing | **Built** | The fake is used by every suite. The no-op is linked by no suite. |
+| Apply port: Host fake, and a no-op provider for a composition that applies nothing | **Built** | The fake is used by every other suite. The no-op is linked by `tests/network_settings/no_apply.c`, which shows that its boot report reads not applied. |
 | Apply port on Zephyr, over `net_if` | **Not built.** [Decision 17](#decisions-taken-without-an-answer). | |
 | A composition that serves the routes, links the service or owns the table | **Not in #213.** [The services image](native-composition-242.md) of #242 does, with a no-op apply port. | `native_sim` |
 | `native_sim` | **Not run by #213.** Run later in [the services image](native-composition-242.md): the read, and a change that answers `501 not_supported` because nothing can be saved. | `native_sim` |
@@ -275,7 +275,7 @@ secret, so nothing needs wiping.
 | --- | --- | --- |
 | `running` | The port reports an IPv4 address | What the port reports, which is what the boot applied |
 | `saved` | The next boot would apply a saved set | The stored, checked set |
-| `source` | Always | `saved` or `default`: what the boot applied |
+| `source` | Always | `saved` or `default`: what the boot applied. `default` also when nothing applied, as on the no-op apply port, whose boot report reads `applied` false. |
 | `reboot_required` | Always | The next boot would apply values other than the running ones. False while `running` is absent. |
 | `save` | Pending, or failed | `pending` from the request until the worker ends, `failed` until the next accepted request |
 
@@ -340,7 +340,7 @@ There is no Configuration provider on the target. A composition selects `crux_co
 | Item | Where |
 | --- | --- |
 | Boot order: Access, the Configuration provider, `crux_network_settings_boot()`, `crux_config_service_start()` on a table that holds `crux_network_settings_entries()`, `crux_network_settings_start()`, `crux_network_settings_start_worker()` | `crux/network_settings.h` |
-| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
+| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing: it returns false for every apply, so the boot report reads `applied` false, `source` default and, when saved values exist, reason `APPLY_FAILED`, and `GET` shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
 | A provider of the event port: `crux_network_settings_security_events` | The same |
 | `network.read` and `network.write` in the roles that may see and change the address, and no role with `network.private` | The product's policy |
 | `crux_cli_init()` with `crux_network_settings_cli_commands()`, on a serial console | `crux/network_settings_cli.h` |
@@ -367,6 +367,7 @@ compiled in this environment, and shipping code that no check has built would be
 | `NetworkSettings.concurrency` | 1 | Three requesters, two readers and the worker, with consistent states and one event for each accepted request |
 | `NetworkSettings.lock_faults` | 2 | The state's lock, and the worker's lock, failing to come in time |
 | `NetworkSettings.no_provider` | 1 | The target's behaviour above |
+| `NetworkSettings.no_apply` | 2 | The no-op apply port: saved values and the defaults both read not applied, with `source` default, and `GET` shows the saved set and no running values |
 | `NetworkSettings.cli` | 6 | The table through the real registry, serial and not SSH, hidden without the permission, a failed save, a save in progress |
 | `Web.network_routes` | 18 | Both routes for success, no session, no permission, the forgery checks, each rule, 39 malformed bodies, content type, size, methods, one save at a time, a failed save, the closed connection, an ended session |
 | `Web.network_short_reads` | 1 | The same bodies, with the core handing them over 1, 2, 3, 7, 16, 255 and 256 bytes at a time through a wrapped `crux_web_read_body`, and the same answers |

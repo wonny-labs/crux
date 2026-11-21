@@ -45,7 +45,7 @@ NOT_COMPILED_RULES = (
         r"|^tests/(native|zephyr)/|^tests/support/emmc_sim/"
         r"|^samples/(storage_[a-z_]+|flash_safety_poc|product_template)/"
         r"|^tests/(controller_integrated|controller_m3|controller_network|controller_network_stack|m5_integrated"
-        r"|networking_physical|networking_physical_native|gpio_physical|messaging_resources|psa_entropy)/"
+        r"|networking_physical|networking_physical_native|gpio_physical|psa_entropy)/"
         r"|^tests/external_application/main\.c$|^tests/execution/src/native\.c$"
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
         r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$")),
@@ -53,7 +53,6 @@ NOT_COMPILED_RULES = (
         r"(^|/)ports/psa/|^tests/psa_(crypto|ports)/|^tests/tls_certificate/psa/|^tests/ssh/sftp/openssh/")),
     ("boundary-probe-or-consumer-fixture", re.compile(
         r"^tests/[a-z_]+_consumer/|^tests/consumer_(boundary|poc)/|^tests/external_application/")),
-    ("orphan-no-build-reference", re.compile(r"^tests/queue/red_stub\.c$")),
 )
 
 

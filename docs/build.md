@@ -16,25 +16,11 @@ Linux Host is a development and test composition, **not** a qualified production
 
 ## Development environment
 
-**First set-up on native Linux or Windows with WSL2:** read [Getting started on Linux and Windows with WSL2](getting-started-linux-wsl2.md) first. It covers the Git clone, the folder layout, line endings, network access and sizing, which are summarised below.
+**First set-up:** read [Getting started](getting-started.md) first. It covers the Git clone, the folder layout and the folder name the scripts require, Windows with WSL2, line endings, network and proxy access, and disk and memory.
 
 Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory.
 
-**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](#disk-and-memory) below, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
-
-### Requirements for the checkout
-
-- **Crux must be a Git clone.** The scripts call `git rev-parse --show-toplevel`. Prefer a real clone made inside Linux or WSL2, which keeps the executable bits and LF line endings. An exported archive is a fallback with caveats, described on the [WSL2 page](getting-started-linux-wsl2.md#1-use-a-git-clone).
-- **The repository folder must be named `crux-pilot`, and its parent folder is the west workspace.** The Dev Container mounts the parent (`${localWorkspaceFolder}/..`) as `/workspaces/crux`, and `scripts/bootstrap-zephyr.sh` stops unless the repository is at `<workspace>/crux-pilot`. West then writes `zephyr/` and `modules/` into that parent. `bootloader/` appears only when the optional group `crux-boot` is enabled, for example by `scripts/test-boot-composition.sh`. Use an empty folder only for Crux, for example `~/work/crux-ws/crux-pilot`. Do not clone directly into your home directory: it would become the mounted workspace.
-- **On Windows, use WSL2.** Clone inside the WSL2 file system, never under `/mnt/c`, with `core.autocrlf` set to `false`. Use Docker Desktop with the WSL2 backend, or Docker Engine in WSL2. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
-
-### Network and proxy prerequisites
-
-The first set-up downloads from `mcr.microsoft.com` (base image), the Ubuntu archive, PyPI (the Dev Container's `postCreateCommand`, the Zephyr requirements in `scripts/bootstrap-zephyr.sh`, and the MCUboot requirements in `scripts/test-boot-composition.sh`), and `github.com` (the west projects of `west.yml`, the GoogleTest archive that CMake fetches, and the Zephyr SDK, which `west sdk install` looks up through the GitHub REST API). The scripts set no proxy: behind one, configure Docker's proxy and pass `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` into the container. The wolfSSL and tuxera projects are fetched only when their optional west groups are enabled. If the unauthenticated GitHub API limit stops the SDK download, export `CRUX_GITHUB_TOKEN=<read-only token>` before `scripts/bootstrap-zephyr.sh --install-sdk`; the script passes it to `west sdk install`. A proxy allowlist may also need `api.github.com`, `codeload.github.com` and the hosts of the SDK release files. The [WSL2 page](getting-started-linux-wsl2.md#4-network-and-proxy-prerequisites) lists each source and the script that uses it.
-
-### Disk and memory
-
-These are estimates, not measured minimums. The container runs with `--memory=4g` and `--cpus=2` (`devcontainer.json`), so Docker Desktop or the WSL2 virtual machine must offer at least that. The recorded planning headroom is 30 to 40 GiB free; in the recorded run free space fell by about 10 GiB (41 to 31 GiB) for the image, the SDK and the west workspace. Plan for at least 30 GiB free before `--install-sdk`. The 10 GiB figure comes from an early macOS run on 2026-10-16, when builds were smaller, so treat it as a lower bound. See [baseline](baseline.md) for the record.
+**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
 
 Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
@@ -49,6 +35,8 @@ Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**
 Run the commands below from `/workspaces/crux/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspaces/crux` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
+
+**What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
 The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. For the initial build, dependency acquisition and Host CTest run:
 
@@ -127,7 +115,7 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 ## RT1060-EVKB debugging
 
-**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started on Linux and Windows with WSL2](getting-started-linux-wsl2.md#7-boards-and-debug-probes).
+**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started](getting-started.md#7-boards-and-debug-probes).
 
 The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
 
@@ -168,41 +156,32 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `IMAGE_STATE`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `IMAGE_STATE`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
 
-### Complete Queue, Time and Thread example
+### Complete Time and Thread example
 
 This example shows how an external consumer selects components and links their
-targets. It is not a model for new product code: Thread, Sync, Queue and Serial are
+targets. It is not a model for new product code: Thread, Sync and Serial are
 frozen for new product code, so a new product uses Zephyr threads and message queues
 in its own Zephyr code (see [Choosing an API](choosing-an-api.md)). Existing users
-keep working, and the build mechanics below are unchanged.
+keep working, and the build mechanics below are unchanged. Crux Queue was removed on
+20 November 2026; a message queue is Zephyr's `k_msgq` (see the
+[messaging contract](messaging-contract.md) for the migration note).
 
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
-and selects Queue, Time and Thread. The portable logic sends and receives one
-value, reads the monotonic clock and waits for an already reached deadline.
+and selects Time and Thread. The portable logic reads the monotonic clock and waits
+for an already reached deadline.
 
 `logic.c`:
 
 ~~~c
 #include <crux/time.h>
 #include <crux/thread.h>
-#include <crux/queue.h>
 
 int controller_run(void) {
-    crux_queue_t queue;
-    if (crux_queue_create(1, sizeof(int), &queue) != CRUX_OK)
-        return 1;
-    int sent = 42;
-    int received = 0;
     crux_monotonic_time_t now = {0};
-    int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
-                 crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
-                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
-                 crux_thread_sleep_until(now) != CRUX_OK;
-    crux_status_t cleanup = crux_queue_destroy(&queue);
-    return failed || cleanup != CRUX_OK;
+    return crux_monotonic_now(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK;
 }
 ~~~
 
@@ -221,7 +200,6 @@ int main(void) {
 cmake_minimum_required(VERSION 3.28)
 project(my_controller LANGUAGES C)
 
-set(CRUX_BUILD_QUEUE ON CACHE BOOL "Use Crux Queue")
 set(CRUX_BUILD_TIME ON CACHE BOOL "Use Crux typed clocks")
 set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 set(CRUX_BUILD_THREAD ON CACHE BOOL "Use Crux absolute sleep")
@@ -230,14 +208,13 @@ add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 add_library(controller_logic STATIC logic.c)
 set_target_properties(controller_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_link_libraries(controller_logic PRIVATE crux::queue crux::time crux::thread)
+target_link_libraries(controller_logic PRIVATE crux::time crux::thread)
 crux_assert_portable_consumer(controller_logic)
 
 add_executable(my_controller main.c)
 target_link_libraries(my_controller PRIVATE
     controller_logic
-    crux::queue crux::time crux::thread
-    crux::queue_linux)
+    crux::time crux::thread)
 ~~~
 
 From the **external application's directory**, configure and build with an absolute Crux source path:
@@ -249,13 +226,13 @@ cmake --build build
 ~~~
 
 The executable exits with status zero on success. Its portable logic is compiled
-against the public facades; only the final executable links the Linux-specific
-composition targets. No tests, samples or unrelated Crux capabilities are selected
+against the public facades; the final executable declares the capabilities it uses,
+and their public targets connect the current Linux providers. No tests, samples or unrelated Crux capabilities are selected
 by this example, and it does not access a physical device.
 
-Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
+Portable source targets use public headers (for example, `<crux/time.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
-The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#getting-started).
+The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#quick-start).
 
 ## Capability and provider selection
 
@@ -278,7 +255,6 @@ The external application tests also cover C++17, independently selected Thread/S
 | Image state | Select `CRUX_BUILD_IMAGE_STATE=ON`. `crux::image_state` holds the public header, the pure functions and the portable core. It links no provider: the Host double exists only when Crux builds its own tests. Experimental, with no bootloader provider and no board result. See the [image state contract](image-state-contract.md) |
 | TLS certificate | Select `CRUX_BUILD_TLS_CERTIFICATE=ON`, which requires Access and the Credential store. The root build refuses a configuration that lacks one. See the [TLS certificate service](tls-certificate.md) |
 | Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. To serve a built frontend folder from firmware, call `crux_web_assets` from `cmake/CruxWebAssets.cmake` before `crux_web_routes`: see [web assets](web-assets.md). See the [web contract](web-contract.md). |
-| Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | GPIO | Select `CRUX_BUILD_GPIO=ON`; the Host provider is an in-memory test simulation, and `host` is the only `CRUX_GPIO_PROVIDER` value in the root build. On Zephyr, `CONFIG_CRUX_GPIO=y` builds the native provider, and the application binds `crux-gpio0` to a node with a `gpios` property. See the [GPIO contract](gpio-contract.md) |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
@@ -288,7 +264,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
-Queue exposes the composition-only `crux::queue_linux` alias listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
+No capability exposes a Linux composition-only target since Crux Queue and its `crux::queue_linux` alias were removed (20 November 2026); setting `CRUX_BUILD_QUEUE` stops the configure with a pointer to Zephyr `k_msgq`. Providers have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
 The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
@@ -300,7 +276,7 @@ For the focused external-application integration suite, from the Crux source roo
 python3 -m unittest discover -s tests/build -p test_external_application.py -v
 ~~~
 
-For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). The Zephyr workflow runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
+For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). CI runs most of these on pull requests in a Host part and a Zephyr part; the Zephyr part skips a pull request that changes only documentation and runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
 
 | Symptom | Check |
 | --- | --- |
@@ -308,7 +284,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **final application executable**, not to portable libraries |
+| `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux Queue was removed. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |

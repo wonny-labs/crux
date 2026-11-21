@@ -42,10 +42,13 @@ extern "C" {
  *        life.
  * @retval CRUX_WEB_OK Zephyr's server was told to start. The listener may not be open yet.
  * @retval CRUX_WEB_ERR_INVALID_ARGUMENT @p config is NULL.
- * @retval CRUX_WEB_ERR_FAILED The route table is malformed or changed by a macro between the
- *         build's scan and the compiler, the C library's fnmatch() does not behave as the server
- *         needs, or http_server_start() of Zephyr returned an error, for example because the server
- *         is already running.
+ * @retval CRUX_WEB_ERR_FAILED The service is already started: an earlier call succeeded, or
+ *         another call is running. This call then changes nothing, and requests in progress go
+ *         on. Otherwise the route table is malformed
+ *         or changed by a macro between the build's scan and the compiler, the C library's
+ *         fnmatch() does not behave as the server needs, CONFIG_CRUX_WEB_BIND_ADDRESS is set to a
+ *         text that is not an address of an enabled family (the server would listen on every
+ *         address instead), or http_server_start() of Zephyr returned an error.
  */
 crux_web_result_t crux_web_start(const crux_web_config_t *config);
 

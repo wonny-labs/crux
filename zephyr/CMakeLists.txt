@@ -34,7 +34,7 @@ if(CONFIG_CRUX_PILOT_MODULE)
         "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
 endif()
 
-if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
+if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
         "${CMAKE_CURRENT_BINARY_DIR}/interrupt")
 endif()
@@ -74,11 +74,6 @@ if(CONFIG_CRUX_NETIF)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/netif/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/netif")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::netif)
-endif()
-
-if(CONFIG_CRUX_QUEUE)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/queue/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/queue")
 endif()
 
 

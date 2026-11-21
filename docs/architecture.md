@@ -62,7 +62,7 @@ For product code, the ADR names three layers:
 
 A **port** is a header that the product owns, in the domain's tree, written in the product's terms (a temperature, a valve position, a measurement period) and not in a device's terms such as a register or a bus. It holds no Zephyr type. An adapter implements it, and a Host fake implements it in tests. Crux publishes no product ports. A port becomes a Crux capability only under [Extending Crux](#extending-crux) and the rule against pass-through wrappers of native APIs in [AGENTS.md](../AGENTS.md#engineering-approach). This is ports and adapters: the domain calls ports, and adapters implement them with Zephyr, so a product needing a Zephyr feature that Crux does not offer writes an adapter and needs no change in Crux.
 
-**Which API to use.** The [developer rule in Choosing an API](choosing-an-api.md) turns the layers into three questions: OS and hardware facilities use Zephyr directly in the product's adapters, platform services use Crux, and product behaviour is plain C in the domain behind product-owned ports. It also freezes Thread, Sync, Queue and Serial for new product code (approved 13 November 2026): no new features, no real-time extension, existing users keep working, and the deprecation decision waits. In the layer table above, the domain's "public `<crux/NAME.h>` headers" therefore means the non-frozen ones for new code. The product template's include check rejects the four headers in the domain.
+**Which API to use.** The [developer rule in Choosing an API](choosing-an-api.md) turns the layers into three questions: OS and hardware facilities use Zephyr directly in the product's adapters, platform services use Crux, and product behaviour is plain C in the domain behind product-owned ports. It also freezes Thread, Sync and Serial for new product code (approved 13 November 2026; Queue was frozen too, then removed on 20 November 2026): no new features, no real-time extension, existing users keep working, and the deprecation decision waits. In the layer table above, the domain's "public `<crux/NAME.h>` headers" therefore means the non-frozen ones for new code. The product template's include check rejects the three headers, and the removed `<crux/queue.h>`, in the domain.
 
 Where Zephyr is allowed (Decision 2):
 
@@ -93,7 +93,7 @@ flowchart TB
         direction LR
         CON["Public contracts<br/>Time, Logging, File, Config, System, Sockets"]
         MGT["12 management services<br/>10 use Crux Sync"]
-        FRZ["Frozen API<br/>Thread, Sync, Queue, Serial"]
+        FRZ["Frozen API<br/>Thread, Sync, Serial"]
         MGT -->|"10 use Sync, cli uses Thread and Serial"| FRZ
     end
     subgraph VAR["Platform variants"]
@@ -114,9 +114,9 @@ flowchart TB
     ZEP --> HW
 ```
 
-The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the four frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider yet: [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) (R5) records that an integration is expected and will be designed at the service boundary when its first product is defined, with no date set. The dashed edge marks where it would attach.
+The domain reaches the platform only through Crux's public contracts and service APIs, never Zephyr, and the Linux providers let its tests run on a Host without Zephyr. The adapters use Zephyr threads, locks, queues, devices and buses directly and do not go through Crux (dashed). Of the 12 management services, 10 use Crux Sync. `cli` uses Thread and Serial instead, and `ssh` uses native threads and none of the three frozen APIs. The Linux providers serve the services' Host tests. Sockets has no Crux Linux provider, as it uses the standard socket API of the C library. Embedded Linux has no provider yet: [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) (R5) records that an integration is expected and will be designed at the service boundary when its first product is defined, with no date set. The dashed edge marks where it would attach.
 
-**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync, Queue and Serial frozen for new product code. An Embedded Linux integration is expected, with no date, and will be designed at the service boundary when its first product is defined (ADR-0003 R5). Until then the Linux providers remain test providers.
+**What changed from the original goal.** Crux was first framed as a portability layer: one set of public interfaces over Zephyr and, later, Embedded Linux, so that firmware could move between them. ADR-0002 decided that Zephyr is the execution layer, that products use it directly for OS and hardware facilities, and that Crux keeps its services and public contracts, with Thread, Sync and Serial frozen for new product code (Queue was removed on 20 November 2026). An Embedded Linux integration is expected, with no date, and will be designed at the service boundary when its first product is defined (ADR-0003 R5). Until then the Linux providers remain test providers.
 
 **Thread and Sync after ADR-0003.** [ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md) accepted option O4 on 14 November 2026: Crux's own services keep a narrow Crux Thread and Sync internally, with Zephyr and Linux providers, and do not move to Zephyr kernel objects. The recorded target is that Thread and Sync become internal to Crux, which is a later, separate change that needs the owner's approval; until then they stay frozen for new product code, and product code uses the OS natively.
 
@@ -137,7 +137,7 @@ Public paths in the shared `crux/` include namespace must remain unique across c
 Use actual OS names such as `linux` and `zephyr` for OS-specific ports. The term **Host** describes a development or test composition, not an operating system. An OS-independent memory implementation is not automatically a Linux port. Empty port directories, central backend registries, duplicated public headers and uniform test subdirectories are not required for consistency.
 
 New platform-specific composition targets use `crux::<capability>_<os>` (for example,
-`crux::queue_linux`); their implementation targets use `crux_<capability>_<os>`.
+`crux::file_zephyr`); their implementation targets use `crux_<capability>_<os>`.
 Reserve `host` for the development/test role. An API-family name such as `posix`
 requires a separately verified support contract; POSIX calls alone do not establish
 cross-OS support. These names do not imply production qualification.
@@ -210,7 +210,7 @@ Nothing is moved by this proposal. A rule number refers to the table above.
 | `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
 | `time` | No README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`, the shared `src/time_command.c` and `include/` are outside `core/`, and `src/time_shell.c` includes a Zephyr header outside `zephyr/`. | 3, 4, 5 |
 | `logging`, `serial` | No README, and no composition folder: `controller.c` and `controller.h` are scenario sources that `tests/logging_consumer` and `tests/serial_consumer` build | 3, 4 |
-| `messaging` | Has a README of eight lines with no Host, `native_sim` or physical evidence, and the same shape as the two above: `controller.c` is built by `tests/messaging_consumer` | 3, 4 |
+| `messaging` | Has a README with no Host, `native_sim` or physical evidence, and the same shape as the two above: `controller.c` is built by `tests/messaging_consumer`. The name is historical: the scenario uses Time and Thread, and Crux Queue was removed | 3, 4 |
 | `storage_emmc`, `storage_sd`, `storage_sd_probe` | No README. A Zephyr application sits in the root with no `zephyr/` folder, so its Zephyr headers are outside `zephyr/`. The names belong to one storage family but are not grouped. | 1, 3, 4, 5 |
 | `storage_sd_interrupt`, `storage_sd_replace` | The same, and `host/` holds a Python capture helper and its test, not a Host composition | 1, 3, 4, 5, 6 |
 | `flash_safety_poc` | `poc` in the name, no README (`docs/flash-safety-poc.md` describes it), and the Zephyr application in the root | 2, 3, 4, 5 |
@@ -309,7 +309,6 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional RTC storage; no implicit fallback | [Contract](time-contract.md) |
 | Thread | Bounded joinable workers (frozen for new product code) | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores (frozen for new product code) | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
-| Queue | Bounded copy messaging (frozen for new product code) | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
 | Netif | Read-only primary-interface status | Linux selected-interface and Zephyr network integration | [Networking contract](networking-contract.md) |
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar and bounded string validation, explicit save/load and encoding | Portable core with deterministic Host test provider, a selectable no-provider port, a Zephyr Settings/NVS integration on simulated Flash (simulator only) and a Settings File backend on Reliance Edge (`CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, GPLv2 west group): simulator tests and a link check for the RT1060 EVKB, no board run and no EVKB persistence qualification | [Host contract and validation](configuration-validation.md), [simulator validation](configuration-native-validation.md) |
@@ -442,7 +441,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 `components/interrupt/src/interrupt.h` declares the shared private
 `crux_is_in_isr()` query. Linux and Zephyr implementations are selected internally;
 there is no public Interrupt header or `crux::interrupt` usage target. Time,
-Thread, Sync, Queue and System use this mechanism while retaining their own
+Thread, Sync and System use this mechanism while retaining their own
 eligibility policy (including System's pre-kernel rejection). Non-ISR context
 alone is not a general API eligibility or POSIX signal-safety guarantee. Base
 remains header-only and OS-independent; Time never depends on Thread or Sync.

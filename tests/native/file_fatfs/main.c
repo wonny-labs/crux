@@ -177,8 +177,13 @@ ZTEST(file_fatfs, test_file_api_uses_a_separate_settings_directory)
     zassert_ok(fs_close(&settings_file));
 }
 
+/* The pools follow the Kconfig values, so the scenario with a pool of 8 opens 8 handles below. */
+BUILD_ASSERT(CRUX_FILE_POOL_SIZE == CONFIG_CRUX_FILE_POOL_SIZE);
+BUILD_ASSERT(CRUX_FILE_DIR_POOL_SIZE == CONFIG_CRUX_FILE_DIR_POOL_SIZE);
+
 ZTEST(file_fatfs, test_file_handle_pool_limit_and_reuse)
 {
+    zassert_true(CRUX_FILE_POOL_SIZE <= 10, "pool names are pool0 to pool9");
     crux_file_t *files[CRUX_FILE_POOL_SIZE] = {0};
     for (size_t i = 0; i < CRUX_FILE_POOL_SIZE; ++i) {
         char name[] = "pool0";

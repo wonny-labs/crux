@@ -53,6 +53,16 @@ crux_config_result_t crux_config_zephyr_init(void)
     return rc;
 }
 
+/* Clears a buffer through volatile stores, so that the compiler keeps them before a return. */
+static void wipe(void *buffer, size_t length)
+{
+    volatile uint8_t *bytes = buffer;
+    while (length > 0u) {
+        *bytes++ = 0;
+        --length;
+    }
+}
+
 struct read_context {
     uint8_t bytes[RECORD_CAPACITY];
     size_t length;
@@ -102,18 +112,20 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
 
     struct read_context ctx = {0};
     int rc = settings_load_subtree_direct(name, receive, &ctx);
+    crux_config_result_t outcome = CRUX_CONFIG_OK;
     if (ctx.error != 0 || rc != 0) {
-        return result(ctx.error != 0 ? ctx.error : rc);
+        outcome = result(ctx.error != 0 ? ctx.error : rc);
+    } else if (!ctx.found) {
+        outcome = CRUX_CONFIG_DEFAULT_MISSING;
+    } else {
+        size_t copied = MIN(ctx.length, capacity);
+        memcpy(buffer, ctx.bytes, copied);
+        record->length = ctx.length;
+        record->transferred = copied;
     }
-    if (!ctx.found) {
-        return CRUX_CONFIG_DEFAULT_MISSING;
-    }
-
-    size_t copied = MIN(ctx.length, capacity);
-    memcpy(buffer, ctx.bytes, copied);
-    record->length = ctx.length;
-    record->transferred = copied;
-    return CRUX_CONFIG_OK;
+    /* The record may hold a sensitive value: no copy of it stays on the stack. */
+    wipe(ctx.bytes, sizeof(ctx.bytes));
+    return outcome;
 }
 
 crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length)

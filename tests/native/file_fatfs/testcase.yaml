@@ -3,3 +3,13 @@ tests:
     platform_allow: [native_sim/native, native_sim/native/64]
     tags: [filesystem, crux]
     timeout: 180
+  # A larger File pool from Kconfig: the pool test opens 8 handles and the ninth is refused.
+  crux.file.fatfs.pool8:
+    platform_allow: [native_sim/native, native_sim/native/64]
+    tags: [filesystem, crux]
+    timeout: 180
+    extra_configs:
+      - CONFIG_CRUX_FILE_POOL_SIZE=8
+      - CONFIG_CRUX_FILE_DIR_POOL_SIZE=3
+      - CONFIG_FS_FATFS_NUM_FILES=10
+      - CONFIG_FS_FATFS_NUM_DIRS=4

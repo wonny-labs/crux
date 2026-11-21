@@ -123,6 +123,10 @@ bool crux_access_port_derive(uint32_t algorithm, uint32_t iterations,
 bool crux_access_port_random(uint8_t *output, size_t length);
 bool crux_access_port_hmac(const uint8_t key[CRUX_ACCESS_HASH_KEY_SIZE], const uint8_t *data,
                            size_t length, uint8_t hash[CRUX_ACCESS_HASH_SIZE]);
+/* Monotonic milliseconds. A clock that cannot be read returns CRUX_ACCESS_CLOCK_FAILED, a value no
+ * monotonic millisecond count reaches. The core then refuses what needs the time with NOT_READY,
+ * creates no session and leaves every bucket as it was. */
+#define CRUX_ACCESS_CLOCK_FAILED UINT64_MAX
 uint64_t crux_access_port_now_ms(void);
 /* Writes *length bytes into record for VALID, and nothing otherwise. */
 crux_access_store_state_t crux_access_port_store_load(uint8_t *record, size_t capacity,

@@ -28,7 +28,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 ## Before you open a pull request
 
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on pull requests, but not all, and its Zephyr part skips a pull request that changes only documentation. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). On GitHub, the workflow files under `.github/workflows/` define what CI covers.
 
 | Change | Command |
 | --- | --- |
@@ -229,12 +229,12 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Time/Thread and Base-only parent projects.
+Base/Time, Busy-wait, Thread/Time, Sync-only, Serial-only, Logging-only, System-only and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing the Queue Linux composition target. Existing
+incompatible Time/Serial/Logging/System providers. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging
@@ -324,7 +324,8 @@ hardware.
 ## Frozen header warning
 
 `tests/build/test_frozen_header_guard.py` checks the opt-in `#warning` of `<crux/thread.h>`,
-`<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. With a C compiler it shows that the
+`<crux/sync.h>`, `<crux/serial.h>`, `<crux/gpio.h>`, `<crux/i2c.h>` and
+`<crux/spi.h>`. With a C compiler it shows that the
 headers are silent by default, even under `-Werror`, that `CRUX_WARN_FROZEN_HEADERS` makes each one
 warn once and name itself and `docs/choosing-an-api.md`, and that `CRUX_INTERNAL_BUILD` silences it.
 On Linux it configures Crux as a subdirectory and reads `compile_commands.json`: Crux's own sources
@@ -753,20 +754,19 @@ device evidence. Results show how the stack behaves against that model, not how 
 It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a
 longer one is injected, and it holds cached writes until a flush whatever the size it reports. A process exit is not a power loss.
 
-## Portable queue and monotonic timing
+## Monotonic timing (Queue removed)
 
-Queue owns its native ports under `components/queue/ports/<os>/`. Portable
-consumers use `crux::queue`; the final Linux executable adds `crux::queue_linux`
-(`crux_queue_linux` implementation). Direct and transitive native links are
-rejected for portable consumers. The old Monotonic capability/targets/header
-were removed by the typed Time redesign; absence is checked explicitly.
+Crux Queue was removed on 20 November 2026 (see [the messaging contract](../docs/messaging-contract.md));
+`tests/build/test_consumer_boundary.py` checks that its targets are absent and that `CRUX_BUILD_QUEUE`
+stops the configure. The old Monotonic capability/targets/header were removed by the typed Time
+redesign; absence is checked explicitly too.
 
 Time owns typed monotonic observation/deadlines and Thread owns sleep. Their
 common/Linux error, rounding, overflow and early-wake tests run with Host checks.
 The former real Linux C++ wait scenario is now `Thread.TypedLinuxIntegration`.
 Native 128-Hz exact/fractional deadline and ISR checks are retained in
-`tests/thread/zephyr_fractional`; `scripts/test-messaging.sh` runs these with Queue
-and independent messaging consumers. RTC-disabled Time/Thread tests also remain
+`tests/thread/zephyr_fractional`; `scripts/test-messaging.sh` runs them with the portable
+controller timing consumer in `tests/messaging_consumer`. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
 
@@ -867,7 +867,8 @@ the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script. Its composition test also
 configures and compiles the Serial library on the fictional RT1062 board of
 `tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
-the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+the mode, owner and resource checks still refuse there, and that an enabled CSI builds
+there (the CSI check is the RT1060-EVK's alone). On the revision-B EVKB, Serial
 stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging

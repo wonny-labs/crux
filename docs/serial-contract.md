@@ -39,7 +39,9 @@ configuration. Host dynamic TTY binding remains a runtime bootstrap responsibili
 Direct unregistered native clients violate this composition rule.
 The EVKB candidate uses LPUART3, retaining LPUART1 diagnostics, and rejects an
 enabled CSI conflict (on the EVK, CSI shares pins with LPUART3 and LPUART8; LPUART8 is
-not admitted). Pin conflicts on another board are the product's to review. Electrical pin/connector suitability remains unverified.
+not admitted). That check applies to the RT1060-EVK (`CONFIG_BOARD_MIMXRT1060_EVK`)
+only: another RT1062 board may enable CSI with Serial on LPUART3, and its pin
+conflicts are the product's to review. Electrical pin/connector suitability remains unverified.
 
 Initial resources: one port, Zephyr 256-byte RX and TX rings, Host at most
 256-byte staging/commit chunks plus independent kernel TTY queues. Requests map
