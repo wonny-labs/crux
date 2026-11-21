@@ -1,5 +1,10 @@
 get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 
+# The handle and listing pools come from CONFIG_CRUX_FILE_POOL_SIZE and CONFIG_CRUX_FILE_DIR_POOL_SIZE
+# (zephyr/Kconfig), the same for every provider below.
+set(CRUX_FILE_POOL_DEFINITIONS CRUX_FILE_POOL_SIZE=${CONFIG_CRUX_FILE_POOL_SIZE}
+    CRUX_FILE_DIR_POOL_SIZE=${CONFIG_CRUX_FILE_DIR_POOL_SIZE})
+
 # The Zephyr root binding is a composition interface (see include/crux/file_zephyr.h). The target gives a
 # product's platform composition the header and crux::file; it is not a portable usage target and the
 # native-free consumer check rejects it by name. The provider library is added to Zephyr separately.
@@ -50,7 +55,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
       "${CRUX_FILE_COMPONENT_DIR}/src"
       ".")
   target_link_libraries(crux_file_fatfs_rt1060_compile PRIVATE zephyr_interface)
-  target_compile_definitions(crux_file_fatfs_rt1060_compile PRIVATE CRUX_FILE_POOL_SIZE=4)
+  target_compile_definitions(crux_file_fatfs_rt1060_compile PRIVATE ${CRUX_FILE_POOL_DEFINITIONS})
   # The object includes kernel headers that are generated during the build.
   add_dependencies(crux_file_fatfs_rt1060_compile zephyr_generated_headers)
   target_compile_options(crux_file_fatfs_rt1060_compile PRIVATE -Wall -Wextra -Werror)
@@ -68,7 +73,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
-  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+  target_compile_definitions(crux_file_api INTERFACE ${CRUX_FILE_POOL_DEFINITIONS})
   add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
   target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
   zephyr_append_cmake_library(crux_file_zephyr)
@@ -91,7 +96,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
-  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+  target_compile_definitions(crux_file_api INTERFACE ${CRUX_FILE_POOL_DEFINITIONS})
   add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
   target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
   zephyr_append_cmake_library(crux_file_zephyr)
@@ -108,7 +113,7 @@ if(CONFIG_CRUX_FILE_RELIANCE_EDGE)
   # Any board that has the file system. The simulator's compiler flags apply on native_sim only.
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
-  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+  target_compile_definitions(crux_file_api INTERFACE ${CRUX_FILE_POOL_DEFINITIONS})
   if(CONFIG_BOARD_NATIVE_SIM)
     # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
     target_compile_options(crux_file_api INTERFACE ${TOOLCHAIN_C_FLAGS} -fno-pic -fno-pie)
@@ -145,7 +150,7 @@ endif()
 
 add_library(crux_file_api INTERFACE)
 target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
-target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+target_compile_definitions(crux_file_api INTERFACE ${CRUX_FILE_POOL_DEFINITIONS})
 # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
 target_compile_options(crux_file_api INTERFACE ${TOOLCHAIN_C_FLAGS} -fno-pic -fno-pie)
 # native_sim's width is a compiler ABI requirement, not a kernel API requirement.

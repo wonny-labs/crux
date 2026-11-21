@@ -83,9 +83,9 @@ class SerialCompositionTest(unittest.TestCase):
                                   'serial_emul: serial-emul { compatible = "zephyr,uart-emul"; '
                                   'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
                                   'status = "okay"; }; };', '', 'Crux Serial unsupported UART resource'),
-            # The CSI rule names SoC labels, so it also refuses a board whose LPUART3 pins do not collide.
-            "custom_csi": ('&csi { status = "okay"; };', '',
-                           'LPUART3 Serial pins conflict with enabled EVKB CSI'),
+            # The CSI rule is the RT1060-EVK's pin conflict: a custom board's LPUART3 pins are its own,
+            # so an enabled CSI there builds (the EVKB "csi" case above still fails).
+            "custom_csi": ('&csi { status = "okay"; };', '', None),
         }
         selected = os.environ.get("CRUX_SERIAL_COMPOSITION_CASE")
         if selected and selected not in cases:

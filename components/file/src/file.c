@@ -7,9 +7,10 @@ _Static_assert(CRUX_FILE_NAME_MAX >= 63, "File profile requires at least 63 name
 _Static_assert(CRUX_FILE_DIR_POOL_SIZE >= 1, "File listing requires a listing handle");
 _Static_assert(CRUX_FILE_ROOTS_MAX >= 1 && CRUX_FILE_ROOTS_MAX <= 255,
                "File roots use a uint8_t index, with one value left over as never bound");
+/* Widest field first, so that a larger CRUX_FILE_POOL_SIZE does not multiply padding. */
 struct crux_file {
-    bool live;
     crux_file_mode_t mode;
+    bool live;
     crux_file_root_t root;
     char name[CRUX_FILE_NAME_MAX + 1];
 };
