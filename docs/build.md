@@ -156,41 +156,32 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `IMAGE_STATE`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `IMAGE_STATE`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
 
-### Complete Queue, Time and Thread example
+### Complete Time and Thread example
 
 This example shows how an external consumer selects components and links their
-targets. It is not a model for new product code: Thread, Sync, Queue and Serial are
+targets. It is not a model for new product code: Thread, Sync and Serial are
 frozen for new product code, so a new product uses Zephyr threads and message queues
 in its own Zephyr code (see [Choosing an API](choosing-an-api.md)). Existing users
-keep working, and the build mechanics below are unchanged.
+keep working, and the build mechanics below are unchanged. Crux Queue was removed on
+20 November 2026; a message queue is Zephyr's `k_msgq` (see the
+[messaging contract](messaging-contract.md) for the migration note).
 
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
-and selects Queue, Time and Thread. The portable logic sends and receives one
-value, reads the monotonic clock and waits for an already reached deadline.
+and selects Time and Thread. The portable logic reads the monotonic clock and waits
+for an already reached deadline.
 
 `logic.c`:
 
 ~~~c
 #include <crux/time.h>
 #include <crux/thread.h>
-#include <crux/queue.h>
 
 int controller_run(void) {
-    crux_queue_t queue;
-    if (crux_queue_create(1, sizeof(int), &queue) != CRUX_OK)
-        return 1;
-    int sent = 42;
-    int received = 0;
     crux_monotonic_time_t now = {0};
-    int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
-                 crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
-                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
-                 crux_thread_sleep_until(now) != CRUX_OK;
-    crux_status_t cleanup = crux_queue_destroy(&queue);
-    return failed || cleanup != CRUX_OK;
+    return crux_monotonic_now(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK;
 }
 ~~~
 
@@ -209,7 +200,6 @@ int main(void) {
 cmake_minimum_required(VERSION 3.28)
 project(my_controller LANGUAGES C)
 
-set(CRUX_BUILD_QUEUE ON CACHE BOOL "Use Crux Queue")
 set(CRUX_BUILD_TIME ON CACHE BOOL "Use Crux typed clocks")
 set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 set(CRUX_BUILD_THREAD ON CACHE BOOL "Use Crux absolute sleep")
@@ -218,14 +208,13 @@ add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 add_library(controller_logic STATIC logic.c)
 set_target_properties(controller_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_link_libraries(controller_logic PRIVATE crux::queue crux::time crux::thread)
+target_link_libraries(controller_logic PRIVATE crux::time crux::thread)
 crux_assert_portable_consumer(controller_logic)
 
 add_executable(my_controller main.c)
 target_link_libraries(my_controller PRIVATE
     controller_logic
-    crux::queue crux::time crux::thread
-    crux::queue_linux)
+    crux::time crux::thread)
 ~~~
 
 From the **external application's directory**, configure and build with an absolute Crux source path:
@@ -237,11 +226,11 @@ cmake --build build
 ~~~
 
 The executable exits with status zero on success. Its portable logic is compiled
-against the public facades; only the final executable links the Linux-specific
-composition targets. No tests, samples or unrelated Crux capabilities are selected
+against the public facades; the final executable declares the capabilities it uses,
+and their public targets connect the current Linux providers. No tests, samples or unrelated Crux capabilities are selected
 by this example, and it does not access a physical device.
 
-Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
+Portable source targets use public headers (for example, `<crux/time.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
 The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#quick-start).
 
@@ -266,7 +255,6 @@ The external application tests also cover C++17, independently selected Thread/S
 | Image state | Select `CRUX_BUILD_IMAGE_STATE=ON`. `crux::image_state` holds the public header, the pure functions and the portable core. It links no provider: the Host double exists only when Crux builds its own tests. Experimental, with no bootloader provider and no board result. See the [image state contract](image-state-contract.md) |
 | TLS certificate | Select `CRUX_BUILD_TLS_CERTIFICATE=ON`, which requires Access and the Credential store. The root build refuses a configuration that lacks one. See the [TLS certificate service](tls-certificate.md) |
 | Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. To serve a built frontend folder from firmware, call `crux_web_assets` from `cmake/CruxWebAssets.cmake` before `crux_web_routes`: see [web assets](web-assets.md). See the [web contract](web-contract.md). |
-| Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | GPIO | Select `CRUX_BUILD_GPIO=ON`; the Host provider is an in-memory test simulation, and `host` is the only `CRUX_GPIO_PROVIDER` value in the root build. On Zephyr, `CONFIG_CRUX_GPIO=y` builds the native provider, and the application binds `crux-gpio0` to a node with a `gpios` property. See the [GPIO contract](gpio-contract.md) |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
@@ -276,7 +264,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
-Queue exposes the composition-only `crux::queue_linux` alias listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
+No capability exposes a Linux composition-only target since Crux Queue and its `crux::queue_linux` alias were removed (20 November 2026); setting `CRUX_BUILD_QUEUE` stops the configure with a pointer to Zephyr `k_msgq`. Providers have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
 The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
@@ -296,7 +284,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **final application executable**, not to portable libraries |
+| `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux Queue was removed. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |

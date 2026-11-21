@@ -17,7 +17,7 @@ A passing check is evidence for the item it covers and nothing more. A `native_s
 Rule: the driver sits on the shell side, with the adapters ([choosing an API](choosing-an-api.md#the-rule-three-questions)).
 
 - [ ] No upstream Zephyr driver already serves the part. If one does, the change is devicetree plus an emulator test, and the reviewer asks why a second driver is needed ([where a driver lives](shared-hardware-modules.md#where-does-this-board-or-driver-live)).
-- [ ] The driver lives outside `domain/` and includes no `<crux/...>` header. `style/check-includes.sh` rejects the four frozen headers anywhere in a product. It does not reject other Crux headers outside `domain/`, so the reviewer reads the includes.
+- [ ] The driver lives outside `domain/` and includes no `<crux/...>` header. `style/check-includes.sh` rejects the three frozen headers and the removed `<crux/queue.h>` anywhere in a product. It does not reject other Crux headers outside `domain/`, so the reviewer reads the includes.
 - [ ] A driver that includes a Crux header, or returns a Crux result type, is a finding: it has probably taken on product logic or a platform service.
 
 ## Binding
@@ -143,7 +143,7 @@ The author runs them and records the revision, the command and the result. A che
 | --- | --- | --- |
 | `style/check-format.sh` | Formatting of C and C++ files | Gate in the product's CI, if the product adds it |
 | `style/check-patch.sh BASE HEAD` | `BRACES` rule of Zephyr's checkpatch on changed lines | As above |
-| `style/check-includes.sh` | The four frozen headers anywhere, and the domain rules in `domain/` | As above |
+| `style/check-includes.sh` | The three frozen headers and `<crux/queue.h>` anywhere, and the domain rules in `domain/` | As above |
 | `style/check_target_tidy.py build` | clang-tidy on the product's own sources of a Zephyr build | Advisory ([how](coding-guidelines.md#static-analysis-of-target-code)) |
 | Zephyr's `DeviceAPI`, `DevicetreeBindings`, `BoardYml`, `Nits` and `LicenseAndCopyrightCheck` compliance checks | `DEVICE_API`, binding names and properties, the board vendor, file hygiene, SPDX lines | As the [product runs them](coding-guidelines.md#zephyr-compliance-checks-out-of-tree); read from source, not run |
 | The product's `native_sim` Twister run | Driver, emulator and tests | Evidence for the emulator section only |

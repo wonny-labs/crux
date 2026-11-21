@@ -1,5 +1,4 @@
 #include <crux/logging.h>
-#include <crux/queue.h>
 #include <crux/sync.h>
 #include <crux/system.h>
 #include <crux/thread.h>
@@ -24,7 +23,7 @@
 
 #define OPERATION_TIMEOUT_MS 5000U
 #define EXPECTED_WORKER_VALUE UINT32_C(0x4d354d35)
-#define LOG_RECORD "worker-progress queue-copy=queued deadline=observed system-query=ok"
+#define LOG_RECORD "worker-progress deadline=observed system-query=ok"
 #if defined(CONFIG_BOARD_NATIVE_SIM)
 #define TARGET_NAME "native_sim"
 #elif defined(CONFIG_BOARD_MIMXRT1060_EVK)
@@ -57,11 +56,6 @@ typedef enum {
     STAGE_CLOCK_SLEEP,
     STAGE_CLOCK_CHECK,
     STAGE_CLOCK_END,
-    STAGE_QUEUE_CREATE,
-    STAGE_QUEUE_SEND,
-    STAGE_QUEUE_RECEIVE,
-    STAGE_QUEUE_FIFO,
-    STAGE_QUEUE_DESTROY,
     STAGE_SYSTEM_EXPECTATION,
     STAGE_STACK_OBSERVATION,
     STAGE_LOG_BEGIN,
@@ -70,11 +64,6 @@ typedef enum {
     STAGE_LOG_RESULT,
     STAGE_COUNT
 } operation_stage_t;
-
-typedef struct {
-    uint32_t sequence;
-    uint32_t value;
-} queue_record_t;
 
 typedef struct {
     operation_stage_t failure_stage;
@@ -101,11 +90,9 @@ typedef struct {
     crux_mutex_t mutex;
     crux_semaphore_t handoff;
     crux_thread_t thread;
-    crux_queue_t queue;
     bool mutex_created;
     bool semaphore_created;
     bool thread_created;
-    bool queue_created;
     uint32_t value;
     integration_observation_t observation;
 } integration_state_t;
@@ -139,21 +126,6 @@ static void worker_entry(void *argument)
         observation->worker_status = status;
         goto signal_completion;
     }
-
-    queue_record_t record = {1, EXPECTED_WORKER_VALUE};
-    for (uint32_t sequence = 1; sequence <= 2; ++sequence) {
-        record.sequence = sequence;
-        record.value = EXPECTED_WORKER_VALUE + sequence;
-        status =
-            crux_queue_send(worker_state->queue, &record, sizeof(record), OPERATION_TIMEOUT_MS);
-        if (status != CRUX_OK) {
-            observation->worker_failure_stage = STAGE_QUEUE_SEND;
-            observation->worker_status = status;
-            goto signal_completion;
-        }
-    }
-    /* The queued values must survive both source-buffer mutation and worker exit. */
-    memset(&record, 0, sizeof(record));
 
     crux_monotonic_time_t before, deadline, after;
     status = crux_monotonic_now(&before);
@@ -271,13 +243,6 @@ static crux_status_t run_integration(integration_observation_t *out)
         goto cleanup;
     }
 
-    status = crux_queue_create(2, sizeof(queue_record_t), &state.queue);
-    if (status != CRUX_OK) {
-        fail_once(&state.observation, STAGE_QUEUE_CREATE, status);
-        goto cleanup;
-    }
-    state.queue_created = true;
-
     options.priority = CRUX_THREAD_PRIORITY_NORMAL;
     status = crux_thread_create(&options, worker_entry, &state, &state.thread);
     if (status != CRUX_OK) {
@@ -316,20 +281,6 @@ static crux_status_t run_integration(integration_observation_t *out)
     }
 
     if (state.observation.failure_status == CRUX_OK) {
-        for (uint32_t sequence = 1; sequence <= 2; ++sequence) {
-            queue_record_t record = {0};
-            status = crux_queue_receive(state.queue, &record, sizeof(record), OPERATION_TIMEOUT_MS);
-            if (status != CRUX_OK) {
-                fail_once(&state.observation, STAGE_QUEUE_RECEIVE, status);
-                break;
-            }
-            if (record.sequence != sequence || record.value != EXPECTED_WORKER_VALUE + sequence) {
-                fail_once(&state.observation, STAGE_QUEUE_FIFO, CRUX_ERR_IO);
-                break;
-            }
-        }
-    }
-    if (state.observation.failure_status == CRUX_OK) {
         status = crux_mutex_lock(state.mutex, OPERATION_TIMEOUT_MS);
         if (status != CRUX_OK) {
             fail_once(&state.observation, STAGE_MAIN_MUTEX_LOCK, status);
@@ -344,13 +295,6 @@ static crux_status_t run_integration(integration_observation_t *out)
     }
 
 cleanup:
-    if (!state.thread_created && state.queue_created) {
-        status = crux_queue_destroy(&state.queue);
-        if (status == CRUX_OK)
-            state.queue_created = false;
-        else
-            fail_once(&state.observation, STAGE_QUEUE_DESTROY, status);
-    }
     if (!state.thread_created && state.semaphore_created) {
         status = crux_semaphore_destroy(&state.handoff);
         if (status == CRUX_OK)
@@ -407,11 +351,6 @@ static const char *stage_name(operation_stage_t stage)
                                         "clock-sleep",
                                         "clock-check",
                                         "clock-end",
-                                        "queue-create",
-                                        "queue-send",
-                                        "queue-receive",
-                                        "queue-fifo",
-                                        "queue-destroy",
                                         "system-expectation",
                                         "stack-observation",
                                         "log-begin",
@@ -640,7 +579,7 @@ ZTEST(m5_integrated, test_unexpected_success_stays_a_failure)
     fail_once(&observation, STAGE_EMPTY_POLL, CRUX_OK);
     zassert_equal(observation.failure_status, CRUX_ERR_INVALID_STATE);
     zassert_equal(observation.failure_stage, STAGE_EMPTY_POLL);
-    fail_once(&observation, STAGE_QUEUE_DESTROY, CRUX_ERR_IO);
+    fail_once(&observation, STAGE_MUTEX_DESTROY, CRUX_ERR_IO);
     zassert_equal(observation.failure_status, CRUX_ERR_INVALID_STATE);
     zassert_equal(observation.failure_stage, STAGE_EMPTY_POLL);
 }

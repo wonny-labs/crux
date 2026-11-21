@@ -35,7 +35,7 @@ precondition and is not checked.
 
 The Host provider is a deterministic loopback fixture, not a bus model: received bytes echo the
 transmitted bytes (`components/spi/host/spi_port_host.c`), and a Zephyr build cannot select it
-(`zephyr/CMakeLists.txt:100-102` adds only `ports/zephyr`). The retirement of this capability is
+(`zephyr/CMakeLists.txt:95-97` adds only `ports/zephyr`). The retirement of this capability is
 follow-up change 4 of [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the
 plan, not yet done. The `native_sim` test uses
 Zephyr's SPI emulation controller and a test peripheral to verify data exchange, the composed

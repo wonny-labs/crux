@@ -30,7 +30,7 @@ native driver does, and no latency bound is guaranteed. Null output pointers ret
 The Host provider is an in-memory test simulation with private input-drive and
 failure-injection controls. It is a loopback test double: a read returns the value that a test
 stored (`components/gpio/ports/host/gpio_host.c`), and it models no GPIO hardware. A Zephyr
-build cannot select it (`zephyr/CMakeLists.txt:110-112` adds only `ports/zephyr`). The retirement
+build cannot select it (`zephyr/CMakeLists.txt:105-107` adds only `ports/zephyr`). The retirement
 of this capability is follow-up change 4 of
 [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the plan, not yet done. The Zephyr provider uses `gpio_dt_spec` and native
 GPIO drivers. A composition must select the line with the `crux-gpio0`

@@ -45,7 +45,7 @@ and makes no concurrency guarantee; separate calls are not an atomic application
 The Host provider is a deterministic loopback fixture: received bytes echo transmitted bytes, and
 read-only transfers return zero bytes. It is for portable consumer tests, not a bus model: it ignores the target address
 (`components/i2c/host/i2c_port_host.c`), so a transfer to any address succeeds, and a Zephyr build
-cannot select it (`zephyr/CMakeLists.txt:95-97` adds only `ports/zephyr`). The retirement of this
+cannot select it (`zephyr/CMakeLists.txt:90-92` adds only `ports/zephyr`). The retirement of this
 capability is follow-up change 4 of
 [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the plan, not yet done. The
 `native_sim` test uses Zephyr's I2C emulation controller and a register-backed emulated target to

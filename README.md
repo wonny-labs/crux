@@ -11,7 +11,7 @@ Products choose where each kind of code goes with the [developer rule](docs/choo
 | Area | Components |
 | --- | --- |
 | Foundation and timing | `base`, `time` |
-| Execution and synchronisation (frozen for new product code) | `thread`, `sync`, `queue` |
+| Execution and synchronisation (frozen for new product code) | `thread`, `sync`. Crux Queue was removed; use Zephyr `k_msgq` ([migration note](docs/messaging-contract.md)) |
 | Communication and networking | `serial` (frozen for new product code), `sockets`, `netif` |
 | Storage and configuration | `file` (FatFs, Reliance Edge), `configuration` |
 | Diagnostics and system | `logging`, `system` |
