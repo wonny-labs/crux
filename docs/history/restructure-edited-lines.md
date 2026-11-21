@@ -287,3 +287,61 @@ Run these in the Dev Container, from the repository root. Choose the ones that f
 ~~~text
 "CI" means the workflows under `.github/workflows` on a pull request. A row marked local ran only on a developer's machine, and its result is recorded in the cited document.
 ~~~
+
+## Merged from main: the Crux Queue removal (#530)
+
+Lines as #530 worded them on main, where the restructure had already rewritten or moved the line. The restructured text carries the Queue removal; these are the words of main:
+
+`README.md`:
+
+~~~text
+| Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync` | Threads, mutexes and semaphores. Crux Queue was removed; use Zephyr `k_msgq` ([migration note](docs/messaging-contract.md)) |
+~~~
+
+`README.md`:
+
+~~~text
+Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets, except that `thread`, `sync` and `serial` are frozen for new product code (existing users keep working; Crux Queue was removed in favour of Zephyr `k_msgq`; see [Choosing an API](docs/choosing-an-api.md)). OS and device services remain within the selected platform integration.
+~~~
+
+`docs/README.md`:
+
+~~~text
+| Execution and messaging | [Thread and Sync](thread-sync.md), [event and queue](messaging-contract.md) and its [validation](messaging-validation.md) (Queue removed) |
+~~~
+
+`docs/README.md`:
+
+~~~text
+Nothing is Stable, because no `v1.0` exists. The tier of each component in [Component readiness](component-readiness.md) is provisional: ADR-0001's assignment of a tier to every public interface (its follow-up change 5) is not done, and only some public headers, those of the management services, Configuration, the web and command line composition interfaces, the Reliance Edge file system type and the image-state contract, carry a `Status: Experimental` line. Separately, `thread`, `sync` and `serial` are **frozen for new product code** (`queue` was frozen too and was removed on 20 November 2026), and `gpio`, `i2c` and `spi` are frozen as Experimental and to be removed (ADR-0001 owner decision D4). A freeze is not a tier; see [Choosing an API](choosing-an-api.md).
+~~~
+
+`docs/component-readiness.md`:
+
+~~~text
+**Frozen for new product code.** `thread`, `sync` and `serial` are frozen for new product code (approved 13 November 2026, see [Choosing an API](choosing-an-api.md); `queue` was frozen too and is now removed, see its row): no new features and no real-time extension, existing users keep working, and the deprecation decision waits. Use Zephyr threads, locks, message queues and UART drivers instead. `gpio`, `i2c` and `spi` are frozen as Experimental by accepted ADR-0001 owner decision D4 (12 November 2026), with deprecation at the first tag and removal in the next tagged release; neither step is done, and new product code uses Zephyr's GPIO, I2C and SPI APIs. The freeze is not a tier. The tiers stay the provisional ones of ADR-0001, and these rows keep their tier and evidence.
+~~~
+
+`docs/component-readiness.md`:
+
+~~~text
+One row per directory under `components/` (29), plus the row of the removed `queue`, then the file variants and the main compositions. E1 to E4 are the levels above. `Issue #N` is in `wonny-labs/crux-pilot`.
+~~~
+
+`docs/component-readiness.md`:
+
+~~~text
+| `gpio` | Implemented, one input line. [Contract](gpio-contract.md) | `crux_gpio_host`: in-memory simulation, `ports/host/gpio_host.c`. A loopback test double (the stored value of one line), not a GPIO model; a Zephyr build cannot select it (`zephyr/CMakeLists.txt:105-107` adds only `ports/zephyr`) | `module`: `CONFIG_CRUX_GPIO`; alias `crux-gpio0`. `tests/ only`: `tests/gpio/zephyr`, `tests/gpio/evkb`, `tests/gpio_physical` | **E3** (RT1060-EVKB twice, and RT1170-EVK A1), also E1, E2. `scripts/test-gpio.sh`. The physical item P1 is a plan: `tests/gpio_physical` has no recorded result ([plan](physical-verification-plan.md)) | "Neither board is qualified for physical use" ([contract](gpio-contract.md)). No output or interrupt API | Experimental: no composition outside `tests/`, and frozen as Experimental by accepted [ADR-0001 Decision 3](decisions/0001-application-boundary-and-api-stability.md#decision-3-what-crux-will-and-will-not-abstract) (D4). Deprecation at the first tag and removal are follow-up change 4 (the plan), not yet done; the header carries the opt-in frozen-header warning |
+~~~
+
+`docs/component-readiness.md`:
+
+~~~text
+| `i2c` | Implemented. [Contract](i2c-contract.md) | `crux_i2c_host`: loopback, `components/i2c/host/i2c_port_host.c`. A test double: it echoes the transmitted bytes, zero-fills a read and ignores the address, so it models no bus; a Zephyr build cannot select it (`zephyr/CMakeLists.txt:90-92`) | `module`: `CONFIG_CRUX_I2C`; alias `crux-i2c0`. `tests/ only`: `tests/i2c_zephyr`, `tests/i2c_consumer_zephyr`, `tests/i2c/evkb` | **E3**, also E1, E2. `scripts/test-i2c.sh`. The TMP117 model is written from a data sheet, with no part used ([tests/README.md](../tests/README.md#i2c)) | No application consumer or physical bus ([contract](i2c-contract.md)) | Experimental, as `gpio`: frozen by accepted D4, with deprecation and removal not yet done (follow-up change 4 is the plan); the header carries the opt-in frozen-header warning |
+~~~
+
+`docs/component-readiness.md`:
+
+~~~text
+| `spi` | Implemented. [Contract](spi-contract.md) | `crux_spi_host`: loopback, `components/spi/host/spi_port_host.c`. A test double: it echoes the transmitted bytes, so it models no peripheral; a Zephyr build cannot select it (`zephyr/CMakeLists.txt:95-97`) | `module`: `CONFIG_CRUX_SPI`; alias `crux-spi0`. `tests/ only`: `tests/spi_zephyr`, `tests/spi_consumer_zephyr`, `tests/spi/evkb` | **E3**, also E1, E2. `scripts/test-spi.sh`. The flash model follows data sheets, with no part used ([tests/README.md](../tests/README.md#spi)) | No application consumer or physical peripheral ([contract](spi-contract.md)) | Experimental, as `gpio`: frozen by accepted D4, with deprecation and removal not yet done (follow-up change 4 is the plan); the header carries the opt-in frozen-header warning |
+~~~
