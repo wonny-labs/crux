@@ -114,7 +114,7 @@ class KconfigTest(unittest.TestCase):
     def test_the_service_symbols_depend_on_the_module(self):
         blocks = kconfig_blocks()
         for symbol in NEW_SYMBOLS:
-            self.assertRegex(blocks[symbol], r"depends on [^\n]*CRUX_PILOT_MODULE", symbol)
+            self.assertRegex(blocks[symbol], r"depends on [^\n]*CRUX_MODULE", symbol)
 
     def test_no_wolf_symbol_is_named(self):
         blocks = kconfig_blocks()
@@ -356,7 +356,7 @@ class Slice3KconfigTest(unittest.TestCase):
         for symbol, (needs, selects) in SLICE3_VISIBLE.items():
             self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
             if needs != "CRUX_NETWORK_SETTINGS":  # that symbol reaches the module through its dependency
-                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_PILOT_MODULE\b", symbol)
+                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_MODULE\b", symbol)
             for chosen in selects:
                 self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
 

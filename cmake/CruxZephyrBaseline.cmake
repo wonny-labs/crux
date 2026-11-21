@@ -9,7 +9,7 @@
 # continues. Crux evidence does not apply to that build. Set
 # -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON to stop such a build instead, as a release should.
 #
-# The Crux Zephyr module runs this while CONFIG_CRUX_PILOT_MODULE is on, so an
+# The Crux Zephyr module runs this while CONFIG_CRUX_MODULE is on, so an
 # application that turns the module off also turns the gate off.
 #
 # Keep CRUX_ZEPHYR_BASELINE equal to the "# vX.Y.Z" comment on the zephyr revision

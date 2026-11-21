@@ -145,7 +145,7 @@ class Provider(unittest.TestCase):
     def test_wolf_profile_is_untouched(self):
         # The option needs the Mbed provider, and nothing selects or implies it.
         self.assertNotRegex(KCONFIG, r"(select|imply)\s+CRUX_PSA_THREADING")
-        self.assertIn("depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS",
+        self.assertIn("depends on CRUX_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS",
                       block("CRUX_PSA_THREADING"))
 
 

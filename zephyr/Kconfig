@@ -1,10 +1,10 @@
-menuconfig CRUX_PILOT_MODULE
+menuconfig CRUX_MODULE
 	bool "Crux Zephyr module"
 	default y
 	help
 	  Enable discovery of Crux's Zephyr integration module.
 
-if CRUX_PILOT_MODULE
+if CRUX_MODULE
 
 config CRUX_TIME
 	bool "Crux Time capability"
@@ -162,22 +162,22 @@ config CRUX_SYNC_SEMAPHORE_COUNT
 
 endif # CRUX_SYNC
 
-endif # CRUX_PILOT_MODULE
+endif # CRUX_MODULE
 
 config CRUX_SOCKETS
     bool "Crux qualified IPv4 client socket profile"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_TCP && NET_UDP
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4 && NET_TCP && NET_UDP
     depends on POSIX_SYSTEM_INTERFACES && POSIX_NETWORKING && POSIX_DEVICE_IO
     depends on POSIX_FD_MGMT && POSIX_TIMERS && POSIX_MONOTONIC_CLOCK
 
 
 config CRUX_NETIF
     bool "Crux primary interface status"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4
 
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL
+    depends on CRUX_MODULE && MULTITHREADING && SERIAL
     depends on UART_INTERRUPT_DRIVEN && UART_USE_RUNTIME_CONFIGURE
     select TIMEOUT_64BIT
     help
@@ -185,7 +185,7 @@ config CRUX_SERIAL
 
 config CRUX_CLI
     bool "Crux command line and serial console"
-    depends on CRUX_PILOT_MODULE && CRUX_SERIAL && CRUX_THREAD
+    depends on CRUX_MODULE && CRUX_SERIAL && CRUX_THREAD
     help
       The command registry and the serial console over Crux Serial. The module links the console
       only under CONFIG_CRUX_CLI_CONSOLE, which also needs Access and provides the event port:
@@ -235,7 +235,7 @@ config CRUX_CLI_CONSOLE_BAUD_RATE
 
 config CRUX_DEVELOPMENT_IMAGE
     bool "Mark this image as a development image"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Opt-in. It allows the Zephyr shell, on its serial backend only, in an image that also has Crux
       management. No image may have a network shell backend or MCUMGR_GRP_SHELL, with or without
@@ -244,32 +244,32 @@ config CRUX_DEVELOPMENT_IMAGE
 
 config CRUX_I2C
     bool "Crux synchronous I2C transfers"
-    depends on CRUX_PILOT_MODULE && I2C
+    depends on CRUX_MODULE && I2C
     help
       Synchronous 7-bit I2C transfers through the composition-selected crux-i2c0 alias.
 
 config CRUX_SPI
     bool "Crux synchronous SPI transceive"
-    depends on CRUX_PILOT_MODULE && SPI
+    depends on CRUX_MODULE && SPI
     help
       Synchronous full-duplex byte transceive through the composition-selected crux-spi0 alias.
 
 config CRUX_LOGGING
     bool "Crux completed-text logging"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
 
 config CRUX_GPIO
     bool "Crux synchronous GPIO line"
-    depends on CRUX_PILOT_MODULE && GPIO
+    depends on CRUX_MODULE && GPIO
     help
       One statically selected input line using the native GPIO driver.
       The required crux-gpio0 Devicetree alias is checked by the provider.
 
 config CRUX_SYSTEM
     bool "Crux System observation, reset and single-owner watchdog"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    depends on CRUX_MODULE && MULTITHREADING
     help
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
@@ -289,14 +289,14 @@ config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
 
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
-    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
+    depends on CRUX_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
     help
       Experimental File provider for software-only storage validation.
       Does not select a target Flash layout, mount or format a volume.
 
 config CRUX_FILE_FATFS_SIMULATOR
     bool "Crux File FatFs simulated-disk simulator candidate"
-    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
+    depends on CRUX_MODULE && BOARD_NATIVE_SIM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
     depends on DISK_DRIVER_RAM || DISK_DRIVER_FLASH
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
@@ -306,7 +306,7 @@ config CRUX_FILE_FATFS_SIMULATOR
 
 config CRUX_FILE_FATFS_RT1060
     bool "Crux File FatFs provider on an RT1062 microSD card"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on CRUX_MODULE && SOC_MIMXRT1062
     depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
     depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
@@ -330,7 +330,7 @@ config CRUX_FILE_FATFS_RT1060
 
 config CRUX_FILE_FATFS_RT1060_RAM_DISK
     bool "Crux File FatFs provider on a RAM disk of an RT1062 board"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on CRUX_MODULE && SOC_MIMXRT1062
     depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
     depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
@@ -349,7 +349,7 @@ config CRUX_FILE_FATFS_RT1060_RAM_DISK
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
+    depends on CRUX_MODULE && SOC_MIMXRT1062
     depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
     depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
@@ -364,7 +364,7 @@ config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
 
 config CRUX_FILE_RELIANCE_EDGE
     bool "Crux File provider on Reliance Edge"
-    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
+    depends on CRUX_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
     depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
@@ -377,7 +377,7 @@ config CRUX_FILE_RELIANCE_EDGE
 
 config CRUX_FILE_POOL_SIZE
     int "Crux File open-handle pool size"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     range 4 32
     default 4
     help
@@ -394,7 +394,7 @@ config CRUX_FILE_POOL_SIZE
 
 config CRUX_FILE_DIR_POOL_SIZE
     int "Crux File listing pool size"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     range 1 8
     default 2
     help
@@ -418,7 +418,7 @@ configdefault FS_FATFS_WINDOW_ALIGNMENT
 
 config CRUX_MMC_CACHE_FLUSH
     bool "Flush the eMMC cache on disk sync (build-local MMC stack correction)"
-    depends on CRUX_PILOT_MODULE && MMC_STACK
+    depends on CRUX_MODULE && MMC_STACK
     default n
     help
       Replace subsys/sd/mmc.c in this build with a copy generated from
@@ -429,7 +429,7 @@ config CRUX_MMC_CACHE_FLUSH
 
 config CRUX_CONFIGURATION_SETTINGS_FILE
     bool "Crux Configuration on the Settings File backend over Reliance Edge"
-    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE
+    depends on CRUX_MODULE && CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE
     help
       Link the Configuration component over the Zephyr Settings File backend, on the Reliance
       Edge file system only. The backend of the pinned Zephyr hides I/O faults, so the build
@@ -443,7 +443,7 @@ config CRUX_CONFIGURATION_SETTINGS_FILE
 
 menuconfig CRUX_WEB
     bool "Crux web server adapter"
-    depends on CRUX_PILOT_MODULE && NETWORKING
+    depends on CRUX_MODULE && NETWORKING
     select HTTP_SERVER
     select HTTP_SERVER_CAPTURE_HEADERS
     select HTTP_SERVER_RESOURCE_WILDCARD
@@ -546,7 +546,7 @@ endif # CRUX_WEB
 # share it. Zephyr's module offers no option for them at the pinned revision, so the module provides them.
 config CRUX_PSA_THREADING
     bool "Locks for TF-PSA-Crypto's core on Zephyr kernel objects (Experimental)"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
+    depends on CRUX_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
       release, and the release notes list the change. Off by default, and no behaviour changes in an
@@ -584,7 +584,7 @@ config TF_PSA_CRYPTO_USER_CONFIG_FILE
 # and Time themselves (ADR-0004 C6), so that a product's configuration names service symbols only.
 config CRUX_ACCESS
     bool "Crux Access with its credential store and security events (Experimental)"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    depends on CRUX_MODULE && MULTITHREADING
     select CRUX_CREDENTIAL
     select CRUX_SECURITY_EVENT
     select CRUX_THREAD
@@ -610,14 +610,14 @@ config CRUX_ACCESS
 
 config CRUX_CREDENTIAL
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The credential store of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
       because the store cannot be linked without Access and the security events.
 
 config CRUX_SECURITY_EVENT
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The security events of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
       because the events cannot be linked without Access and the credential store.
@@ -627,7 +627,7 @@ config CRUX_SECURITY_EVENT
 # and the status service also reads Time.
 config CRUX_CONFIG_SERVICE
     bool "Crux Configuration service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_SYNC
     help
@@ -646,7 +646,7 @@ config CRUX_CONFIG_SERVICE
 
 config CRUX_MGMT_STATUS
     bool "Crux status service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_SYNC
     select CRUX_TIME
@@ -662,7 +662,7 @@ config CRUX_MGMT_STATUS
 
 config CRUX_CONFIGURATION_CORE
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE, CONFIG_CRUX_MGMT_STATUS and
       CONFIG_CRUX_REBOOT, selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
@@ -674,7 +674,7 @@ config CRUX_CONFIGURATION_CORE
 # Crux symbols that it links (ADR-0004 C6).
 config CRUX_NETWORK_SETTINGS
     bool "Crux network settings service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_CONFIG_SERVICE
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_CONFIG_SERVICE
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -702,7 +702,7 @@ config CRUX_NETWORK_SETTINGS_NO_APPLY
 
 config CRUX_TLS_CERTIFICATE
     bool "Crux TLS certificate module (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_SYNC
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
@@ -719,7 +719,7 @@ config CRUX_TLS_CERTIFICATE
 
 config CRUX_FILE_SERVICE
     bool "Crux file service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_SYNC
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
@@ -733,7 +733,7 @@ config CRUX_FILE_SERVICE
 
 config CRUX_REBOOT
     bool "Crux reboot service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_THREAD
     select CRUX_SYNC
@@ -753,7 +753,7 @@ config CRUX_REBOOT
 # links (ADR-0004 C6).
 config CRUX_WEB_SESSION
     bool "Crux web sessions (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_WEB
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -771,7 +771,7 @@ config CRUX_WEB_SESSION
 
 config CRUX_WEB_MANAGEMENT
     bool "Crux web management (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -786,7 +786,7 @@ config CRUX_WEB_MANAGEMENT
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
     depends on WOLFSSH
     help
       Selects the wolfSSH provider behind the private provider interface, with the access adapter, and
