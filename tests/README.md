@@ -28,7 +28,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 ## Before you open a pull request
 
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on each pull request, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). On GitHub, the workflow files under `.github/workflows/` define what CI covers.
+Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on pull requests, but not all, and its Zephyr part skips a pull request that changes only documentation. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). On GitHub, the workflow files under `.github/workflows/` define what CI covers.
 
 | Change | Command |
 | --- | --- |

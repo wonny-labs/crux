@@ -46,7 +46,7 @@ scripts/bootstrap-zephyr.sh --install-sdk    # pinned west workspace and Zephyr 
 scripts/test-controller.sh                   # native_sim scenarios and the EVKB cross-build
 ```
 
-CI runs most of the same scripts on each pull request; the test guide says which runs stay local. None of these commands programs or resets a board. Debugging, resets and programming need a separately approved procedure: see [RT1060-EVKB debugging](docs/build.md#rt1060-evkb-debugging). The [test guide](tests/README.md) lists the other suites and the checks to run before a pull request.
+CI runs most of the same scripts on pull requests; the test guide says which runs stay local. None of these commands programs or resets a board. Debugging, resets and programming need a separately approved procedure: see [RT1060-EVKB debugging](docs/build.md#rt1060-evkb-debugging). The [test guide](tests/README.md) lists the other suites and the checks to run before a pull request.
 
 ## Where to read next
 

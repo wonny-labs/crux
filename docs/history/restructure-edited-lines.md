@@ -282,12 +282,6 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI (`.github/workflows/`) runs most of these checks and most of the component runners, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
 ~~~
 
-`tests/README.md`:
-
-~~~text
-Run these in the Dev Container, from the repository root. Choose the ones that fit the change. CI runs most of these checks and most of the component runners on each pull request, but not all. For example, some runners named in [Component readiness](../docs/component-readiness.md) are local only (the integrated SSH, the TLS PSA and the Wolf profile runs). Read the workflow files for what CI covers.
-~~~
-
 `docs/management-in-a-product.md`:
 
 ~~~text
