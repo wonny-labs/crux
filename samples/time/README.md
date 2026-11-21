@@ -35,7 +35,8 @@ uart:~$ time get
 ```
 
 `native_sim` keeps a simulated clock, so `time get` advances with simulated uptime after `time set`, not with the
-Host's wall clock. Twister runs this sample from [`sample.yaml`](sample.yaml) and stops it after the ready line:
+Host's wall clock. This sample does not slow the simulation to real time, so the second `time get` can show a later
+time than the example. Twister runs this sample from [`sample.yaml`](sample.yaml) and stops it after the ready line:
 
 ```sh
 west twister -T crux-pilot/samples/time -p native_sim/native/64

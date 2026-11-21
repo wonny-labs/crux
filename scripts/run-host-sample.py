@@ -43,9 +43,12 @@ def serve_udp(endpoint, stop):
     while not stop.is_set():
         try:
             data, peer = endpoint.recvfrom(4096)
+            endpoint.sendto(data, peer)
         except socket.timeout:
             continue
-        endpoint.sendto(data, peer)
+        except OSError:
+            if stop.is_set():
+                break
 
 
 def start_echo_peer(stop):
