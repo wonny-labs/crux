@@ -6,6 +6,7 @@ This page finds the right page for what you want to do. Start at the [repository
 
 - [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the first commands.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications, provider selection and debugging.
+- [RT1060-EVKB with J-Link, usbipd and west](board-jlink-usbipd.md): the board route with `west flash` and `west debug` in the optional board Dev Container, and its first check on a Windows PC.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
 
 ## Build a product on Crux
