@@ -1,26 +1,24 @@
 # ADR-0005: How a consumer composes the Crux System service on native_sim with a test watchdog (proposal)
 
-Status: **Accepted** on 14 November 2026, as recommended: S1 to S9. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `5c09d431049adee62f87332968e0235bb53cc0aa`. Author: Claude Code, model `claude-sonnet-5-5` (a lower model than a design record deserves; the independent review is by the `reviewer` agent on Opus). The owner asked for this in the Crux Controller chat on 14 November 2026 ("Crux에 요청", relayed) and approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC ("추천대로 승인할게", relayed by that session), with the order that the work starts after [ADR-0004](0004-product-composition-of-management-services.md) merges (it merged as #403). The same words and time are recorded in ADR-0004 for its acceptance; I did not see the chat and cannot say whether one message or two carried them.
+Status: **Accepted**, as recommended: S1 to S9, listed under [Decided](#the-owners-decisions). The T4 row of section 4 was later amended in place to match the S6 guard rule. Route A and the Crux-side follow-ups are implemented, see [Follow-up changes](#follow-up-changes).
 
-This record is documentation only. It adds no code, check, target, header, Kconfig symbol or test seam, adopts no public interface and changes no protected path. It does not edit an accepted ADR. Every change that it puts forward would be its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
+This record decides how a consumer composes the System service on `native_sim` with a test watchdog. Each change that it put forward is its own reviewed change, listed under [Follow-up changes](#follow-up-changes).
 
-**Labels.** **Verified** means I read it at the baseline revision and cite `path:line`, or I ran it and say how. **Reported** means a named document or note says it and I did not re-check it. **Inference** is my reading. **Not verified** means no run or read exists. No Zephyr build, `native_sim` run or hardware command ran for this record: see [What was run](#what-was-run).
+**Labels.** **Verified** means read at the record's baseline revision and cited as `path:line`, or run as stated. **Reported** means a named document or note says it and it was not re-checked. **Inference** is a reading of the sources. **Not verified** means no run or read exists. No Zephyr build, `native_sim` run or hardware command ran for this record.
 
-## The recommendation in brief
+## In brief
 
-- **The gap is real, and it is narrow.** On `native_sim` the System binding returns no watchdog device and reports "not running" (`components/system/ports/zephyr/system_binding.c:5-17`), so `crux_watchdog_start` returns `CRUX_ERR_NOT_SUPPORTED` and nothing can feed or miss a feed. Crux's own tests fill that seam by wrapping two private symbols at link time (`tests/system/zephyr/CMakeLists.txt:8-12`). A consumer outside this repository has no public way to do the same. This matches the Controller session's reading at its pin `37c92b18`. The System component and its tests are unchanged between that pin and the baseline (**Verified**: `git diff --stat 37c92b18 HEAD` over `components/system`, `tests/system`, `tests/system_consumer` and `zephyr/Kconfig` lists only `zephyr/Kconfig`).
-- **Recommended route: A**, a `native_sim`-only simulated watchdog that the Zephyr module provides and a Kconfig symbol selects, with a configure error on any other board. It adds one Kconfig symbol (an Experimental public interface under ADR-0001 Decision 4), no header, no target and no function. The six composition rules do not apply, because no composition interface is published. **Alternative: C**, the existing `crux-watchdog0` devicetree alias widened to `native_sim` and pointed at Zephyr's own counter watchdog. It adds no Crux symbol, but Zephyr's counter watchdog refuses the setup option that the System provider always passes, so C needs a change in the shared provider (**Verified**, section 1.1) and the saving over A is small.
-- **Not recommended: B**, a public test seam. It needs a new header, an INTERFACE target, a tier and a board guard, and it would make a product write a Zephyr watchdog driver. The Controller session reports that its boundary check refuses Zephyr watchdog headers in every tree (**Reported**, PR #45 body), so B is unusable for the product that asked.
-- **What native_sim can show, and what it cannot.** It can show the boot cause line, a feed cycle and a missed feed that ends the simulated process or, with `CONFIG_NATIVE_SIM_REBOOT=y`, restarts it. It cannot show the `CRUX_RESET_CAUSE_WATCHDOG` bit: the simulator's reset-cause mask is power-on and software only, and a restart records software (**Verified** at the Zephyr pin, sections 1.1 and 3). It is not hardware evidence and says nothing about the board.
-- **A negative test for a link-time wrap needs a guard change.** I ran the consumer guard on macOS: it refuses a wrap of the two binding symbols only by accident of their names, and accepts a wrap of `sys_reboot` or the HWINFO calls (**Verified**, section 4). Closing that is a protected-path change.
-- **The reset loop is the product's to decide.** Crux System has no stop, no rearm and no boot journal by contract. The recommendation is no Crux change (section 5).
-- **Nine questions** for the owner are at the end, each with a recommendation.
+- On `native_sim` the System binding returned no watchdog device, so a consumer outside this repository had no public way to start, feed or miss a feed of the watchdog. Crux's own tests filled that seam with a link-time wrap of two private symbols.
+- **Route A** is adopted: a `native_sim`-only simulated watchdog that the Zephyr module provides and one Kconfig symbol selects, with a configure error on any other board. It adds one Experimental Kconfig symbol, no header, no target and no function. Route C (Zephyr's counter watchdog) and route B (a public test seam) are not adopted.
+- `native_sim` can show the boot cause line, a feed cycle and a missed feed that restarts the simulated process. It cannot show the `CRUX_RESET_CAUSE_WATCHDOG` bit, and it is not hardware evidence.
+- The consumer guard refuses a link-time wrap of any `crux_` symbol (S6).
+- The reset loop is the product's to decide. Crux System keeps no stop, no rearm and no boot journal.
 
 ## Context
 
 [ADR-0001](0001-application-boundary-and-api-stability.md) (Decision 2, adopted as the owner's item D3, and Decision 4, adopted as item D5) adopted the [composition interface rules](../composition-interfaces.md) and the stability tiers. [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0003](0003-p9-result-services-keep-narrow-thread-sync.md) decided that product code uses the OS natively. ADR-0004 decided how a product composes the management services and named the System service in its scope, and its boundary-test fixture is the model here.
 
-The Crux Controller product adopted the System service in its PR #45 (merge `9a906b1`, **Reported**): the reset cause is logged at boot, the watchdog is fed by the workload's producer thread, and the policy is plain C. Its issue #41 stays open because its acceptance criterion "a `native_sim` scenario shows the reset cause line and a feed cycle, and a missed feed is observed as the Crux contract describes" cannot be met by a product (**Reported**, issue #41 comment of 14 November 2026 17:15 UTC, and its findings note `docs/findings/s4-system-composition.md`, friction 1 and 7). I read all three with `gh api` and re-checked the Crux side below.
+The Crux Controller product adopted the System service: the reset cause is logged at boot, the watchdog is fed by the workload's producer thread, and the policy is plain C (**Reported**). Its acceptance criterion "a `native_sim` scenario shows the reset cause line and a feed cycle, and a missed feed is observed as the Crux contract describes" could not be met by a product (**Reported**, its issue #41 and its findings note `docs/findings/s4-system-composition.md`, friction 1 and 7). The Crux side is re-checked below.
 
 ## 1. Current state
 
@@ -36,7 +34,7 @@ The Crux Controller product adopted the System service in its PR #45 (merge `9a9
 | 8 | `tests/system_consumer` is a Crux-owned application in this repository, not an out-of-tree consumer | path | Verified |
 | 9 | `crux-watchdog0` is named in no user-facing document. It appears in the System design spec, a feasibility record (`docs/rt1170-evk-a1-feasibility.md:68`), the binding, and tests and overlays | `grep` of tracked `*.md`, `*.overlay`, `*.c`, `*.txt`, `*.yml`, `*.py` outside `docs/evidence` | Verified |
 | 10 | `<crux/system.h>` includes only `<crux/status.h>`, `<stdbool.h>` and `<stdint.h>`. It carries no `Status:` tier line, and no tier table exists yet | `components/system/include/crux/system.h:11-13`, `docs/compatibility-table.md` (a revision table, not a tier table) | Verified |
-| 11 | `CONFIG_CRUX_SYSTEM` depends on `CRUX_PILOT_MODULE && MULTITHREADING` and the module adds its subdirectory under that symbol. The Zephyr provider links `crux_system_api` (and through it `crux::base`), `zephyr_interface` and `crux_interrupt`, and none of them links a Thread, Sync, Queue or Serial target as far as I read. System needs no frozen Thread, Sync, Queue or Serial symbol | `zephyr/Kconfig:223-228`, `zephyr/CMakeLists.txt:108-111`, `components/system/ports/zephyr/CMakeLists.txt` last two lines | Verified |
+| 11 | `CONFIG_CRUX_SYSTEM` depends on `CRUX_PILOT_MODULE && MULTITHREADING` and the module adds its subdirectory under that symbol. The Zephyr provider links `crux_system_api` (and through it `crux::base`), `zephyr_interface` and `crux_interrupt`, and none of them links a Thread, Sync, Queue or Serial target as read from the sources. System needs no frozen Thread, Sync, Queue or Serial symbol | `zephyr/Kconfig:223-228`, `zephyr/CMakeLists.txt:108-111`, `components/system/ports/zephyr/CMakeLists.txt` last two lines | Verified |
 
 **Existing precedents for a `native_sim`-only switch.** `CRUX_FILE_SIMULATOR` depends on `BOARD_NATIVE_SIM` (`zephyr/Kconfig:230-234`). `CRUX_WEB_PLAIN_HTTP_FOR_TESTS` depends on `BOARD_NATIVE_SIM` and says "no other board can select it" (`zephyr/Kconfig:420-424`). `CRUX_SETTINGS_FILE_CONTROL` is a CMake variable that stops the configure step on any other board (`zephyr/CMakeLists.txt:142-146`). All three are **Verified** by reading.
 
@@ -49,7 +47,7 @@ The Crux Controller product adopted the System service in its PR #45 (merge `9a9
 
 ### 1.1 The Zephyr side on `native_sim` (read at the manifest pin)
 
-The manifest pins Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90` (`west.yml:19`, v4.4.2). The local workspace checkout is `684c9e8f` (v4.4.0), but the pinned commit is present as a git object, so I read the files with `git show`. For `hwinfo_native.c`, `wdt_counter.c`, `reboot.c` and `reboot_bottom.c` the two revisions are identical (**Verified**, empty `git diff --stat` between them). `cpuhalt.c`, the native_sim `Kconfig`, `CMakeLists.txt`, `native_sim.dts` and the watchdog `Kconfig` were read at the pin only.
+The manifest pins Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90` (`west.yml:19`, v4.4.2). The facts below were read at that pin.
 
 | Fact | File at the pin | Status |
 | --- | --- | --- |
@@ -63,22 +61,9 @@ The manifest pins Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90` (`west.yml:1
 | The counter watchdog runs on the native-sim counter at this pin once the provider's call sequence is adapted (counter alarms, tick range, the native-sim counter's channel count) | no build or run | **Not verified** |
 | A `native_sim` process re-exec keeps its console output in one Twister harness stream | no run | **Not verified** |
 
-### 1.2 What the boundary guard does today (ran on macOS)
+### 1.2 What the boundary guard did before the S6 rule
 
-`crux_assert_portable_consumer` (`cmake/CruxConsumerBoundary.cmake:157`) inspects a consumer target's own include directories, link options and the rest. I ran it on `app` in throwaway CMake projects in my scratchpad, with `cmake` 4.4.5 on macOS, against the unmodified guard:
-
-| Probe | Result |
-| --- | --- |
-| nothing added | accepted |
-| `-I components/system/include` | accepted |
-| `-I components/system/ports/zephyr` | **refused** (`components/<c>/ports` pattern, `:130`) |
-| `-I components/system/src` | **refused** |
-| `-Wl,--wrap=crux_watchdog_zephyr_device` | **refused**, by the token `zephyr` in the name (`:125`) |
-| `-Wl,--wrap=crux_watchdog_zephyr_running` | **refused**, same reason |
-| `-Wl,--wrap=z_impl_hwinfo_get_reset_cause` | **accepted** |
-| `-Wl,--wrap=sys_reboot` | **accepted** |
-
-All eight are **Verified** by that run. The guard is a function that a consumer's CMake must call. Whether a given consumer calls it is the consumer's choice (Controller has its own Python check, **Reported**). So today a wrap of the seam is refused only by the spelling of two names, and the guard has no rule about link-time wraps.
+`crux_assert_portable_consumer` (`cmake/CruxConsumerBoundary.cmake`) inspects a consumer target's own include directories, link options and the rest. Before the S6 rule, probes against the guard showed that a consumer adding `components/system/ports/zephyr` or `components/system/src` was refused and the public include root accepted. A wrap of `crux_watchdog_zephyr_device` or `crux_watchdog_zephyr_running` was refused only by the token `zephyr` in the name, and a wrap of `z_impl_hwinfo_get_reset_cause` or `sys_reboot` was accepted: the guard had no rule about link-time wraps. The guard is a function that a consumer's CMake must call, so whether a given consumer calls it is the consumer's choice.
 
 ## 2. Routes
 
@@ -102,7 +87,7 @@ All eight are **Verified** by that run. The guard is a function that a consumer'
 | Depends on an unverified fact | no | no | **yes**: the counter watchdog on the native-sim counter, after the provider change | no |
 | Closes issue #41's criterion | yes | yes, but the product cannot use it | yes if the spike passes | no |
 
-**Recommendation: A.** It is the smallest public cost that works for the product that asked, it follows three existing `native_sim`-only precedents, it needs no devicetree and no product-written driver, and it does not rest on an unverified Zephyr behaviour. It also lets the provider know at compile time that the device is a simulation, which section 3 uses. Its weak point is that Crux owns a small simulated device where Zephyr already has a counter watchdog; but that driver cannot take the provider's call sequence as it is (section 1.1), so reusing it moves the simulator's special cases into the shared provider instead of removing them. **Alternative: C**, if the owner prefers zero new Crux symbols and upstream reuse. C's first step would be a CI-only spike that shows the counter watchdog running on the native-sim counter with the changed setup options and a channel count of 1; the answer decides C. The two do not exclude each other: the A device can be dropped later if C proves out. **Against B:** it is the most public surface for the least gain, it inverts a provider getter into a product port, and the requesting product could not use it.
+**Decision: A (S1).** It is the smallest public cost that works for the product that asked, it follows three existing `native_sim`-only precedents, it needs no devicetree and no product-written driver, and it does not rest on an unverified Zephyr behaviour. It also lets the provider know at compile time that the device is a simulation, which section 3 uses. Its weak point is that Crux owns a small simulated device where Zephyr already has a counter watchdog; but that driver cannot take the provider's call sequence as it is (section 1.1), so reusing it moves the simulator's special cases into the shared provider instead of removing them. **Alternative considered: C**, for zero new Crux symbols and upstream reuse. C's first step would be a CI-only spike that shows the counter watchdog running on the native-sim counter with the changed setup options and a channel count of 1; the answer decides C. The two do not exclude each other: the A device can be dropped later if C proves out. **Against B:** it is the most public surface for the least gain, it inverts a provider getter into a product port, and the requesting product could not use it.
 
 ## 3. What the consumer scenario can show
 
@@ -121,13 +106,13 @@ The consumer is an application outside this repository that links `crux::system`
 
 **A simulated watchdog is not hardware evidence.** A `native_sim` pass says the product calls System in the right order and handles the answers. It makes no claim about the RT1060-EVKB, its watchdog, its reset or its reset-cause register, and no board result may cite it.
 
-**The process restart.** The spec says "never call an actual machine reset" for `native_sim` tests (`:305`). A re-exec of a simulated target is not a reset of the host machine, but the sentence was written when the plan was a controlled fixture. **Inference:** the restart is within its intent. It is S4 for the owner.
+**The process restart.** The spec says "never call an actual machine reset" for `native_sim` tests (`:305`). A re-exec of a simulated target is not a reset of the host machine, but the sentence was written when the plan was a controlled fixture. S4 decides that the restart is within its intent.
 
 ## 4. Boundary test plan
 
 The model is `tests/build/test_file_zephyr_boundary.py` (a small CMake project run against the real guard and against a weakened copy, so a rejection is not vacuous) and ADR-0004's out-of-tree fixture ([ADR-0004 section 5](0004-product-composition-of-management-services.md#5-boundary-test-plan)). The fail-closed cases follow `tests/build/test_system_composition.py`, which is environment-gated and runs `west build --cmake-only` per case.
 
-**T1, Host, no Zephyr SDK: a consumer cannot reach the private seam.** On the model of the table in section 1.2, fixed as a test: a consumer target that adds `components/system/ports/zephyr` or `components/system/src` is refused, and the public include root is accepted. This part passes at the baseline (**Verified** by the probe) and runs on macOS. It needs no change to the guard.
+**T1, Host, no Zephyr SDK: a consumer cannot reach the private seam.** On the model of the boundary guard of section 1.2 (its full table is in the [history record](../history/adr-0005-record.md)), fixed as a test: a consumer target that adds `components/system/ports/zephyr` or `components/system/src` is refused, and the public include root is accepted. This part passes at the baseline (**Verified** by the probe) and runs on macOS. It needs no change to the guard.
 
 **T2, Host: the link-time wrap is refused.** The probes of section 1.2 show that only the two seam names are refused, by accident. A wrap of `z_impl_hwinfo_get_reset_cause` or `sys_reboot` is accepted. So a test that says "a link-time wrap of a System seam is refused" passes for two symbols and fails for the rest. Two options: (i) extend the guard with a narrow rule that refuses `-Wl,--wrap=` of any symbol that begins with `crux_` or `__wrap_crux_`, which catches the seam by identity and leaves a product's own wraps of Zephyr symbols alone; (ii) refuse every wrap on a consumer target, which is simple and may flag Crux's own fixtures (`tests/system_consumer/consumers.cmake:15` calls the guard on its consumer targets, `tests/system/zephyr` does not, and the rest was not traced: **Not verified**). The guard is a protected path, so it is a separate approved change (S6). Each case also runs against a weakened guard and must then pass, as the File test does.
 
@@ -149,7 +134,7 @@ On a board other than `native_sim`, a symbol that the A symbol selects (`NATIVE_
 
 **T5, provider absent by default.** On `native_sim` with the symbol off, the binding returns `NULL` and the System status is `CRUX_ERR_NOT_SUPPORTED` and `CRUX_WATCHDOG_UNAVAILABLE`, as `tests/m5_integrated/zephyr/main.c:425-431` expects; no simulated device appears in the ELF. This keeps every existing test unchanged (**Inference**: the symbol is off in them, and their link-time wraps of the two binding functions are untouched because they are in a separate translation unit from the callers).
 
-**Where it runs.** T1 and T2 in the Host job. T3 to T5 in a Zephyr shard next to the System run in `.github/workflows/zephyr.yml` (`./scripts/test-system.sh`, the runtime shard). Per the owner's rule, push the Draft PR and let CI run the Zephyr parts. No local amd64 emulation.
+**Where it runs.** T1 and T2 in the Host job. T3 to T5 in a Zephyr shard next to the System run in `.github/workflows/zephyr.yml` (`./scripts/test-system.sh`, the runtime shard). The Zephyr parts run in CI.
 
 ## 5. The possible reset loop
 
@@ -164,7 +149,7 @@ What Crux guarantees, **Verified**: one activation per boot, a failed or uncerta
 | L3, a product-side loop guard | The product counts watchdog-cause boots in its own storage and, above a limit, does not arm and enters a safe state | The product needs persistence and a safe-state design. This is product policy. `native_sim` can test it, because the simulated flash disk keeps its contents across the process restart (`zephyr/Kconfig`, `CRUX_FILE_FATFS_SIMULATOR` help) |
 | L4, a Crux boot journal or a disarm call | Crux breaks the loop | Contradicts the accepted contract (single activation, no stop, no journal) and adds public API. Not proposed |
 
-**Recommendation: L1 now, and L2 with L3 as product decisions** that the Controller session records. Crux changes nothing in code. A docs-only note in the System documentation can state that arming order and loop policy belong to the product (S7). **Alternative:** L2 alone, if the owner wants no persistence in the product. On `native_sim` the scenario of section 3 shows the loop with no extra work: a fixture that never feeds restarts forever until the test timeout. The scenario must therefore tell the second boot apart (by the SOFTWARE cause) and feed on it, or the test never ends.
+**Decision: L1 now, and L2 with L3 as product decisions** that the consumer records. Crux changes nothing in code. A docs-only note in the System documentation states that arming order and loop policy belong to the product (S7). **Alternative considered:** L2 alone, with no persistence in the product. On `native_sim` the scenario of section 3 shows the loop with no extra work: a fixture that never feeds restarts forever until the test timeout. The scenario must therefore tell the second boot apart (by the SOFTWARE cause) and feed on it, or the test never ends.
 
 ## 6. Interaction with ADR-0004 and the frozen headers
 
@@ -175,7 +160,7 @@ What Crux guarantees, **Verified**: one activation per boot, a failed or uncerta
 
 ## Follow-up changes
 
-None is part of this record. Each needs its own reviewed change after the owner decides. Protected paths are listed so approval can be asked per change (ADR-0004 C9).
+None is part of this record. Each is its own reviewed change, and a change on a protected path needs approval of that change (S9). Items 1 to 6 are done: the Kconfig symbol `CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` with the simulated device (item 2), `watchdog_emulated` for that symbol (item 3), the guard rule and its tests (item 4), the out-of-tree fixture with `scripts/test-consumer-system.sh` (item 5) and the note in [System validation](../system-validation.md) (item 6). Item 7 belongs to the consumer.
 
 1. This record's acceptance or rejection, and the `docs/decisions/README.md` row. **Protected:** none.
 2. Route A: the Kconfig symbol in `zephyr/Kconfig`, the CMake check, the private simulated device and the binding branch under `components/system/ports/zephyr/`, with T5 and the unit tests first. **Protected:** none expected (`zephyr/` and `components/` are not on the list).
@@ -185,34 +170,14 @@ None is part of this record. Each needs its own reviewed change after the owner 
 6. A docs note on arming order and loop policy (S7). **Protected:** none.
 7. On the Controller side, a pin move to a Crux revision that holds the change, and the scenario that closes issue #41. Those are the Controller's decisions, not Crux's.
 
-## Open questions for the owner
+<a id="the-owners-decisions"></a>
 
-The recommendation comes first in each row.
-
-| # | Question | Recommendation | Reason, and the alternative |
-| --- | --- | --- | --- |
-| S1 | Which route: A, B, C or D? | **A** | Smallest public cost that the requesting product can use, three precedents, no unverified Zephyr fact (one simulator timing behaviour stays **Not verified**, section 3). C if you want zero new Crux symbols, accept a change in the shared provider, and accept a CI spike first. B is refused by the product's boundary check. D leaves issue #41 open |
-| S2 | May Crux add one Kconfig symbol for the simulated watchdog, at tier Experimental, with a name that says `native_sim` and test only (illustrative: `CRUX_SYSTEM_NATIVE_SIM_WATCHDOG`)? | **Yes** | Adopting a Kconfig symbol is a public interface decision (ADR-0001 Decision 4). Experimental lets it change in any release with a release-note entry. Alternative: no symbol, which is route C |
-| S3 | Should `watchdog_emulated` be `true` when the simulated device is bound? | **Yes, only for the A symbol** | The contract defines the field as a simulation marker, and the product could log it. No lifecycle effect, because the Zephyr probe never reports `expired` and the Zephyr feed never returns `CRUX_ERR_TIMEOUT`. It changes two existing assertions, so it needs your yes. Alternative: leave it `false` and rely on the log line and the documentation |
-| S4 | Does "never call an actual machine reset" (System spec `:305`) allow the `native_sim` process restart on a missed feed? | **Yes**, recorded here and in a docs note | A re-exec of a simulated target does not reset the host. Alternative: the simulated device never restarts and only records the expiry, which cannot show "its reset" and so does not meet issue #41 |
-| S5 | What does the simulated device do on expiry, and should the A symbol `select NATIVE_SIM_REBOOT`? | **Print one line, then `sys_reboot`, and select the symbol** | `sys_reboot` is the path `crux_system_reset` already uses (`system_zephyr.c:91`), so it adds no new contract; Zephyr's counter watchdog uses `LOG_PANIC()` and `sys_arch_reboot(0)` directly (`wdt_counter.c:63-66`), which is the alternative if the owner wants the panic flush. Without the select a missed feed ends the process with status 1 and the scenario has no second boot, and a product that forgets the symbol gets a surprising exit. The provider already requires `REBOOT`, so the select adds nothing else. Alternative: no select, and the product sets the symbol itself, which keeps the symbol list explicit but is easy to forget |
-| S6 | Add a narrow rule to the consumer guard that refuses `--wrap` of `crux_`-prefixed symbols? | **Yes, as its own protected change** | It closes the seam by identity and does not touch a product's Zephyr wraps. Alternative: refuse every wrap (simple, may flag Crux fixtures), or leave T2 to the consumer's own check and test only the two names that the guard refuses today |
-| S7 | Add a docs-only note that arming order and loop policy belong to the product? | **Yes** | It states the contract's limit and stops a future reader from looking for a Crux fix. Alternative: no note |
-| S8 | Put the System scenario in ADR-0004's out-of-tree fixture mechanism, shipped first on its own? | **Yes** | One mechanism for both, and the System scenario needs no phase 0. Alternative: a separate script now |
-| S9 | Approve the protected-path changes per follow-up, as ADR-0004 C9 did? | **Per follow-up** | Only follow-up 4 (the guard rule) and follow-up 5 (CI workflow) touch protected files |
-
-### The owner's decisions
-
-The owner accepted this record as recommended, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC. The time is the one the Crux Pilot main session read from its shell (18:37:03Z) when it acted, moments after the owner's message, and the owner's time zone was not recorded. The owner's words, relayed by that session, answered its question "accept ADR-0005 as recommended (S1-S9)". In that message the main session had pointed out S4 and S6 for a second look:
-
-> 추천대로 승인할게
-
-This means "I approve as you recommended". Acceptance was recorded from the owner's words as that session relayed them; I did not see the chat.
+## Decided
 
 | # | Decision |
 | --- | --- |
 | S1 | Route A: a `native_sim`-only simulated watchdog that the Zephyr module provides and one Kconfig symbol selects, with a configure error on any other board |
-| S2 | Crux may add one Kconfig symbol for it, at tier Experimental, with a name that says `native_sim` and test only (`CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` is illustrative) |
+| S2 | Crux adds one Kconfig symbol for it, at tier Experimental, with a name that says `native_sim` and test only: `CRUX_SYSTEM_NATIVE_SIM_WATCHDOG` |
 | S3 | `watchdog_emulated` is `true` only when the simulated device of the A symbol is bound |
 | S4 | The `native_sim` process restart on a missed feed is allowed under the System spec's "never call an actual machine reset" |
 | S5 | The simulated device prints one line and then calls `sys_reboot`, and the A symbol selects `NATIVE_SIM_REBOOT` |
@@ -221,20 +186,6 @@ This means "I approve as you recommended". Acceptance was recorded from the owne
 | S8 | The System scenario uses the out-of-tree fixture mechanism of ADR-0004 and ships first on its own |
 | S9 | Protected-path changes are approved per follow-up change |
 
-Accepting this record decides these questions. It changes no code, check, target, header, Kconfig symbol or protected path, and it authorises no hardware operation. Each follow-up under [Follow-up changes](#follow-up-changes) is its own reviewed change and needs its own approval, including for every protected path that it touches ([the convention](README.md#convention)).
+This record authorises no hardware operation. Each follow-up under [Follow-up changes](#follow-up-changes) is its own reviewed change, including for every protected path that it touches ([the convention](README.md#convention)).
 
-## What was run
-
-On native macOS, in the worktree at `5c09d431`: `git fetch`, reads of the files cited above, `grep`, `gh api` for the Controller issue, comment, PR and findings note, `gh pr list` to check that number 0005 was free, and `git show` and `git diff --stat` in the local Zephyr checkout (read-only) for the pinned revision. The consumer-guard probes of section 1.2: eight throwaway CMake projects in the session scratchpad, configured with `cmake` 4.4.5 against the unmodified guard. They changed nothing in the repository. Not run: `west`, any Zephyr build, Twister, `native_sim`, any test of the repository, any hardware command. The documentation link check is recorded in the pull request.
-
-## Record
-
-| Item | Value |
-| --- | --- |
-| Baseline | `5c09d431049adee62f87332968e0235bb53cc0aa` |
-| Skills and agents used | `ecc:architecture-decision-records` (record shape, with this repository's convention and `docs/decisions/` taking precedence over its defaults), `ecc:search-first` (search of existing seams, tests, targets and precedents before proposing anything new, with no install or dependency) |
-| Model | `claude-sonnet-5-5`, Claude Code |
-| Independent review | The `reviewer` agent, verdict in the pull request |
-| Approval | Proposal only, by the owner in the Crux Pilot main session chat on 14 November 2026 at about 17:50 UTC: "추천대로 승인할게", relayed by that session. The request came from the Crux Controller chat ("Crux에 요청"), relayed. This row records the approval to write the proposal only; acceptance is the next row |
-| Acceptance | The owner, as recommended (S1 to S9), 14 November 2026 at about 18:37 UTC in the Crux Pilot main session chat: "추천대로 승인할게". Relayed by that session. See [the owner's decisions](#the-owners-decisions) |
-| Amendment | The owner amended the T4 row of section 4 (line 145) that read `-Wl,--wrap=sys_reboot` so that it matches S6 as merged in #434 (the row now reads `-Wl,--wrap=crux_system_probe`, any `crux_` symbol, and says that a wrap of a Zephyr symbol is accepted on purpose). Approved on 15 November 2026 in the Crux Pilot main session chat, relayed by that session: "모두 추천대로 승인할테니 진행해줘." (2026-11-15 09:39 UTC; I approve everything as recommended, go ahead) for the row, and "추천대로 모두 승인할께" (2026-11-15 about 10:55 UTC; I approve everything as recommended) for recording it as a dated line here with the in-place edit, which is an exception to the rule of `docs/decisions/README.md` that an accepted record is not rewritten. Nothing else in this record changed. Pull request #442 |
+The drafting record, measurements and approval history are in [history/adr-0005-record.md](../history/adr-0005-record.md).
