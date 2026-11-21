@@ -226,6 +226,39 @@ static crux_web_result_t on_stats(crux_web_request_t *request, crux_access_sessi
     return crux_web_respond(request, 200, NULL, body, (size_t)length);
 }
 
+/* A second crux_web_start() while this request is open. The main thread makes the call, in
+ * web_probe_serve_second_start(), and this handler waits for it on the server thread. */
+static K_SEM_DEFINE(second_start_requested, 0, 1);
+static K_SEM_DEFINE(second_start_done, 0, 1);
+static crux_web_result_t second_start_result;
+
+static crux_web_result_t on_second_start(crux_web_request_t *request, crux_access_session_t session,
+                                         void *context)
+{
+    char body[48];
+    int length;
+
+    (void)session;
+    (void)context;
+    k_sem_reset(&second_start_done);
+    k_sem_give(&second_start_requested);
+    if (k_sem_take(&second_start_done, K_SECONDS(5)) != 0) {
+        length = snprintf(body, sizeof(body), "{\"second_start\":\"timeout\"}");
+    } else {
+        length = snprintf(body, sizeof(body), "{\"second_start\":%d}", (int)second_start_result);
+    }
+    return crux_web_respond(request, 200, NULL, body, (size_t)length);
+}
+
+void web_probe_serve_second_start(const crux_web_config_t *config)
+{
+    for (;;) {
+        (void)k_sem_take(&second_start_requested, K_FOREVER);
+        second_start_result = crux_web_start(config);
+        k_sem_give(&second_start_done);
+    }
+}
+
 CRUX_WEB_ROUTE(login, "/api/v1/session", CRUX_WEB_POST, CRUX_WEB_PUBLIC, on_named, "login");
 CRUX_WEB_ROUTE(logout, "/api/v1/session", CRUX_WEB_DELETE, CRUX_WEB_SESSION, on_named, "logout");
 CRUX_WEB_ROUTE(attempt, "/api/v1/session/attempt/{id}", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_attempt,
@@ -253,3 +286,5 @@ CRUX_WEB_ROUTE(other, "/probe/other", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_other, N
 CRUX_WEB_ROUTE(send_buffer, "/probe/send-buffer/{bytes}", CRUX_WEB_GET, CRUX_WEB_PUBLIC,
                on_send_buffer, NULL);
 CRUX_WEB_ROUTE(stats, "/probe/stats", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_stats, NULL);
+CRUX_WEB_ROUTE(second_start, "/probe/second-start", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_second_start,
+               NULL);

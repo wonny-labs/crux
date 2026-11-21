@@ -12,6 +12,8 @@
 
 static pthread_mutex_t fake_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t clock_ms;
+/* Reads left before the clock fails, or UINT64_MAX while it never does. */
+static uint64_t clock_reads_left = UINT64_MAX;
 static uint32_t random_counter;
 static bool random_fails, hmac_fails, hmac_is_fixed, derive_fails;
 static access_fake_hook_t derive_hook, save_hook, event_hook;
@@ -31,6 +33,7 @@ void access_fake_reset(void)
 {
     pthread_mutex_lock(&fake_lock);
     clock_ms = 1000;
+    clock_reads_left = UINT64_MAX;
     random_counter = 0;
     random_fails = hmac_fails = hmac_is_fixed = derive_fails = false;
     derive_hook = save_hook = event_hook = NULL;
@@ -59,10 +62,27 @@ void access_fake_clock_advance(uint64_t delta_ms)
     pthread_mutex_unlock(&fake_lock);
 }
 
+void access_fake_clock_fail(bool fail)
+{
+    access_fake_clock_fail_after(fail ? 0u : UINT64_MAX);
+}
+
+void access_fake_clock_fail_after(uint64_t reads)
+{
+    pthread_mutex_lock(&fake_lock);
+    clock_reads_left = reads;
+    pthread_mutex_unlock(&fake_lock);
+}
+
 uint64_t crux_access_port_now_ms(void)
 {
     pthread_mutex_lock(&fake_lock);
     uint64_t now_ms = clock_ms;
+    if (clock_reads_left == 0) {
+        now_ms = CRUX_ACCESS_CLOCK_FAILED;
+    } else if (clock_reads_left != UINT64_MAX) {
+        clock_reads_left -= 1;
+    }
     pthread_mutex_unlock(&fake_lock);
     return now_ms;
 }

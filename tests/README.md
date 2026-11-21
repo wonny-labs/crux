@@ -867,7 +867,8 @@ the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script. Its composition test also
 configures and compiles the Serial library on the fictional RT1062 board of
 `tests/zephyr/board_fixture` (Serial on LPUART3, not on the EVKB's pins) and checks that
-the mode, owner, resource and CSI checks still refuse there. On the revision-B EVKB, Serial
+the mode, owner and resource checks still refuse there, and that an enabled CSI builds
+there (the CSI check is the RT1060-EVK's alone). On the revision-B EVKB, Serial
 stays at LPUART3: LPUART8 is still refused.
 
 ## Portable Logging

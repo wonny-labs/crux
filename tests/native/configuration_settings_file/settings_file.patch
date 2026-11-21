@@ -44,7 +44,7 @@
  		}
  		lines++;
  	}
-@@ -172,19 +186,31 @@
+@@ -172,19 +186,33 @@
  	rc = fs_close(&file);
  	cf->cf_lines = lines;
  
@@ -72,16 +72,18 @@
 +		struct fs_dirent entry;
 +
 +		/* A settings file that was never created is an empty store. A compaction leftover
-+		 * means the file was lost between removing it and renaming the new one.
++		 * means the file was lost between removing it and renaming the new one. Only a
++		 * leftover that is not found means a first boot: any other stat error is returned.
 +		 */
 +		settings_tmpfile(tmp_file, cf->cf_name, ".cmp");
-+		return fs_stat(tmp_file, &entry) == 0 ? -EIO : 0;
++		rc = fs_stat(tmp_file, &entry);
++		return rc == 0 ? -EIO : (rc == -ENOENT ? 0 : rc);
 +	}
 +	return rc;
  }
  
  static void settings_tmpfile(char *dst, const char *src, char *pfx)
-@@ -270,6 +296,10 @@
+@@ -270,6 +298,10 @@
  	while (1) {
  		rc = settings_next_line_ctx(&loc1);
  
@@ -92,7 +94,7 @@
  		if (rc || loc1.len == 0) {
  			/* try to amend new value to the compressed file */
  			break;
-@@ -277,6 +307,10 @@
+@@ -277,6 +309,10 @@
  
  		rc = settings_line_name_read(name1, sizeof(name1), &val1_off,
  					     &loc1);
@@ -103,7 +105,7 @@
  		if (rc) {
  			/* try to process next line */
  			continue;
-@@ -358,7 +392,7 @@
+@@ -358,7 +394,7 @@
  	 * XXX at settings_file_load(), look for .cmp if actual file does not
  	 * exist.
  	 */
@@ -112,7 +114,7 @@
  end_rolback:
  	(void)fs_close(&wf);
  	if (fs_close(&rf) == 0) {
-@@ -399,11 +433,16 @@
+@@ -399,11 +435,16 @@
  	if (rc == 0) {
  		rc = fs_seek(&file, 0, FS_SEEK_END);
  		if (rc == 0) {
@@ -129,7 +131,7 @@
  			}
  		}
  
-@@ -424,6 +463,7 @@
+@@ -424,6 +465,7 @@
  			      const char *value, size_t val_len)
  {
  	struct settings_line_dup_check_arg cdca;
@@ -137,7 +139,7 @@
  
  	if (val_len > 0 && value == NULL) {
  		return -EINVAL;
-@@ -436,7 +476,10 @@
+@@ -436,7 +478,10 @@
  	cdca.val = (char *)value;
  	cdca.is_dup = 0;
  	cdca.val_len = val_len;
@@ -149,7 +151,7 @@
  	if (cdca.is_dup == 1) {
  		return 0;
  	}
-@@ -496,10 +539,12 @@
+@@ -496,10 +541,12 @@
  	rc = fs_seek(file, 0, FS_SEEK_END);
  
  	if (rc == 0) {

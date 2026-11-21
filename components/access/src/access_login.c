@@ -99,9 +99,14 @@ crux_access_result_t crux_access_verify_current(const char *user,
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
+    uint64_t now_ms = crux_access_port_now_ms();
+    if (now_ms == CRUX_ACCESS_CLOCK_FAILED) {
+        crux_access_unlock_state();
+        return crux_access_refuse_not_ready(origin);
+    }
     verification_t verification = {0};
     crux_access_result_t result =
-        verification_claim(origin->channel, buckets, crux_access_port_now_ms(), retry_after_ms);
+        verification_claim(origin->channel, buckets, now_ms, retry_after_ms);
     if (result == CRUX_ACCESS_OK) {
         verification_prepare(user, &verification);
     }
@@ -117,12 +122,17 @@ crux_access_result_t crux_access_verify_current(const char *user,
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
-    if (derived && matched && verification.known) {
+    /* A clock that failed during the derivation leaves every bucket as it was. */
+    now_ms = crux_access_port_now_ms();
+    bool clock_failed = now_ms == CRUX_ACCESS_CLOCK_FAILED;
+    if (clock_failed) {
+        derived = false;
+    } else if (derived && matched && verification.known) {
         if (buckets.name != NULL) {
             memset(buckets.name, 0, sizeof(*buckets.name));
         }
     } else if (derived) {
-        crux_access_delay_record_failure(buckets, crux_access_port_now_ms());
+        crux_access_delay_record_failure(buckets, now_ms);
     }
     *verifying_flag(origin->channel) = false;
     crux_access_unlock_state();
@@ -225,6 +235,10 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     uint64_t now_ms = crux_access_port_now_ms();
+    if (now_ms == CRUX_ACCESS_CLOCK_FAILED) {
+        crux_access_unlock_state();
+        return crux_access_refuse_not_ready(origin);
+    }
     crux_access_result_t result =
         verification_claim(origin->channel, buckets, now_ms, retry_after_ms);
     if (result == CRUX_ACCESS_OK) {
@@ -250,6 +264,10 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     now_ms = crux_access_port_now_ms();
+    /* A clock that failed during the derivation creates no session and counts no failure. */
+    if (now_ms == CRUX_ACCESS_CLOCK_FAILED) {
+        derived = false;
+    }
     if (derived) {
         *session =
             login_conclude(user, origin, &verification, matched, slot, buckets, now_ms, &outcome);
@@ -330,6 +348,10 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     uint64_t now_ms = crux_access_port_now_ms();
+    if (now_ms == CRUX_ACCESS_CLOCK_FAILED) {
+        crux_access_unlock_state();
+        return crux_access_refuse_not_ready(origin);
+    }
     crux_access_result_t result;
     bool known = false;
     bool role_missing = false;
@@ -386,6 +408,10 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     uint64_t now_ms = crux_access_port_now_ms();
+    if (now_ms == CRUX_ACCESS_CLOCK_FAILED) {
+        crux_access_unlock_state();
+        return crux_access_refuse_not_ready(origin);
+    }
     crux_access_result_t result = CRUX_ACCESS_ERR_DENIED;
     size_t role_index = 0;
     size_t slot = 0;
@@ -426,8 +452,10 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
         return;
     }
     uint64_t now_ms = crux_access_port_now_ms();
-    /* An attempt inside a window neither counts nor extends it. */
-    if (hashed && crux_access_delay_remaining_ms(buckets, now_ms) == 0) {
+    /* An attempt inside a window neither counts nor extends it, and one while the clock has failed
+     * cannot be dated, so it counts nothing: no key attempt can succeed then. */
+    if (hashed && now_ms != CRUX_ACCESS_CLOCK_FAILED &&
+        crux_access_delay_remaining_ms(buckets, now_ms) == 0) {
         crux_access_delay_record_failure(buckets, now_ms);
     }
     bool role_missing = false;

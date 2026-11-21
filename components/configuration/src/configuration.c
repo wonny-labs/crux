@@ -83,6 +83,8 @@ static void publish(crux_config_param_t *parameter, const crux_config_value_t *v
     size_t length = value->data.string.length;
     /* A candidate may alias the storage, including a tail of the current value. */
     memmove(parameter->storage, value->data.string.text, length + 1);
+    /* No byte of a longer value it replaced stays behind the terminator. */
+    memset(parameter->storage + length + 1, 0, parameter->capacity - length - 1);
     parameter->value.type = CRUX_CONFIG_STRING;
     parameter->value.data.string.text = parameter->storage;
     parameter->value.data.string.length = length;
