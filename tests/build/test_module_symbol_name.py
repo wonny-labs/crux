@@ -20,14 +20,18 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 OLD = re.compile(r"(?<!ZEPHYR_)CRUX_PILOT_MODULE\b")
-RECORDED = ("docs/evidence/", "docs/history/", "docs/superpowers/",
+RECORDED = ("docs/evidence/", "docs/history/", "docs/superpowers/", "tests/build/fixtures/recorded/",
             "docs/decisions/0005-native-sim-test-watchdog-for-system-consumers.md",
             # The real, hash-locked .config of the S2 build at an older pin.
             "tests/build/fixtures/s2-controller/",
             "tests/build/test_module_symbol_name.py")
 MIGRATION_DOC = "docs/product-composition.md"
 MIGRATION = "renamed from `CONFIG_CRUX_PILOT_MODULE`"
-OLD_GENERATED = re.compile(r"ZEPHYR_CRUX_PILOT_(?:MODULE|KCONFIG|CMAKE)")
+OLD_GENERATED = re.compile(r"(?:ZEPHYR|SYSBUILD)_CRUX_PILOT_(?:MODULE|KCONFIG|CMAKE)")
+# The claim that the module name follows the folder was true before name: crux.
+FOLDER_CLAIM = re.compile(r"(?i)module name follows the checkout")
+# The proposal keeps its PoC finding with a dated note that it no longer holds.
+FOLDER_CLAIM_RECORDED = "docs/test-foundation-proposal.md"
 GENERATED_MIGRATION = ("`ZEPHYR_CRUX_PILOT_MODULE_DIR` by `ZEPHYR_CRUX_MODULE_DIR`",
                        "`CONFIG_ZEPHYR_CRUX_PILOT_MODULE` by `CONFIG_ZEPHYR_CRUX_MODULE`")
 HAS_GIT = shutil.which("git") is not None and (REPO / ".git").exists()
@@ -63,6 +67,12 @@ class ModuleSymbolNameTest(unittest.TestCase):
                 for n, line in enumerate(text.splitlines(), 1)
                 if OLD_GENERATED.search(line)
                 and not (name == MIGRATION_DOC and any(m in line for m in GENERATED_MIGRATION))]
+        self.assertEqual([], hits)
+
+    @unittest.skipUnless(HAS_GIT, "needs git and a checkout to list tracked files")
+    def test_no_live_doc_says_the_module_name_follows_the_folder(self):
+        hits = [f"{name}:{n}" for name, text in tracked_text_files() if name != FOLDER_CLAIM_RECORDED
+                for n, line in enumerate(text.splitlines(), 1) if FOLDER_CLAIM.search(line)]
         self.assertEqual([], hits)
 
     def test_product_doc_gives_the_generated_name_migration(self):
