@@ -22,7 +22,7 @@ You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 Gi
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**.
 3. Inside the container, run the commands for your purpose from [Setup commands](docs/getting-started.md#6-setup-commands): Host tests only, Zephyr samples, the controller scenarios with the board cross-build, or the checks before a pull request. That table also says what each script needs.
 
-None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs Zephyr's Hello World and the Crux samples, and shows how to change a build.
+None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then Zephyr's Hello World and the Crux samples, and shows how to change a build.
 
 ## Where to read next
 
