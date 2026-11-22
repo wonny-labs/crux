@@ -20,11 +20,12 @@ form for `west build` and `west twister`.
 
 ## Where to start
 
-Run them in this order: Zephyr's own `hello_world` (is Zephyr installed?), `hello_crux/` (does a Crux consumer
-build?), `time/clock_shell/` (a shell on Crux Time), `file/write_read/` (a provider chosen by configuration) and
-`networking/echo_client/` (a client that needs a board and a peer). The [Tutorial](../docs/tutorial.md) follows this
-order. Threads and synchronization have no Crux sample; use Zephyr's `samples/basic/threads` and
-`samples/synchronization`.
+Run them in this order: `hello_crux/` (does a Crux consumer build? on the Host, then on `native_sim`, then on the
+board), `networking/echo_client/` (its Host program, which CTest runs against a local peer), `time/clock_shell/` (a
+shell on Crux Time) and `file/write_read/` (a provider chosen by configuration). The [Tutorial](../docs/tutorial.md)
+follows this order. If a step fails for a reason that is not about Crux, the tutorial's troubleshooting section checks
+Zephyr itself with its own `hello_world` and the board with Zephyr's `blinky`. Threads and synchronization have no Crux
+sample; use Zephyr's `samples/basic/threads` and `samples/synchronization`.
 
 ## Classification
 

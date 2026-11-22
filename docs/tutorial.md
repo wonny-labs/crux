@@ -7,10 +7,11 @@ Parts A and B use only the standard Zephyr and CMake tools: `west build`, `west 
 what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
 Part A runs on the Linux Host and gives a first result in minutes, before the long Zephyr download. Products target
-Zephyr, so Part B is the main body of the tutorial. The examples go from the general to the specific: Zephyr's own
-`hello_world` (is Zephyr installed?), then Crux's `hello_crux` (does a Crux consumer build?), then one example per
-Crux idea: a shell (`time/clock_shell`), provider selection by configuration (`file/write_read`) and a networking
-client (`networking/echo_client`). On a board, Zephyr's `blinky` checks the board, then `hello_crux` is the first Crux image and `clock_shell` the interactive one. The order is Linux Host, then `native_sim`, then the board.
+Zephyr, so Part B is the main body of the tutorial. The same first example, `hello_crux`, runs in all three parts:
+on the Host, on `native_sim` and on the board. Between them come one example per Crux idea: a networking client
+(`networking/echo_client`, Host), a shell (`time/clock_shell`) and provider selection by configuration
+(`file/write_read`). If a step fails for a reason that is not about Crux, [Troubleshooting](#troubleshooting) uses
+Zephyr's own `hello_world` and `blinky` to check the Zephyr install and the board.
 
 The Zephyr downloads at the start of Part B are the long part. No durations have been measured yet.
 
@@ -33,11 +34,10 @@ Run the Host tests row of [Setup commands](getting-started.md#6-setup-commands) 
 
 The Host script ends with the CTest summary, `100% tests passed`.
 
-### 2. Run Crux samples on the Linux Host
+### 2. Run Hello Crux on the Linux Host
 
-Step 1 built the Linux Host programs. The first Crux example is `samples/hello_crux`. Its Host program is a separate
-CMake project that consumes Crux the way an external application does, so it is built on its own. From
-`/workspace/crux-pilot`:
+`samples/hello_crux` is the smallest application that uses Crux. Its Host program is a separate CMake project that
+consumes Crux the way an external application does, so it is built on its own. From `/workspace/crux-pilot`:
 
 ```sh
 cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
@@ -48,18 +48,20 @@ build/samples/hello_crux_host/hello-crux-host
 It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. The clock is unset
 because Crux never invents a time of day. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
 
-The root build made two more Host programs. The Time sample:
+### 3. Run the networking sample on the Host
+
+`samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host program,
+`build/linux/debug/samples/networking/echo_client/host/crux-networking-host`, needs an echo peer on `127.0.0.1` ports
+42420 and 42421, so run it through CTest, which starts a local peer for it. From `/workspace/crux-pilot`:
 
 ```sh
-build/linux/debug/samples/time/clock_shell/host/crux-time-host
+ctest --preset host-debug -R Sample.EchoClientHost --output-on-failure
 ```
 
-prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. Its clock is
-controlled and does not advance on its own. The networking sample is
-`build/linux/debug/samples/networking/echo_client/host/crux-networking-host`, which needs an echo peer on `127.0.0.1`
-ports 42420 and 42421 (CTest starts one for it, see the next step).
+You should see `100% tests passed`. The sample's Zephyr image is for a board with an isolated network and a peer; its
+[README](../samples/networking/echo_client/README.md) describes it.
 
-### 3. Run every Host sample with CTest
+### 4. Run every Host sample with CTest
 
 CTest runs each Host sample of the root build once and checks its output. From `/workspace/crux-pilot`:
 
@@ -67,10 +69,11 @@ CTest runs each Host sample of the root build once and checks its output. From `
 ctest --preset host-debug -L sample
 ```
 
-It runs `Sample.ClockShellHost` and `Sample.EchoClientHost`. Without `-L sample`, the same
-command runs every Host test of the repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
+It runs `Sample.ClockShellHost`, the Time shell on the Host, and `Sample.EchoClientHost`. (`hello_crux` is its own CMake
+project, so step 2 builds it, and CTest does not.) Without `-L sample`, the same command runs every Host test of the
+repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
 
-### 4. Change a Host build
+### 5. Change a Host build
 
 CMake options configure the build itself. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options. From
 `/workspace/crux-pilot`:
@@ -88,7 +91,7 @@ matter for products.
 
 ## Part B. Zephyr
 
-### 5. Bootstrap the Zephyr workspace
+### 6. Bootstrap the Zephyr workspace
 
 Run the Zephyr samples row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It creates the west workspace and installs the Zephyr SDK. The west checkouts and the SDK are large downloads, and they are the longest part of this tutorial.
 
@@ -96,30 +99,10 @@ The script turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
 Zephyr module by itself.
 
-### 6. Run Zephyr's own Hello World
-
-This checks that Zephyr and the SDK work, before any Crux code is involved. From `/workspace`:
-
-```sh
-west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run
-```
-
-You should see:
-
-```text
-*** Booting Zephyr OS build v4.4.2 ***
-Hello World! native_sim/native/64
-```
-
-`native_sim/native/64` builds Zephyr as a Linux program, so `-t run` runs it on your machine. The simulated kernel
-keeps running after `main()` returns: stop it with Ctrl+C. `-p always` starts from a clean build directory, and
-`-d` names it, so that several builds can sit side by side under `build/`.
-
 ### 7. Run Hello Crux
 
-`hello_world` proves Zephyr and the SDK. `samples/hello_crux` is the same kind of application, and proves the next
-link: that the Crux module, a Kconfig symbol, a public target and a public header work together, and that the
-application keeps to the consumer boundary. The command is the same:
+This is the Zephyr form of step 2. It proves that the Crux module, a Kconfig symbol, a public target and a public
+header work together, and that the application keeps to the consumer boundary. From `/workspace`:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run
@@ -179,19 +162,12 @@ and ends with `CRUX_FILE_WRITE_READ_OK provider=fatfs_ram_disk`. Both providers 
 software-only checks on `native_sim`; the sample's [README](../samples/file/write_read/README.md) says so. Step 12
 explains the two options after `--`.
 
-### 10. Networking and threads
+Two more samples are not part of this path. The `networking/echo_client` image is for the board only. Threads and
+synchronization have no Crux sample: read Zephyr's own `zephyr/samples/basic/threads` and
+`zephyr/samples/synchronization`. [Samples](../samples/README.md) lists every sample folder, which ones run on their
+own, and which scripts use the others.
 
-The networking sample `samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host
-program ran in step 3 (CTest `Sample.EchoClientHost`, which starts a local echo peer). Its Zephyr image is for the board only and needs an isolated network with a peer, so it does
-not run on `native_sim`; its [README](../samples/networking/echo_client/README.md) describes it.
-
-Threads and synchronization have no Crux sample. For them, read Zephyr's own samples,
-`zephyr/samples/basic/threads` and `zephyr/samples/synchronization`, and build them with the same command as step 6.
-
-[Samples](../samples/README.md) lists every sample folder, which ones run on their own, and which scripts use the
-others.
-
-### 11. Run every Zephyr sample with Twister
+### 10. Run every Zephyr sample with Twister
 
 Twister builds each runnable Zephyr sample, runs it, and checks its output against the regular expression in its
 `sample.yaml`. From `/workspace`:
@@ -205,7 +181,7 @@ line reports how many test configurations passed. Its output and logs are under 
 `-t sample` leaves out the link-only board images under `samples/`; the [samples page](../samples/README.md#run-every-runnable-sample)
 says why.
 
-### 12. Change a Zephyr build
+### 11. Change a Zephyr build
 
 Every change in this step is a standard Zephyr or CMake mechanism. Options after `--` on a `west build` command line
 go to CMake. They stay in the build directory's cache, so use `-p always` when you drop one again.
@@ -283,50 +259,7 @@ The steps below use the one board route that has been used: the J-Link GDB Serve
 Container. The Linux and WSL2 route is described on the board page once it has been verified. The commands are those
 of the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
 
-### 13. Check the board with Zephyr's blinky
-
-Before the first Crux image, check the board, the probe and the download path with a Zephyr sample that has nothing
-to do with Crux, the same way step 6 checked Zephyr. Build Zephyr's `blinky` for the board's `-b` target, from
-`/workspace` in the Dev Container:
-
-```sh
-west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky
-```
-
-Download it the way Zephyr's own page for the board describes, with your probe; the board's user LED then blinks. The
-VS Code profile of step 16 downloads only the Time sample, and Crux does not wrap this step. This repository records
-no run of `blinky` on the board, so a result here tells you about your setup, not about Crux. If it does not blink,
-fix the board, probe or connection with the board guide's recovery section before you go on.
-
-### 14. Hello Crux on the board
-
-The first Crux example on the board is the one from step 7, which is cross-built for the board. In the Dev Container,
-from `/workspace/crux-pilot`:
-
-```sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/hello_crux
-```
-
-The build directory is `build/zephyr/mimxrt1060_evk_B_qspi--samples_hello_crux`. Download the ELF the same way as
-`blinky` in step 13. The console, the DAPLink serial port at 115200 baud, 8-N-1, should show the Zephyr boot banner and
-then the three lines of step 7, ending with `CRUX_HELLO_READY composition=zephyr`.
-
-**No board result is recorded for this image.** CI only cross-builds it. The repository's VS Code profile does not
-download it either, so there is no recorded console output for it; treat what you see as your own first result.
-
-### 15. Build the Time sample for your board
-
-The next example is interactive: the Time shell of step 8. This is the route that has a recorded board result ([component readiness](component-readiness.md)). In the
-Dev Container, from `/workspace/crux-pilot`, pass the board's `-b` target:
-
-```sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
-```
-
-The script prints the build directory, `build/zephyr/mimxrt1060_evk_B_qspi`, before it builds and the ELF path when it
-finishes.
-
-### 16. Flash it
+### 12. Check the J-Link connection
 
 On the Mac, from the repository checkout (not the Dev Container), start the GDB Server and leave it running:
 
@@ -334,23 +267,41 @@ On the Mac, from the repository checkout (not the Dev Container), start the GDB 
 bash scripts/macos/start-jlink-gdbserver.command
 ```
 
-Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. Then, in VS Code in
-the Dev Container, start the debug configuration **EVKB QSPI: Flash**. It runs the build of step 15, resets the board
-and downloads the image. The debugger then stops at the reset entry (`reset.S`); press Continue (F5) to start the
-image.
+Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. The GDB Server should
+report that it is connected to the target. If it does not, use the board guide's recovery section before you go on.
+If the board then does nothing in step 14, [Troubleshooting](#troubleshooting) checks board and probe with Zephyr's
+`blinky`.
 
-### 17. See it run
+### 13. Flash Hello Crux
 
-The console shows the Zephyr boot banner, then:
+The first Crux image on the board is the one from step 7. In the Dev Container, from `/workspace/crux-pilot`:
 
-```text
-CRUX_TIME_READY composition=zephyr
+```sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/hello_crux
 ```
 
-This line is recorded on the board after a download and a reset; the board guide's
-[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section says which records back each step.
+The build directory is `build/zephyr/mimxrt1060_evk_B_qspi--samples_hello_crux`. **No board result is recorded for
+this image.** CI only cross-builds it. The repository's **EVKB QSPI: Flash** profile builds and downloads the Time
+sample only, so it does not download this image, and the board guide describes no download route for it; agree the route for your
+task before you download it.
+
+### 14. See the console line
+
+Once the image is running, the console shows the Zephyr boot banner and then the three lines of step 7, ending with
+`CRUX_HELLO_READY composition=zephyr`. The Time sample, `samples/time/clock_shell`, is the image that the **EVKB QSPI: Flash** profile
+builds and downloads (`scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'` is its build). It is the one image with
+a recorded board result: a download, a reset and the console line `CRUX_TIME_READY composition=zephyr`, as the board
+guide's
+[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section records.
 
 When you are done, stop the debugger and stop the GDB Server with Ctrl-C.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`, from `/workspace`: `west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
+| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, and download it the way Zephyr's page for the board describes. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
 
 ## Next steps
 
