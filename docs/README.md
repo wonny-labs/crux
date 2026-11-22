@@ -4,7 +4,7 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
-- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to Zephyr's Hello World, the Crux samples on `native_sim` and the Linux Host, Twister and CTest, and changing a build with Kconfig, Devicetree overlays and CMake options.
+- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options.
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
 - [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the setup commands.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications, provider selection and debugging.
