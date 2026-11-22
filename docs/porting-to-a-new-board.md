@@ -16,7 +16,7 @@
 
 The reader is an engineer who has a Zephyr-supported board, a Crux checkout and no help from the people who wrote Crux. The board is assumed not to be one of the two this repository has worked with.
 
-Crux components are portable C17 behind public contracts. The platform composition, not the component, knows the board ([architecture overview](architecture.md), [README](../README.md#what-it-provides)). So a board port has four parts, and only the first is outside Crux:
+Crux components are portable C17 behind public contracts. The platform composition, not the component, knows the board ([architecture overview](architecture.md), [component readiness](component-readiness.md)). So a board port has four parts, and only the first is outside Crux:
 
 | Part | What it is | Where it lives |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Crux components are portable C17 behind public contracts. The platform compositi
 
 **Prerequisites.** Docker and the Dev Container of [Build and Integration Guide](build.md#development-environment), a pinned west workspace, and the pinned Zephyr SDK, through `scripts/bootstrap-zephyr.sh --install-sdk`. The Zephyr revision is pinned in [`west.yml`](../west.yml) (v4.4.2, `dccb09599635`). A different Zephyr gives a CMake warning and no Crux evidence applies to that build ([Zephyr baseline gate](product-composition.md#zephyr-baseline-gate)); each patch of section 3.3, when enabled, checks the exact source of that pin and refuses to configure if the file differs.
 
-Climb one rung at a time. A rung does not include the ones below it, and a pass on one says nothing about the next ([AGENTS.md](../AGENTS.md#validation-and-evidence), [README](../README.md#development-and-target-environments)).
+Climb one rung at a time. A rung does not include the ones below it, and a pass on one says nothing about the next ([AGENTS.md](../AGENTS.md#validation-and-evidence), [supported environments](getting-started.md#8-supported-environments)).
 
 | Rung | What runs | Scripts that exist | What a pass proves | What it does not prove |
 | --- | --- | --- | --- | --- |
@@ -241,4 +241,4 @@ An outline for the person who holds the board. The repository has no procedure f
 - **Not verified.** Any board other than the RT1060-EVK Rev B at E4. The management services on any board. Booting through MCUboot on any board. eMMC on any device. Entropy quality of any TRNG. Stack and memory high-water marks of the management stacks on a target. The behaviour of any patch of section 3.3 on your board.
 - **Moving parts.** The Zephyr pin, the readiness table and the composition pages change. Where this guide and a cited page disagree, the page wins; report the difference.
 - **Not a qualification.** Nothing here qualifies a board, a card, a flash part, a product or its power-loss, security or timing behaviour. A successful port means that the checklist items have their recorded evidence, at the levels named, and no more.
-- **Not covered.** Vendor ROM secure boot and fuse programming, production key custody, manufacturing flow, Embedded Linux ([README](../README.md#development-and-target-environments)), and licence review of the optional groups.
+- **Not covered.** Vendor ROM secure boot and fuse programming, production key custody, manufacturing flow, Embedded Linux ([supported environments](getting-started.md#8-supported-environments)), and licence review of the optional groups.
