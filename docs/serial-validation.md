@@ -26,7 +26,7 @@ time of the original validation.
 | Requirement | Implementation / evidence |
 | --- | --- |
 | Public lifecycle/configuration/ownership/timeout/partial/error contract | Four functions in `crux/serial.h`; common lifecycle/configuration; Base-only public usage |
-| Reference application uses native-free contract | Public-only `tests/serial_consumer/scenario/controller.c`; finite binary transaction, short I/O loops and caller nonce |
+| Reference application uses native-free contract | Public-only `samples/serial/controller.c`; finite binary transaction, short I/O loops and caller nonce |
 | Separate native-free runtime consumer | Separately authored C17 runtime and C++17 wrapper; caller nonce, one application deadline, cleanup status preserved |
 | Logical Zephyr binding and RT1060 UART candidate path | Nonblocking raw Linux TTY; bounded Zephyr UART IRQ rings and permanent gated callback context |
 | Host invalid/short/timeout/unready/recovery; resource conflicts and excluded modes | Host PTYs + focused common tests; UART emulator + native mapping, error/overflow/backpressure, stale callback and logging-owner negative |

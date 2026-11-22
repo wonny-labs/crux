@@ -24,7 +24,7 @@ The earlier names below are retained as part of the original qualification recor
 | Monotonic vs UTC, units/range/ownership/timeouts | monotonic public/common/provider code; queue public/common code | Monotonic.Common/NativeBoundaries/RealHost; Queue.Basic/limits/Faults; tests/monotonic/zephyr |
 | Host event/queue/time success, timeout, full, cooperative cancellation | existing Execution semaphore plus queue and monotonic | Queue.Concurrency/mpmc; independently authored tests/messaging_consumer runtime/controller, repeated sessions, empty/full/continuous-traffic stop |
 | Zephyr wake/order/concurrency and private native types | queue private condvar provider, monotonic native tick provider | tests/queue/zephyr, tests/monotonic/zephyr and independent native consumer; 7 Queue + 3 Monotonic + 1 consumer cases |
-| Native-free reference scenario and resource limits | tests/messaging_consumer/scenario/controller.c, guarded C17/C++17 runtime consumer | scripts/test-messaging.sh; matched-content scripts/measure-messaging.sh; EVKB cross-builds successful; static accounting below |
+| Native-free reference scenario and resource limits | samples/messaging/controller.c, guarded C17/C++17 runtime consumer | scripts/test-messaging.sh; matched-content scripts/measure-messaging.sh; EVKB cross-builds successful; static accounting below |
 | Explicit unsupported features | approved default contract | No event-bit/callback timer/atomic abort/priority/zero-copy/ISR/forever API; no hard scheduling/fairness or physical timing qualification |
 
 ## Reproducible commands

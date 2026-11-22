@@ -9,8 +9,8 @@ calls, has not started (as of 2026-11-18, 13 scripts under `scripts/` still call
 [Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
 implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
 shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
-2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. The building blocks that left
-`samples/` on 2026-11-22 are named at their new place. Refs #161.
+2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. The building blocks that the samples layout
+change moved out of `samples/` are named at their new place. Refs #161.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
