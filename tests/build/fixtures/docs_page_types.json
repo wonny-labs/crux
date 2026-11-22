@@ -5,6 +5,7 @@
     "docs/access-contract.md": "reference",
     "docs/architecture.md": "explanation",
     "docs/board-image-profiles.md": "reference",
+    "docs/board-jlink-usbipd.md": "how-to",
     "docs/boards/README.md": "reference",
     "docs/boards/mimxrt1060_evkb.md": "how-to",
     "docs/boot-bootloader-update-investigation.md": "record",

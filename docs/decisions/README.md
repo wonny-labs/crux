@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Status: **in use**. ADR-0001 to ADR-0006 are all accepted, and the convention below applies to all of them. The titles of ADR-0004 to ADR-0006 still end in "(proposal)", a leftover of their drafting that the accepted records keep; the Status column of the table is authoritative. Decision codes such as D4 or P9 are explained in the [glossary](../README.md#concepts-glossary).
+Status: **in use**. ADR-0001 to ADR-0007 are all accepted, and the convention below applies to all of them. The titles of ADR-0004 to ADR-0006 still end in "(proposal)", a leftover of their drafting that the accepted records keep; the Status column of the table is authoritative. Decision codes such as D4 or P9 are explained in the [glossary](../README.md#concepts-glossary).
 
 A decision record holds one platform-wide decision that stays in force: its context, the options, their trade-offs, the recommendation and the owner's decision. A decision that belongs to one capability stays in that capability's contract or design document, as today. Examples are the decision tables in the [product composition guide](../product-composition.md) and the [File root binding](../file-composition-interface.md). Records under `docs/plans/` stay as they are. They are historical, and the documentation check excludes them.
 
@@ -12,6 +12,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 | [0004](0004-product-composition-of-management-services.md) | How a product composes the Crux management services (proposal) | Accepted, 14 November 2026, as recommended (C8 deferred) |
 | [0005](0005-native-sim-test-watchdog-for-system-consumers.md) | How a consumer composes the Crux System service on native_sim with a test watchdog (proposal) | Accepted, 14 November 2026, as recommended (S1 to S9) |
 | [0006](0006-cryptographic-dependency-policy.md) | How Crux handles its cryptographic dependencies over time (proposal) | Accepted, 14 November 2026, as recommended (Q1 to Q8) |
+| [0007](0007-west-flash-and-debug-for-people-and-automation.md) | Zephyr's west flash and west debug for people and automation | Accepted, 21 November 2026, with conditions W1 to W3 |
 
 ## Convention
 
