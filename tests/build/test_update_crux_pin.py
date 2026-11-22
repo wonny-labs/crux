@@ -89,6 +89,17 @@ class UpdateCruxPinTest(unittest.TestCase):
         projects = yaml.safe_load(self.manifest.read_text())["manifest"]["projects"]
         return next(p for p in projects if p["name"] == "crux-pilot")["revision"]
 
+    def test_the_user_git_configuration_is_ignored(self):
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        git("init", "-q", "-b", "main", cwd=empty)
+        home = self.tmp / "home"
+        home.mkdir()
+        (home / ".gitconfig").write_text(f'[url "{empty.as_uri()}"]\n\tinsteadOf = {self.crux.as_uri()}\n')
+        result = self.run_script(env={"HOME": str(home), "XDG_CONFIG_HOME": str(home)})
+        self.assertEqual(CHANGED, result.returncode, result.stderr)
+        self.assertEqual(self.third, self.revision())
+
     def test_moves_the_pin_to_the_remote_main_and_changes_only_that_line(self):
         before = self.manifest.read_text().splitlines()
         result = self.run_script()

@@ -285,6 +285,18 @@ class GitHubTest(Base):
             self.assertIn("core.fsmonitor=false", call)
             self.assertIn("credential.helper= ", call)
 
+    def test_the_user_and_system_git_configuration_is_ignored(self):
+        # A user setting that redirects the product's URL must not decide where the bot pushes.
+        self.change("bbbb")
+        empty = self.tmp / "empty.git"
+        git("init", "-q", "--bare", str(empty))
+        home = self.tmp / "home"
+        home.mkdir()
+        (home / ".gitconfig").write_text(f'[url "{empty}"]\n\tinsteadOf = {self.origin}\n')
+        result = self.run_script("--host", "github", env=dict(self.env, HOME=str(home), XDG_CONFIG_HOME=str(home)))
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
+
     def test_a_local_pushurl_is_ignored(self):
         self.change("bbbb")
         elsewhere = self.tmp / "elsewhere.git"
@@ -362,6 +374,34 @@ class GitHubTest(Base):
         self.change("bbbb")
         (self.work / "build.log").write_text("x\n")
         self.assert_refused(self.run_script("--host", "github", env=self.env), "build.log")
+
+    def test_a_file_staged_and_removed_from_the_tree_is_not_committed(self):
+        # A staged file that is gone from the working tree shows in no diff against HEAD,
+        # yet git commit would still record it from the index.
+        self.change("bbbb")
+        (self.work / "extra.txt").write_text("x")
+        git("add", "extra.txt", cwd=self.work)
+        (self.work / "extra.txt").unlink()
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
+        self.assertIn("extra.txt", result.stderr)
+        self.assertIsNone(self.remote_ref(BRANCH))
+
+    def test_replace_refs_do_not_change_what_is_committed(self):
+        self.change("bbbb")
+        # The replacement's tree already holds the changed manifest, so a bot that obeyed it would
+        # see no change in the working tree and propose nothing.
+        head = git("rev-parse", "HEAD", cwd=self.work)
+        blob = git("hash-object", "-w", "west.yml", cwd=self.work)
+        tree = subprocess.run(
+            ["git", "mktree"], cwd=self.work, input=f"100644 blob {blob}\twest.yml\n", text=True,
+            check=True, capture_output=True).stdout.strip()
+        other = git("commit-tree", "-m", "other", tree, cwd=self.work)
+        git("replace", head, other, cwd=self.work)
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(head, git("rev-parse", f"{BRANCH}^", cwd=self.origin))
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
 
     def test_the_branch_may_not_be_the_base(self):
         self.change("bbbb")
