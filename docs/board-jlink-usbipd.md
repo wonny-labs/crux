@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do carried out by hand; the script, that handling and `--auto-attach` themselves have not been run there yet. Steps 6 to 8 have not been run.
+**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, 4000 kHz, and a console inside the container.
 
 ## What you need
 
@@ -32,8 +32,8 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    It installs `usbutils` if `lsusb` is missing (with `sudo apt-get`), stops with the `usbipd attach` line if `/dev/bus/usb` is missing, checks that a J-Link is listed, installs the udev rule [`99-crux-jlink.rules`](../.devcontainer/jlink/99-crux-jlink.rules) once, and prints the probe's device node. Either of these results lets the container open the probe:
 
-   - `crw-rw----` with group `plugdev`: the expected result on native Linux, where the rule applies.
-   - `crw-rw-rw-` with owner and group `root`: seen on WSL2 for the usbipd-attached J-Link.
+   - `crw-rw----` with group `plugdev`: the result when the rule applies, on native Linux and also seen on WSL2.
+   - `crw-rw-rw-` with owner and group `root`: seen on WSL2 for a usbipd-attached J-Link before the rule applied.
 
    The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run the script again after a reattach. It never talks to the probe or the board.
 
@@ -78,6 +78,14 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    ~~~
 
    It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
+
+9. **Console, on Windows.** The container gets the probe's USB device, not the board's serial port. Open the DAPLink's COM port on Windows (Device Manager lists it under Ports) in a serial terminal at 115200 baud, 8-N-1. After a reset the Time sample prints the Zephyr boot banner and then:
+
+   ~~~text
+   CRUX_TIME_READY composition=zephyr
+   ~~~
+
+   `time help` at the prompt lists the Time commands.
 
 ## If a step fails
 

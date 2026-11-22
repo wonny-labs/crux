@@ -217,8 +217,8 @@ board up as its guide says before you start. Any operation on a board, such as c
 download, needs approval for your task.
 
 The steps below use the one board route that has been used: the J-Link GDB Server on a Mac and the build in the Dev
-Container. The board page's Linux and WSL2 route reaches the J-Link tools in a board Dev Container, and flashing
-through it has not been run. The commands are those
+Container. On Windows with WSL2, the board page's Linux and WSL2 route flashes from a board Dev Container instead.
+The commands are those
 of the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
 
 ### 10. Build a sample for your board

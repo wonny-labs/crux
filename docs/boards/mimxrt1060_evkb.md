@@ -36,15 +36,24 @@ Operator practice from bench sessions, not a repository record: check all four S
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
 | Host | A Mac runs the J-Link GDB Server. The Dev Container runs the build and GDB and connects to the server at `host.docker.internal:2331` |
 
-**Linux and Windows with WSL2.** The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the board Dev Container. Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with the work of `scripts/setup-board-host.sh` and of the udevadm handling in `install-jlink.sh` done by hand; the script, that handling and `--auto-attach` have not been run there themselves. The [J-Link board route](../board-jlink-usbipd.md) guide explains each step.
+**Linux and Windows with WSL2.** The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the board Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a. In that run the work of `scripts/setup-board-host.sh` and of the udevadm handling in `install-jlink.sh` was done by hand and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` have not been run there themselves. The [J-Link board route](../board-jlink-usbipd.md) guide explains each step and the failures seen.
 
 1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID> --auto-attach` in a window that stays open, so the probe is attached again when it re-enumerates. `/dev/bus/usb` exists in WSL2 only after the attach.
-2. WSL2 or Linux shell, in the repository checkout: `scripts/setup-board-host.sh`. It installs `usbutils` if needed, installs the udev rule and prints the probe's node: `crw-rw----` with group `plugdev` on native Linux, or `crw-rw-rw-` owned by `root` on WSL2. The container can open either. Run it again after the probe re-enumerates, because the new node may not get the rule on WSL2.
+2. WSL2 or Linux shell, in the repository checkout: `scripts/setup-board-host.sh`. It installs `usbutils` if needed, installs the udev rule and prints the probe's node: `crw-rw----` with group `plugdev`, or `crw-rw-rw-` owned by `root` (seen on WSL2 before the rule applied). The container can open either. Run it again after the probe re-enumerates.
 3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set the build arguments `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy that your organisation hosts.
 4. VS Code: **Dev Containers: Rebuild and Reopen in Container**, choose **Crux Pilot board, J-Link**.
-5. In the container, from the repository root `/workspace/crux-pilot` (where the build directories below are): `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
+5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
+6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
+7. Build and flash the Time sample:
 
-The J-Link Commander connection check, the read-only `west attach` check with `compare-sections` and `west flash` through the J-Link runner have not been run on this route; the guide names their commands. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified.
+   ~~~sh
+   scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+   west -v flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
+   ~~~
+
+8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
+
+Not run on this route: the read-only `west attach` check with `compare-sections`, `west debug`, SWD at 4000 kHz, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
 ## Flash and debug
 
@@ -105,7 +114,7 @@ The board test tooling programs and restores only registered images. Each image 
 
 ## Known limits
 
-- The only host used for flashing, debugging and physical tests is macOS. On Linux and WSL2 the route reaches the J-Link tools in the board Dev Container ([Probe and connection](#probe-and-connection)).
+- Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
 - The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` is built and run on `native_sim` only.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
