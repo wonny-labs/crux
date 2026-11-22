@@ -19,7 +19,7 @@ repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 board="$1"
 shift
-app="$repo/samples/time"
+app="$repo/samples/time/time_shell"
 custom_app=0
 debug_optimizations=0
 while [[ $# -gt 0 ]]; do

@@ -40,6 +40,6 @@ grep -q 'PROJECT EXECUTION SUCCESSFUL' "$repo/build/zephyr/networking-native-pic
 # Build-only target qualification; never invokes flash/debug/serial commands.
 modules="$repo;$workspace/modules/hal/cmsis;$workspace/modules/hal/cmsis_6;$workspace/modules/hal/nxp"
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/networking-evkb" "$repo/samples/networking/zephyr" -- \
+    -d "$repo/build/zephyr/networking-evkb" "$repo/samples/networking/tcp_udp_echo" -- \
     -DZEPHYR_MODULES="$modules" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay")

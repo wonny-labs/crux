@@ -68,7 +68,7 @@
       "id": "cruxApplication",
       "type": "promptString",
       "description": "Application directory, relative to the repository",
-      "default": "samples/time"
+      "default": "samples/time/time_shell"
     }
   ]
 }

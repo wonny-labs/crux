@@ -70,7 +70,7 @@ Follow the [repository dependency rules](../CONTRIBUTING.md#public-headers-and-m
 | `components/time/ports/linux/` | Native monotonic clock, pthread lock and optional CLOCK_REALTIME provider |
 | `components/time/ports/zephyr/` | Native uptime/system realtime/lock and optional RTC adapter |
 | `tests/time/*.h` | Private test controls, excluded from public usage roots |
-| `samples/time/include/` | Sample-owned command interface |
+| `samples/time/time_shell/include/` | Sample-owned command interface |
 
 External Linux applications select `CRUX_BUILD_TIME=ON` and explicitly choose
 `CRUX_TIME_PROVIDER=memory` or `linux`. Top-level development builds default to

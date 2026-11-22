@@ -6,7 +6,7 @@ A proposal to let other images use the same reviewed programming and restore pat
 
 ## Test composition and evidence scope
 
-`tests/networking_physical` is a dedicated composition, not a production application. `transaction.c` uses only the approved standard profile. Native context/pool/stack observation, static address setup and the observer thread belong to this composition. Existing `samples/networking/client.[ch]` and runtime-port consumers remain unchanged. Physical results would qualify this private M5 consumer; they would not demonstrate physical execution of those unchanged consumers.
+`tests/networking_physical` is a dedicated composition, not a production application. `transaction.c` uses only the approved standard profile. Native context/pool/stack observation, static address setup and the observer thread belong to this composition. Existing `samples/networking/tcp_udp_echo/common/client.[ch]` and runtime-port consumers remain unchanged. Physical results would qualify this private M5 consumer; they would not demonstrate physical execution of those unchanged consumers.
 
 M5N1 requests are exactly 32 bytes: ASCII `M5N1`, nonzero nonce32, phase16, protocol16 (TCP=1, UDP=2), transaction32, and 16 bytes `crux-m5-echo-v1\0`; integers use network byte order. Each response echoes the complete request. M3 application frames and M3 physical results are not M5 evidence. Shared clock/image/UART safety helpers retain their separate purpose.
 

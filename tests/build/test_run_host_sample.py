@@ -2,7 +2,7 @@
 
 Each case runs the driver on a small stand-in program instead of a built sample, so it needs
 no CMake build: the driver must pass stdin, require exit status 0 and every expected line, and
-serve the TCP and UDP echo peer that samples/networking/host talks to.
+serve the TCP and UDP echo peer that samples/networking/tcp_udp_echo/host talks to.
 """
 from pathlib import Path
 import os

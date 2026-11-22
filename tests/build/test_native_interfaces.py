@@ -279,7 +279,8 @@ const char *escaped = "\\\" k_sem_take";
                              "components/sync/include/crux/sync.h",
                              "tests/thread_sync_consumer/consumer.c",
                              "tests/thread_sync_consumer/consumer.cpp",
-                             "samples/networking/client.c", "samples/networking/client.h",
+                             "samples/networking/tcp_udp_echo/common/client.c",
+                             "samples/networking/tcp_udp_echo/common/client.h",
                              "tests/networking_physical/transaction.c",
                              "tests/networking_physical/frame.c", "tests/networking_physical/frame.h",
                              "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
@@ -292,9 +293,9 @@ const char *escaped = "\\\" k_sem_take";
                 shutil.copy2(REPO / relative, destination)
             for relative in ("components/base/include", "components/time/include",
                              "components/time/src", "samples/controller/core",
-                             "samples/controller/include", "samples/time/src"):
+                             "samples/controller/include", "samples/time/time_shell/src"):
                 (root / relative).mkdir(parents=True, exist_ok=True)
-            probe = root / "samples/time/src/time_command.c"
+            probe = root / "samples/time/time_shell/src/time_command.c"
             subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
             for source, expected in (("k_timeout_t timeout;", 1),
                                      ("#include <time.h>\n#include <errno.h>\n", 0)):
