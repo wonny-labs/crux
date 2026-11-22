@@ -274,16 +274,20 @@ If the board then does nothing in step 14, [Troubleshooting](#troubleshooting) c
 
 ### 13. Flash Hello Crux
 
-The first Crux image on the board is the one from step 7. In the Dev Container, from `/workspace/crux-pilot`:
+The first Crux image on the board is the one from step 7. Build it for the board and download it with Zephyr's own
+`west flash`, from `/workspace/crux-pilot`:
 
 ```sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/hello_crux
+west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux
+west flash -d build/hello_crux_evkb
 ```
 
-The build directory is `build/zephyr/mimxrt1060_evk_B_qspi--samples_hello_crux`. **No board result is recorded for
-this image.** CI only cross-builds it. The repository's **EVKB QSPI: Flash** profile builds and downloads the Time
-sample only, so it does not download this image, and the board guide describes no download route for it; agree the route for your
-task before you download it.
+The runner (J-Link), its speed and the place the command runs are in the board guide's
+[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section; use its options if the default does not
+connect. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
+
+**No board result is recorded for this image yet.** The repository's **EVKB QSPI: Flash** profile builds and downloads
+the Time sample only, so use the commands above for `hello_crux`.
 
 ### 14. See the console line
 
