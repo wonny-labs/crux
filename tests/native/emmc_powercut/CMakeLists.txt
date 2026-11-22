@@ -15,5 +15,9 @@ else()
   message(FATAL_ERROR "emmc_powercut needs a file system: build with "
     "-DEXTRA_CONF_FILE=fatfs.conf or -DEXTRA_CONF_FILE=reliance.conf")
 endif()
+# W8 and W8C replace through the Crux File provider, selected by file.conf or fatfs-file.conf.
+if(CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+  target_link_libraries(app PRIVATE crux::file_zephyr)
+endif()
 crux_emmc_sim_add(app)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

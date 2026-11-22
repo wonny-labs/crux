@@ -94,6 +94,10 @@ product style cases still skip there, because they need a Zephyr tree (`ZEPHYR_B
 `tests/build/test_ci_wiring.py` fails if the sanitizer preset stops aborting on undefined behaviour,
 or if a workflow stops running the File service checks, the Zephyr smoke check, those installs or the `CLANG_TIDY` setting.
 
+`tests/build/test_update_crux_pin.py`, `tests/build/test_open_pin_pr.py` and `tests/build/test_crux_pin_bot.py` hold the checks of the Crux pin bot scripts,
+see [Keeping the Crux pin current](../docs/product-composition.md#keeping-the-crux-pin-current). They use throwaway Git
+repositories, a fake `gh` and a local fake Bitbucket API, and need no network. The manifest cases need PyYAML and skip without it.
+
 `tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
 compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
 that parse a manifest need PyYAML and skip without it.
@@ -748,6 +752,15 @@ verifier accepts, with `--create-may-be-empty`, a new file that is present and e
 creating it. These cases are counted apart, and checks that must fail show that the same state is
 refused as a lost acknowledged file or at another step. See the
 [Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
+
+W8 and W8C (W8-control, `--workload W8`) replace a file through the Crux File provider, on images built
+with `file.conf` (Reliance Edge, `red-fix-file` and `red-nofix-file`) or `fatfs-file.conf` (FatFs,
+`fat-fix-file`), as a run of their own with their own JSON. Both write each generation of `atomic/w8` to
+`atomic/w8.tmp` through File and sync it. W8 then uses the VFS rename, W8C removes the target and renames with
+File. On `red-fix-file` W8 must keep every invariant with no read error on both profiles, and W8C must lose the
+target at a cached `lost` cut inside every generation's replace and fail nothing else; otherwise the workload
+cannot see that window. The flush, early acknowledgement and damaged image controls run on W8. FatFs results are
+observations. See the [File replace replay record](../docs/evidence/emmc-reliance/replay-file-w8/README.md).
 
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
