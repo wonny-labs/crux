@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do carried out by hand; the script and that handling themselves have not been run there yet. Steps 6 and 7 have not been run.
+**What has been run.** Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do carried out by hand; the script and that handling themselves have not been run there yet. Steps 6 to 8 have not been run.
 
 ## What you need
 
@@ -41,9 +41,10 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
 4. **VS Code: open the board Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** and choose **Crux Pilot board, J-Link**. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
 
-5. **In the container: check the probe and the tools.**
+5. **In the container: check the probe and the tools.** Run this and every later command in the container from the repository root, the folder VS Code opens (`/workspace/crux-pilot`):
 
    ~~~sh
+   cd /workspace/crux-pilot
    lsusb -d 1366:
    id -nG
    command -v JLinkExe JLinkGDBServer
@@ -51,22 +52,32 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    The J-Link is listed, `plugdev` is among the groups, and both tools are found.
 
-6. **Read-only check: attach and compare.** Do this before the first write on a new set-up. Build the ELF of the image on the board, here the Time sample, then attach without reset or load. `-r jlink` is required, because Zephyr's default runner for this board is LinkServer.
+6. **Connection check.** Before any write, check the board as its page says: on the EVKB the J-Link on J2, J9 and J10 removed, SW4 OFF–OFF–ON–OFF, and the board powered ([board page](boards/mimxrt1060_evkb.md#switches-and-jumpers)). Then connect with J-Link Commander alone, which prints what the runner hides:
 
    ~~~sh
+   printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
+   ~~~
+
+   Look for `VTref` of about 3.3 V and `Found Cortex-M7`. `VTref=0.000V` means the probe sees no target power: check the supply before anything else. This step connects to the target and may halt it.
+
+7. **Read-only check: attach and compare.** Do this before the first write on a new set-up. Build the ELF of the image on the board, here the Time sample, then attach without reset or load. `-r jlink` is required, because Zephyr's default runner for this board is LinkServer. The build directory is relative to the repository root.
+
+   ~~~sh
+   cd /workspace/crux-pilot
    scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
    west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
    ~~~
 
    At the GDB prompt run `compare-sections`, then `detach` and `quit`. Every loadable section should report `matched`; a mismatch means the board holds another image, not that the route is broken.
 
-7. **Flash**, only with authorisation that names the operation and the image:
+8. **Flash**, only with authorisation that names the operation and the image:
 
    ~~~sh
+   cd /workspace/crux-pilot
    west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
    ~~~
 
-   It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board.
+   It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
 
 ## If a step fails
 
@@ -76,7 +87,9 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | The build stops with `no SEGGER J-Link package` | Place the package or set the URL and checksum (step 3) |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bind mount follows a new attach |
-| Step 6 cannot connect | Retry once with `--speed 100`, then check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
+| Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
+| Step 6 or 7 cannot connect | Retry with `-speed 100` or `--speed 100`, then check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
+| `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
 The default Dev Container still works for builds: reopen it with **Crux Pilot (Ubuntu 24.04 amd64)**.
 
@@ -94,7 +107,7 @@ Options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The runner's default is `auto`. 400 kHz is the recorded value on the EVKB, and 100 kHz on a first connection |
+| `--speed <kHz>` | SWD speed. The runner's default is `auto`. Make the first connection at 100 to 400 kHz; 400 kHz is the recorded value on the EVKB and the documented default here, and 100 kHz on a first connection. 4000 kHz, J-Link's usual value, should work once connected but has no record on this board yet |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 

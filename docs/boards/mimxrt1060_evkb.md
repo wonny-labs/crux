@@ -42,9 +42,9 @@ Operator practice from bench sessions, not a repository record: check all four S
 2. WSL2 or Linux shell, in the repository checkout: `scripts/setup-board-host.sh`. It installs `usbutils` if needed, installs the udev rule and prints the probe's node: `crw-rw----` with group `plugdev` on native Linux, or `crw-rw-rw-` owned by `root` on WSL2. The container can open either.
 3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set the build arguments `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy that your organisation hosts.
 4. VS Code: **Dev Containers: Rebuild and Reopen in Container**, choose **Crux Pilot board, J-Link**.
-5. In the container: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
+5. In the container, from the repository root `/workspace/crux-pilot` (where the build directories below are): `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
 
-The read-only `west attach` check with `compare-sections` and `west flash` through the J-Link runner have not been run on this route; the guide names their commands. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified.
+The J-Link Commander connection check, the read-only `west attach` check with `compare-sections` and `west flash` through the J-Link runner have not been run on this route; the guide names their commands. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified.
 
 ## Flash and debug
 
@@ -95,7 +95,7 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 
 | Situation | What exists |
 | --- | --- |
-| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz) |
+| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz). If J-Link Commander reports `VTref=0.000V`, the target has no power: check the supply before anything else |
 | An image under test must be replaced by a known one | The `restore` mode of the program and restore driver loads the accepted normal image, built from `samples/controller`, and verifies it twice before it starts it. It needs its own approval and evidence directory ([board image profiles](../board-image-profiles.md)) |
 | The image in flash does not start | The boot ROM serial downloader (`BOOT_MODE` `01`; the switch setting is in the NXP user manual), not tested on this board. It loads an image into RAM and has no flash command ([bootloader update investigation](../boot-bootloader-update-investigation.md)) |
 
