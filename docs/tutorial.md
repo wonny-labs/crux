@@ -24,24 +24,33 @@ Inside the container there are two folders you work from:
 
 ## Part A. Linux Host
 
-### 1. Bootstrap the Host build
+### 1. Check that the Host build is ready
 
-Run the Host tests row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It runs the Host build and tests.
+The Dev Container builds and tests the Linux Host when it is created ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)). From `/workspace/crux-pilot`:
 
-The Host script ends with the CTest summary, `100% tests passed`.
+```sh
+scripts/bootstrap.sh status
+```
+
+It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.sh host`; its output shows the CTest summary, `100% tests passed`, and ends with `bootstrap: host ok`.
 
 ### 2. Run Crux samples on the Linux Host
 
-Step 1 built the Linux Host programs. From `/workspace/crux-pilot`:
+Each Linux Host sample has a `run_<sample>` build target, the Host counterpart of `west build -t run` in Part B. It builds the program and runs it in your terminal. From `/workspace/crux-pilot`:
 
 ```sh
-build/linux/debug/samples/time/clock_shell/host/crux-time-host
+cmake --build --preset host-debug --target run_clock_shell
 ```
 
-It prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. Its
-clock is controlled and does not advance on its own. The other is
-`build/linux/debug/samples/networking/echo_client/host/crux-networking-host`, which needs an echo peer on `127.0.0.1` ports 42420
-and 42421 (CTest starts one for it, see the next step).
+In VS Code, **Terminal > Run Task > Host: run_clock_shell** does the same without typing it.
+
+It prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. The Linux
+Host clock is controlled: it starts unset (`time get` answers `ERR NOT_SET`), keeps the value that `time set` gives it,
+and does not advance on its own, so two `time get` in a row print the same time. It never reads the PC's clock.
+
+`cmake --build --preset host-debug --target run_echo_client` runs the networking sample once against a local TCP and UDP
+echo peer on `127.0.0.1` ports 42420 and 42421 that the target starts for it. The programs themselves are under
+`build/linux/debug/samples/`, for example `build/linux/debug/samples/time/clock_shell/host/crux-time-host`.
 
 ### 3. Run every Host sample with CTest
 
@@ -72,11 +81,11 @@ matter for products.
 
 ## Part B. Zephyr
 
-### 5. Bootstrap the Zephyr workspace
+### 5. Check that the Zephyr workspace is ready
 
-Run the Zephyr samples row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It creates the west workspace and installs the Zephyr SDK. The west checkouts and the SDK are large downloads, and they are the longest part of this tutorial.
+The Dev Container also creates the west workspace and installs the Zephyr SDK when it is created. The west checkouts and the SDK are large downloads, the longest part of the set-up. From `/workspace/crux-pilot`, `scripts/bootstrap.sh status` shows `zephyr  ok`; otherwise run the command it prints, `scripts/bootstrap.sh zephyr`.
 
-The script turns `/workspace` into a west
+The set-up turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
 Zephyr module by itself.
 
@@ -209,7 +218,7 @@ board up as its guide says before you start. Any operation on a board, such as c
 download, needs approval for your task.
 
 The steps below use the Mac route: the J-Link GDB Server on a Mac and the build in the Dev Container. On Windows with
-WSL2, the board page's Linux and WSL2 route flashes from a board Dev Container instead. The commands are those of the
+WSL2 or Linux, the [J-Link board route](board-jlink-usbipd.md) flashes from the Dev Container with `west flash` instead. The commands are those of the
 board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
 
 ### 10. Build a sample for your board

@@ -36,19 +36,20 @@ RUN apt-get update \
 ENV CC=clang-18 \
     CXX=clang++-18
 
-# Optional SEGGER J-Link software for the board Dev Container
-# (.devcontainer/jlink/devcontainer.json sets CRUX_JLINK=1, see ADR-0007).
-# The default container leaves CRUX_JLINK empty and installs nothing here. The
-# package comes from a file the developer downloaded and placed in
-# .devcontainer/jlink/packages/, or from CRUX_JLINK_URL, a copy that an
-# organisation hosts, checked against CRUX_JLINK_DEB_SHA256. Nothing is
-# downloaded from SEGGER (see install-jlink.sh).
-ARG CRUX_JLINK=
+# SEGGER J-Link software for flashing and debugging a board (see ADR-0007 and
+# docs/board-jlink-usbipd.md). The package comes from a file the developer
+# downloaded and placed in .devcontainer/jlink/packages/, or from
+# CRUX_JLINK_URL, a copy that an organisation hosts, checked against
+# CRUX_JLINK_DEB_SHA256. Nothing is downloaded from SEGGER (see
+# install-jlink.sh). CRUX_JLINK=auto (devcontainer.json) installs it when one
+# of the two is given and otherwise prints a warning and builds the image
+# without it, so Host and native_sim work for everyone; 1 requires it; 0 skips it.
+ARG CRUX_JLINK=auto
 ARG CRUX_JLINK_DEB=
 ARG CRUX_JLINK_DEB_SHA256=
 ARG CRUX_JLINK_URL=
 COPY .devcontainer/jlink/ /tmp/crux-jlink/
-RUN if [ "$CRUX_JLINK" = 1 ]; then \
+RUN if [ "$CRUX_JLINK" != 0 ]; then \
         sh /tmp/crux-jlink/install-jlink.sh /tmp/crux-jlink/packages \
         && rm -rf /var/lib/apt/lists/*; \
     fi \
