@@ -62,7 +62,7 @@ RULES = {
     "status": (
         r"\bExperimental\b|\bUnstable\b|\bto be removed\b|\bdeprecated\b"
         # "frozen manifest", "frozen lock" and the like are release terms, not status.
-        r"|\bfrozen\b(?![ -](?:manifest|lock|inputs?|evidence|copy|tree|workspace|revision|patched|Zephyr))"
+        r"|\bfrozen\b(?![ -](?:manifest|lock|inputs?|evidence|copy|tree|workspace|revision|patched|Zephyr|style))"
         r"|\b(?:ran|run|been run|executed) on (?:a|the|any) (?:real |physical )?board\b",
         0,
         "lifecycle and verification status: docs/component-readiness.md",

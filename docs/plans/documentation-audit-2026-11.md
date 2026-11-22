@@ -19,12 +19,12 @@ Record of an audit of every documentation page against the [documentation guidel
 | Group | Findings | Notes |
 | --- | --- | --- |
 | (a) Type unclear or mixed | 16 | A1 alone covers 22 contract and composition pages |
-| (b) History or migration text in a current-state page | 60 | 57 pages from the scan (146 markers: 49 history, 97 provenance), 3 hand-found |
+| (b) History or migration text in a current-state page | 59 | 56 pages from the scan (146 markers: 49 history, 97 provenance), 3 hand-found; one more scanned row is a false positive |
 | (c) Duplicated facts or commands | 13 | |
-| (d) Status or lifecycle restated outside readiness | 62 | 59 pages from the scan (235 markers), 3 hand-found |
+| (d) Status or lifecycle restated outside readiness | 60 | 57 pages from the scan (234 markers), 3 hand-found; one more scanned row is a false positive |
 | (e) Detail level wrong for the page type | 12 | |
 
-The 381 scanned markers are the allowlist in [`tests/build/fixtures/docs_page_types.json`](../../tests/build/fixtures/docs_page_types.json). The allowlist takes, for each page, the larger count of `main`, #543's head and the `layout-quickstart` head, so that neither open branch fails the new check when it merges.
+The 380 scanned markers, false positives included, are the allowlist in [`tests/build/fixtures/docs_page_types.json`](../../tests/build/fixtures/docs_page_types.json). The allowlist takes, for each page, the larger count of `main`, #543's head and the `layout-quickstart` head, so that neither open branch fails the new check when it merges.
 
 ## Classification
 
@@ -107,7 +107,7 @@ Classification notes:
 | [docs/file-service-contract.md](../file-service-contract.md) | reference | 2 | 3 | 3: “Status: merged in PR #232, implemented on Host …” | The PR and issue (drop from the page) |
 | [docs/https-composition.md](../https-composition.md) | reference | 1 | 3 | 3: “Status: merged in PR #277 for Issue #185. …” | The PR and issue (drop from the page) |
 | [docs/image-state-contract.md](../image-state-contract.md) | reference | 3 | 3, 73 | 3: “… owner approved as Experimental on 15 November 2026. The owner approved the …” | Contract migration notes, release notes or `docs/history/`; The PR and issue (drop from the page) |
-| [docs/logging-contract.md](../logging-contract.md) | reference | 1 | 38 | 38: “… caller's mask and any previously pending SIGPIPE. It does” | Contract migration notes, release notes or `docs/history/` |
+| [docs/logging-contract.md](../logging-contract.md) | reference | 1 | 38 | 38: “… caller's mask and any previously pending SIGPIPE. It does” | False positive: "previously pending SIGPIPE" is signal behaviour, not history |
 | [docs/messaging-contract.md](../messaging-contract.md) | reference | 1 | 13 | 13: “… paths name code that no longer exists.” | Contract migration notes, release notes or `docs/history/` |
 | [docs/native-interface-policy.md](../native-interface-policy.md) | reference | 4 | 4, 33, 38 | 4: “and merged in PR #39.” | Contract migration notes, release notes or `docs/history/`; The PR and issue (drop from the page) |
 | [docs/native-management-composition.md](../native-management-composition.md) | reference | 1 | 3 | 3: “Status: merged in PR #263, the first part …” | The PR and issue (drop from the page) |
@@ -155,7 +155,7 @@ Hand-found, without a marker word:
 | C3 | Thread, Sync and Serial frozen; GPIO, I2C and SPI frozen and to be removed | `docs/README.md:38`, `:42`, `:121`, `:133`, `:135`; `docs/architecture.md:152`, `:324`–`335`; `docs/build.md:165`; `docs/choosing-an-api.md:32`, `:42`, `:74`, `:75`; `docs/native-interface-policy.md:38`; `docs/porting-to-a-new-board.md:75`, `:83`; `samples/messaging/README.md:6` | Status: `docs/component-readiness.md:36`. Rule for product code: `docs/choosing-an-api.md` |
 | C4 | The table of stability tiers | `docs/README.md:110`–`121` | ADR-0001 Decision 4 (`docs/decisions/0001-application-boundary-and-api-stability.md:226`) |
 | C5 | No Crux release or tag exists | `README.md:49`; `docs/README.md:17`, `:158`; `docs/product-composition.md:3`, `:59`, `:331`; `docs/compatibility-table.md:3`, `:96`–`98`; `docs/porting-to-a-new-board.md:65`; `templates/product/README.md:7`; `docs/component-readiness.md:75` | `docs/product-composition.md:331` (Versions) |
-| C6 | The MCUboot sysbuild command line | `docs/boot-composition.md:30`–`37`, `docs/secure-boot-board-test-procedure.md:107`–`116` | `docs/boot-composition.md` |
+| C6 | The MCUboot sysbuild command line | `docs/boot-composition.md:29`–`37`, `docs/secure-boot-board-test-procedure.md:107`–`116` | `docs/boot-composition.md` |
 | C7 | The device-control configuration file | `tools/device_control/README.md:42`–`61`, `docs/secure-boot-board-test-procedure.md:285`–`303` | `tools/device_control/README.md` |
 | C8 | The management Kconfig table | `docs/management-in-a-product.md:134`–`167`; the same symbols on each contract page (for example `docs/web-session.md`) | One reference table; the how-to links it |
 | C9 | Suite commands | `docs/build.md:91` and `tests/README.md:74`; `docs/build.md:276` and `tests/README.md:227` | `tests/README.md` |
@@ -192,7 +192,6 @@ Hand-found, without a marker word:
 | [docs/choosing-an-api.md](../choosing-an-api.md) | reference | 8 | 26, 32, 42, 74, 75 | 26: “… ( <crux/queue.h ) was frozen too and was removed on 20 November …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/cli-contract.md](../cli-contract.md) | reference | 1 | 3 | 3: “… , ADR-0004 phase 1b, Experimental), which owns the console thread and the …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/coding-guidelines.md](../coding-guidelines.md) | reference | 1 | 112 | 112: “… Crux headers: the three frozen ones ( <crux/thread.h , <crux/sync.h , <crux/serial.h …” | A link to the [readiness](../component-readiness.md) row |
-| [docs/compatibility-table.md](../compatibility-table.md) | reference | 1 | 61 | 61: “… column, generate from a frozen manifest of a workspace ( west manifest …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/composition-interfaces.md](../composition-interfaces.md) | reference | 5 | 7, 23, 35, 39 | 7: “… file system type ( Experimental, one constant and no function; see the …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/credential-store.md](../credential-store.md) | reference | 1 | 7 | 7: “… Public header <crux/credential_store.h ( Experimental), usage target crux::credential_store . It declares the …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/file-composition-interface.md](../file-composition-interface.md) | reference | 5 | 71, 75, 99, 118, 119 | 71: “Any run on a board none not authorised and …” | A link to the [readiness](../component-readiness.md) row |
@@ -201,7 +200,7 @@ Hand-found, without a marker word:
 | [docs/https-composition.md](../https-composition.md) | reference | 1 | 4 | 4: “… decision W18. Nothing here ran on a board. RT1060-EVKB results are” | A link to the [readiness](../component-readiness.md) row |
 | [docs/i2c-contract.md](../i2c-contract.md) | reference | 6 | 3 | 3: “Frozen as Experimental, to be removed. ADR-0001, owner decision D4 …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/image-state-contract.md](../image-state-contract.md) | reference | 3 | 3 | 3: “Status: Experimental. The first piece of the contract's implementation: …” | A link to the [readiness](../component-readiness.md) row |
-| [docs/management-glossary.md](../management-glossary.md) | reference | 1 | 3 | 3: “… records under docs/evidence/ are frozen and keep the names they were written …” | A link to the [readiness](../component-readiness.md) row |
+| [docs/management-glossary.md](../management-glossary.md) | reference | 1 | 3 | 3: “… records under docs/evidence/ are frozen and keep the names they were written …” | False positive: the sentence is about evidence records, not a component |
 | [docs/messaging-contract.md](../messaging-contract.md) | reference | 3 | 3, 15 | 3: “… used Queue, it was frozen for new product code under P2 of …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/native-composition-242.md](../native-composition-242.md) | reference | 1 | 9 | 9: “… physical evidence, and nothing ran on a board. native_sim uses the host's …” | A link to the [readiness](../component-readiness.md) row |
 | [docs/native-interface-policy.md](../native-interface-policy.md) | reference | 2 | 38 | 38: “Frozen interfaces. Thread, Sync and Serial are frozen …” | A link to the [readiness](../component-readiness.md) row |
@@ -241,7 +240,7 @@ Hand-found, without a marker word:
 | # | File and line | Quote | Finding | Proposed target |
 | --- | --- | --- | --- | --- |
 | E1 | `docs/README.md:22` | “Migrating an existing controller product (for example a PLC runtime…” | An entry page carries a migration walkthrough with lifecycle and evidence detail | A how-to for migrating a product, linked from the map |
-| E2 | `docs/README.md:123`–`148` | “Decision codes (P3, R4, O4, D10, I5, Q2 ...)” | A 24-row glossary with decision codes, the owner role and agent files on the entry map | A reference glossary page; the map links it |
+| E2 | `docs/README.md:123`–`148` | “Decision codes (P3, R4, O4, D10, I5, Q2 ...)” | A 22-row glossary with decision codes, the owner role and agent files on the entry map | A reference glossary page; the map links it |
 | E3 | `docs/getting-started.md:33`, `:59`–`83`, `:108` | “The Dev Container mounts the parent folder of the repository” | Container mount internals, a download table and debug-probe scripts on the entry set-up page | Build guide and a debugging how-to; the layout branch reworks this page |
 | E4 | `docs/management-in-a-product.md:134`–`167`, `:217`, `:247` | “Kconfig” | A 400-line how-to holds full reference tables (Kconfig, routes, errors) | Reference pages; the guide keeps its steps (`:53`–`115`) |
 | E5 | `docs/product-composition.md` (552 lines) | “Who owns what” | See A9: a newcomer starting a product reads release and SBOM detail first | Split by task |
@@ -250,7 +249,7 @@ Hand-found, without a marker word:
 | E8 | `docs/build.md:161` | “Complete Time and Thread example” | The complete consumer example uses a frozen component and says it is not a model | An example with a component that is not frozen |
 | E9 | `docs/board-image-profiles.md:108`–`304` | “Is the product session's reading right?” | Review narrative and capture design in depth on a reference page | Record of the capture change; the reference keeps the profile fields |
 | E10 | `docs/README.md:47`, `:63`, `:69` | “Nothing in the boot path has run on a board.” | The map restates evidence limits per section | One link to readiness |
-| E11 | `docs/first-hour.md:117`–`200` | “Kconfig options (CONFIG_...) select features and values.” | The tutorial's step 7 explains three build mechanisms in reference depth (merge order table) | Keep the three exercises; move the merge-order table to `docs/build.md`. Re-check on `docs/tutorial.md` after the layout branch |
+| E11 | `docs/first-hour.md:117`–`190` | “Kconfig options (CONFIG_...) select features and values.” | The tutorial's step 7 explains three build mechanisms in reference depth (merge order table) | Keep the three exercises; move the merge-order table to `docs/build.md`. Re-check on `docs/tutorial.md` after the layout branch |
 | E12 | `templates/product/README.md:3` | “This template moved from samples/product_template to templates/product on 9 November 2026.” | The first line of the template's guide is a change notice | Release notes or `docs/history/` |
 
 ## Prioritised fix plan
@@ -276,6 +275,7 @@ Decisions for the owner before the batches start:
 
 ## Limits of this audit
 
-- The lexical scan over-reports in a few places (for example "frozen" in a sentence about a freeze decision on a record-like section) and under-reports history written without its marker words. Rows were read, but not every marker was judged one by one; a fix batch re-reads its pages.
+- The lexical scan over-reports in a few places and under-reports history written without its marker words. Two scanned rows are false positives and are marked so in their tables: `docs/logging-contract.md:38` ("previously pending SIGPIPE" is signal behaviour) and `docs/management-glossary.md:3` (evidence records are frozen, not a component). Their markers stay in the allowlist so that the check does not fail on them. Other rows hold a mix of real and false markers (for example a URL anchor such as `#frozen-then-removed-gpio-i2c-and-spi`); each row was read, but not every marker was judged one by one, and a fix batch re-reads its pages.
+- Some current-state pages open with a status block that has no marker word (for example `docs/boot-composition.md:3`); rule 4 applies to them, but the scan does not see them.
 - Group (c) covers duplicated commands found mechanically and facts found by reading the entry, product and contract pages; it is not a complete search for every repeated sentence.
 - No page of the typed folders (decisions, plans, history, evidence, research) was audited for content: their type allows dated text.

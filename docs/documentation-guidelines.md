@@ -103,9 +103,9 @@ A page may carry a document status at its top only when its type is not current-
 
 | Rule | Markers | Waived on |
 | --- | --- | --- |
-| `history` | `was`, `were`, `has been`, `have been`, `is now` or `are now` followed by `removed`, `renamed`, `replaced`, `dropped` or `deleted`; `moved from`, `renamed from`, `previously`, `no longer`, `formerly`; `will be` followed by `frozen`, `removed` or `deprecated` | The "Migration notes" section of a reference page |
-| `provenance` | `merged in PR` or `merged in pull request`, `for review in a Draft PR`, and `on`, `since` or `until` followed by a written date such as `on 9 November 2026` | None |
-| `status` | `Experimental`, `Unstable` (both case-sensitive), `frozen` (not `frozen manifest`, `frozen lock` and similar release terms), `to be removed`, `deprecated`, and `ran`, `run`, `been run` or `executed` followed by `on a board` | [Component readiness](component-readiness.md) |
+| `history` (any case) | `was`, `were`, `has been`, `have been`, `is now` or `are now` followed by `removed`, `renamed`, `replaced`, `dropped` or `deleted`; `moved from`, `renamed from`, `previously`, `no longer`, `formerly`; `will be` followed by `frozen`, `removed` or `deprecated` | On a reference page, any section whose heading contains `migration` (any case), up to the next heading of the same or a higher level |
+| `provenance` (any case) | `merged in PR` or `merged in pull request`, `for review in a Draft PR`, and `on`, `since` or `until` followed by a written date such as `on 9 November 2026` | None |
+| `status` (all case-sensitive) | `Experimental`, `Unstable`, `frozen` (not `frozen manifest`, `frozen lock`, `frozen-style` and similar release terms), `to be removed`, `deprecated`, and `ran`, `run`, `been run` or `executed` followed by `on a`, `on the` or `on any` and `board`, with an optional `real` or `physical` before `board` | [Component readiness](component-readiness.md) |
 
 It skips fenced code blocks, text in code spans, pages of the other types, and the repository README, which `tests/build/test_readme_scope.py` (added by pull request #543) guards on its own.
 
