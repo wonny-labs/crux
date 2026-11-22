@@ -56,6 +56,26 @@ class ControllerSampleRemovalTest(unittest.TestCase):
             self.assertIn(Path(new).name, (REPO / old).read_text(), old)
             self.assertIn("exec", (REPO / old).read_text(), old)
 
+    def test_no_build_file_includes_a_removed_controller_path(self):
+        # A CMake include or source path that still names the removed folder breaks a Zephyr build that no
+        # local check compiles (the networking image once did).
+        offenders = []
+        for pattern in ("CMakeLists.txt", "*.cmake"):
+            for path in list((REPO / "samples").rglob(pattern)) + list((REPO / "tests").rglob(pattern)) + \
+                    list((REPO / "components").rglob(pattern)) + list((REPO / "templates").rglob(pattern)):
+                text = path.read_text(errors="replace")
+                if "controller/zephyr" in text or "samples/controller" in text:
+                    offenders.append(path.relative_to(REPO).as_posix())
+        self.assertEqual([], offenders)
+
+    def test_every_cmake_include_of_a_probe_file_resolves(self):
+        include_line = "include(../../../tests/board_images/integration_probe/mdio_completion.cmake)"
+        echo = REPO / "samples/networking/echo_client"
+        self.assertIn(include_line, (echo / "CMakeLists.txt").read_text())
+        self.assertTrue((echo / "../../../tests/board_images/integration_probe/mdio_completion.cmake").is_file())
+        self.assertTrue((REPO / "tests/networking_physical/../../tests/board_images/integration_probe/"
+                         "mdio_completion.cmake").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
