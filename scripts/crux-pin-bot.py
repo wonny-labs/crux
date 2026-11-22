@@ -37,8 +37,8 @@ SAFE_GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c"
 
 
 def git_config_sha256(env):
-    env = dict(env, **ISOLATION)
     """As open-pin-pr.py computes it: .git/config, then config.worktree when there is one."""
+    env = dict(env, **ISOLATION)
     def rev_parse(flag):
         return Path(subprocess.run(["git", *SAFE_GIT, "rev-parse", flag], text=True, capture_output=True,
                                    env=env, check=True).stdout.strip())

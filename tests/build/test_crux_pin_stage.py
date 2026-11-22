@@ -207,7 +207,7 @@ class ProposeTest(Base):
         self.assertEqual(1, len(self.server.prs))
         self.assertIn(self.new[:12], self.server.prs[0]["title"])
 
-    def test_the_push_goes_to_the_product_remote_it_cloned(self):
+    def test_the_push_ignores_user_configuration_that_redirects_the_product_url(self):
         # A clone's origin url is the one pushed to, whatever the user's configuration says.
         empty = self.tmp / "empty.git"
         git("init", "-q", "--bare", str(empty))
@@ -244,7 +244,7 @@ class ProposeTest(Base):
         self.assertEqual(ERROR, result.returncode)
         self.assertEqual([], self.server.prs)
 
-    def test_the_workdir_is_not_taken_from_a_shared_workspace(self):
+    def test_a_workdir_that_is_not_empty_is_refused(self):
         # A workdir that already holds files is refused: the stage starts from nothing.
         self.work.mkdir()
         (self.work / "leftover").write_text("x")

@@ -468,7 +468,7 @@ Conditions on the CI system:
 
 - Every stage that runs code has its own container, removed when the stage ends. No stage gets the container runtime's socket, host process or IPC namespaces, extra privileges or volumes from another container. `/tmp` is local to the container.
 - The image has Git 2.32 or later, `python3` in `/usr/bin`, and PyYAML that `python3 -I` can import. `/usr/bin:/bin` must hold `git`, `python3` and, for ssh remotes, `ssh`.
-- The token stage's container can clone both remotes and push `bot/crux-pin` to the product remote, with an ssh agent or another credential that does not live in a configuration file. The token's scope is the pull requests of the one product repository and the push to the bot branch.
+- The token stage's container has the hosts' keys in `~/.ssh/known_hosts` or `/etc/ssh/ssh_known_hosts`, because the scripts run ssh with `-F /dev/null` and so read no `ssh_config`. It can clone both remotes and push `bot/crux-pin` to the product remote, with an ssh agent or another credential that does not live in a configuration file. The token's scope is the pull requests of the one product repository and the push to the bot branch.
 - The container runtime passes the token to the process without putting its value on the host's command line. Check this, or mount the host's `/proc` with `hidepid=2`.
 
 The stage keeps the token from a build and from the new Crux. It does not protect against the CI system itself, or someone who can change the pipeline, reading the token. `crux-pin-bot.py` in one job suits a hook that only edits files.
@@ -529,7 +529,7 @@ jobs:
             --message-file "$RUNNER_TEMP/pin/message.txt" --allow-path west.yml
 ```
 
-Jenkins with Bitbucket Cloud, as a thin declarative pipeline on Docker agents with the product's Dev Container image. The logic is in `update-crux-pin.py` and `crux-pin-stage.py`. Each stage starts its own container, and the Propose stage takes nothing from the Update stage's workspace. `crux-pin-token` holds the access token, and `crux-pin-ssh` a key that may clone both repositories and push the bot branch. Set `PRODUCT_REMOTE` and `CRUX_REMOTE` to the repositories' ssh URLs.
+Jenkins with Bitbucket Cloud, as a thin declarative pipeline on Docker agents with the product's Dev Container image. The logic is in `update-crux-pin.py` and `crux-pin-stage.py`. Each stage starts its own container, and the Propose stage takes nothing from the Update stage's workspace. `crux-pin-token` holds the access token, `crux-pin-read` a read-only key that may clone both repositories, and `crux-pin-ssh` a key that may also push the bot branch. The Update stage, which runs the new Crux's code, gets only the read-only key: a build that could push could put a commit on the bot branch and so stop every later pin move. Set `PRODUCT_REMOTE` and `CRUX_REMOTE` to the repositories' ssh URLs.
 
 ```groovy
 pipeline {
@@ -546,7 +546,7 @@ pipeline {
       steps {
         deleteDir()
         dir('product-x') { checkout scm }
-        sshagent(['crux-pin-ssh']) {
+        sshagent(['crux-pin-read']) {
           script {
             env.PRODUCT_COMMIT = sh(returnStdout: true, script: 'git -C product-x rev-parse HEAD').trim()
             env.CRUX_TARGET = sh(returnStdout: true,
@@ -574,7 +574,7 @@ pipeline {
             def status = sh(returnStatus: true, script: '''
               rm -rf /tmp/crux-pin && mkdir /tmp/crux-pin && cd /tmp/crux-pin
               git clone -q "$PRODUCT_REMOTE" product0
-              pinned=$(python3 -c 'import sys, yaml; p = yaml.safe_load(open(sys.argv[1]))["manifest"]["projects"]; print(next(x["revision"] for x in p if x["name"] in ("crux", "crux-pilot")))' product0/west.yml)
+              pinned=$(python3 -I -c 'import sys, yaml; p = yaml.safe_load(open(sys.argv[1]))["manifest"]["projects"]; print(next(x["revision"] for x in p if x["name"] in ("crux", "crux-pilot")))' product0/west.yml)
               git clone -q --filter=blob:none --no-checkout "$CRUX_REMOTE" crux0
               git -C crux0 show "$pinned:scripts/crux-pin-stage.py" > stage.py
               python3 -I stage.py prepare --workdir /tmp/crux-pin/work --product-remote "$PRODUCT_REMOTE" \

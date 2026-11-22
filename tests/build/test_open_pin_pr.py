@@ -375,6 +375,27 @@ class GitHubTest(Base):
         (self.work / "build.log").write_text("x\n")
         self.assert_refused(self.run_script("--host", "github", env=self.env), "build.log")
 
+    def test_a_file_staged_and_removed_from_the_tree_is_not_committed(self):
+        # A staged file that is gone from the working tree shows in no diff against HEAD,
+        # yet git commit would still record it from the index.
+        self.change("bbbb")
+        (self.work / "extra.txt").write_text("x")
+        git("add", "extra.txt", cwd=self.work)
+        (self.work / "extra.txt").unlink()
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
+        self.assertIn("extra.txt", result.stderr)
+        self.assertIsNone(self.remote_ref(BRANCH))
+
+    def test_replace_refs_do_not_change_what_is_committed(self):
+        self.change("bbbb")
+        head = git("rev-parse", "HEAD", cwd=self.work)
+        other = git("commit-tree", "-m", "other", f"{head}^{{tree}}", cwd=self.work)
+        git("replace", head, other, cwd=self.work)
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual(head, git("rev-parse", f"{BRANCH}^", cwd=self.origin))
+
     def test_the_branch_may_not_be_the_base(self):
         self.change("bbbb")
         result = self.run_script("--host", "github", "--branch", "main", env=self.env)

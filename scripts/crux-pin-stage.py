@@ -27,11 +27,6 @@ import re
 import subprocess
 import sys
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover - the image installs PyYAML for west
-    yaml = None
-
 READY = DONE = 0
 ERROR = 1
 NOTHING = 3
@@ -42,7 +37,7 @@ BOT_SCRIPTS = ("update-crux-pin.py", "open-pin-pr.py")
 STAGE_SCRIPT = "scripts/crux-pin-stage.py"
 # Git reads no system or user configuration and ssh no user configuration.
 ISOLATION = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_ATTR_NOSYSTEM": "1",
-             "GIT_SSH_COMMAND": "ssh -F /dev/null", "GIT_TERMINAL_PROMPT": "0"}
+             "GIT_SSH_COMMAND": "ssh -F /dev/null", "GIT_TERMINAL_PROMPT": "0", "GIT_NO_REPLACE_OBJECTS": "1"}
 PASS_THROUGH = ("HOME", "SSH_AUTH_SOCK", "LANG", "LC_ALL", "TMPDIR")
 
 
@@ -73,6 +68,10 @@ def run(cmd, env, cwd=None, check=True):
 
 
 def pinned_revision(manifest_path, project_name):
+    try:
+        import yaml  # Only prepare needs it, so the token-holding propose mode does not import it.
+    except ImportError:
+        raise StageError("PyYAML is required (west installs it)") from None
     manifest = yaml.safe_load(manifest_path.read_text()) or {}
     projects = (manifest.get("manifest") or {}).get("projects") or []
     matches = [p for p in projects if p.get("name") == project_name] if project_name else \
@@ -86,8 +85,6 @@ def pinned_revision(manifest_path, project_name):
 
 
 def prepare(args):
-    if yaml is None:
-        raise StageError("PyYAML is required (west installs it)")
     work = Path(args.workdir)
     if work.exists() and any(work.iterdir()):
         raise StageError(f"{work} is not empty: this stage starts from nothing")
