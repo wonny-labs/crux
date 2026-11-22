@@ -3,9 +3,22 @@
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
-    "options": ["--platform=linux/amd64"]
+    "options": ["--platform=linux/amd64"],
+    "args": {
+      "CRUX_JLINK": "auto",
+      "CRUX_JLINK_DEB": "",
+      "CRUX_JLINK_DEB_SHA256": "",
+      "CRUX_JLINK_URL": ""
+    }
   },
-  "runArgs": ["--platform=linux/amd64", "--memory=4g", "--cpus=2"],
+  "runArgs": [
+    "--platform=linux/amd64",
+    "--memory=4g",
+    "--cpus=2",
+    "--device-cgroup-rule=c 189:* rmw",
+    "-v",
+    "/dev/bus/usb:/dev/bus/usb"
+  ],
   "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspace,type=bind",
   "workspaceFolder": "/workspace/crux-pilot",
   "mounts": [
@@ -31,7 +44,8 @@
         "ms-python.python",
         "redhat.vscode-yaml",
         "Arm.vscode-cmsis-debugger",
-        "llvm-vs-code-extensions.vscode-clangd"
+        "llvm-vs-code-extensions.vscode-clangd",
+        "marus25.cortex-debug"
       ]
     }
   },

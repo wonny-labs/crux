@@ -1,10 +1,10 @@
-"""Checks for the optional J-Link board Dev Container (ADR-0007).
+"""Checks for the board-ready Dev Container and its optional J-Link install (ADR-0007).
 
 They prove that the files parse and keep their safety properties: no privileged
 container, USB access limited to USB character devices, no download from SEGGER, a
 download only from CRUX_JLINK_URL over HTTPS with a SHA-256 pin, a udevadm stub that
-exists only while the package installs, and a default container that installs
-nothing. They prove nothing about a real probe, usbipd, a real J-Link package or a
+exists only while the package installs, and an image that still builds, with a
+warning, when no package is given. They prove nothing about a real probe, usbipd, a real J-Link package or a
 board.
 """
 import json
@@ -29,44 +29,45 @@ def load(path):
 
 
 class BoardContainerConfigTest(unittest.TestCase):
+    """The one Dev Container is board-ready: USB access and J-Link when a package is given."""
+
     def setUp(self):
-        self.board = load(BOARD / "devcontainer.json")
-        self.default = load(DEVCONTAINER / "devcontainer.json")
+        self.config = load(DEVCONTAINER / "devcontainer.json")
 
-    def test_board_container_reuses_the_default_dockerfile(self):
-        build = self.board["build"]
-        self.assertEqual((BOARD / build["dockerfile"]).resolve(), (DEVCONTAINER / "Dockerfile").resolve())
-        self.assertEqual((BOARD / build["context"]).resolve(), REPO.resolve())
-        self.assertEqual(build["args"]["CRUX_JLINK"], "1")
+    def test_there_is_one_dev_container_configuration(self):
+        configs = sorted(path.relative_to(REPO).as_posix() for path in DEVCONTAINER.rglob("devcontainer.json"))
+        self.assertEqual(configs, [".devcontainer/devcontainer.json"])
 
-    def test_board_container_leaves_the_package_url_empty(self):
+    def test_jlink_is_installed_when_a_package_is_given(self):
+        # auto: install a placed package or CRUX_JLINK_URL; with neither, warn and build anyway.
         # A copy of the repository may set an internal URL; this repository keeps it empty.
-        args = self.board["build"]["args"]
-        self.assertEqual(args["CRUX_JLINK_URL"], "")
-        self.assertEqual(args["CRUX_JLINK_DEB_SHA256"], "")
+        self.assertEqual(self.config["build"]["args"],
+                         {"CRUX_JLINK": "auto", "CRUX_JLINK_DEB": "", "CRUX_JLINK_DEB_SHA256": "",
+                          "CRUX_JLINK_URL": ""})
 
-    def test_board_container_is_not_privileged_and_allows_only_usb_devices(self):
-        run_args = self.board["runArgs"]
+    def test_not_privileged_and_allows_only_usb_devices(self):
+        run_args = self.config["runArgs"]
         self.assertFalse(any("privileged" in argument for argument in run_args))
         self.assertFalse(any(argument.startswith(("--cap-add", "--device=/dev/", "--security-opt"))
                              for argument in run_args))
         rules = [argument for argument in run_args if argument.startswith("--device-cgroup-rule")]
         self.assertEqual(rules, ["--device-cgroup-rule=c 189:* rmw"])
-        self.assertIn("source=/dev/bus/usb,target=/dev/bus/usb,type=bind", self.board["mounts"])
 
-    def test_board_container_keeps_the_default_workspace_and_limits(self):
-        for key in ("workspaceMount", "workspaceFolder", "containerEnv", "remoteEnv", "remoteUser",
-                    "postCreateCommand"):
-            self.assertEqual(self.board[key], self.default[key], key)
-        for argument in self.default["runArgs"]:
-            self.assertIn(argument, self.board["runArgs"])
-        for mount in self.default["mounts"]:
-            self.assertIn(mount, self.board["mounts"])
+    def test_usb_folder_is_bound_so_that_a_missing_folder_does_not_stop_the_start(self):
+        # `docker run -v` creates a missing source folder; a `mounts` entry (--mount) refuses to start.
+        # On WSL2, /dev/bus/usb exists only after the first usbipd attach.
+        run_args = self.config["runArgs"]
+        index = run_args.index("-v")
+        self.assertEqual(run_args[index + 1], "/dev/bus/usb:/dev/bus/usb")
+        self.assertFalse(any("/dev/bus" in mount for mount in self.config["mounts"]))
 
-    def test_default_container_has_no_usb_access_and_no_jlink(self):
-        self.assertNotIn("args", self.default["build"])
-        self.assertFalse(any("/dev/bus/usb" in mount for mount in self.default.get("mounts", [])))
-        self.assertFalse(any("device-cgroup-rule" in argument for argument in self.default["runArgs"]))
+    def test_keeps_the_workspace_cache_and_limits(self):
+        self.assertEqual(self.config["workspaceMount"], "source=${localWorkspaceFolder}/..,target=/workspace,type=bind")
+        self.assertEqual(self.config["workspaceFolder"], "/workspace/crux-pilot")
+        self.assertEqual(self.config["mounts"], ["source=crux-host-cache,target=/opt/crux-cache,type=volume"])
+        for argument in ("--platform=linux/amd64", "--memory=4g", "--cpus=2"):
+            self.assertIn(argument, self.config["runArgs"])
+        self.assertEqual(self.config["remoteUser"], "vscode")
 
     def test_dockerfile_keeps_the_base_image_and_never_downloads_jlink(self):
         text = (DEVCONTAINER / "Dockerfile").read_text()
@@ -76,7 +77,8 @@ class BoardContainerConfigTest(unittest.TestCase):
         self.assertNotIn("segger.com", lowered)
         self.assertNotIn("--no-check-certificate", lowered)
         self.assertNotIn("curl -k", lowered)
-        self.assertIn('if [ "$CRUX_JLINK" = 1 ]', text)
+        self.assertIn('if [ "$CRUX_JLINK" != 0 ]', text)
+        self.assertIn("ARG CRUX_JLINK=auto", text)
         self.assertIn("ARG CRUX_JLINK_URL=", text)
         self.assertNotIn("curl ", lowered)
 
@@ -160,13 +162,9 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertFalse([name for name in self.launch if name.startswith("Board container:")])
         self.assertFalse([label for label in self.tasks if label.startswith("Board container:")])
 
-    def test_only_the_board_container_adds_cortex_debug(self):
-        board = load(BOARD / "devcontainer.json")["customizations"]["vscode"]["extensions"]
-        default = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
-        self.assertIn("marus25.cortex-debug", board)
-        self.assertNotIn("marus25.cortex-debug", default)
-        for extension in default:
-            self.assertIn(extension, board)
+    def test_the_container_adds_cortex_debug(self):
+        extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        self.assertIn("marus25.cortex-debug", extensions)
 
 
 class InstallScriptTest(unittest.TestCase):
@@ -233,11 +231,27 @@ cp "{self.server}/${{url##*/}}" "$out"
     def apt_calls(self):
         return self.log.read_text() if self.log.exists() else ""
 
-    def test_fails_without_a_package(self):
-        result = self.run_install()
+    def test_required_fails_without_a_package(self):
+        result = self.run_install(CRUX_JLINK="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("no SEGGER J-Link package", result.stderr)
         self.assertEqual(self.apt_calls(), "")
+
+    def test_auto_without_package_or_url_warns_and_installs_nothing(self):
+        for environment in ({}, {"CRUX_JLINK": "auto"}):
+            with self.subTest(environment=environment):
+                result = self.run_install(**environment)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("warning: no SEGGER J-Link package", result.stderr)
+                self.assertIn(".devcontainer/jlink/packages/", result.stderr)
+                self.assertIn("Rebuild Container", result.stderr)
+                self.assertEqual(self.apt_calls(), "")
+                self.assertFalse(self.udevadm.exists())
+
+    def test_unknown_mode_is_rejected(self):
+        result = self.run_install(CRUX_JLINK="yes")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CRUX_JLINK", result.stderr)
 
     def test_fails_with_two_packages(self):
         self.package("JLink_Linux_V800_x86_64.deb")
@@ -308,7 +322,7 @@ cp "{self.server}/${{url##*/}}" "$out"
         self.assertEqual(self.udevadm.read_text(), "#!/bin/sh\n# real udevadm\nexit 0\n")
 
     def test_fails_with_a_clear_message_without_package_or_url(self):
-        result = self.run_install()
+        result = self.run_install(CRUX_JLINK="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(".devcontainer/jlink/packages/", result.stderr)
         self.assertIn("CRUX_JLINK_URL", result.stderr)

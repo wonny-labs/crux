@@ -1,6 +1,6 @@
 #!/bin/sh
-# Install the SEGGER J-Link Debian package in the board Dev Container image. Run
-# by the Dockerfile only when the board Dev Container sets CRUX_JLINK=1.
+# Install the SEGGER J-Link Debian package in the Dev Container image. Run by the
+# Dockerfile unless CRUX_JLINK=0.
 #
 # The package comes from one of two places, in this order:
 #   1. a JLink_Linux_<version>_x86_64.deb that the developer downloaded from
@@ -11,6 +11,9 @@
 # The script never downloads from SEGGER and never accepts a licence for anyone.
 #
 # Environment:
+#   CRUX_JLINK             auto (default): install the package from 1. or 2.; with
+#                          neither, print a warning and install nothing, so the
+#                          image still builds. 1: fail without a package.
 #   CRUX_JLINK_DEB         file name of the package in the folder (optional when
 #                          the folder holds exactly one JLink_Linux_*_x86_64.deb)
 #   CRUX_JLINK_DEB_SHA256  expected SHA-256 of the package (required with a URL)
@@ -19,6 +22,14 @@
 set -eu
 
 dir=${1:?usage: install-jlink.sh <package folder>}
+mode=${CRUX_JLINK:-auto}
+case "$mode" in
+    auto | 1) ;;
+    *)
+        echo "error: CRUX_JLINK must be auto, 1 or 0 (0 is handled by the Dockerfile), not $mode" >&2
+        exit 1
+        ;;
+esac
 deb=${CRUX_JLINK_DEB:-}
 url=${CRUX_JLINK_URL:-}
 expected=$(printf '%s' "${CRUX_JLINK_DEB_SHA256:-}" | tr 'A-F' 'a-f')
@@ -50,6 +61,14 @@ if [ -z "$deb" ]; then
         command -v curl >/dev/null 2>&1 || { echo "error: CRUX_JLINK_URL needs curl in the image" >&2; exit 1; }
         echo "Downloading the J-Link package from CRUX_JLINK_URL"
         curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$deb" "$url"
+    elif [ "$mode" = auto ]; then
+        echo "warning: no SEGGER J-Link package; the image is built without the J-Link software." \
+             "Host and native_sim work without it; flashing and debugging a board need it. To add it," \
+             "download JLink_Linux_<version>_x86_64.deb from SEGGER, accept its licence, place the file" \
+             "in .devcontainer/jlink/packages/ and run Dev Containers: Rebuild Container, or set the" \
+             "build arguments CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 to a copy that your" \
+             "organisation hosts" >&2
+        exit 0
     else
         echo "error: no SEGGER J-Link package. Either download JLink_Linux_<version>_x86_64.deb" \
              "from SEGGER, accept its licence and place the file in .devcontainer/jlink/packages/," \
