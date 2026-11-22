@@ -190,7 +190,7 @@ on Linux. `tests/controller` verifies sample-owned Time observations/recovery an
 phase logic. The maintained boundary-negative and host-runner failure checks are under
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
 status; `scripts/test-controller.sh` validates normal/RTC-absent native_sim system-realtime compositions
-and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
+and cross-builds EVKB without hardware access. Its conditions and limits are in `samples/controller/README.md`, listed in the [samples overview](../samples/README.md).
 
 Run `scripts/test-controller-integration.sh` in the configured Linux/west
 environment for device, networking and integrated-controller Zephyr scenarios
