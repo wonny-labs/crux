@@ -40,7 +40,7 @@ No board is needed.
 
 ## Building and running
 
-From the west workspace root (`/workspaces/crux` in the Dev Container), where `crux-pilot` is this repository:
+From the west workspace root (`/workspace` in the Dev Container), where `crux-pilot` is this repository:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run
