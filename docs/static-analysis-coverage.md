@@ -9,7 +9,8 @@ calls, has not started (as of 2026-11-18, 13 scripts under `scripts/` still call
 [Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
 implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
 shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
-2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. Refs #161.
+2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. The building blocks that left
+`samples/` on 2026-11-22 are named at their new place. Refs #161.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
@@ -128,7 +129,7 @@ Every analysed path exists in the tree (0 exceptions).
 | `components/reboot` | 4 | 0 | 0 |
 | `components/gpio`, `components/i2c`, `components/spi`, `components/tls_certificate` | 3 each | 0 | 0 |
 | `components/interrupt`, `components/queue`, `components/time`, `components/web` | 1 each | 0 | 0 |
-| `samples/web_project` | 1 | 0 | 0 |
+| `tests/web/project_sample/project` | 1 | 0 | 0 |
 | `tests/network_settings`, `tests/tls_certificate` | 13 each | 0 | 0 |
 | `tests/time` | 12 | 4 | 18 |
 | `tests/reboot` | 12 | 1 | 1 |
@@ -236,7 +237,7 @@ includes that file; the cause is in the fixture's global (`faults.c`), not in a 
 Findings by directory of the reported file (paths normalised): `tests/time` 18, `tests/file` 16,
 `tests/thread` 4, `tests/serial_consumer` 4, `tests/networking` 3, `tests/queue` 3, `components/queue` 3,
 `tests/bench_first_account` 2, `tests/execution_runtime` 2, `tests/file_service_consumer` 2, one each in
-`components/file_service`, `components/ssh`, `samples/serial`, `tests/i2c`, `tests/management_providers`,
+`components/file_service`, `components/ssh`, `tests/serial_consumer/scenario`, `tests/i2c`, `tests/management_providers`,
 `tests/reboot`, `tests/web`. Attributed instead to the source that was analysed, `tests/queue` has 6 and
 `components/queue` none.
 

@@ -12,7 +12,7 @@ include("${CRUX_SOURCE_DIR}/cmake/CruxConsumerBoundary.cmake")
 crux_assert_portable_usage(crux::serial crux::time)
 add_library(serial_runtime STATIC src/runtime.c)
 add_library(serial_cpp OBJECT src/consumer.cpp)
-add_library(serial_controller_portable STATIC "${CRUX_SOURCE_DIR}/samples/serial/controller.c")
+add_library(serial_controller_portable STATIC scenario/controller.c)
 foreach(consumer IN ITEMS serial_runtime serial_cpp serial_controller_portable)
     target_link_libraries(${consumer} PRIVATE crux::serial crux::time)
     target_compile_options(${consumer} PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -23,7 +23,7 @@ endforeach()
 enable_testing()
 foreach(kind IN ITEMS c cpp controller controller_stale)
     add_executable(serial_consumer_${kind} host/main.c $<TARGET_OBJECTS:serial_cpp>)
-    target_include_directories(serial_consumer_${kind} PRIVATE src "${CRUX_SOURCE_DIR}/samples/serial"
+    target_include_directories(serial_consumer_${kind} PRIVATE src scenario
         "${CRUX_SOURCE_DIR}/components/serial/ports/linux")
     target_link_libraries(serial_consumer_${kind} PRIVATE serial_runtime serial_controller_portable
         crux::serial crux::time )

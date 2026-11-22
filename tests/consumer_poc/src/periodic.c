@@ -1,4 +1,4 @@
-/* Policy follows samples/messaging/controller.c: skip whole periods, keep the phase. */
+/* Policy follows tests/messaging_consumer/scenario/controller.c: skip whole periods, keep phase. */
 #include "periodic.h"
 
 #include <stddef.h>

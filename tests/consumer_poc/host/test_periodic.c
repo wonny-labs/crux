@@ -42,7 +42,7 @@ int main(void)
     check(periodic_next(&state, &clock, &skipped) == 0 && skipped == 0 && state.deadline_ns == 1200,
           "on time keeps the next period");
 
-    /* The grid of samples/messaging/controller.c: 1350 misses 1200 and 1300. */
+    /* The grid of tests/messaging_consumer/scenario/controller.c: 1350 misses 1200 and 1300. */
     state.deadline_ns = 1100;
     script.value_ns = 1350;
     check(periodic_next(&state, &clock, &skipped) == 0 && skipped == 2 && state.deadline_ns == 1400,

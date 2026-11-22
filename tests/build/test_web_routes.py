@@ -289,7 +289,7 @@ class ReviewList(unittest.TestCase):
 
     def test_the_example_project_is_checked_against_its_named_list(self):
         module = self.load_check()
-        sample = REPO / "samples/web_project"
+        sample = REPO / "tests/web/project_sample/project"
         listing = module.own_list(sample / "src/greeting_route.c")
         self.assertEqual(listing, sample / "reviewed-routes.txt")
         self.assertTrue(module.named_by_build(listing))

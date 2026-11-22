@@ -11,7 +11,8 @@ target_link_libraries(crux_configuration_no_provider_test PRIVATE crux::configur
 target_compile_options(crux_configuration_no_provider_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME Configuration.NoProvider COMMAND crux_configuration_no_provider_test)
 set_tests_properties(Configuration.NoProvider PROPERTIES TIMEOUT 10)
-add_library(configuration_controller_portable OBJECT ../../samples/controller/configuration/scenario.c)
+# The controller configuration scenario, a building block that only this test compiles.
+add_library(configuration_controller_portable OBJECT controller_scenario.c)
 target_link_libraries(configuration_controller_portable PRIVATE crux::configuration crux_controller_core)
 target_compile_options(configuration_controller_portable PRIVATE -Wall -Wextra -Wpedantic -Werror)
 cmake_language(DEFER DIRECTORY "${PROJECT_SOURCE_DIR}" CALL crux_assert_portable_consumer configuration_controller_portable)
