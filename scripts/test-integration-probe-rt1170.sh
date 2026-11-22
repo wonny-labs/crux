@@ -14,7 +14,7 @@ if ! command -v west >/dev/null 2>&1; then
 fi
 
 # Zephyr's CMake honours these. Clear them so the build uses only the upstream Rev A board
-# configuration plus m3.conf, whatever the calling environment sets.
+# configuration plus device_health_probe.conf, whatever the calling environment sets.
 unset DTC_OVERLAY_FILE EXTRA_DTC_OVERLAY_FILE OVERLAY_CONFIG CONF_FILE BOARD_ROOT
 
 export ZEPHYR_BASE="$workspace/zephyr"

@@ -23,7 +23,7 @@ The first composition is RAM load with revert on the RT1060-EVK Rev B (`mimxrt10
 
 ## The argument set
 
-The arguments below are the interface of the composition. The four files live in the Crux module, in `zephyr/boot/boards/<board>/` ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-owner-decision)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the controller sample in `samples/controller/zephyr` is the image `zephyr`.
+The arguments below are the interface of the composition. The four files live in the Crux module, in `zephyr/boot/boards/<board>/` ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-owner-decision)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the boot fixture in `tests/boot_fixture/zephyr`, which the check script builds, is the image `zephyr`.
 
 ```text
 west build --sysbuild -b 'mimxrt1060_evk@B//qspi' <app> -d <build> -- \
