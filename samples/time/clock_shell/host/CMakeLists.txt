@@ -4,7 +4,7 @@ target_compile_options(crux-time-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # `ctest -L sample` runs every Linux Host sample once and checks its output.
-    add_test(NAME Sample.TimeHost
+    add_test(NAME Sample.ClockShellHost
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/run-host-sample.py
                 $<TARGET_FILE:crux-time-host>
                 "--input=time get\ntime set 2026-10-16T14:30:00\ntime get\n"
@@ -12,5 +12,5 @@ if(BUILD_TESTING)
                 "--expect=^ERR NOT_SET$"
                 "--expect=^OK$"
                 "--expect=^2026-10-16T14:30:00 UTC$")
-    set_tests_properties(Sample.TimeHost PROPERTIES LABELS sample TIMEOUT 15)
+    set_tests_properties(Sample.ClockShellHost PROPERTIES LABELS sample TIMEOUT 15)
 endif()

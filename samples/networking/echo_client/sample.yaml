@@ -1,0 +1,26 @@
+sample:
+  name: Crux echo client
+  description: >-
+    Brings up the EVKB Ethernet interface with a fixed IPv4 address, prints the Crux Netif status,
+    and exchanges one TCP and one UDP echo with a peer at 192.168.77.1 ports 42420 and 42421.
+    It runs only on a board on an isolated network with that peer (fixture crux_echo_peer);
+    without the fixture Twister only builds it.
+common:
+  tags: [crux, networking]
+  platform_allow:
+    - mimxrt1060_evk@B/mimxrt1062/qspi
+  integration_platforms:
+    - mimxrt1060_evk@B/mimxrt1062/qspi
+  harness: console
+  harness_config:
+    fixture: crux_echo_peer
+    type: multi_line
+    ordered: true
+    regex:
+      - "^NETIF admin=[01] link=-?[0-9]+ address=[01]$"
+      - "^NETWORK tcp=0 udp=0$"
+tests:
+  crux.sample.networking.echo_client:
+    # The same network overlay that scripts/test-networking.sh passes; relative to this folder.
+    extra_args:
+      - DTC_OVERLAY_FILE="../../controller/zephyr/m3-network.overlay"

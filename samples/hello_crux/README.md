@@ -85,5 +85,6 @@ CRUX_HELLO_READY composition=host
 
 - [`samples/file/write_read`](../file/write_read/README.md) selects a File provider by build
   configuration alone.
-- [`samples/time`](../time/README.md) is a shell with the Time commands on both compositions.
+- [`samples/time/clock_shell`](../time/clock_shell/README.md) sets and reads the clock from shell commands on
+  both compositions.
 - [`templates/product`](../../templates/product/README.md) is the shape of a product repository on Crux.
