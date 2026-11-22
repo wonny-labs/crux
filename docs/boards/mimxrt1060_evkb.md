@@ -36,7 +36,15 @@ Operator practice from bench sessions, not a repository record: check all four S
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
 | Host | A Mac runs the J-Link GDB Server. The Dev Container runs the build and GDB and connects to the server at `host.docker.internal:2331` |
 
-**Linux and Windows with WSL2.** No Linux or Windows route has been run. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and whether the server command works on Linux is not verified. On native Linux, Docker does not resolve `host.docker.internal` unless the container is started with `--add-host=host.docker.internal:host-gateway`; this too has not been tried. On WSL2, USB forwarding of the probe to the distribution is needed only if the GDB server runs inside WSL2; running the server on Windows is the other option. Both are untried. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified either. This page will describe the Linux and WSL2 route once it has been verified.
+**Linux and Windows with WSL2.** The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the board Dev Container. Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with the work of `scripts/setup-board-host.sh` and of the udevadm handling in `install-jlink.sh` done by hand; the script and that handling have not been run there themselves. The [J-Link board route](../board-jlink-usbipd.md) guide explains each step.
+
+1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID>` (again after a replug or a WSL2 restart). `/dev/bus/usb` exists in WSL2 only after the attach.
+2. WSL2 or Linux shell, in the repository checkout: `scripts/setup-board-host.sh`. It installs `usbutils` if needed, installs the udev rule and prints the probe's node: `crw-rw----` with group `plugdev` on native Linux, or `crw-rw-rw-` owned by `root` on WSL2. The container can open either.
+3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set the build arguments `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy that your organisation hosts.
+4. VS Code: **Dev Containers: Rebuild and Reopen in Container**, choose **Crux Pilot board, J-Link**.
+5. In the container: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
+
+The read-only `west attach` check with `compare-sections` and `west flash` through the J-Link runner have not been run on this route; the guide names their commands. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified.
 
 ## Flash and debug
 
@@ -97,7 +105,7 @@ The board test tooling programs and restores only registered images. Each image 
 
 ## Known limits
 
-- The only host used for debugging and physical tests is macOS ([Probe and connection](#probe-and-connection)).
+- The only host used for flashing, debugging and physical tests is macOS. On Linux and WSL2 the route reaches the J-Link tools in the board Dev Container ([Probe and connection](#probe-and-connection)).
 - The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` is built and run on `native_sim` only.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).

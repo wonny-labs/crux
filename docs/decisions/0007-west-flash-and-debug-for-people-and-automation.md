@@ -51,7 +51,7 @@ This record decides who may use Zephyr's standard `west flash` and `west debug` 
 | W1 | Each physical operation still needs explicit authorisation for the current task, as `AGENTS.md` says. Flashing, resetting, attaching and starting a debug session are physical operations. This record is not that authorisation and changes nothing in `AGENTS.md` |
 | W2 | No unattended flashing in CI. No workflow flashes, resets or attaches to a board, and Twister's `--device-testing` stays outside the supported routes, as the [build guide](../build.md#hardware-integration-tests) says |
 | W3 | The device-control tool and its gates under `tools/` stay unchanged. They remain the route for test fixtures, and `west flash` does not replace or bypass them |
-| W4 | The documented route is usbipd-win on Windows (none on native Linux) and an optional board Dev Container that installs the J-Link software from a package the developer downloaded. It uses no `--privileged`. The default Dev Container does not mount USB devices and installs no J-Link software |
+| W4 | The documented route is usbipd-win on Windows (none on native Linux) and an optional board Dev Container that installs the J-Link software from a package the developer downloaded, or from a copy that an organisation hosts after accepting the SEGGER licence itself (build argument `CRUX_JLINK_URL`, HTTPS only, with a required SHA-256). The build never downloads from SEGGER and accepts no licence for anyone. It uses no `--privileged`. The default Dev Container does not mount USB devices and installs no J-Link software |
 | W5 | The host-side J-Link GDB Server route with the existing VS Code profiles stays documented as a fallback |
 | W6 | Crux adds no wrapper script of its own over `west flash` or `west debug` (option D rejected) |
 
@@ -63,7 +63,7 @@ This record decides who may use Zephyr's standard `west flash` and `west debug` 
 
 ## What was not verified
 
-No step of the board route has run: not usbipd-win, not the board Dev Container build, not the udev rule, not `lsusb` in the container, not `west attach`, `west debug` or `west flash` through the J-Link runner. The default Dev Container was not rebuilt. CI can only check that the files parse and that existing builds and tests still pass. The [board guide](../board-jlink-usbipd.md#6-first-check-on-a-windows-pc) holds the first check to run on a Windows PC.
+On 22 November 2026 the route was run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2 up to the J-Link tools in the board Dev Container: usbipd-win attach, `lsusb` on both sides, the board Dev Container build, `plugdev` membership and the J-Link tools in the container. The build first failed because the J-Link package's install script calls `udevadm`; it passed with a no-op `udevadm` in `/usr/sbin` during the install, and `install-jlink.sh` now does that itself. The usbipd-attached probe's node on WSL2 was `crw-rw-rw-` owned by `root`. `scripts/setup-board-host.sh` and the current `install-jlink.sh` have not been run on that PC. `west attach`, `west debug` and `west flash` through the J-Link runner have not been run. The [board route guide](../board-jlink-usbipd.md) holds the steps.
 
 ## Record
 
