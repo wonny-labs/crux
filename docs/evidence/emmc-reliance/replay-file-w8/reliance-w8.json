@@ -1,0 +1,1743 @@
+{
+ "asserted": [
+  "I1",
+  "I2",
+  "I3",
+  "I4",
+  "I5",
+  "read_error=0"
+ ],
+ "controls": [
+  {
+   "cases": [
+    {
+     "acked": 1,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 90,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 13562741104584397407,
+     "workload": "W8"
+    },
+    {
+     "acked": 2,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 179,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 5032470871490369334,
+     "workload": "W8"
+    },
+    {
+     "acked": 3,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 268,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 5741707684950178478,
+     "workload": "W8"
+    },
+    {
+     "acked": 4,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 357,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 9001733145928794991,
+     "workload": "W8"
+    },
+    {
+     "acked": 5,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 446,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 13495199656548553188,
+     "workload": "W8"
+    },
+    {
+     "acked": 6,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 535,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 10066792556501576628,
+     "workload": "W8"
+    },
+    {
+     "acked": 7,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 624,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 1790821218009463707,
+     "workload": "W8"
+    },
+    {
+     "acked": 8,
+     "exe": "nofix",
+     "failed_as_required": true,
+     "model": "lost",
+     "position": 713,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 14251217516044881984,
+     "workload": "W8"
+    }
+   ],
+   "failed_as_required": true,
+   "flushes_in_trace": 0,
+   "image": "red-nofix-file",
+   "model": "lost",
+   "name": "flush",
+   "profile": "cached",
+   "required": "mount=1 and data=0 at every position after a mark",
+   "workload": "W8"
+  },
+  {
+   "cases": [
+    {
+     "acked": 1,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 36,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 10129307875467631771,
+     "workload": "W8"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 131,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 18307320252384282050,
+     "workload": "W8"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 226,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 15034629324517361001,
+     "workload": "W8"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 321,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 9631207058178191104,
+     "workload": "W8"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 416,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 17954666565702946650,
+     "workload": "W8"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 511,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 1321234060150824475,
+     "workload": "W8"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 606,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 18115471427515279258,
+     "workload": "W8"
+    },
+    {
+     "acked": 8,
+     "exe": "fix",
+     "failed_as_required": true,
+     "model": "lost",
+     "phase": "run-early",
+     "position": 701,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 0,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "seed": 6744989791919989619,
+     "workload": "W8"
+    }
+   ],
+   "failed_as_required": true,
+   "image": "red-fix-file",
+   "model": "lost",
+   "name": "early acknowledgement",
+   "phase": "run-early",
+   "profile": "cached",
+   "required": "mount=1 and data=0 at every position after a mark",
+   "workload": "W8"
+  },
+  {
+   "cases": [
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 87,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 5931344999326379571,
+     "workload": "W8C"
+    },
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 111,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 9748325555870627925,
+     "workload": "W8C"
+    },
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 112,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 3939380071737155875,
+     "workload": "W8C"
+    },
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 120,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 797305135297200427,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 208,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 5285191998367853640,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 232,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 17949663268839757748,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 233,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 10123307096894771380,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 241,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 1369289384825713284,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 329,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 1494025221029914848,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 353,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 9754885512995294362,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 354,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 12412247283995731000,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 362,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 15183291264533822553,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 450,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4767200821911800442,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 474,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 18332150523184986424,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 475,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 447999672231473840,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 483,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 15719709333738072014,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 571,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 17479374836098651174,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 595,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 7264459252720660643,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 596,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4564383120570628230,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 604,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 13868562235352017103,
+     "workload": "W8C"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "model": "lost",
+     "position": 692,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 12217377626782831447,
+     "workload": "W8C"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "model": "lost",
+     "position": 716,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 14624247641351556021,
+     "workload": "W8C"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "model": "lost",
+     "position": 717,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 8546858401630052311,
+     "workload": "W8C"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "model": "lost",
+     "position": 725,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 17835916306901792524,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 813,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4570296824724884673,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 837,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 2015065077125288247,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 838,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 7880460022212332083,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 846,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 14689017557469713406,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 934,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 14778205307041925517,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 958,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 10234354379721040770,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 959,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 7313036810319090268,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 967,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 15088721503996665239,
+     "workload": "W8C"
+    },
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 91,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4262646420128780038,
+     "workload": "W8C"
+    },
+    {
+     "acked": 0,
+     "exe": "fix",
+     "model": "lost",
+     "position": 103,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 8083182540014003024,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 223,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 1370372473592603039,
+     "workload": "W8C"
+    },
+    {
+     "acked": 1,
+     "exe": "fix",
+     "model": "lost",
+     "position": 238,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 3196779202897557925,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 341,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 3758148575841910090,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 355,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 16355089451630936338,
+     "workload": "W8C"
+    },
+    {
+     "acked": 2,
+     "exe": "fix",
+     "model": "lost",
+     "position": 360,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 3330023422820764950,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 460,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 3702825876677017971,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 467,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4428224719629323699,
+     "workload": "W8C"
+    },
+    {
+     "acked": 3,
+     "exe": "fix",
+     "model": "lost",
+     "position": 470,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 7348393575079247986,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 574,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 10235442966596322196,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 585,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 2613201773075000123,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 597,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 12550002406745864944,
+     "workload": "W8C"
+    },
+    {
+     "acked": 4,
+     "exe": "fix",
+     "model": "lost",
+     "position": 601,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 17305847340072019552,
+     "workload": "W8C"
+    },
+    {
+     "acked": 5,
+     "exe": "fix",
+     "model": "lost",
+     "position": 709,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 13297392552851783142,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 828,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 4148311430155992816,
+     "workload": "W8C"
+    },
+    {
+     "acked": 6,
+     "exe": "fix",
+     "model": "lost",
+     "position": 832,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 8270888448262456524,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 945,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 17503532742418494950,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 950,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 15623491854161124167,
+     "workload": "W8C"
+    },
+    {
+     "acked": 7,
+     "exe": "fix",
+     "model": "lost",
+     "position": 956,
+     "profile": "cached",
+     "result": {
+      "data": 0,
+      "missing": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 0,
+      "untouched": 1
+     },
+     "seed": 10648338237764317276,
+     "workload": "W8C"
+    }
+   ],
+   "failed_as_required": true,
+   "generations_with_missing_target": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "image": "red-fix-file",
+   "model": "lost",
+   "name": "window",
+   "positions": [
+    87,
+    91,
+    103,
+    111,
+    112,
+    120,
+    208,
+    223,
+    232,
+    233,
+    238,
+    241,
+    329,
+    341,
+    353,
+    354,
+    355,
+    360,
+    362,
+    450,
+    460,
+    467,
+    470,
+    474,
+    475,
+    483,
+    571,
+    574,
+    585,
+    595,
+    596,
+    597,
+    601,
+    604,
+    692,
+    709,
+    716,
+    717,
+    725,
+    813,
+    828,
+    832,
+    837,
+    838,
+    846,
+    934,
+    945,
+    950,
+    956,
+    958,
+    959,
+    967
+   ],
+   "profile": "cached",
+   "required": "mount=1, missing=1 and I3 failing in every generation's replace",
+   "workload": "W8C"
+  },
+  {
+   "case": {
+    "acked": 0,
+    "damage": "sectors 8 to 23 = 0xa5",
+    "exe": "fix",
+    "result": {
+     "data": 0,
+     "mount": 0,
+     "read_error": 0,
+     "recommit": 0,
+     "replace": 0,
+     "untouched": 0
+    },
+    "workload": "W1"
+   },
+   "failed_as_required": true,
+   "image": "red-fix-file",
+   "name": "damaged image",
+   "required": "mount=0",
+   "single_metaroot_observations": {
+    "first metaroot": {
+     "acked": 0,
+     "damage": "sectors 8 to 15 = 0xa5",
+     "exe": "fix",
+     "result": {
+      "data": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "workload": "W1"
+    },
+    "second metaroot": {
+     "acked": 0,
+     "damage": "sectors 16 to 23 = 0xa5",
+     "exe": "fix",
+     "result": {
+      "data": 1,
+      "mount": 1,
+      "read_error": 0,
+      "recommit": 1,
+      "replace": 1,
+      "untouched": 1
+     },
+     "workload": "W1"
+    }
+   }
+  }
+ ],
+ "counts": {
+  "cases": 3546,
+  "observed_failures": 0,
+  "processes": 454
+ },
+ "failures": [],
+ "fs": "reliance",
+ "medium_bytes": 4194304,
+ "observations": {
+  "W8": {
+   "cached": {
+    "lost": {
+     "cases": 161,
+     "no_result": 0,
+     "passed": 161,
+     "violations": {}
+    },
+    "prefix": {
+     "cases": 311,
+     "no_result": 0,
+     "passed": 311,
+     "violations": {}
+    },
+    "reordered": {
+     "cases": 298,
+     "no_result": 0,
+     "passed": 298,
+     "violations": {}
+    },
+    "torn": {
+     "cases": 260,
+     "no_result": 0,
+     "passed": 260,
+     "tore": 236,
+     "violations": {}
+    }
+   },
+   "nocache": {
+    "prefix": {
+     "cases": 258,
+     "no_result": 0,
+     "passed": 258,
+     "violations": {}
+    },
+    "torn": {
+     "cases": 259,
+     "no_result": 0,
+     "passed": 259,
+     "tore": 251,
+     "violations": {}
+    }
+   }
+  },
+  "W8C": {
+   "cached": {
+    "lost": {
+     "cases": 193,
+     "no_result": 0,
+     "passed": 141,
+     "target_missing": 52,
+     "violations": {},
+     "window": 52
+    },
+    "prefix": {
+     "cases": 391,
+     "no_result": 0,
+     "passed": 291,
+     "target_missing": 100,
+     "violations": {},
+     "window": 100
+    },
+    "reordered": {
+     "cases": 394,
+     "no_result": 0,
+     "passed": 301,
+     "target_missing": 93,
+     "violations": {},
+     "window": 93
+    },
+    "torn": {
+     "cases": 331,
+     "no_result": 0,
+     "passed": 248,
+     "target_missing": 83,
+     "tore": 299,
+     "violations": {},
+     "window": 83
+    }
+   },
+   "nocache": {
+    "prefix": {
+     "cases": 331,
+     "no_result": 0,
+     "passed": 250,
+     "target_missing": 81,
+     "violations": {},
+     "window": 81
+    },
+    "torn": {
+     "cases": 332,
+     "no_result": 0,
+     "passed": 245,
+     "target_missing": 87,
+     "tore": 324,
+     "violations": {},
+     "window": 87
+    }
+   }
+  }
+ },
+ "observed_failures": [],
+ "samples": 64,
+ "sanity": [
+  {
+   "acked": 0,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 0,
+   "profile": "cached",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 9248456963231066792,
+   "workload": "W8"
+  },
+  {
+   "acked": 8,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 761,
+   "profile": "cached",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 11423895937525292544,
+   "workload": "W8"
+  },
+  {
+   "acked": 0,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 0,
+   "profile": "nocache",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 2770818340327990231,
+   "workload": "W8"
+  },
+  {
+   "acked": 8,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 712,
+   "profile": "nocache",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 688207816900938871,
+   "workload": "W8"
+  },
+  {
+   "acked": 0,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 0,
+   "profile": "cached",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 12447228766161098926,
+   "workload": "W8C"
+  },
+  {
+   "acked": 8,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 969,
+   "profile": "cached",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 8842724444530043674,
+   "workload": "W8C"
+  },
+  {
+   "acked": 0,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 0,
+   "profile": "nocache",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 8255635503331467398,
+   "workload": "W8C"
+  },
+  {
+   "acked": 8,
+   "exe": "fix",
+   "model": "prefix",
+   "passed": true,
+   "position": 904,
+   "profile": "nocache",
+   "result": {
+    "data": 1,
+    "missing": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 16677515633745771354,
+   "workload": "W8C"
+  }
+ ],
+ "seed": 1,
+ "timing": {
+  "machine": "x86_64",
+  "max_seconds": 300.0,
+  "seconds": 94.9
+ },
+ "traces": {
+  "W8": {
+   "cached": {
+    "commits": 24,
+    "events": 761,
+    "flush_positions": 96,
+    "flushes": 48,
+    "marks": 8,
+    "metaroot_positions": 216,
+    "writes": 704
+   },
+   "nocache": {
+    "events": 712,
+    "flush_positions": 0,
+    "flushes": 0,
+    "marks": 8,
+    "metaroot_positions": 216,
+    "writes": 704
+   }
+  },
+  "W8C": {
+   "cached": {
+    "commits": 32,
+    "events": 969,
+    "flush_positions": 128,
+    "flushes": 64,
+    "marks": 8,
+    "metaroot_positions": 288,
+    "writes": 896
+   },
+   "nocache": {
+    "events": 904,
+    "flush_positions": 0,
+    "flushes": 0,
+    "marks": 8,
+    "metaroot_positions": 288,
+    "writes": 896
+   }
+  }
+ },
+ "window": {
+  "by_profile_model": {
+   "cached lost": 52,
+   "cached prefix": 100,
+   "cached reordered": 93,
+   "cached torn": 83,
+   "nocache prefix": 81,
+   "nocache torn": 87
+  },
+  "cases": 496,
+  "generations": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ]
+ },
+ "workload": "W8"
+}
