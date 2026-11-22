@@ -161,6 +161,21 @@ userdata:
   crux-override: "fix for acme issue 123, drop when upstream has it"
 ```
 
+### A stale or mismatched pin
+
+What a product sees depends on how the pin went wrong.
+
+| Situation | What the product sees | Fix |
+| --- | --- | --- |
+| The Crux pin is older than `west crux-pins` | West reports that the command is unknown. See [Pinning by hand](#pinning-by-hand) | Move the Crux pin to a revision that holds the command, then `west update` |
+| The manifest was edited and `west update` was not run | `MISMATCH name sha: why`, with a non-zero exit, when a SHA or tag in the manifest is not what west fetched. A changed branch name is not detected until `west update` has run ([`west crux-pins`](#west-crux-pins)) | `west update`, then `west crux-pins` |
+| Zephyr or a module is pinned apart from Crux's pin | `MISMATCH name sha (contract sha)` | Take Crux's pin, or declare the difference with `crux-override` and a reason |
+| The Crux pin is old but the workspace matches it | `OK` on every line. The contract is read from Crux at the pinned revision, so an old Crux is a consistent contract | `west crux-pins` cannot see this. Compare the pin with the revision you intend to use, and see the [compatibility table](compatibility-table.md) for what a revision carries |
+
+Crux does not assert its own version in code, so a product that uses an API or Kconfig symbol its pinned Crux lacks fails in the ordinary way, with an unknown symbol or a missing header, and Crux adds no message. This is **Inference**: it was not run. A version assertion is not planned for now.
+
+To move the pin, change the Crux `revision` in the product manifest to a newer SHA or tag, run `west update`, then `west crux-pins`. With `import: true` the Zephyr and module pins follow. With [hand pins](#pinning-by-hand) they must be moved to the new contract, or declared. [Upgrades and security fixes](#upgrades-and-security-fixes) covers what to review. A [Draft pull request](https://github.com/wonny-labs/crux-pilot/pull/537) proposes a bot that opens one pull request per pin move; it is not merged, so do not rely on it yet.
+
 ### Zephyr baseline gate
 
 The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.4.2. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
@@ -464,6 +479,15 @@ west spdx -d product-x/build/app
 - **Container recipe.** `--devcontainer DIR` names the recipe. By default the record uses `<repo>/.devcontainer` if present, otherwise Crux's own. It records a recipe only for a build inside a container. A build of Crux itself, with neither `--repo` nor `--devcontainer`, stops without its recipe and writes no record.
 - **Lock file.** The record's `west_manifest_sha256` is the hash of `west.yml`, not of the lock. The lock is covered by the source snapshot, and `west_projects` lists each commit.
 - **Toolchain.** West has no field for it. Pin it through the SDK version and container image recorded in the bundle.
+
+### Build path
+
+Build at the same absolute path when you compare two builds of one source. The evidence for this is limited, so the rule is only as strong as that.
+
+- **ELF files differ.** In [Stage 8](evidence/boot-update/stage8-reproducibility-and-signing.md), builds with different build directories gave ELF files that differed only in `.debug_info`, `.debug_line` and `.debug_str`, which hold the path. The unsigned `zephyr.bin` of all four pairs was byte-identical. The signed images differed only in the signature. That trial varied the build directory only, in one container, on an older trial tree. It did not vary the source or workspace path, and no rebuild at one path was made to confirm the path as the sole cause. Nothing has compared two real builds of the current composition ([boot reproducibility](boot-reproducibility.md)).
+- **What Zephyr strips.** Zephyr's `CONFIG_BUILD_OUTPUT_STRIP_PATHS` (on by default; Crux does not change it) passes `-fmacro-prefix-map` for the application source, `ZEPHYR_BASE` and the west top directory, so `__FILE__` does not carry them. Zephyr adds no `-fdebug-prefix-map` or `-ffile-prefix-map`, and the Crux presets and scripts add none, so debug sections keep the path. **Inference** from reading Zephyr 4.4.0 CMake: a path outside those three directories, in a macro or an assertion, could still reach the image. Not tested.
+- **Compare an ELF or its map only from the same path.** Compare flashable images (`zephyr.bin`, `.hex`) from another path only as a check that was expected to pass, not as a guarantee: a difference there means rebuild at the first path before you suspect the source.
+- **A prefix map is untested here.** On a host `clang` object file, `-fmacro-prefix-map` alone left the path in the debug info, and adding `-ffile-prefix-map` removed it, so the objects from two paths were identical. That is an illustration of the flags, not a Crux or Zephyr build. Whether the option would make a Crux ELF path-independent is **Not verified**, and it is not adopted.
 
 ### Release bundle
 
