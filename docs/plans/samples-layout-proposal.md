@@ -1,12 +1,18 @@
 # Layout of `samples/`: proposal
 
-Status: **proposal, for review in a Draft PR. Not adopted.** Nothing here is moved or renamed. It changes no protected
-path, no CTest name and no Twister id. Every move it describes waits for the owner's decisions in
-[section 5](#5-decisions-for-the-owner).
+Status: **proposal, for review in a Draft PR. Not adopted.** Nothing here is moved, renamed or deleted. It changes no
+protected path, no CTest name and no Twister id. Every change it describes waits for the owner's decisions in
+[section 9](#9-decisions-for-the-owner); the owner approves the concrete rename and delete lists and the protected
+files before any change.
 
 Baseline: `main` at `2d8553e2`. The Zephyr readings below were made in a local checkout at
-`684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). `west.yml` pins v4.4.2; the sample rules quoted are documentation
-and Twister naming rules, which should be rechecked at the pin before they are relied on.
+`684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). `west.yml` pins v4.4.2; the sample rules and Twister options
+quoted should be rechecked at the pin before they are relied on.
+
+Owner input taken into this version (2026-11-22, relayed by the Crux main session): names as explicit as `tcp_echo`
+or `hello_world`; only a few representative starter samples, chosen by platform concept rather than by recent
+features; power-loss and replay scenarios belong in `tests/`; clean up all old milestone names such as `m3`; consider
+removing `samples/controller`; explain how samples relate to platform verification.
 
 ## Problem
 
@@ -17,9 +23,8 @@ thing. The main cases:
 - **`samples/controller`** has the same name as the product repository `crux-controller`, but its default
   configuration is a finite 20-cycle Time observation on a 100 ms periodic schedule. It is not a controller product.
 - The same folder holds the board-only probes: nine `m3*.conf` files, `m3-network.overlay` and `m3_main.c` with its
-  sources. `M3` is a
-  historical Pilot milestone name, and the probes test devices, networking and health on the EVKB; they are tests,
-  not samples.
+  sources. `M3` is a historical Pilot milestone name, and the probes test devices, networking and health on the EVKB;
+  they are tests, not samples.
 - `controller/core`, `controller/include`, `controller/system` and `controller/configuration` are building blocks that
   only tests or the two controller programs compile.
 - Of the 16 top-level folders, 4 are building blocks as a whole (`logging`, `serial`, `messaging`, `web_project`), and
@@ -27,6 +32,8 @@ thing. The main cases:
   formatter test images.
 - Only `time/` and `controller/zephyr/` have a `sample.yaml`. Seven board-only folders have a `testcase.yaml` with
   `crux.sample.*` ids. Four top-level folders have a README.
+- No sample shows the platform concepts a new user needs first: how a consumer links Crux, how a composition picks a
+  provider, how one portable source runs on Linux Host and on `native_sim`.
 
 ## 1. Current inventory
 
@@ -34,13 +41,16 @@ Counted with `git grep -l -E "samples/<folder>([/\"' )\`]|$)"` on the baseline, 
 `package-lock.json`. "Evidence" means files under `docs/evidence/` or `docs/baseline.md`: protected accepted records,
 which stay unchanged and keep naming the old paths. "Protected (live)" lists the other files on the protected paths of
 [`AGENTS.md`](../../AGENTS.md#protected-paths) that would have to change. "Other" counts the remaining files
-(source, CMake, tests, docs, `web/`).
+(source, CMake, tests, docs, `web/`). The pattern misses references written as alternations or path fragments, such
+as `^samples/(storage_[a-z_]+|flash_safety_poc|product_template)/` in `scripts/measure-tidy-coverage.py` and
+`samples/time|...` in `scripts/check-dependencies.sh`; those were found by a second search for the folder names in
+`scripts/` and are added to the rows below.
 
 | Folder | Kind (from `samples/README.md`) | Evidence | Protected (live) | Other |
 | --- | --- | --- | --- | --- |
-| `time/` (Zephyr app) and `time/host/` | Runnable Zephyr application; runnable Linux Host program | 18 | `scripts/build-debug-target.sh`, `scripts/build-target.sh`, `scripts/check-host-sample.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/test-zephyr-time.sh` | 17, incl. root `CMakeLists.txt`, `.vscode/tasks.json`, `tests/time/zephyr/CMakeLists.txt`, three `tests/build/` tests |
-| `controller/zephyr/`, default `prj.conf` | Runnable Zephyr application | 106 for the whole folder | `.github/workflows/host.yml`, `scripts/test-controller.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh` | 64 for the whole folder, incl. root `CMakeLists.txt`, `tests/target/check_boot_images.sh`, `tests/target/check_boot_reproducibility.sh`, `tests/target/compare-mcuboot-crypto-backends.sh` (the boot checks build the default controller as their application) |
-| `controller/zephyr/`, `m3*.conf`, `m3-network.overlay`, `m3_main.c` and the probe sources | Board-only application | (in the 106) | `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (historical alias that `exec`s the former), `scripts/test-m3-rt1170.sh`, `scripts/test-networking.sh`, `scripts/test-networking-physical.sh` | `tests/controller_m3`, `tests/controller_integrated`, `tests/controller_network`, `tests/controller_network_stack`, `tests/native/{integrated_output,logger_phase,network_output_burst,mdio_completion}`, `tests/networking_physical`, `tests/zephyr/management_rt1060_compile`, `samples/management_rt1060_mbed/CMakeLists.txt`, `tests/build/test_m3_*.py`, `tests/target/capture_m3_integrated.py` |
+| `time/` (Zephyr app) and `time/host/` | Runnable Zephyr application; runnable Linux Host program | 18 | `scripts/build-debug-target.sh`, `scripts/build-target.sh`, `scripts/check-host-sample.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/test-zephyr-time.sh`, `scripts/check-dependencies.sh` (a negative check: the Zephyr module must not name `samples/time`; no change needed) | 17, incl. root `CMakeLists.txt`, `.vscode/tasks.json`, `tests/time/zephyr/CMakeLists.txt`, three `tests/build/` tests |
+| `controller/zephyr/`, default `prj.conf` | Runnable Zephyr application | 106 for the whole folder | `scripts/test-controller.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh` | 64 for the whole folder, incl. root `CMakeLists.txt`, `tests/target/check_boot_images.sh`, `tests/target/check_boot_reproducibility.sh`, `tests/target/compare-mcuboot-crypto-backends.sh` (the boot checks build the default controller as their application) |
+| `controller/zephyr/`, `m3*.conf`, `m3-network.overlay`, `m3_main.c` and the probe sources | Board-only application | (in the 106) | `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (historical alias that `exec`s the former), `scripts/test-m3-rt1170.sh`, `scripts/test-networking.sh`, `scripts/test-networking-physical.sh`; `scripts/measure-tidy-coverage.py` classifies the probe sources by their `zephyr` path segment, which a move loses | `tests/controller_m3`, `tests/controller_integrated`, `tests/controller_network`, `tests/controller_network_stack`, `tests/native/{integrated_output,logger_phase,network_output_burst,mdio_completion}`, `tests/networking_physical`, `tests/zephyr/management_rt1060_compile`, `samples/management_rt1060_mbed/CMakeLists.txt`, `tests/build/test_m3_*.py`, `tests/target/capture_m3_integrated.py` |
 | `controller/host/` | Runnable Linux Host program | (in the 106) | `.github/workflows/host.yml` (uploads `build/linux/debug/samples/controller/host/controller.log`) | root `CMakeLists.txt` (`CRUX_BUILD_REFERENCE_CONTROLLER`), `docs/first-hour.md` |
 | `controller/core/`, `controller/include/` | Building block | (in the 106) | `scripts/check-native-interfaces.py` | root `CMakeLists.txt` (`crux_controller_core`), `tests/controller` |
 | `controller/system/` | Building block | (in the 106) | `scripts/test-system.sh`, `scripts/check-native-interfaces.py` | `tests/system_consumer/` (3 files), `tests/build/test_system_composition.py` |
@@ -49,14 +59,14 @@ which stay unchanged and keep naming the old paths. "Protected (live)" lists the
 | `messaging/` | Building block | 2 | `scripts/check-native-interfaces.py`, `scripts/test-messaging.sh` | 7, incl. `tests/messaging_consumer`, `tests/consumer_poc` |
 | `logging/` | Building block | 1 | `scripts/check-native-interfaces.py` | 5, incl. `tests/logging_consumer`, `tests/logging/zephyr/consumers.cmake` |
 | `serial/` | Building block | 8 | `scripts/check-native-interfaces.py` | 6, incl. `tests/serial_consumer` |
-| `flash_safety_poc/` | Board-only application | 3 | `scripts/test-flash-poc.sh` | 1 (`docs/flash-safety-poc.md`) |
+| `flash_safety_poc/` | Board-only application | 3 | `scripts/test-flash-poc.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 1 (`docs/flash-safety-poc.md`) |
 | `management_rt1060_mbed/` | Board-only application | 0 | `scripts/test-management-mbed-rt1060.sh` | 9, incl. two `tests/build/` tests |
-| `storage_emmc/` | Board-only application | 2 | `scripts/test-file-emmc-compile.sh` | 21, incl. `tests/native/file_emmc_composition`, `tests/native/configuration_settings_reliance`, `samples/storage_reliance_sd/CMakeLists.txt` |
-| `storage_reliance_sd/` | Board-only application | 1 | `scripts/test-file-emmc-compile.sh`, `scripts/test-storage-emmc.sh` | 11, incl. `tests/native/reliance_stage_a/run_rehearsal.py` |
-| `storage_sd/` | Board-only application | 3 | `scripts/test-file-rt1060-compile.sh` | 25, incl. the three other `storage_sd_*` CMake files, seven `tests/native/file_sd_*` folders |
-| `storage_sd_interrupt/` | Board-only application (power-cut test image) | 3 | `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh` | 13, incl. `tests/native/reliance_stage_a/test_rehearsal.py` (imports its `host/` capture script) |
-| `storage_sd_probe/` | Board-only application (physical-gate probes) | 1 | `scripts/test-file-rt1060-compile.sh` | 7 |
-| `storage_sd_replace/` | Board-only application (power-cut test image) | 2 | `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh` | 11 |
+| `storage_emmc/` | Board-only application | 2 | `scripts/test-file-emmc-compile.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 21, incl. `tests/native/file_emmc_composition`, `tests/native/configuration_settings_reliance`, `samples/storage_reliance_sd/CMakeLists.txt` |
+| `storage_reliance_sd/` | Board-only application | 1 | `scripts/test-file-emmc-compile.sh`, `scripts/test-storage-emmc.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 11, incl. `tests/native/reliance_stage_a/run_rehearsal.py` |
+| `storage_sd/` | Board-only application | 3 | `scripts/test-file-rt1060-compile.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 25, incl. the three other `storage_sd_*` CMake files, seven `tests/native/file_sd_*` folders |
+| `storage_sd_interrupt/` | Board-only application (power-cut test image) | 3 | `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 13, incl. `tests/native/reliance_stage_a/test_rehearsal.py` (imports its `host/` capture script) |
+| `storage_sd_probe/` | Board-only application (physical-gate probes) | 1 | `scripts/test-file-rt1060-compile.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 7 |
+| `storage_sd_replace/` | Board-only application (power-cut test image) | 2 | `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh`, `scripts/measure-tidy-coverage.py` (pattern) | 11 |
 | `web/angular/`, `web/preact/` | Web front end | 0 | `.github/workflows/web.yml`, `scripts/test-native-composition.sh` | 18, all in `web/` and `docs/` |
 | `web_project/` | Building block | 0 | none | 8, incl. `tests/web/project_sample`, `tests/build/test_project_sample.py`, `tests/build/test_web_routes.py` |
 
@@ -137,87 +147,257 @@ Read on GitHub on 2026-11-22. Not checked against an installed SDK.
 - **Unverified:** whether every example has a readme, and whether one example source serves several boards through
   `_boards/`. The SDK's own examples index page was not read.
 
+### First samples a new user runs
+
+Zephyr, read in the local tree (v4.4.0). The getting-started guide builds `samples/basic/blinky` and names
+`hello_world` as the alternative for a board without an LED (`doc/develop/getting_started/index.rst`).
+
+| Sample | Id in its `sample.yaml` | Runs without a board |
+| --- | --- | --- |
+| `samples/hello_world` | `sample.basic.helloworld` | yes, `native_sim` |
+| `samples/basic/blinky`, `samples/basic/button` | `sample.basic.blinky`, `sample.basic.button` | no, needs an LED or button |
+| `samples/basic/threads` | `sample.basic.threads` | no, needs LEDs |
+| `samples/synchronization`, `samples/philosophers` | `sample.kernel.synchronization`, `sample.kernel.philosopher` | yes |
+| `samples/subsys/shell/shell_module` | `sample.shell.shell_module` | yes, `native_sim` |
+| `samples/subsys/logging/logger` | `sample.logger.basic` | yes, `native_sim` |
+| `samples/drivers/uart/echo_bot` | `sample.drivers.uart` | `qemu_x86` |
+| `samples/net/sockets/echo_server`, `echo_client` | `sample.net.sockets.echo_server`, `sample.net.sockets.echo_client` | `qemu_x86` |
+| `samples/subsys/settings` | `sample.subsys.settings.nvs` | yes, `native_sim` |
+| `samples/subsys/fs/fs_sample`, `littlefs` | `sample.filesystem.fat_fs`, `sample.filesystem.littlefs` | board or emulated disk |
+
+NXP MCUXpresso SDK, read on GitHub on 2026-11-22 in
+[`mcuxsdk-examples`](https://github.com/nxp-mcuxpresso/mcuxsdk-examples): `demo_apps/hello_world` (its readme calls it
+a sanity check for new build environments and board bring-up), `demo_apps/led_blinky`, `driver_examples/gpio/led_output`,
+`driver_examples/lpuart/interrupt`, `freertos_examples/freertos_hello`, `sdmmc_examples/sdcard_fatfs`. **Unverified:** a
+`demo_apps/shell` example (not in the part of the listing that was read); an lwIP TCP echo example is named
+`lwip_ipv4_ipv6_echo`, not `tcpecho`; the repository README does not say which example to run first.
+
+Pattern in both: a first example that only proves the build and the console (`hello_world`), then one example per
+basic capability, named by what it does (`blinky`, `echo_server`, `led_output`, `sdcard_fatfs`).
+
 ### What Crux takes from them
 
 Zephyr's rules fit Crux directly, because Crux samples are Zephyr applications and Twister already runs them. From the
 NXP SDK, Crux takes one idea only: board-specific images live under a board folder, apart from portable examples.
 Zephyr's `samples/boards/<vendor>/<board>/` already expresses that, so no NXP-style top-level categories are proposed.
+Names follow both: they say what the sample does and read well without their folder (`hello_crux`, `tcp_udp_echo`).
 
-## 3. Proposed layout
+## 3. Samples and platform verification
+
+### Zephyr
+
+- **Samples are documentation that must keep building and running.** The criteria
+  (`samples/sample_definition_and_criteria.rst`) say samples "must not be used to test features or verify platforms",
+  must not use Ztest or `zassert`, and should check their output against an expected value "to have some level of
+  testing for the sample itself"; a sample run "should not replace dedicated and comprehensive tests ... in the
+  `tests/` folder". In the local tree 301 of 610 `sample.yaml` files use `harness: console`.
+- **Twister runs samples and tests together.** By default it searches both `samples/` and `tests/`
+  (`scripts/pylib/twister/twisterlib/environment.py`, option `--testsuite-root`). `integration_platforms` limits a
+  scenario to a few platforms when Twister runs with `--integration` (`doc/develop/test/twister.rst`), and the pull
+  request job in `.github/workflows/twister.yaml` passes `--integration`. So in CI every sample is built, and run where
+  a simulator or emulator such as `native_sim` or `qemu_x86` is its integration platform, as a smoke check.
+- **Functional and regression verification lives in `tests/`** (1113 `testcase.yaml` files in the local tree), mostly
+  Ztest suites, with ids such as `kernel.timer` and `filesystem.fat.api`. `build_only` is reserved for tests that only
+  check that code builds (`twister.rst`).
+
+### NXP MCUXpresso SDK
+
+No public NXP source read for this proposal says how SDK examples are tested. The one example opened has an
+`example.yml`, whose fields were not read. **Unverified.**
+
+### Crux today
+
+- Runnable samples carry the Twister tag `sample` (`west twister -T crux-pilot/samples -t sample`) and CTest label
+  `sample` (`ctest --preset host-debug -L sample`); `samples/README.md` describes both.
+- Most verification already lives in `tests/` (61 `testcase.yaml` files, GoogleTest suites, Python checks under
+  `tests/build/`, replay tools under `tests/native/`) and is driven by `scripts/check-*.sh` and `scripts/test-*.sh`.
+- But `samples/` also holds code whose only purpose is verification: building blocks that tests compile, power-cut and
+  probe images, a formatter, and the Reliance Edge `native` rehearsal entries that fail without the optional west
+  group. The boot checks use the controller sample as their MCUboot application.
+
+### Recommendation
+
+1. **Samples are documentation with a smoke check.** Each runnable sample has a console regular expression (Twister)
+   or a CTest output check, so CI catches a sample that no longer builds or runs. A sample never asserts platform
+   behaviour beyond its own output.
+2. **Platform verification lives in `tests/`**: unit tests (GoogleTest, Ztest), composition images, power-cut and
+   replay tools, consumer-boundary checks.
+3. **Board qualification images are separate** from both, under `tests/board_images/`, built in CI and run only under
+   an approved board procedure.
+4. A check that needs "some real application" (the boot checks, the consumer-boundary checks) uses a fixture
+   application under `tests/`, not a sample, so a sample can change without moving a qualification baseline.
+
+## 4. Starter samples
+
+### Choice by platform concept
+
+| Concept a new user needs | Proposed starter | What it shows | Runs without a board |
+| --- | --- | --- | --- |
+| A minimal consumer | **`samples/hello_crux`** | A Zephyr application that links one Crux target (`crux::time`), makes one public call (`crux_realtime_init`, then a read that prints "Time unset"), and prints a ready line. Its README walks through the workspace, the module, the target and the consumer boundary. A `host/` program builds the same `main` logic on Linux Host | yes, `native_sim` and Linux Host |
+| Provider selection | **`samples/file/file_write_read`** | One source writes and reads back a file through `crux/file.h`; two scenarios pick the provider by Kconfig fragment only: the VFS simulator (`CONFIG_CRUX_FILE_SIMULATOR`) and FatFs on a RAM disk (`CONFIG_CRUX_FILE_FATFS_SIMULATOR`) | yes, `native_sim` |
+| One source, two compositions | `hello_crux` covers it (the `host/` program); `time_shell` shows it at feature size | The same portable code under Zephyr and under Linux Host | yes |
+| The product shape | No new sample: point to [`templates/product`](../../templates/product/README.md) | Application policy in `domain/`, platform mechanisms through Crux, the product as its own west manifest | `native_sim` |
+| First board step | No Crux sample: Zephyr's `samples/basic/blinky` on the EVKB | That the board and probe work before Crux is involved | no |
+
+Feature samples stay optional, minimal and generic:
+
+| Feature sample | From | Shows |
+| --- | --- | --- |
+| `samples/time/time_shell` | today's `samples/time` | Time read, set and step from a shell, on `native_sim` and Linux Host |
+| `samples/time/time_periodic_task` | the default scenario of `samples/controller` (if kept, [section 6](#6-samplescontroller-keep-slim-or-remove)) | A task released every 100 ms that reads Time |
+| `samples/networking/tcp_udp_echo` | today's `samples/networking` | One TCP and one UDP echo exchange with a peer, on Linux Host and on the EVKB |
+
+Not proposed as samples: configuration persistence across a restart (on `native_sim` it needs Reliance Edge from the
+optional, GPL-licensed west group) and power-loss-safe file replacement. Both are platform verification and stay in
+`tests/`. A generic configuration sample can be added when a provider exists that runs without the optional group.
+
+### Limits of the starters
+
+- `hello_crux` cannot print a Crux version: Crux has no version API, and adding one is a public interface
+  ([D2](#9-decisions-for-the-owner)).
+- Both File providers in `file_write_read` are marked Experimental in `zephyr/Kconfig` ("candidate"). The sample would
+  be the first non-test consumer of them and must say so in its README ([D3](#9-decisions-for-the-owner)).
+- `templates/product` is the product shape already; a second copy under `samples/` would drift.
+
+### Lead example
+
+Recommendation: `hello_crux` leads, `time_shell` is second. `hello_crux` is the smallest thing that proves the
+workspace, the module and the link; Time is a good second step because it is the oldest, best-tested component and its
+sample already runs on both compositions. Until `hello_crux` exists, Time stays the first-hour sample.
+
+## 5. Proposed layout
 
 ### Rules
 
 1. A folder under `samples/` is a sample only if it builds on its own, shows one thing, and has a `README.md` and a
-   `sample.yaml`. A runnable sample runs on `native_sim/native/64` with a console regular expression; a board sample
-   names its board in `platform_allow` and the README, and is built by Twister (it runs only under an approved board
-   procedure).
-2. Portable samples sit under an area named after the Crux component they show: `samples/<component>/<name>/`.
-   Board-only samples sit under `samples/boards/nxp/<board>/<name>/`.
-3. A Linux Host program of a sample stays inside the sample as `host/`, as `samples/time/host/` does today.
-4. Probe, power-cut and other board test images, and building blocks that only tests compile, move to `tests/`.
-   Board test images go together under `tests/board_images/<name>/`; a building block moves into the test folder that
+   `sample.yaml` with a console regular expression or, for a Linux Host program, a CTest output check. A board sample
+   names its board in `platform_allow` and its README.
+2. Starter samples sit at the top of `samples/`. Feature samples sit under an area named after the Crux component they
+   show: `samples/<component>/<name>/`. Board-only samples sit under `samples/boards/nxp/<board>/<name>/`.
+3. Names say what the sample does and read well alone: `hello_crux`, `time_shell`, `tcp_udp_echo`, `file_write_read`.
+4. A Linux Host program of a sample stays inside the sample as `host/`, as `samples/time/host/` does today.
+5. Probe, power-cut and other board test images, and building blocks that only tests compile, move to `tests/`. Board
+   test images go together under `tests/board_images/<name>/`; a building block moves into the test folder that
    compiles it.
-5. Ids: `crux.sample.<area>.<name>[.<variant>]` for samples (Zephyr's form with the existing `crux.` prefix), and
-   `crux.<area>.<name>` for tests, as the existing `tests/**/testcase.yaml` files already do.
-6. No historical milestone names (`m3`, `m5`, `poc`) in new paths or ids. Accepted evidence keeps the old names.
+6. Ids: `crux.sample.<area>.<name>[.<variant>]` for samples (Zephyr's form with the existing `crux.` prefix), and
+   `crux.<area>.<name>` for tests, as most existing `tests/**/testcase.yaml` files already do (`tests/consumer_poc` uses `consumer_poc.periodic`).
+7. No historical milestone names (`m1` ... `m8`, `poc`) in live paths, ids or symbols ([section 7](#7-old-milestone-names)).
 
 ### Mapping
 
 | Old path | New path | New id or test name | Why |
 | --- | --- | --- | --- |
-| `samples/time/` (Zephyr app, `host/`, `include/`, `src/`) | `samples/time/shell/` (same inside) | `crux.sample.time.shell` (unchanged), CTest `Sample.TimeHost` (unchanged) | Already a sample; the folder becomes the `time` area |
-| `samples/controller/zephyr/` default (`main.c`, `prj.conf`, `boards/`, `Kconfig`, `sample.yaml`, `README.md`) | `samples/time/periodic_task/` | `crux.sample.time.periodic_task` (was `crux.sample.controller.basic`) | Says what it shows: a periodic task on a 100 ms grid that reads Time ([D2](#5-decisions-for-the-owner)) |
-| `samples/controller/host/` | `samples/time/periodic_task/host/` | CTest `Sample.PeriodicTaskHost` (was `Controller.HostScenario`), program `crux-periodic-task-host` | Same scenario, Host composition |
-| `samples/controller/core/`, `samples/controller/include/` | `samples/time/periodic_task/common/` | library `crux_periodic_task_core` (was `crux_controller_core`) | Shared by the sample's two programs; `tests/controller` and the probes keep compiling it from there |
-| `samples/controller/zephyr/` probe set: `m3_main.c`, `device_input.*`, `native_logger.*`, `network_*`, `mdio_completion.cmake`, `m3*.conf`, `m3-network.overlay` | `tests/board_images/controller_probe/` | build folders `build/zephyr/controller-probe-<profile>-evkb` | Board probes test devices, network and health; not samples ([D3](#5-decisions-for-the-owner)) |
-| `m3.conf`, `m3-normal.conf`, `m3-integrated.conf`, `m3-network.conf`, `m3-mdio-completion.conf`, `m3-mdio-trace.conf`, `m3-phy-diagnostic.conf`, `m3-deferred-output.conf`, `m3-native-output.conf` | `probe.conf`, `normal.conf`, `integrated.conf`, `network.conf`, `mdio-completion.conf`, `mdio-trace.conf`, `phy-diagnostic.conf`, `deferred-output.conf`, `native-output.conf` in that folder; `m3_main.c` → `probe_main.c` | | The folder name already says "controller probe"; see [D4](#5-decisions-for-the-owner) for the company copy's names |
-| `samples/controller/zephyr/m3-network.overlay` | `samples/boards/nxp/mimxrt1060_evk/common/network.overlay` | | Used by the probes, the management image, `scripts/test-networking*.sh`, `tests/zephyr/management_rt1060_compile` and two crux-codesys files: it is a board network overlay, not a probe file ([D5](#5-decisions-for-the-owner)) |
+| (new) | `samples/hello_crux/` with `host/` | `crux.sample.hello_crux`, CTest `Sample.HelloCruxHost` | Starter: minimal consumer |
+| (new) | `samples/file/file_write_read/` | `crux.sample.file.file_write_read.simulator`, `.fatfs_ram_disk` | Starter: provider selection |
+| `samples/time/` (Zephyr app, `host/`, `include/`, `src/`) | `samples/time/time_shell/` | `crux.sample.time.time_shell` (was `crux.sample.time.shell`); CTest `Sample.TimeHost` → `Sample.TimeShellHost` | Explicit name |
+| `samples/controller/zephyr/` default and `samples/controller/host/` | `samples/time/time_periodic_task/` with `host/` (slim option) | `crux.sample.time.time_periodic_task` (was `crux.sample.controller.basic`); CTest `Sample.TimePeriodicTaskHost` (was `Controller.HostScenario`) | [Section 6](#6-samplescontroller-keep-slim-or-remove) |
+| `samples/controller/core/`, `include/` | `samples/time/time_periodic_task/common/` (slim) or `tests/controller/` (remove) | library `crux_time_periodic_task_core` (was `crux_controller_core`) | Section 6 |
+| `samples/controller/zephyr/` probe set: `m3_main.c`, `device_input.*`, `native_logger.*`, `network_*`, `mdio_completion.cmake`, `m3*.conf` | `tests/board_images/evkb_integration_probe/` | build folders `build/zephyr/evkb-integration-probe-<profile>` | Board probes test devices, network and health |
+| `samples/controller/zephyr/CMakeLists.txt` | split: the default branch to the periodic sample, the probe branch (`CRUX_CONTROLLER_M3`, `CRUX_M3_SOURCE`) to the probe folder | | It builds both today |
+| `samples/controller/zephyr/Kconfig` | to the probe folder only (all its symbols are probe symbols); the periodic sample needs none | | Kconfig names: [D16](#9-decisions-for-the-owner) |
+| `samples/controller/zephyr/boards/*.conf` | copied to both folders, each trimmed to what its image uses | | The EVKB `.conf` serves the default image and the probes |
+| `samples/controller/zephyr/m3-network.overlay` | `samples/boards/nxp/mimxrt1060_evk/common/network.overlay` | | Shared by the probes, the management image, the networking scripts and a private consumer ([D8](#9-decisions-for-the-owner)) |
 | `samples/controller/system/` | `tests/system_consumer/scenario/` | | Only `tests/system_consumer` compiles it |
 | `samples/controller/configuration/scenario.c` | `tests/configuration/controller_scenario.c` | CTest `Configuration.ControllerScenario` (unchanged) | Only `tests/configuration` compiles it |
-| `samples/controller/README.md`, `samples/controller/zephyr/README.md` | split into `samples/time/periodic_task/README.md` and `tests/board_images/controller_probe/README.md` | | Physical-verification text moves with the probes or to `docs/history/` |
-| `samples/networking/` (`client.*`, `host/`, `zephyr/`) | `samples/networking/echo_client/` (Zephyr app at the root, `host/`, `common/client.*`) | new `sample.yaml` id `crux.sample.networking.echo_client` (EVKB, console harness skipped without a peer); CTest `Sample.NetworkingHost` (unchanged) | One sample, two compositions, as `time/shell` |
-| `samples/messaging/` | `tests/messaging_consumer/scenario/` | CTest `Messaging.ControllerConsumer` (unchanged) | Building block of that test only; `tests/consumer_poc` follows |
+| `samples/networking/` (`client.*`, `host/`, `zephyr/`) | `samples/networking/tcp_udp_echo/` (Zephyr app at the root, `host/`, `common/client.*`) | new `crux.sample.networking.tcp_udp_echo` (EVKB, console harness, run only with a peer); CTest `Sample.NetworkingHost` → `Sample.TcpUdpEchoHost` | Explicit name; one sample, two compositions |
+| `samples/messaging/` | `tests/messaging_consumer/scenario/` | CTest `Messaging.ControllerConsumer` (unchanged) | Building block; `tests/consumer_poc` follows |
 | `samples/logging/` | `tests/logging_consumer/scenario/` | | Building block |
 | `samples/serial/` | `tests/serial_consumer/scenario/` | | Building block |
-| `samples/web_project/` | `tests/web/project_sample/project/` | CTest `Web.project_sample` (unchanged) | Building block; a runnable project page sample is a follow-up ([D7](#5-decisions-for-the-owner)) |
+| `samples/web_project/` | `tests/web/project_sample/project/` | CTest `Web.project_sample` (unchanged) | Building block ([D10](#9-decisions-for-the-owner)) |
 | `samples/web/angular/`, `samples/web/preact/` | unchanged | | Already `area/name`; moving them touches `.github/workflows/web.yml` and `web/` tooling for no reader gain. Preact gains a README |
-| `samples/management_rt1060_mbed/` | `samples/boards/nxp/mimxrt1060_evk/management_mbedtls/` | `crux.sample.boards.mimxrt1060_evk.management_mbedtls` | A complete board image a product copies from (crux-controller does) |
-| `samples/storage_emmc/` | `samples/boards/nxp/mimxrt1060_evk/file_emmc/` | `crux.sample.boards.mimxrt1060_evk.file_emmc` and `.start`, `.settings` | Board composition of File on eMMC |
-| `samples/storage_sd/` | `samples/boards/nxp/mimxrt1060_evk/file_sd/` | `crux.sample.boards.mimxrt1060_evk.file_sd` and `.start` | Board composition of File on microSD; the three test images below reuse its sources |
-| `samples/storage_sd_interrupt/` (with `host/`) | `tests/board_images/file_sd_interrupt/` | `crux.file.sd_interrupt` and `.test` | Power-cut test image |
-| `samples/storage_sd_replace/` (with `host/`) | `tests/board_images/file_sd_replace/` | `crux.file.sd_replace` and `.test` | Power-cut test image |
-| `samples/storage_sd_probe/` | `tests/board_images/file_sd_probe/` | `crux.file.sd_probe` and `.stack`, `.removal` | Physical-gate probes |
-| `samples/storage_reliance_sd/` | `tests/board_images/file_reliance_sd/` | `crux.file.reliance_sd` and its eight variants | Stage A test images and rehearsal; mostly power-cut and formatter modes |
-| `samples/flash_safety_poc/` | `tests/board_images/flash_safety/` | | Compile-only safety check image, inspected by a script |
+| `samples/management_rt1060_mbed/` | `samples/boards/nxp/mimxrt1060_evk/https_management_mbedtls/` | `crux.sample.boards.mimxrt1060_evk.https_management_mbedtls` | A complete board image a product copies from |
+| `samples/storage_emmc/` | `samples/boards/nxp/mimxrt1060_evk/file_on_emmc/` | `crux.sample.boards.mimxrt1060_evk.file_on_emmc` and `.start`, `.settings` | Board composition of File on eMMC |
+| `samples/storage_sd/` | `samples/boards/nxp/mimxrt1060_evk/file_on_sd_card/` | `crux.sample.boards.mimxrt1060_evk.file_on_sd_card` and `.start` | Board composition of File on microSD; three test images reuse its sources |
+| `samples/storage_sd_interrupt/` (with `host/`) | `tests/board_images/sd_card_power_cut_append/` | `crux.file.sd_card_power_cut_append` and `.test` | Power-cut test image |
+| `samples/storage_sd_replace/` (with `host/`) | `tests/board_images/sd_card_power_cut_replace/` | `crux.file.sd_card_power_cut_replace` and `.test` | Power-cut test image |
+| `samples/storage_sd_probe/` | `tests/board_images/sd_card_stack_removal_probe/` | `crux.file.sd_card_probe` and `.stack`, `.removal` | Physical-gate probes |
+| `samples/storage_reliance_sd/` | `tests/board_images/reliance_sd_card_stage_a/` | `crux.file.reliance_sd_card` and its eight variants | Stage A images and rehearsal |
+| `samples/flash_safety_poc/` | `tests/board_images/flash_safety_check/` | | Compile-only Flash safety image of a historical experiment, inspected by a script; never programmed |
 
-Result: `samples/` holds `time/shell`, `time/periodic_task`, `networking/echo_client`, `web/angular`, `web/preact`,
-and `boards/nxp/mimxrt1060_evk/{management_mbedtls,file_emmc,file_sd,common}`. Each has a README and a `sample.yaml`
-(the web front ends excepted: they are npm projects, and the web guide describes them).
+Result: `samples/` holds `hello_crux`, `file/file_write_read`, `time/time_shell`, `time/time_periodic_task` (if
+kept), `networking/tcp_udp_echo`, `web/angular`, `web/preact`, and
+`boards/nxp/mimxrt1060_evk/{https_management_mbedtls,file_on_emmc,file_on_sd_card,common}`.
 
-### The controller default scenario: name
+The power-cut and probe image names above say what each image does (for example `storage_sd_interrupt` appends
+fixed records and is meant to be cut during the append, `sd_interrupt.h`). The PR that moves each image checks its name
+against the image's source and README once more.
 
-| Candidate | For | Against |
+### Board probe configurations
+
+The probe folder `tests/board_images/evkb_integration_probe/` gets explicit configuration names:
+
+| Old | New | What it selects |
 | --- | --- | --- |
-| **`time/periodic_task`** (recommended) | The area says Time, the name says what the code does: one task released on a fixed period. Short, Zephyr-like (`threads`, `blinky`) | Does not say "observes Time"; the README does |
-| `time/periodic` | Shortest | An adjective; unclear what is periodic |
-| `time/time_periodic` | Self-contained if read without the area | Repeats the area |
-| `basic/periodic_task` | Zephyr's `basic/` is the first-stop area | Crux has one other first-hour sample (`time/shell`), which would then need a `basic/` home too |
-| `execution/periodic_task` | Scheduling is the execution topic | Crux has no `execution` component folder; ADR-0002 assigns execution to Zephyr |
+| `m3.conf` | `device_health_probe.conf` | SW5 GPIO and critical-work supervision, with test commands |
+| `m3-normal.conf` | `without_test_commands.conf` | Removes the shell and fault-injection commands |
+| `m3-network.conf` | `network_probe.conf` | Bounded IPv4 TCP/UDP transactions |
+| `m3-integrated.conf` | `integrated_controller.conf` | Time, SW5, network, diagnostics and health together |
+| `m3-mdio-completion.conf` | `mdio_completion_fix.conf` | The ENET MDIO completion patch |
+| `m3-mdio-trace.conf` | `mdio_failure_trace.conf` | MDIO failure tracing |
+| `m3-phy-diagnostic.conf` | `phy_diagnostic.conf` | PHY diagnostics |
+| `m3-deferred-output.conf` | `deferred_output.conf` | Deferred console output |
+| `m3-native-output.conf` | `native_output.conf` | Native console output |
+| `m3_main.c` | `probe_main.c` | The probe entry point |
 
-### The historical `m3` names
+## 6. `samples/controller`: keep, slim or remove
 
-- New paths, configuration files, build folders and scripts carry no `m3`.
-- `scripts/test-m3.sh` is already only an alias for `scripts/test-controller-integration.sh`. Proposal: remove it in
-  the probe PR, after the docs that name it point at the maintained script.
-- `scripts/test-m3-rt1170.sh` is renamed `scripts/test-controller-probe-rt1170.sh`, the name the company copy already
-  uses.
-- `scripts/test-controller-integration.sh` keeps its name: it is the maintained runner, and the name already fits.
-- Out of scope here, listed for a later PR: `m3`/`m5` names outside `samples/` (`tests/controller_m3`,
-  `tests/m5_integrated`, `tests/build/test_m3_*.py`, `tests/target/capture_m3*.py`, `docs/m3-validation.md`).
-- Accepted evidence and `docs/history/` keep the old paths. Each moved README states its old path once, as
-  [`templates/product/README.md`](../../templates/product/README.md) does for its move from `samples/product_template`.
+### What each part covers today
 
-## 4. Impact and migration
+| Part | Coverage it gives | Run by |
+| --- | --- | --- |
+| `controller/host/` | Host composition of the periodic scenario, with ASan/UBSan under `host-sanitize` | CTest `Controller.HostScenario` (`scripts/check-controller.py`), `scripts/check-host.sh` |
+| `controller/zephyr/` default | `native_sim` run of the same scenario, normal and missing-RTC, and the EVKB cross-build | `crux.sample.controller.basic`, `scripts/test-controller.sh` |
+| `controller/zephyr/` default as boot application | The MCUboot application for the boot checks (sysbuild image name `zephyr`) | `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh`, `tests/target/check_boot_images.sh`, `tests/target/check_boot_reproducibility.sh`, `tests/target/compare-mcuboot-crypto-backends.sh` |
+| `controller/core/`, `include/` | Portable schedule advance and health/readiness logic, 13 GoogleTest cases | `tests/controller` |
+| Probe set (`m3*`) | EVKB device, network, integrated and diagnostic images; their output oracles | `scripts/test-controller-integration.sh`, `scripts/test-m3-rt1170.sh`, `tests/controller_m3`, `tests/controller_integrated`, `tests/controller_network`, `tests/controller_network_stack`, `tests/native/*`, `tests/build/test_m3_*.py`, `tests/target/*m3*` |
+| `controller/system/` | A System health consumer scenario | `tests/system_consumer`, `scripts/test-system.sh` |
+| `controller/configuration/` | A Configuration consumer scenario | `tests/configuration` (`Configuration.ControllerScenario`) |
+
+`AGENTS.md` names `scripts/test-controller.sh` ("execution/reference-controller checks") and
+`scripts/test-controller-integration.sh` (validation list), and `README.md` names `scripts/test-controller.sh`.
+
+### Options
+
+| Option | What happens | What is lost | Protected changes |
+| --- | --- | --- | --- |
+| **Keep** | Rename only (`m3` names) | Nothing; the name clash with crux-controller and the mix of sample and probes stay | the probe scripts |
+| **Slim** (recommended) | The periodic scenario becomes the feature sample `samples/time/time_periodic_task` (Host and `native_sim`); the core goes with it; probes, `system/` and `configuration/` move to `tests/` (section 5); the boot checks get their own fixture application under `tests/boot_fixture/` built from the same scenario; `scripts/test-controller.sh` becomes `scripts/test-time-periodic-task.sh` | Nothing; the folder name `controller` disappears | the scripts in [section 8](#8-impact-and-migration), `.github/workflows/host.yml`, `AGENTS.md` and `README.md` lines that name `scripts/test-controller.sh` |
+| **Remove** | No periodic sample. The scenario and its core move to `tests/time_periodic/` as a test (its Host CTest and its `native_sim` console check both kept); the boot fixture as in Slim; probes and building blocks as in Slim | The documentation value of a periodic-task example | as Slim |
+
+No option deletes a test. `tests/controller` keeps its 13 cases, moved with the code they test, in every option.
+
+Recommendation: **Slim.** A periodic task that reads Time is a common first need for a controller product and is
+generic; it is the one part of `samples/controller` that is a sample. Everything else is verification and moves to
+`tests/`. Alternative: **Remove**, if the owner wants the starter set to stay at the five rows of section 4; the
+coverage is kept in `tests/`.
+
+## 7. Old milestone names
+
+Searched with `git ls-files` for path parts `m<digit>` and `git grep` for `M<digit>` symbols, CTest names and Twister
+ids, outside `docs/evidence/`, `docs/baseline.md` and `docs/history/`. Those three stay unchanged: the first two are
+protected accepted evidence, the third is the history record. No CTest name carries a milestone name.
+
+| Name | Where | Action |
+| --- | --- | --- |
+| `m3*.conf` (9), `m3-network.overlay`, `m3_main.c` | `samples/controller/zephyr/` | Rename (section 5) |
+| Kconfig ([D16](#9-decisions-for-the-owner)) `CRUX_CONTROLLER_M3`, `CRUX_M3_TEST_COMMANDS`, `CRUX_M3_NETWORK_PROBE`, `CRUX_M3_PHY_DIAGNOSTIC`, `CRUX_M3_INTEGRATED`, `CRUX_M3_MDIO_COMPLETION_FIX`, `CRUX_M3_MDIO_FAILURE_TRACE`, `CRUX_M3_DEFERRED_OUTPUT`, `CRUX_M3_NATIVE_OUTPUT`; compile definition `CRUX_M3_SOURCE` | `samples/controller/zephyr/Kconfig`, `CMakeLists.txt`; used in 30 live files incl. `tests/build/`, `tests/target/`, `tests/native/`, `tests/controller_integrated/`, `docs/porting-to-a-new-board.md`, `patches/zephyr/README.md`, `patches/zephyr/nxp-enet-mdio-completion.patch`, and the component `components/system/ports/zephyr/CMakeLists.txt:20` (refuses `CRUX_CONTROLLER_M3` as a conflicting watchdog owner) | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*`, including the component check. The patch file is changed only if the symbol is in its applied content; a comment-only mention stays and its README says so |
+| C functions `controller_m3_arm_allowed`, `controller_m3_fault_allowed`, constant `M3_ARM_REJECTED` | `samples/controller/include/controller_health.h` and users | Rename to `probe_arm_allowed`, `probe_fault_allowed`, `PROBE_ARM_REJECTED` |
+| `scripts/test-m3.sh` | alias that `exec`s `scripts/test-controller-integration.sh` | Delete, after docs name the maintained script |
+| `scripts/test-m3-rt1170.sh` | RT1170 cross-build of the probe | Rename `scripts/test-integration-probe-rt1170.sh` |
+| `scripts/test-m5-integrated-smoke.sh` | integrated smoke | Rename `scripts/test-integrated-smoke.sh` |
+| Build folders `build/zephyr/m3-<profile>-evkb` | `scripts/test-controller-integration.sh` | `build/zephyr/evkb-integration-probe-<profile>` |
+| `tests/controller_m3/` (project `crux_m3_native_tests`, option `M3_GPIO_SCENARIO`, binding `vnd,m3-fault-gpio`) and ids `crux.m3.gpio_health`, `crux.m3.missing_gpio`, `crux.m3.read_error` | Ztest on `native_sim` | Rename `tests/probe_device_health/`, ids `crux.probe.gpio_health`, `.missing_gpio`, `.read_error`; option `PROBE_GPIO_SCENARIO`; binding `vnd,probe-fault-gpio` |
+| `tests/m5_integrated/` and id `crux.m5.integrated_smoke` | integrated smoke image | Rename `tests/integrated_smoke/`, id `crux.integrated.smoke` |
+| `tests/build/test_m3_*.py` (16), `tests/build/test_m5_*.py` (25) | Python checks of probe and bench output | Rename by subject, for example `test_probe_network_oracle.py`, `test_bench_program.py` |
+| `tests/target/*m3*`, `*m5*` (25) | capture, oracle and preparation tools | Rename by subject, for example `capture_probe_network.py`, `bench_series.py` |
+| `tests/build/fixtures/m5-real-captures/`, `fixtures/programmer-split/run3-program-03-program-m5.log` | recorded captures used as fixtures | Rename the folder or file only; contents unchanged |
+| `docs/m3-validation.md`, `docs/m2-physical-verification.md`, `docs/m5-pilot-validation-plan.md`, `docs/platform-m1-readiness.md`, `docs/plans/m5-messaging-implementation.md`, `docs/plans/m5-networking-implementation.md`, `docs/plans/m5-networking-proposal.md`, `docs/plans/pre-m8-investigation-plan.md` | records and finished plans | Move to `docs/history/` with names unchanged; fix the links |
+| `docs/superpowers/plans/*m5*`, `*m6*` | execution plans | Leave: the folder is already archived in `doc-links.toml` |
+| `samples/flash_safety_poc/` (`poc`) | | Rename (section 5) |
+
+The renames under `tests/` are not protected; the scripts are. Tests change names only; no assertion changes.
+
+## 8. Impact and migration
 
 ### Protected files to change
 
@@ -226,94 +406,95 @@ Every row needs explicit owner approval for that file (AGENTS.md, protected path
 | PR | Protected files |
 | --- | --- |
 | P2 building blocks | `scripts/check-native-interfaces.py`, `scripts/test-messaging.sh`, `scripts/test-system.sh`; check whether `scripts/check-cli-session-commands.py`, `scripts/check-ssh-boundaries.py`, `scripts/check-web-routes.py`, `scripts/measure-tidy-coverage.py`, `scripts/tidy-sources.py` still scan the moved files |
-| P3 controller split | `scripts/test-controller.sh`, `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (removed), `scripts/test-m3-rt1170.sh` (renamed), `scripts/test-networking.sh`, `scripts/test-networking-physical.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh`, `scripts/check-native-interfaces.py`, `.github/workflows/host.yml` |
+| P3a overlay and P3b controller and probes | `scripts/test-controller.sh` (renamed), `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (deleted), `scripts/test-m3-rt1170.sh` (renamed), `scripts/test-m5-integrated-smoke.sh` (renamed), `scripts/test-networking.sh`, `scripts/test-networking-physical.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py` (probe and `tests/controller_m3`, `tests/m5_integrated` patterns), `scripts/check-controller.py` (renamed with its test, content unchanged), `.github/workflows/host.yml`, `AGENTS.md` (the two validation lines), `CONTRIBUTING.md` only if it names a renamed script |
 | P4 networking | `scripts/check-native-interfaces.py`, `scripts/check-networking-dependencies.py`, `scripts/compile-networking-cpp-probe.py`, `scripts/run-host-sample.py`, `scripts/test-networking.sh` |
-| P5 board samples and images | `scripts/test-management-mbed-rt1060.sh`, `scripts/test-file-emmc-compile.sh`, `scripts/test-storage-emmc.sh`, `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh`, `scripts/test-flash-poc.sh` |
+| P5 board samples and images | `scripts/test-management-mbed-rt1060.sh`, `scripts/test-file-emmc-compile.sh`, `scripts/test-storage-emmc.sh`, `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh`, `scripts/test-flash-poc.sh` (renamed `scripts/test-flash-safety-check.sh`), `scripts/measure-tidy-coverage.py` (the `samples/(storage_...|flash_safety_poc...)` pattern) |
 | P6 Time shell | `scripts/build-debug-target.sh`, `scripts/build-target.sh`, `scripts/check-host-sample.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/test-zephyr-time.sh` |
+| P1 starters | none expected; new samples are added to the existing sample checks, which may need `.github/workflows/*.yml` lines |
 
-No change to `CMakePresets.json`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/` or `tools/` is expected.
-`docs/evidence/` and `docs/baseline.md` are not edited.
+No change to `CMakePresets.json`, `.claude/`, `CLAUDE.md` or `tools/` is expected. `docs/evidence/`,
+`docs/baseline.md` and `docs/history/` content is not edited (P7 adds moved records to `docs/history/`).
 
 ### CTest and Twister changes
 
-- CTest: only `Controller.HostScenario` → `Sample.PeriodicTaskHost`. The `sample` label stays. The others keep their
-  names.
-- Twister: `crux.sample.controller.basic` → `crux.sample.time.periodic_task`; `crux.sample.time.shell` unchanged;
-  `crux.sample.management_rt1060_mbed`, `crux.sample.storage_emmc*`, `crux.sample.storage_sd` and `.start` move under
-  `crux.sample.boards.mimxrt1060_evk.*`; the test images become `crux.file.*`; `crux.sample.networking.echo_client` is
-  new.
+- CTest: `Sample.TimeHost` → `Sample.TimeShellHost`, `Controller.HostScenario` → `Sample.TimePeriodicTaskHost`,
+  `Sample.NetworkingHost` → `Sample.TcpUdpEchoHost`; new `Sample.HelloCruxHost`. The `sample` label stays.
+- Twister: `crux.sample.time.shell` → `crux.sample.time.time_shell`; `crux.sample.controller.basic` →
+  `crux.sample.time.time_periodic_task`; `crux.m3.*` → `crux.probe.*`; `crux.m5.integrated_smoke` →
+  `crux.integrated.smoke`; the board images become `crux.sample.boards.mimxrt1060_evk.*` (samples) or `crux.file.*`
+  (test images); new `crux.sample.hello_crux`, `crux.sample.file.file_write_read.*`,
+  `crux.sample.networking.tcp_udp_echo`.
 - The `sample` tag keeps meaning "runnable on `native_sim`", so `west twister -T crux-pilot/samples -t sample` keeps
   working. The Reliance Edge `native` rehearsal entries leave `samples/`, so the untagged run no longer fails without
   the `crux-reliance` group.
-- The root `CMakeLists.txt` option `CRUX_BUILD_REFERENCE_CONTROLLER` is a cache variable that build scripts and docs
-  name. Proposal: add `CRUX_BUILD_PERIODIC_TASK_SAMPLE` and keep the old name as a deprecated alias for one release
-  ([D6](#5-decisions-for-the-owner)).
+- The root `CMakeLists.txt` option `CRUX_BUILD_REFERENCE_CONTROLLER` becomes `CRUX_BUILD_TIME_PERIODIC_TASK_SAMPLE`,
+  with the old name as a deprecated alias ([D11](#9-decisions-for-the-owner)).
 
 ### Consumer repositories (read-only check, 2026-11-22)
 
 | Repository | What references Crux sample paths | Effect |
 | --- | --- | --- |
-| crux-codesys (`origin/main`) | `samples/evkb/CMakeLists.txt:11` and `tests/sys_socket/CMakeLists.txt:6` build with `$ENV{ZEPHYR_BASE}/../crux-pilot/samples/controller/zephyr/m3-network.overlay`; `tests/sys_socket/boards/...qspi_B.conf` and `docs/dependency-release-review.md` (finding F5, "reach-ins into Crux paths that are no contract") name it | **Build break** when the overlay moves. crux-codesys reads Crux at a pinned SHA, so the break appears at its next repin |
+| Private consumer A (runtime integration, `main`) | Two CMake files build with `$ENV{ZEPHYR_BASE}/../crux-pilot/samples/controller/zephyr/m3-network.overlay`; one board `.conf` and one review document name it, and that review already lists the overlay as a reach-in to a Crux path that is no contract | **Build break** when the overlay moves. The consumer reads Crux at a pinned SHA, so the break appears at its next repin |
 | crux-controller (`main`, `979fd1e`) | Comments only: `app/boards/s4.overlay` (`m3_main.c`), `app/conf/s3.conf` (`storage_sd/prj.conf`), `app/conf/s6.conf` (`management_rt1060_mbed`), five files under `docs/findings/` | No build effect; the text names "the pinned revision" and stays true, but goes stale at the next repin |
-| crux-straton (`p0-foundation`) | none found | none |
-| crux-platform (`main`) | Plans name `crux-pilot/samples/controller` as the reference controller (`docs/plans/crux-controller-skeleton-plan.md`, `docs/records/secure-boot-update-direction-proposal.md`) | Planning text only |
+| Private consumer B | none found | none |
+| A private planning repository | Plans name `crux-pilot/samples/controller` as the reference controller | Planning text only |
 
 The consumer repositories were not changed.
 
 ### Company copy
 
-The export rules (in the private plan outside this repository) carry Crux to the company copy as new commits made by
-a 3-way merge, because the company copy has diverged. Two findings matter here:
+Crux also reaches a company copy through an export whose rules live in a private plan outside this repository. Two
+points matter for this proposal; the details belong in that plan:
 
-- The company copy **already renamed** the probe files inside `samples/controller/zephyr/`: `m3*.conf` →
-  `controller*.conf` (for example `controller-network.conf`, `controller-network.overlay`), `m3_main.c` →
-  `probe_main.c`, and `scripts/test-m3*.sh` → `scripts/test-controller-probe*.sh`. A GitHub rename to different names
-  makes the next merge resolve every probe file by hand. [D4](#5-decisions-for-the-owner) chooses between aligning
-  with those names and replacing them.
-- The company copy has no `docs/evidence/`, so evidence that keeps old paths does not reach it. Moves export as moves;
-  the export check (no historical milestone names, no repository names) should pass more easily after this work,
-  because `m3` leaves live paths.
+- The company copy already renamed the `m3` probe files in its own way (for example `probe_main.c`). Any GitHub
+  rename to other names makes the next export resolve those files by hand ([D7](#9-decisions-for-the-owner)).
+- Accepted evidence that keeps old paths is not exported. Moves export as moves, and removing milestone names from live
+  paths helps the export's own checks.
 
-Recommendation: run the layout PRs on GitHub first, then do one export that carries all of them, rather than
-exporting after each PR.
+Recommendation: land the layout PRs on GitHub first, then do one export that carries all of them.
 
 ### Step order
 
 Each step is one PR, reviewed by the `reviewer` agent, with protected-file approval where the table above lists
 files. Each move PR runs the checks of the scripts it changes, plus `scripts/check-host.sh`, `python3
-scripts/check_docs.py` and the affected `tests/build/` tests, and shows `git grep` for the old path returning only
+scripts/check_docs.py` and the affected `tests/build/` tests, and shows `git grep` for each old path returning only
 evidence and history.
 
 | Step | Content | Protected | Depends on |
 | --- | --- | --- | --- |
 | P0 | This proposal | no | — |
-| P1 | READMEs and `sample.yaml` where missing, at the current paths; classification table updated; no moves | no | owner decisions |
-| P2 | Building blocks into `tests/` (`logging`, `serial`, `messaging`, `controller/system`, `controller/configuration`, `web_project`) | yes | P1 |
-| P3a | Board network overlay to `samples/boards/nxp/mimxrt1060_evk/common/`; crux-codesys gets its own copy or a new path first ([D5](#5-decisions-for-the-owner)) | yes | crux-codesys change |
-| P3b | Controller split: `time/periodic_task` and `tests/board_images/controller_probe`, `m3` names removed, CTest and Twister renames | yes | P2, P3a |
-| P4 | `networking/echo_client` | yes | P1 |
-| P5 | Board samples and board test images (`management_mbedtls`, `file_emmc`, `file_sd`, `tests/board_images/file_*`, `flash_safety`) | yes | P1 |
-| P6 | `time/` → `time/shell/` | yes | P3b (shares `samples/time/` and first-hour docs) |
-| P7 | Docs sweep: `docs/first-hour.md`, `docs/build.md`, `tests/README.md`, `samples/README.md`; a short "moved paths" table in `samples/README.md` | no | P2–P6 |
+| P1 | Starters `hello_crux` and `file/file_write_read` (test first: their console checks fail before the sample exists). READMEs and `sample.yaml` for folders that later steps move are written in those steps, at the new path | no, or workflow lines | owner decisions |
+| P2 | Building blocks into `tests/` (`logging`, `serial`, `messaging`, `controller/system`, `controller/configuration`, `web_project`) | yes | — |
+| P3a | Board network overlay to `samples/boards/nxp/mimxrt1060_evk/common/`; private consumer A takes its own copy first | yes | consumer A change |
+| P3b | `samples/controller` slimmed or removed: periodic sample or test, boot fixture, probes to `tests/board_images/evkb_integration_probe`, all `m3`/`m5` names of section 7 outside docs, including the Kconfig symbols if D16 says so | yes | P2, P3a, P6 |
+| P4 | `networking/tcp_udp_echo` | yes | — |
+| P5 | Board samples and board test images | yes | — |
+| P6 | `time/` → `time/time_shell/`, so `samples/time/` is an area folder before P3b adds `time_periodic_task` | yes | — |
+| P7 | Docs: records with milestone names to `docs/history/`; `docs/first-hour.md` (`hello_crux` first, `time_shell` second), `docs/build.md`, `tests/README.md`, `samples/README.md` with a short moved-paths table | no | P1–P6 |
 
-P2, P4 and P5 are independent of each other and can run in parallel sessions. P3b and P6 change the first-hour path,
-so they should not overlap with other work on `docs/first-hour.md` or `samples/README.md`.
+P6 runs before P3b, so no Zephyr application ever contains another. P2, P4 and P5 are independent and can run in parallel sessions. P1, P3b, P6 and P7 change the first-hour path, so
+they should not overlap with other work on `docs/first-hour.md` or `samples/README.md`.
 
-## 5. Decisions for the owner
+## 9. Decisions for the owner
 
 | # | Decision | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- | --- |
-| D1 | Area folders | `samples/<component>/<name>/` plus `samples/boards/nxp/<board>/<name>/` | Crux components are the subsystems a reader looks for; one level less than Zephyr | Zephyr's literal `samples/basic/`, `samples/subsys/<component>/`; closer to Zephyr, deeper paths |
-| D2 | Name of the controller default scenario | `samples/time/periodic_task`, id `crux.sample.time.periodic_task`, CTest `Sample.PeriodicTaskHost` | Says what it does; no clash with crux-controller | `samples/basic/periodic_task` or `samples/time/periodic` |
-| D3 | Home of board probes and power-cut images | `tests/board_images/<name>/`, ids `crux.<area>.<name>` | Zephyr's rule that samples do not test; one place for images that need a board procedure | Keep them as board samples under `samples/boards/nxp/mimxrt1060_evk/` with a `test` tag; fewer moves, but samples keep testing |
-| D4 | Probe configuration names | Short names inside `tests/board_images/controller_probe/` (`probe.conf`, `network.conf` ...) and `probe_main.c` | The folder already says "controller probe"; `probe_main.c` and `test-controller-probe-rt1170.sh` match the company copy | The company copy's names (`controller.conf`, `controller-network.conf` ...): easier 3-way merge, but "controller" repeats the folder |
-| D5 | The shared EVKB network overlay that crux-codesys builds with | Move it to `samples/boards/nxp/mimxrt1060_evk/common/network.overlay`, documented as a sample file and not a contract; crux-codesys takes its own copy into `samples/evkb/` before P3a merges (its rules say the reference application owns board choices) | Ends a reach-in that crux-codesys already lists as finding F5, without a new Crux public interface | Publish it as a supported Crux board overlay (for example a Zephyr snippet). That is a public interface and needs its own decision |
-| D6 | Build option `CRUX_BUILD_REFERENCE_CONTROLLER` | New name `CRUX_BUILD_PERIODIC_TASK_SAMPLE`, old name kept as a deprecated alias with a warning until the first tag | External builds may set it; a silent removal breaks them | Rename with no alias; simpler, one break |
-| D7 | `web_project` | Move into `tests/web/project_sample/`; a runnable project page sample (a `native_sim` web image) is a separate follow-up | Today no image packages it, so it is not a sample | Keep it in `samples/` as a documented exception |
-| D8 | `scripts/test-m3.sh` | Remove it in P3b, after docs point at `scripts/test-controller-integration.sh` | It is a one-line alias for a historical name | Keep the alias one more release |
-| D9 | Twister id prefix | Keep `crux.` (`crux.sample.<area>.<name>`) | Separates Crux scenarios from Zephyr's in one Twister run; existing tags and scripts keep their filter | Zephyr's bare `sample.<area>.<name>` |
-| D10 | Approval scope | Approve P1–P7 as one work package, with the protected files in the table above, merge per PR after reviewer PASS and green CI | Each PR is small and mechanical; one approval avoids a question per PR | Approve per PR |
-| D11 | Order against the company export | All layout PRs first, then one export | One 3-way merge of the moved tree instead of several | Export after each PR |
+| D1 | Starter set | `hello_crux`, `file/file_write_read`, then the optional feature samples `time/time_shell`, `time/time_periodic_task`, `networking/tcp_udp_echo`; product shape via `templates/product`; first board step via Zephyr's `blinky` | Covers the platform concepts (consumer, provider selection, two compositions, product shape) with two new samples; feature samples stay small | Fewer: only `hello_crux` and `time_shell` as starters, everything else feature or test |
+| D2 | What `hello_crux` prints | One existing public call (Time init and read) and a ready line; no version | A version print needs a new public API | Add a `crux_version()` API first, as its own interface decision |
+| D3 | Provider-selection sample on Experimental providers | Build `file_write_read` on the two File simulator providers and say in its README that both are Experimental | They are the only pair of providers that run on `native_sim` without the optional group | Wait for a stable provider pair; no provider-selection sample until then |
+| D4 | Lead example | `hello_crux` first, `time_shell` second; Time stays first until `hello_crux` exists | The smallest proof of workspace, module and link comes first | Keep Time first and add `hello_crux` as an aside |
+| D5 | Sample names | The explicit names of section 5 (`time_shell`, `time_periodic_task`, `tcp_udp_echo`, `file_on_emmc` ...) | Each says what it does and reads well without its folder; `time_periodic_task` says the API (Time) and the pattern (a periodic task), where `periodic_time` reads as a kind of time | Shorter names inside area folders (`time/shell`, `time/periodic_task`, `networking/echo`) |
+| D6 | `samples/controller` | Slim (section 6) | Keeps the one generic part as a sample and moves verification to `tests/` without losing coverage | Remove: the scenario becomes a test, the starter set stays at section 4 |
+| D7 | Probe configuration names | The explicit names of section 5 (`device_health_probe.conf`, `network_probe.conf` ...) with `probe_main.c` | Each says what it selects | The names the company copy already uses: an easier export, but less explicit |
+| D8 | The shared EVKB network overlay | Move to `samples/boards/nxp/mimxrt1060_evk/common/network.overlay`, documented as a sample file and not a contract; private consumer A takes its own copy into its reference application before P3a (its own rules give board choices to that application) | Ends a reach-in that the consumer itself already lists, without a new Crux public interface | Publish it as a supported Crux board overlay (for example a Zephyr snippet): a public interface, needs its own decision |
+| D9 | Old milestone names | The rename and delete list of section 7; records move to `docs/history/`; evidence untouched | Removes `m1`–`m8` from every live path, id and symbol | Rename only `samples/` and `scripts/` names now, `tests/` names later |
+| D10 | `web_project` | Move into `tests/web/project_sample/`; a runnable project page sample is a later follow-up. `scripts/check-web-routes.py` scans `samples/` for exactly this kind of project (Issue #220), so the move PR extends its scan to the new path | No image packages it today, so it is not a sample | Keep it in `samples/` as a documented exception |
+| D11 | Build option `CRUX_BUILD_REFERENCE_CONTROLLER` | Rename, keep the old name as a deprecated alias until the first tag | External builds may set it | Rename with no alias |
+| D12 | Twister id prefix | Keep `crux.` (`crux.sample.<area>.<name>`) | Separates Crux scenarios from Zephyr's in one Twister run; existing tags and scripts keep their filter | Zephyr's bare `sample.<area>.<name>` |
+| D13 | Samples and verification policy | Section 3: samples are documentation with a smoke check, verification in `tests/`, board images in `tests/board_images/`, checks that need an application use a fixture under `tests/` | Matches Zephyr; a sample can change without moving a qualification baseline | Let samples double as verification fixtures, as the boot checks do today |
+| D14 | Approval scope | Approve P1–P7 as one work package, with the protected files of section 8, merge per PR after reviewer PASS and green CI | Each PR is small; one approval avoids a question per PR | Approve per PR |
+| D15 | Order against the company export | All layout PRs first, then one export | One 3-way merge of the moved tree | Export after each PR |
+| D16 | Kconfig symbols `CRUX_CONTROLLER_M3` and `CRUX_M3_*` | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*` in P3b, together with the component check, the patch README and the tests | They are configuration names that a component refers to; renaming them later costs more | Keep the symbol names and rename only files, ids and folders; `m3` then stays in `.config` files |
 
 ## Review record
 
