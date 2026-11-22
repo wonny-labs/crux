@@ -20,12 +20,11 @@ Check the revision on the board's silkscreen. A DAPLink volume named `RT1060-EVK
 | Part | Setting | Purpose |
 | --- | --- | --- |
 | SW4 (boot mode) | OFF–OFF–ON–OFF | Boot from the QSPI flash. This is the setting the target expects |
-| SW4 (boot mode) | OFF–OFF–OFF–ON | Boot ROM serial downloader (`BOOT_MODE` `01`), for [recovery](#recovery) only |
 | J9 and J10 | Removed | Isolate the on-board SWD circuit while an external J-Link is on J2 |
 | J11 and J13 | Shorted (default) | UART routing to the on-board debug interface |
 | J40 | Pins 5–6 (default) | Power selection |
 
-Check all four SW4 switches by eye after every change: one switch left in the wrong position keeps the board in the serial downloader. The jumper settings come from NXP's [external J-Link instructions](https://community.nxp.com/t5/i-MX-RT-Crossover-MCUs-Knowledge/Using-J-Link-with-MIMXRT1060-EVKB-or-MIMXRT1040-EVK/ta-p/1452717) and the [MIMXRT1060-EVKB user manual](https://community.nxp.com/pwmxy87654/attachments/pwmxy87654/mcuxpresso-ide/9718/1/MIMXRT1060EVKBUM%20%282%29.pdf); verify the labels on your board before you change anything.
+Operator practice from bench sessions, not a repository record: check all four SW4 switches by eye after every change, because one switch in the wrong position changes the boot mode. The jumper settings come from NXP's [external J-Link instructions](https://community.nxp.com/t5/i-MX-RT-Crossover-MCUs-Knowledge/Using-J-Link-with-MIMXRT1060-EVKB-or-MIMXRT1040-EVK/ta-p/1452717) and the [MIMXRT1060-EVKB user manual](https://community.nxp.com/pwmxy87654/attachments/pwmxy87654/mcuxpresso-ide/9718/1/MIMXRT1060EVKBUM%20%282%29.pdf); verify the labels on your board before you change anything.
 
 **Power.** The USB connection of the on-board DAPLink interface also powers the board. Unplugging it is a power-off only when it is the only supply. Switching off the hub port of the DAPLink did not remove target power in one recorded check ([eMMC physical gate](../emmc-reliance-physical-gate.md)), so a hub port switch does not prove a power cycle: measure the target reference voltage.
 
@@ -33,8 +32,8 @@ Check all four SW4 switches by eye after every change: one switch left in the wr
 
 | Connection | What is used |
 | --- | --- |
-| Debug probe | An external SEGGER J-Link (a J-Link PLUS is recorded) on the 20-pin J2 header, with J9 and J10 removed. SWD at 400 kHz, device `MIMXRT1062xxx6A`, J-Link software V9.86a. The first connection on a new setup was made at 100 kHz, after J9 and J10 had been corrected |
-| Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and J41 in the Zephyr guide and in the recorded runs: find the USB connector that enumerates as DAPLink on your board |
+| Debug probe | An external SEGGER J-Link (a J-Link PLUS is recorded) on the 20-pin J2 header, with J9 and J10 removed. SWD at 400 kHz, device `MIMXRT1062xxx6A`, J-Link software V9.86a. The first connection on a new setup failed at 1000 kHz and was made at 100 kHz after J9 and J10 had been corrected |
+| Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
 | Host | A Mac runs the J-Link GDB Server. The Dev Container runs the build and GDB and connects to the server at `host.docker.internal:2331` |
 
 **Linux and Windows with WSL2.** No Linux or Windows route has been run. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and whether the server command works on Linux is not verified. On native Linux, Docker does not resolve `host.docker.internal` unless the container is started with `--add-host=host.docker.internal:host-gateway`; this too has not been tried. On WSL2, USB forwarding of the probe to the distribution is needed only if the GDB server runs inside WSL2; running the server on Windows is the other option. Both are untried. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified either. This page will describe the Linux and WSL2 route once it has been verified.
@@ -54,9 +53,15 @@ The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDB
 The existing VS Code [debug configurations](../../.vscode/launch.json) connect from the Dev Container to `host.docker.internal:2331`:
 
 - **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
-- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
+- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates. Its `stopAtEntry` setting stops the debugger at the reset entry (`reset.S`) after the download; Continue (F5) starts the image.
 
-After a download, the Time sample prints `CRUX_TIME_READY composition=zephyr` on the console after the Zephyr boot banner and then accepts Time shell commands, as on `native_sim` ([Tutorial step 7](../tutorial.md#7-run-crux-samples-on-native_sim)).
+The profile's build is the same as this command in the Dev Container:
+
+~~~sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+~~~
+
+The Time sample prints `CRUX_TIME_READY composition=zephyr` on the console after the Zephyr boot banner. That line was recorded after a download with GDB and a reset with J-Link Commander in the [M4 UART run](../baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17); the recorded run of the Flash profile stopped at `main` and did not read the console ([VS Code debugging record](../baseline.md#fix-and-actual-verification)). The chain of the Flash profile, Continue and the console line has no record of its own.
 
 See the [debug build script](../../scripts/build-debug-target.sh) and [physical UART test instructions](../../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
 
@@ -82,11 +87,9 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 
 | Situation | What exists |
 | --- | --- |
-| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup needed 100 kHz) |
+| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz) |
 | An image under test must be replaced by a known one | The `restore` mode of the program and restore driver loads the accepted normal image, built from `samples/controller`, and verifies it twice before it starts it. It needs its own approval and evidence directory ([board image profiles](../board-image-profiles.md)) |
-| The image in flash does not start | The boot ROM serial downloader: set SW4 to OFF–OFF–OFF–ON and power-cycle. The downloader loads an image into RAM and has no flash command; programming NOR from it needs a flashloader ([bootloader update investigation](../boot-bootloader-update-investigation.md)). This route is described from NXP documents and has not been tested on this board |
-
-Set SW4 back to OFF–OFF–ON–OFF before the next normal boot.
+| The image in flash does not start | The boot ROM serial downloader (`BOOT_MODE` `01`; the switch setting is in the NXP user manual), not tested on this board. It loads an image into RAM and has no flash command ([bootloader update investigation](../boot-bootloader-update-investigation.md)) |
 
 ## Board image profiles
 

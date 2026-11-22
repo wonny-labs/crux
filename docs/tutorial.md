@@ -242,7 +242,8 @@ bash scripts/macos/start-jlink-gdbserver.command
 
 Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. Then, in VS Code in
 the Dev Container, start the debug configuration **EVKB QSPI: Flash**. It runs the build of step 10, resets the board
-and downloads the image.
+and downloads the image. The debugger then stops at the reset entry (`reset.S`); press Continue (F5) to start the
+image.
 
 ### 12. See it run
 
@@ -251,6 +252,9 @@ The console shows the Zephyr boot banner, then:
 ```text
 CRUX_TIME_READY composition=zephyr
 ```
+
+This line is recorded on the board after a download and a reset; the board guide's
+[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section says which records back each step.
 
 When you are done, stop the debugger and stop the GDB Server with Ctrl-C.
 
