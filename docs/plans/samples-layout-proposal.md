@@ -190,15 +190,14 @@ Names follow both: they say what the sample does and read well without their fol
   (`samples/sample_definition_and_criteria.rst`) say samples "must not be used to test features or verify platforms",
   must not use Ztest or `zassert`, and should check their output against an expected value "to have some level of
   testing for the sample itself"; a sample run "should not replace dedicated and comprehensive tests ... in the
-  `tests/` folder". In the local tree 301 of 610 `sample.yaml` files use `harness: console`.
+  `tests/` folder". In the local tree 230 of the 610 tracked `sample.yaml` files set `harness: console` (`git ls-files 'samples/**/sample.yaml'`, then `grep -l`).
 - **Twister runs samples and tests together.** By default it searches both `samples/` and `tests/`
   (`scripts/pylib/twister/twisterlib/environment.py`, option `--testsuite-root`). `integration_platforms` limits a
   scenario to a few platforms when Twister runs with `--integration` (`doc/develop/test/twister.rst`), and the pull
   request job in `.github/workflows/twister.yaml` passes `--integration`. So in CI every sample is built, and run where
   a simulator or emulator such as `native_sim` or `qemu_x86` is its integration platform, as a smoke check.
-- **Functional and regression verification lives in `tests/`** (1113 `testcase.yaml` files in the local tree), mostly
-  Ztest suites, with ids such as `kernel.timer` and `filesystem.fat.api`. `build_only` is reserved for tests that only
-  check that code builds (`twister.rst`).
+- **Functional and regression verification lives in `tests/`** (1113 tracked `testcase.yaml` files, `git ls-files 'tests/**/testcase.yaml'`), mostly
+  Ztest suites, with ids such as `kernel.timer` and `filesystem.fat.api`. A `build_only` scenario is never run, and the option is reserved for code that is only built (`twister.rst`).
 
 ### NXP MCUXpresso SDK
 
@@ -380,7 +379,7 @@ protected accepted evidence, the third is the history record. No CTest name carr
 | Name | Where | Action |
 | --- | --- | --- |
 | `m3*.conf` (9), `m3-network.overlay`, `m3_main.c` | `samples/controller/zephyr/` | Rename (section 5) |
-| Kconfig ([D16](#9-decisions-for-the-owner)) `CRUX_CONTROLLER_M3`, `CRUX_M3_TEST_COMMANDS`, `CRUX_M3_NETWORK_PROBE`, `CRUX_M3_PHY_DIAGNOSTIC`, `CRUX_M3_INTEGRATED`, `CRUX_M3_MDIO_COMPLETION_FIX`, `CRUX_M3_MDIO_FAILURE_TRACE`, `CRUX_M3_DEFERRED_OUTPUT`, `CRUX_M3_NATIVE_OUTPUT`; compile definition `CRUX_M3_SOURCE` | `samples/controller/zephyr/Kconfig`, `CMakeLists.txt`; used in 30 live files incl. `tests/build/`, `tests/target/`, `tests/native/`, `tests/controller_integrated/`, `docs/porting-to-a-new-board.md`, `patches/zephyr/README.md`, `patches/zephyr/nxp-enet-mdio-completion.patch`, and the component `components/system/ports/zephyr/CMakeLists.txt:20` (refuses `CRUX_CONTROLLER_M3` as a conflicting watchdog owner) | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*`, including the component check. The patch file is changed only if the symbol is in its applied content; a comment-only mention stays and its README says so |
+| Kconfig ([D16](#9-decisions-for-the-owner)) `CRUX_CONTROLLER_M3`, `CRUX_M3_TEST_COMMANDS`, `CRUX_M3_NETWORK_PROBE`, `CRUX_M3_PHY_DIAGNOSTIC`, `CRUX_M3_INTEGRATED`, `CRUX_M3_MDIO_COMPLETION_FIX`, `CRUX_M3_MDIO_FAILURE_TRACE`, `CRUX_M3_DEFERRED_OUTPUT`, `CRUX_M3_NATIVE_OUTPUT`; compile definition `CRUX_M3_SOURCE` | `samples/controller/zephyr/Kconfig`, `CMakeLists.txt`; 38 live files name them (`git grep -lE 'CRUX_(CONTROLLER_)?M3'` outside evidence and history, with `Kconfig` and `CMakeLists.txt`), incl. `tests/build/`, `tests/target/`, `tests/native/`, `tests/controller_integrated/`, `docs/porting-to-a-new-board.md`, `patches/zephyr/README.md`, `patches/zephyr/nxp-enet-mdio-completion.patch`, and the component `components/system/ports/zephyr/CMakeLists.txt:20` (refuses `CRUX_CONTROLLER_M3` as a conflicting watchdog owner) | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*`, including the component check. `patches/zephyr/nxp-enet-mdio-completion.patch` tests `CONFIG_CRUX_M3_MDIO_FAILURE_TRACE` in eight added `#ifdef` lines, so the patch changes too, and with it the expected hash `PATCHED_SHA256` that `tests/native/mdio_completion/test_driver.py` asserts. That assertion changes because the approved behaviour (the symbol name) changes; without the patch change the trace would compile out silently |
 | C functions `controller_m3_arm_allowed`, `controller_m3_fault_allowed`, constant `M3_ARM_REJECTED` | `samples/controller/include/controller_health.h` and users | Rename to `probe_arm_allowed`, `probe_fault_allowed`, `PROBE_ARM_REJECTED` |
 | `scripts/test-m3.sh` | alias that `exec`s `scripts/test-controller-integration.sh` | Delete, after docs name the maintained script |
 | `scripts/test-m3-rt1170.sh` | RT1170 cross-build of the probe | Rename `scripts/test-integration-probe-rt1170.sh` |
@@ -389,7 +388,7 @@ protected accepted evidence, the third is the history record. No CTest name carr
 | `tests/controller_m3/` (project `crux_m3_native_tests`, option `M3_GPIO_SCENARIO`, binding `vnd,m3-fault-gpio`) and ids `crux.m3.gpio_health`, `crux.m3.missing_gpio`, `crux.m3.read_error` | Ztest on `native_sim` | Rename `tests/probe_device_health/`, ids `crux.probe.gpio_health`, `.missing_gpio`, `.read_error`; option `PROBE_GPIO_SCENARIO`; binding `vnd,probe-fault-gpio` |
 | `tests/m5_integrated/` and id `crux.m5.integrated_smoke` | integrated smoke image | Rename `tests/integrated_smoke/`, id `crux.integrated.smoke` |
 | `tests/build/test_m3_*.py` (16), `tests/build/test_m5_*.py` (25) | Python checks of probe and bench output | Rename by subject, for example `test_probe_network_oracle.py`, `test_bench_program.py` |
-| `tests/target/*m3*`, `*m5*` (25) | capture, oracle and preparation tools | Rename by subject, for example `capture_probe_network.py`, `bench_series.py` |
+| `tests/target/*m3*`, `*m5*` (26) | capture, oracle and preparation tools | Rename by subject, for example `capture_probe_network.py`, `bench_series.py` |
 | `tests/build/fixtures/m5-real-captures/`, `fixtures/programmer-split/run3-program-03-program-m5.log` | recorded captures used as fixtures | Rename the folder or file only; contents unchanged |
 | `docs/m3-validation.md`, `docs/m2-physical-verification.md`, `docs/m5-pilot-validation-plan.md`, `docs/platform-m1-readiness.md`, `docs/plans/m5-messaging-implementation.md`, `docs/plans/m5-networking-implementation.md`, `docs/plans/m5-networking-proposal.md`, `docs/plans/pre-m8-investigation-plan.md` | records and finished plans | Move to `docs/history/` with names unchanged; fix the links |
 | `docs/superpowers/plans/*m5*`, `*m6*` | execution plans | Leave: the folder is already archived in `doc-links.toml` |
@@ -406,7 +405,7 @@ Every row needs explicit owner approval for that file (AGENTS.md, protected path
 | PR | Protected files |
 | --- | --- |
 | P2 building blocks | `scripts/check-native-interfaces.py`, `scripts/test-messaging.sh`, `scripts/test-system.sh`; check whether `scripts/check-cli-session-commands.py`, `scripts/check-ssh-boundaries.py`, `scripts/check-web-routes.py`, `scripts/measure-tidy-coverage.py`, `scripts/tidy-sources.py` still scan the moved files |
-| P3a overlay and P3b controller and probes | `scripts/test-controller.sh` (renamed), `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (deleted), `scripts/test-m3-rt1170.sh` (renamed), `scripts/test-m5-integrated-smoke.sh` (renamed), `scripts/test-networking.sh`, `scripts/test-networking-physical.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py` (probe and `tests/controller_m3`, `tests/m5_integrated` patterns), `scripts/check-controller.py` (renamed with its test, content unchanged), `.github/workflows/host.yml`, `AGENTS.md` (the two validation lines), `CONTRIBUTING.md` only if it names a renamed script |
+| P3a overlay and P3b controller and probes | `scripts/test-controller.sh` (renamed), `scripts/test-controller-integration.sh`, `scripts/test-m3.sh` (deleted), `scripts/test-m3-rt1170.sh` (renamed), `scripts/test-m5-integrated-smoke.sh` (renamed), `scripts/test-networking.sh`, `scripts/test-networking-physical.sh`, `scripts/check-boot-config.py`, `scripts/test-boot-composition.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py` (probe and `tests/controller_m3`, `tests/m5_integrated` patterns), `scripts/check-controller.py` (renamed with its test, content unchanged), `.github/workflows/host.yml`, `.github/workflows/zephyr.yml` (runs `scripts/test-controller.sh`, `scripts/test-m3-rt1170.sh`, `scripts/test-m5-integrated-smoke.sh`), `AGENTS.md` (the two validation lines), `CONTRIBUTING.md` only if it names a renamed script |
 | P4 networking | `scripts/check-native-interfaces.py`, `scripts/check-networking-dependencies.py`, `scripts/compile-networking-cpp-probe.py`, `scripts/run-host-sample.py`, `scripts/test-networking.sh` |
 | P5 board samples and images | `scripts/test-management-mbed-rt1060.sh`, `scripts/test-file-emmc-compile.sh`, `scripts/test-storage-emmc.sh`, `scripts/test-file-rt1060-compile.sh`, `scripts/test-storage-simulators.sh`, `scripts/test-flash-poc.sh` (renamed `scripts/test-flash-safety-check.sh`), `scripts/measure-tidy-coverage.py` (the `samples/(storage_...|flash_safety_poc...)` pattern) |
 | P6 Time shell | `scripts/build-debug-target.sh`, `scripts/build-target.sh`, `scripts/check-host-sample.sh`, `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/test-zephyr-time.sh` |
@@ -455,27 +454,13 @@ Recommendation: land the layout PRs on GitHub first, then do one export that car
 
 ### Step order
 
-Each step is one PR, reviewed by the `reviewer` agent, with protected-file approval where the table above lists
-files. Each move PR runs the checks of the scripts it changes, plus `scripts/check-host.sh`, `python3
-scripts/check_docs.py` and the affected `tests/build/` tests, and shows `git grep` for each old path returning only
-evidence and history.
-
-| Step | Content | Protected | Depends on |
-| --- | --- | --- | --- |
-| P0 | This proposal | no | — |
-| P1 | Starters `hello_crux` and `file/file_write_read` (test first: their console checks fail before the sample exists). READMEs and `sample.yaml` for folders that later steps move are written in those steps, at the new path | no, or workflow lines | owner decisions |
-| P2 | Building blocks into `tests/` (`logging`, `serial`, `messaging`, `controller/system`, `controller/configuration`, `web_project`) | yes | — |
-| P3a | Board network overlay to `samples/boards/nxp/mimxrt1060_evk/common/`; private consumer A takes its own copy first | yes | consumer A change |
-| P3b | `samples/controller` slimmed or removed: periodic sample or test, boot fixture, probes to `tests/board_images/evkb_integration_probe`, all `m3`/`m5` names of section 7 outside docs, including the Kconfig symbols if D16 says so | yes | P2, P3a, P6 |
-| P4 | `networking/tcp_udp_echo` | yes | — |
-| P5 | Board samples and board test images | yes | — |
-| P6 | `time/` → `time/time_shell/`, so `samples/time/` is an area folder before P3b adds `time_periodic_task` | yes | — |
-| P7 | Docs: records with milestone names to `docs/history/`; `docs/first-hour.md` (`hello_crux` first, `time_shell` second), `docs/build.md`, `tests/README.md`, `samples/README.md` with a short moved-paths table | no | P1–P6 |
-
-P6 runs before P3b, so no Zephyr application ever contains another. P2, P4 and P5 are independent and can run in parallel sessions. P1, P3b, P6 and P7 change the first-hour path, so
-they should not overlap with other work on `docs/first-hour.md` or `samples/README.md`.
+The steps P1–P7 used above are regrouped into pull requests with disjoint file sets in
+[section 10](#10-implementation-plan), which is the order to follow.
 
 ## 9. Decisions for the owner
+
+Under the owner's delegation of 2026-11-22 (relayed by the Crux main session), the Recommendation column is the
+implementation plan of [section 10](#10-implementation-plan) unless the Crux main session changes a row.
 
 | # | Decision | Recommendation | Reason | Alternative |
 | --- | --- | --- | --- | --- |
@@ -494,7 +479,49 @@ they should not overlap with other work on `docs/first-hour.md` or `samples/READ
 | D13 | Samples and verification policy | Section 3: samples are documentation with a smoke check, verification in `tests/`, board images in `tests/board_images/`, checks that need an application use a fixture under `tests/` | Matches Zephyr; a sample can change without moving a qualification baseline | Let samples double as verification fixtures, as the boot checks do today |
 | D14 | Approval scope | Approve P1–P7 as one work package, with the protected files of section 8, merge per PR after reviewer PASS and green CI | Each PR is small; one approval avoids a question per PR | Approve per PR |
 | D15 | Order against the company export | All layout PRs first, then one export | One 3-way merge of the moved tree | Export after each PR |
-| D16 | Kconfig symbols `CRUX_CONTROLLER_M3` and `CRUX_M3_*` | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*` in P3b, together with the component check, the patch README and the tests | They are configuration names that a component refers to; renaming them later costs more | Keep the symbol names and rename only files, ids and folders; `m3` then stays in `.config` files |
+| D16 | Kconfig symbols `CRUX_CONTROLLER_M3` and `CRUX_M3_*` | Rename to `CRUX_EVKB_PROBE` and `CRUX_EVKB_PROBE_*` in P3b, together with the component check, the Zephyr patch's `#ifdef` lines and its expected hash, the patch README and the tests | They are configuration names that a component refers to; renaming them later costs more | Keep the symbol names and rename only files, ids and folders; `m3` then stays in `.config` files |
+
+## 10. Implementation plan
+
+Definite plan under the owner's delegation. Each PR is a Draft PR from its own branch, reviewed by the `reviewer`
+agent, merged after reviewer PASS and green CI within the delegation. Within one wave no two PRs touch the same file,
+so a wave's PRs can run in parallel sessions; a later wave starts from `main` after the earlier wave has merged.
+`docs/evidence/`, `docs/baseline.md` and `docs/history/` content is never edited. `AGENTS.md`, `CLAUDE.md` and
+`.github/` change only in the held PR H.
+
+Common rules for every PR:
+
+- Moves use `git mv`, so history follows. Every moved folder gets a README (and a `sample.yaml` if it stays a sample)
+  in the same PR. A moved README names its old path once.
+- No test is deleted or weakened. A test that moves keeps its assertions; only names and paths change. Section 6 and
+  the "where the coverage goes" column below say where each check goes.
+- A renamed script keeps its old name as a one-line `exec` alias until PR H has switched the workflows and PR 10
+  removes the aliases, so CI keeps running the same checks.
+- Checks per PR: the scripts it changes, the scripts that run the moved code, `scripts/check-host.sh` (Host CI),
+  `python3 scripts/check_docs.py`, the affected `tests/build/` tests, and `git grep` for every old path, which must
+  return only evidence, history and this proposal. Zephyr scripts that need the Dev Container run in CI on the Draft PR
+  (the local disk is too small for new heavy Docker work).
+
+| Wave | PR | Content | Exact file set | Protected files | Where the coverage goes | Depends on |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | **PR 1 shared tables** | Path tables accept both the old and the new paths; Markdown links from shared docs to sample folders become code spans or links to `samples/README.md`, so later moves break no link | `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/check-web-routes.py`, `tests/build/test_native_interfaces.py`, `tests/build/test_web_routes.py`, `samples/README.md`, `docs/architecture.md`, `docs/execution-profile.md`, `tests/README.md` | the three scripts | unchanged; tables cover both paths | — |
+| 1 | **PR 2 starters** | New `samples/hello_crux` (Zephyr app plus `host/` built as a standalone consumer project) and `samples/file/file_write_read` (scenarios `.simulator`, `.fatfs_ram_disk`), test first: their console checks are written and fail first | `samples/hello_crux/**`, `samples/file/file_write_read/**`, new `scripts/test-hello-crux.sh` | none (new script) | new coverage | — |
+| 2 | **PR 3 building blocks** | `samples/{logging,serial,messaging,web_project}` and `samples/controller/{system,configuration}` move into the tests that compile them | the six source folders; `scripts/test-messaging.sh`, `scripts/test-system.sh`; `tests/{logging_consumer,serial_consumer,messaging_consumer,system_consumer,consumer_poc}/**`, `tests/logging/zephyr/consumers.cmake`, `tests/configuration/CMakeLists.txt`, `tests/web/project_sample/**`, `tests/build/test_project_sample.py`, `web/README.md`; `docs/{configuration-validation,e2e-native-220,messaging-validation,serial-validation,static-analysis-coverage}.md` | `scripts/test-messaging.sh`, `scripts/test-system.sh` | same tests, same CTest names | PR 1 |
+| 2 | **PR 4 Time and networking samples** | `samples/time` → `samples/time/time_shell`; `samples/networking` → `samples/networking/tcp_udp_echo` with a new `sample.yaml`; CTest `Sample.TimeShellHost`, `Sample.TcpUdpEchoHost`; Twister `crux.sample.time.time_shell` | `samples/time/**`, `samples/networking/**`, root `CMakeLists.txt`, `.vscode/tasks.json`, `scripts/{build-debug-target,build-target,check-host-sample,test-zephyr-time,test-networking}.sh`, `scripts/{run-host-sample,check-networking-dependencies,compile-networking-cpp-probe}.py`, `tests/build/test_debug_target.py`, `tests/build/test_run_host_sample.py`, `tests/networking/CMakeLists.txt`, `tests/networking_zephyr/CMakeLists.txt`, `tests/time/zephyr/CMakeLists.txt`, `docs/{time-contract,networking-contract,implementation-status}.md` | the eight scripts | same programs and checks under new names | PR 1 |
+| 3 | **PR 5 controller split** | Slim option of section 6: `samples/time/time_periodic_task` (default scenario, `host/`, `common/`), boot fixture `tests/boot_fixture/zephyr` (basename `zephyr` keeps the sysbuild image name), probes to `tests/board_images/evkb_integration_probe` with the configuration names of section 5, overlay to `samples/boards/nxp/mimxrt1060_evk/common/network.overlay`, `samples/management_rt1060_mbed` → `samples/boards/nxp/mimxrt1060_evk/https_management_mbedtls`, Kconfig and C names of section 7 (incl. the Zephyr patch and its hash), `scripts/test-controller.sh` → `scripts/test-time-periodic-task.sh`, `scripts/test-m3-rt1170.sh` → `scripts/test-integration-probe-rt1170.sh` (aliases kept) | `samples/controller/**` (except the two folders of PR 3), `samples/management_rt1060_mbed/**`, root `CMakeLists.txt`, `components/system/ports/zephyr/CMakeLists.txt`, `patches/zephyr/{README.md,nxp-enet-mdio-completion.patch}`; `scripts/{test-controller,test-controller-integration,test-m3-rt1170,test-boot-composition,test-management-mbed-rt1060,test-networking,test-networking-physical}.sh`, `scripts/{check-boot-config,check-controller}.py`; `tests/controller/**`, `tests/controller_integrated/**`, `tests/controller_network/**`, `tests/controller_network_stack/**`, `tests/networking_physical/CMakeLists.txt`, `tests/zephyr/management_rt1060_compile/CMakeLists.txt`, `tests/native/{integrated_output,logger_phase,network_output_burst,mdio_completion,deferred_output}/**`, `tests/target/{check_boot_images.sh,check_boot_reproducibility.sh,compare-mcuboot-crypto-backends.sh}`, the `tests/build/` tests that read controller or management paths (`test_check_boot_config`, `test_check_boot_images`, `test_dependencies`, `test_external_application`, `test_management_mbed_rt1060_image`, `test_psa_threading_provider`, `test_rt1170_composition`, `test_system_composition`, `test_bench_image_profile`, `test_bench_profile_wiring`, `test_device_control`), new `tests/boot_fixture/**`, `tests/board_images/evkb_integration_probe/**`; the docs that name controller, probe, boot or management paths and are not in PR 8's list (listed in the PR description) | all scripts listed | Host scenario and `native_sim` runs → `time_periodic_task`; boot checks → `tests/boot_fixture`; probes → `tests/board_images`; `tests/controller` keeps its 13 cases | PR 3, PR 4 |
+| 3 | **PR 6 storage images** | `samples/storage_emmc`, `storage_sd` → `samples/boards/nxp/mimxrt1060_evk/{file_on_emmc,file_on_sd_card}`; `storage_sd_interrupt`, `storage_sd_replace`, `storage_sd_probe`, `storage_reliance_sd`, `flash_safety_poc` → `tests/board_images/{sd_card_power_cut_append,sd_card_power_cut_replace,sd_card_stack_removal_probe,reliance_sd_card_stage_a,flash_safety_check}`; ids of section 5; `scripts/test-flash-poc.sh` → `scripts/test-flash-safety-check.sh` (alias kept) | the seven source folders; `scripts/{test-file-emmc-compile,test-storage-emmc,test-file-rt1060-compile,test-storage-simulators,test-flash-poc}.sh`; `tests/native/{configuration_settings_reliance,file_emmc_composition,file_sd_check,file_sd_composition,file_sd_interrupt,file_sd_probe,file_sd_replace,file_sd_settings_recover,reliance_stage_a}/**`, `tests/build/test_file_reliance_edge_zephyr_public.py`, `tests/build/test_file_zephyr_public.py`, `tests/build/test_debug_target.py` (its `samples/storage_sd` example only); `docs/{credential-store,emmc-reliance-composition,emmc-reliance-file-service-assessment,emmc-reliance-physical-gate,file-composition-interface,flash-safety-poc,flash-xip-evidence,microsd-composition,microsd-physical-gate}.md` | the five scripts | same link checks and `native_sim` tests, new ids | PR 1, PR 4 (both edit `tests/build/test_debug_target.py`, in different waves) |
+| 4 | **PR 7 milestone names in tests** | `tests/controller_m3` → `tests/probe_device_health` (ids `crux.probe.*`), `tests/m5_integrated` → `tests/integrated_smoke` (id `crux.integrated.smoke`), `tests/build/test_m3_*`/`test_m5_*`, `tests/target/*m3*`/`*m5*`, fixtures; `scripts/test-m5-integrated-smoke.sh` → `scripts/test-integrated-smoke.sh` (alias kept) | the files of the section 7 rows for `tests/` and that script | `scripts/test-m5-integrated-smoke.sh` | same checks under new names | PR 5 |
+| 4 | **PR 8 docs** | Prose sweep of shared docs (`README.md`, `docs/README.md`, `docs/first-hour.md` with `hello_crux` first and `time_shell` second, `docs/build.md`, `docs/component-readiness.md`, `docs/secure-boot-board-test-procedure.md`, `docs/boot-porting-rt1062.md`, `docs/dependency-review-fatfs-r0.16.md`, `docs/native-interface-policy.md`, `docs/architecture.md`, `docs/execution-profile.md`, `tests/README.md`, `samples/README.md` with the new classification and a moved-paths table); records with milestone names move to `docs/history/` | those files and the moved records | none | — | PR 2–PR 6 |
+| 5 | **PR 9 cleanup** | Old paths leave the shared tables of PR 1 | the five PR 1 code files | the three scripts | — | PR 7, PR 8 |
+| held | **PR H** | `.github/workflows/zephyr.yml` and `host.yml` call the new script names and artifact paths; `AGENTS.md` validation lines name the new scripts | `.github/workflows/{zephyr,host}.yml`, `AGENTS.md`, `tests/build/test_ci_wiring.py` if it names a script | all | — | PR 5–PR 7; owner approval of the protected-rules files |
+| after H | **PR 10 aliases** | Delete the alias scripts `scripts/test-controller.sh`, `test-m3.sh`, `test-m3-rt1170.sh`, `test-m5-integrated-smoke.sh`, `test-flash-poc.sh` | those five files | all five | the new scripts | PR H merged |
+
+Files touched by two PRs are always in different waves: root `CMakeLists.txt` (PR 4, PR 5), `scripts/test-networking.sh`
+(PR 4, PR 5), `tests/build/test_debug_target.py` (PR 4 for `samples/time`, PR 6 for `samples/storage_sd`), the PR 1 files (PR 1, PR 8 for
+the docs, PR 9 for the code), and the alias scripts (PR 5–PR 7, PR 10).
+
+Delete list (all other changes are moves or renames): the alias scripts in PR 10, of which `scripts/test-m3.sh` is
+already only an alias today. No sample, test or check is deleted without its coverage moving as listed above.
 
 ## Review record
 
