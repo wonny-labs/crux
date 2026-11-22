@@ -279,12 +279,13 @@ The first Crux image on the board is the one from step 7. Build it for the board
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux
-west flash -d build/hello_crux_evkb
+west flash -d build/hello_crux_evkb -r jlink
 ```
 
-The runner (J-Link), its speed and the place the command runs are in the board guide's
-[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section; use its options if the default does not
-connect. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
+`-r jlink` selects the J-Link runner, because Zephyr's default runner for this board is a different one. The speed is
+left at the runner's default. If the download fails, run `west -v flash -d build/hello_crux_evkb -r jlink` for more
+output; the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section gives the place the
+command runs and the speeds to try. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
 
 **No board result is recorded for this image yet.** The repository's **EVKB QSPI: Flash** profile builds and downloads
 the Time sample only, so use the commands above for `hello_crux`.
