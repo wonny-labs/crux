@@ -13,7 +13,7 @@ def listed_folders(text):
     """Folders named in the first column of the table under "## Classification"."""
     folders = set()
     body = text.split("\n## Classification\n", 1)[1]
-    table = body.split("\n\n", 2)[1]  # the table after the heading's blank line
+    table = body.lstrip("\n").split("\n\n", 1)[0]  # the table right after the heading
     for line in table.splitlines():
         cells = line.split("|")
         if len(cells) < 3 or not line.startswith("| `"):
