@@ -18,7 +18,8 @@
     "ZEPHYR_SDK_INSTALL_DIR": "/opt/crux-cache/sdk/zephyr-sdk-1.0.1",
     "CLANG_FORMAT": "clang-format"
   },
-  "postCreateCommand": "git config --global --add safe.directory /workspace/crux-pilot && git config --global --add safe.directory /workspace/zephyr && git config --global --add safe.directory /workspace/modules/hal/cmsis && git config --global --add safe.directory /workspace/modules/hal/cmsis_6 && git config --global --add safe.directory /workspace/modules/hal/nxp && python3 -m venv /opt/crux-cache/venv && /opt/crux-cache/venv/bin/pip install --no-cache-dir cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pytest==8.3.5",
+  "postCreateCommand": "bash scripts/bootstrap.sh --keep-going",
+  "postAttachCommand": "bash scripts/bootstrap.sh status",
   "remoteEnv": {
     "PATH": "/opt/crux-cache/venv/bin:${containerEnv:PATH}"
   },
