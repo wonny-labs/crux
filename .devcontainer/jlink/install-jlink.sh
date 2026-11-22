@@ -1,28 +1,60 @@
 #!/bin/sh
-# Install the SEGGER J-Link Debian package that the developer downloaded and
-# placed in .devcontainer/jlink/packages/. Run by the Dockerfile only when the
-# board Dev Container sets CRUX_JLINK=1. It never downloads anything: the SEGGER
-# licence must be accepted by the person who downloads the package.
+# Install the SEGGER J-Link Debian package in the board Dev Container image. Run
+# by the Dockerfile only when the board Dev Container sets CRUX_JLINK=1.
+#
+# The package comes from one of two places, in this order:
+#   1. a JLink_Linux_<version>_x86_64.deb that the developer downloaded from
+#      SEGGER, accepting its licence, and placed in .devcontainer/jlink/packages/;
+#   2. CRUX_JLINK_URL: a copy that an organisation hosts after accepting the
+#      SEGGER licence itself. It is empty in this repository, needs
+#      CRUX_JLINK_DEB_SHA256 and must be an https:// URL.
+# The script never downloads from SEGGER and never accepts a licence for anyone.
 #
 # Environment:
 #   CRUX_JLINK_DEB         file name of the package in the folder (optional when
 #                          the folder holds exactly one JLink_Linux_*_x86_64.deb)
-#   CRUX_JLINK_DEB_SHA256  expected SHA-256 of the package (optional)
+#   CRUX_JLINK_DEB_SHA256  expected SHA-256 of the package (required with a URL)
+#   CRUX_JLINK_URL         HTTPS URL of a hosted copy of the package (optional)
+#   CRUX_JLINK_UDEVADM     path of the temporary udevadm stub; only tests change it
 set -eu
 
 dir=${1:?usage: install-jlink.sh <package folder>}
 deb=${CRUX_JLINK_DEB:-}
+url=${CRUX_JLINK_URL:-}
 expected=$(printf '%s' "${CRUX_JLINK_DEB_SHA256:-}" | tr 'A-F' 'a-f')
 
 cd "$dir"
 if [ -z "$deb" ]; then
     set -- JLink_Linux_*_x86_64.deb
-    if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+    if [ "$#" -eq 1 ] && [ -f "$1" ]; then
+        deb=$1
+    elif [ "$#" -gt 1 ]; then
         echo "error: place exactly one SEGGER J-Link package (JLink_Linux_<version>_x86_64.deb)" \
              "in .devcontainer/jlink/packages/, or name one with CRUX_JLINK_DEB" >&2
         exit 1
+    elif [ -n "$url" ]; then
+        if [ -z "$expected" ]; then
+            echo "error: CRUX_JLINK_URL needs CRUX_JLINK_DEB_SHA256, the SHA-256 of the hosted package" >&2
+            exit 1
+        fi
+        case "$url" in
+            https://*) ;;
+            *)
+                echo "error: CRUX_JLINK_URL must be an https:// URL" >&2
+                exit 1
+                ;;
+        esac
+        deb=JLink_Linux_download_x86_64.deb
+        # The URL is not printed: an internal URL may carry an access token.
+        echo "Downloading the J-Link package from CRUX_JLINK_URL"
+        curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$deb" "$url"
+    else
+        echo "error: no SEGGER J-Link package. Either download JLink_Linux_<version>_x86_64.deb" \
+             "from SEGGER, accept its licence and place the file in .devcontainer/jlink/packages/," \
+             "or set the build arguments CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 to a copy" \
+             "that your organisation hosts" >&2
+        exit 1
     fi
-    deb=$1
 fi
 
 case "$deb" in
@@ -43,12 +75,36 @@ if [ -n "$expected" ] && [ "$actual" != "$expected" ]; then
     exit 1
 fi
 
+# The J-Link package's postinst runs `udevadm control --reload-rules` and
+# `udevadm trigger` and fails the install when udevadm is missing, as it is in
+# this image. The container needs no udev: the probe's device node gets its
+# permissions from 99-crux-jlink.rules on the Linux host. So a no-op udevadm is
+# put where dpkg's maintainer scripts look for it, /usr/sbin (a stub in
+# /usr/local/bin was not found in the first run), for the install only. It is
+# removed right after the install and, through the trap, when the install fails.
+# An existing udevadm is left alone.
+stub=${CRUX_JLINK_UDEVADM:-/usr/sbin/udevadm}
+stub_created=
+remove_stub() {
+    if [ -n "$stub_created" ]; then
+        rm -f "$stub"
+        stub_created=
+    fi
+}
+trap remove_stub EXIT
+trap 'exit 1' HUP INT TERM
+if [ ! -e "$stub" ]; then
+    stub_created=1
+    printf '#!/bin/sh\n# Temporary no-op from install-jlink.sh, removed after the install.\nexit 0\n' > "$stub"
+    chmod 0755 "$stub"
+fi
+
 apt-get update
 apt-get install -y --no-install-recommends usbutils "./$deb"
-# The Dockerfile removes the apt lists after this script, so the script
-# deletes nothing itself.
+remove_stub
+# The Dockerfile removes the apt lists and the package folder after this script.
 
-# The probe's device node belongs to group plugdev on the host (see
+# The probe's device node belongs to group plugdev on a native Linux host (see
 # 99-crux-jlink.rules). Debian and Ubuntu give plugdev the same fixed ID (46).
 usermod -aG plugdev vscode
 

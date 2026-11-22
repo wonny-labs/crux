@@ -7,7 +7,8 @@
     "args": {
       "CRUX_JLINK": "1",
       "CRUX_JLINK_DEB": "",
-      "CRUX_JLINK_DEB_SHA256": ""
+      "CRUX_JLINK_DEB_SHA256": "",
+      "CRUX_JLINK_URL": ""
     }
   },
   "runArgs": ["--platform=linux/amd64", "--memory=4g", "--cpus=2", "--device-cgroup-rule=c 189:* rmw"],

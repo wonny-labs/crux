@@ -39,11 +39,14 @@ ENV CC=clang-18 \
 # Optional SEGGER J-Link software for the board Dev Container
 # (.devcontainer/jlink/devcontainer.json sets CRUX_JLINK=1, see ADR-0007).
 # The default container leaves CRUX_JLINK empty and installs nothing here. The
-# package comes only from a file the developer downloaded and placed in
-# .devcontainer/jlink/packages/; the build never downloads it.
+# package comes from a file the developer downloaded and placed in
+# .devcontainer/jlink/packages/, or from CRUX_JLINK_URL, a copy that an
+# organisation hosts, checked against CRUX_JLINK_DEB_SHA256. Nothing is
+# downloaded from SEGGER (see install-jlink.sh).
 ARG CRUX_JLINK=
 ARG CRUX_JLINK_DEB=
 ARG CRUX_JLINK_DEB_SHA256=
+ARG CRUX_JLINK_URL=
 COPY .devcontainer/jlink/ /tmp/crux-jlink/
 RUN if [ "$CRUX_JLINK" = 1 ]; then \
         sh /tmp/crux-jlink/install-jlink.sh /tmp/crux-jlink/packages \
