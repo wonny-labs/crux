@@ -55,6 +55,21 @@ invariant is asserted on both profiles, I3 meaning that the active settings file
 the flush, early acknowledgement and damaged image controls must fail as required. A temporary
 (.cmp) left behind by a cut is counted and is not a failure; an active file that is missing is.
 
+With --workload W8, W8 and W8C (W8-control) run, on images built with a Crux File provider
+(file.conf on Reliance Edge, fatfs-file.conf on FatFs), with their own JSON (reliance-w8.json,
+fatfs-w8.json). Both write each generation of atomic/w8 to atomic/w8.tmp through File (create,
+write, sync, close). W8 then renames it onto atomic/w8 with the VFS rename, the data path of an
+atomic replace; W8C removes atomic/w8 with File and then renames with File, which is all File allows
+today. I3 is that atomic/w8 is one complete generation, I2 that it is not older than acknowledged,
+and the verifier reports missing=1 when atomic/w8 does not exist. On red-fix-file, W8 must keep
+every invariant and read_error=0 on both profiles. W8C must fail I3 with the target missing, at a
+cached lost cut between the removal's commit and the rename's commit of every generation (the window
+control); if it does not, the workload cannot see the window. A W8C case whose only violations are
+I2 and I3 with missing=1 is counted as a window case; any other W8C violation is a failure. The
+flush, early acknowledgement and damaged image controls run on W8 and must fail as required. On
+FatFs both workloads are recorded as observations, with only the damaged image control, and no
+fat-nofix image is needed.
+
 The profile commits when a file is created, so a W3 step that creates a file commits twice and a
 cut between the two can leave the new file present and empty. On Reliance Edge the W3 verifier runs
 with --create-may-be-empty, which accepts exactly that state in the step after the acknowledged
@@ -94,7 +109,7 @@ METAROOT_MODELS = ('prefix', 'torn', 'reordered')
 FIELDS = ('mount', 'data', 'read_error', 'replace', 'untouched', 'recommit')
 VIOLATIONS = {'mount': 'I1', 'data': 'I2', 'replace': 'I3', 'untouched': 'I4', 'recommit': 'I5'}
 LINE = re.compile(r'POWERCUT ' + ' '.join(f'{field}=([01])' for field in FIELDS) +
-                  r'(?: created_empty=([01]))?(?: cmp=([01]))?')
+                  r'(?: created_empty=([01]))?(?: cmp=([01]))?(?: missing=([01]))?')
 TIMEOUT = 60
 # On W1 the other copy of the file's inode is a valid older inode and file data has no check, so a
 # draw that keeps the new metaroot only gives data=0, which an older state explains: the barrier
@@ -108,9 +123,16 @@ W3_CREATE_STEPS = {2: 'files/w3b', 4: 'files/w3dir/e', 6: 'files/w3c', 11: 'file
 W3_FILES = {'files/w3a': 0, 'files/w3b': 1, 'files/w3c': 2, 'files/w3d': 3, 'files/w3dir/e': 5}
 W3_STEPS = 12
 W4_STEPS = 24
+# W8 and W8C replace atomic/w8 this many times, as in workloads.c.
+W8_GENERATIONS = 8
+W8_WORKLOADS = ('W8', 'W8C')
+# The only violations a W8C case may show, and only with the target missing: the window.
+WINDOW_VIOLATIONS = {'I2', 'I3'}
 IMAGES = {'fatfs': {'fix': 'fat-fix', 'nofix': 'fat-nofix'},
           'reliance': {'fix': 'red-fix', 'nofix': 'red-nofix'},
-          'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'}}
+          'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'},
+          'reliance-w8': {'fix': 'red-fix-file', 'nofix': 'red-nofix-file'},
+          'fatfs-w8': {'fix': 'fat-fix-file', 'nofix': None}}
 
 
 def derive(*parts):
@@ -135,8 +157,9 @@ class Replay:
         self.args = args
         self.exes = {'fix': args.exe_fix, 'nofix': args.exe_nofix}
         self.w4 = args.workload == 'W4'
-        self.tag = args.fs + ('-w4' if self.w4 else '')
-        self.workloads = ('W4',) if self.w4 else WORKLOADS
+        self.w8 = args.workload == 'W8'
+        self.tag = args.fs + {'W4': '-w4', 'W8': '-w8'}.get(args.workload, '')
+        self.workloads = ('W4',) if self.w4 else W8_WORKLOADS if self.w8 else WORKLOADS
         self.work = os.path.join(args.out, f'work-{self.tag}')
         self.kept = os.path.join(args.out, f'failed-{self.tag}')
         self.image = os.path.join(self.work, 'medium.bin')
@@ -145,6 +168,7 @@ class Replay:
         self.metaroot = metaroot_sectors() if self.reliance else frozenset()
         self.traces = {}
         self.created_empty = []
+        self.window = []
         self.memo = {}
         self.cases = 0
         self.processes = 0
@@ -201,6 +225,7 @@ class Replay:
             self.cases += 1
         create_empty = self.reliance and workload == 'W3'
         has_cmp = workload == 'W4'
+        has_missing = workload in W8_WORKLOADS
         key = (exe, workload, acked, acked_only, hashlib.sha256(image).digest())
         if key in self.memo:
             return self.memo[key]
@@ -214,7 +239,8 @@ class Replay:
         lines = [LINE.fullmatch(line) for line in out]
         if (rc != 0 or len(out) != 1 or lines[0] is None or
                 (lines[0].group(len(FIELDS) + 1) is not None) != create_empty or
-                (lines[0].group(len(FIELDS) + 2) is not None) != has_cmp):
+                (lines[0].group(len(FIELDS) + 2) is not None) != has_cmp or
+                (lines[0].group(len(FIELDS) + 3) is not None) != has_missing):
             answer = (None, f'rc {rc} {out} {err[-500:]}')
             print(f'verifier gave no result: {answer[1]}', file=sys.stderr)
         else:
@@ -223,6 +249,8 @@ class Replay:
                 result['created_empty'] = int(lines[0].group(len(FIELDS) + 1))
             if has_cmp:
                 result['cmp'] = int(lines[0].group(len(FIELDS) + 2))
+            if has_missing:
+                result['missing'] = int(lines[0].group(len(FIELDS) + 3))
             answer = (result, None)
         self.memo[key] = answer
         return answer
@@ -319,8 +347,17 @@ class Replay:
             if result.get('created_empty'):
                 self.created_empty.append(dict(record, result=result))
                 group['created_empty'] = group.get('created_empty', 0) + 1
+            if result.get('missing'):
+                group['target_missing'] = group.get('target_missing', 0) + 1
             if not found:
                 group['passed'] += 1
+                continue
+            if (workload == 'W8C' and result.get('missing') and
+                    set(found) <= WINDOW_VIOLATIONS):
+                # The window that remove-then-rename opens on purpose: not a failure of the
+                # file system, and the window control needs it.
+                group['window'] = group.get('window', 0) + 1
+                self.window.append(dict(record, result=result))
                 continue
             for invariant in found:
                 group['violations'][invariant] = group['violations'].get(invariant, 0) + 1
@@ -469,6 +506,42 @@ class Replay:
                                      ('data', 0))},
             'honoured_passed': all(case['honoured_passed'] for case in cases),
         }
+
+    def window_control(self):
+        """red-fix-file, W8C, cached, lost: atomic/w8 missing inside every generation's replace.
+
+        A lost cut keeps everything before the last flush. Right after the removal's commit, and
+        before the rename's, that is the volume without atomic/w8. Each generation n has such a cut,
+        with n - 1 generations acknowledged, among the mandatory positions (each side of every
+        flush), so each must show missing=1 with mount=1. If one does not, the replay cannot see
+        the window and W8 passing proves nothing.
+        """
+        cases = [case for case in self.window
+                 if case['profile'] == 'cached' and case['model'] == 'lost']
+        seen = sorted({case['acked'] + 1 for case in cases})
+        required = list(range(1, W8_GENERATIONS + 1))
+        ok = seen == required and all(case['result']['mount'] == 1 for case in cases)
+        if not ok:
+            self.failures.append({'reason': 'the window control did not find atomic/w8 missing '
+                                            f'in every generation: {seen}'})
+            print(f'FAIL the window control found atomic/w8 missing in generations {seen} only')
+        return {
+            'name': 'window', 'image': self.names['fix'], 'workload': 'W8C', 'profile': 'cached',
+            'model': 'lost',
+            'required': 'mount=1, missing=1 and I3 failing in every generation\'s replace',
+            'generations_with_missing_target': seen,
+            'positions': sorted(case['position'] for case in cases),
+            'cases': cases, 'failed_as_required': ok,
+        }
+
+    def window_report(self):
+        """Every W8C window case by profile and model, with the generation it was in."""
+        counts = {}
+        for case in self.window:
+            key = f'{case["profile"]} {case["model"]}'
+            counts[key] = counts.get(key, 0) + 1
+        return {'cases': len(self.window), 'by_profile_model': dict(sorted(counts.items())),
+                'generations': sorted({case['acked'] + 1 for case in self.window})}
 
     def created_empty_report(self):
         """The W3 cases that passed only as a created, still empty file, and checks that can fail.
@@ -684,7 +757,17 @@ class Replay:
                 groups, failed = self.observe(events, workload, profile)
                 report['observations'].setdefault(workload, {})[profile] = groups
                 report['observed_failures'] += failed
-        if self.w4:
+        if self.w8 and self.reliance:
+            report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
+            report['workload'] = 'W8'
+            report['controls'] = [self.flush_control('W8'), self.early_ack_control('W8'),
+                                  self.window_control(), self.damaged_metaroot_control()]
+            report['window'] = self.window_report()
+        elif self.w8:
+            report['workload'] = 'W8'
+            report['controls'] = [self.damaged_control()]
+            report['window'] = self.window_report()
+        elif self.w4:
             report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
             report['workload'] = 'W4'
             report['controls'] = [self.flush_control('W4'), self.early_ack_control('W4'),
@@ -719,7 +802,7 @@ def summarise(report):
             for model, group in groups.items():
                 found = ' '.join(f'{k}={v}' for k, v in sorted(group['violations'].items()))
                 for key in ('tore', 'I2_acknowledged_intact', 'I2_acknowledged_lost',
-                            'created_empty', 'cmp_leftover'):
+                            'created_empty', 'cmp_leftover', 'target_missing', 'window'):
                     if key in group:
                         found += f' {key}={group[key]}'
                 print(f'{workload} {profile:7} {model:9} cases {group["cases"]:4} '
@@ -735,6 +818,10 @@ def summarise(report):
         print(f'barrier draw on {observed["workload"]}, recorded: {observed["positions"]} '
               f'positions, {observed["unexplained"]} unexplained, '
               f'{observed["unexplained_by_field"]}')
+    window = report.get('window')
+    if window is not None:
+        print(f'W8C target missing (window): {window["cases"]} cases in generations '
+              f'{window["generations"]}, {window["by_profile_model"]}')
     staged = report.get('staged_w4')
     if staged is not None:
         print('W4 staged states (intact, leftover temporary, missing active file): '
@@ -759,12 +846,13 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--exe-fix', required=True,
                         help='image built with the flush correction (fat-fix or red-fix)')
-    parser.add_argument('--exe-nofix', required=True,
-                        help='image built without it (fat-nofix or red-nofix)')
+    parser.add_argument('--exe-nofix',
+                        help='image built without it (fat-nofix or red-nofix); not used by '
+                             '--fs fatfs --workload W8')
     parser.add_argument('--fs', required=True, choices=('fatfs', 'reliance'))
-    parser.add_argument('--workload', choices=('W4',),
-                        help='run W4 alone, on images with the Settings File backend; without it '
-                             'W1 to W3 run')
+    parser.add_argument('--workload', choices=('W4', 'W8'),
+                        help='run W4 alone, on images with the Settings File backend, or W8 and '
+                             'W8C, on images with a File provider; without it W1 to W3 run')
     parser.add_argument('--seed', type=int, required=True)
     parser.add_argument('--samples', type=int, required=True,
                         help='sampled positions per workload, profile and model')
@@ -775,6 +863,8 @@ def main():
         parser.error('--samples must not be negative')
     if args.workload == 'W4' and args.fs != 'reliance':
         parser.error('--workload W4 needs --fs reliance')
+    if args.exe_nofix is None and not (args.workload == 'W8' and args.fs == 'fatfs'):
+        parser.error('--exe-nofix is required, except with --fs fatfs --workload W8')
 
     os.makedirs(args.out, exist_ok=True)
     replay = Replay(args)
