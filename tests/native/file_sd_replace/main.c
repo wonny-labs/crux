@@ -1,6 +1,7 @@
-/* Classification logic of the replace-pattern power-cut test (tests/board_images/sd_card_power_cut_replace) on a RAM
- * disk named like the EVKB card. The test creates the states a power cut can leave behind; the real
- * cut is only exercised on the board. Tests run in name order: the File provider binds once. */
+/* Classification logic of the replace-pattern power-cut test
+ * (tests/board_images/sd_card_power_cut_replace) on a RAM disk named like the EVKB card. The test
+ * creates the states a power cut can leave behind; the real cut is only exercised on the board.
+ * Tests run in name order: the File provider binds once. */
 #include "sd_replace.h"
 #include "sd_storage.h"
 #include <ff.h>
