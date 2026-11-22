@@ -255,22 +255,25 @@ Which components have evidence on each board is recorded in [Component readiness
 board up as its guide says before you start. Any operation on a board, such as connecting a probe, a reset or a
 download, needs approval for your task.
 
-The steps below use the one board route that has been used: the J-Link GDB Server on a Mac and the build in the Dev
-Container. The Linux and WSL2 route is described on the board page once it has been verified. The commands are those
-of the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
+The board guide has two routes. On Linux, and on Windows with WSL2, the J-Link software runs in the board Dev
+Container and `west flash` downloads the image: the steps below follow it. On a Mac, the J-Link GDB Server runs on the
+Mac and the VS Code profile **EVKB QSPI: Flash** downloads the Time sample only (step 14). The commands and options are
+in the board guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
+[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) sections.
 
 ### 12. Check the J-Link connection
 
-On the Mac, from the repository checkout (not the Dev Container), start the GDB Server and leave it running:
+In the board Dev Container, from `/workspace/crux-pilot`, with the switches and jumpers of the board guide:
 
 ```sh
-bash scripts/macos/start-jlink-gdbserver.command
+printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
 ```
 
-Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. The GDB Server should
-report that it is connected to the target. If it does not, use the board guide's recovery section before you go on.
+It should show a `VTref` of about 3.3 V and `Found Cortex-M7`. Open the board's console, the DAPLink serial port, at
+115200 baud, 8-N-1, in a serial terminal. If the check fails, use the board guide's recovery section before you go on.
 If the board then does nothing in step 14, [Troubleshooting](#troubleshooting) checks board and probe with Zephyr's
-`blinky`.
+`blinky`. On a Mac, start the GDB Server instead, from the repository checkout and not the Dev Container
+(`bash scripts/macos/start-jlink-gdbserver.command`), and leave it running.
 
 ### 13. Flash Hello Crux
 
@@ -288,7 +291,8 @@ output; the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-
 command runs and the speeds to try. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
 
 **No board result is recorded for this image yet.** The repository's **EVKB QSPI: Flash** profile builds and downloads
-the Time sample only, so use the commands above for `hello_crux`.
+the Time sample only, so use the commands above for `hello_crux`. They need the J-Link software of the board Dev
+Container, which the default Dev Container does not have.
 
 ### 14. See the console line
 
