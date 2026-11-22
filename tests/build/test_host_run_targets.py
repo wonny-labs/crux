@@ -5,6 +5,7 @@
 terminal (USES_TERMINAL gives it stdin under Ninja). This reads the CMake files; it does not
 configure or run a build, because the Host composition builds on Linux only.
 """
+import json
 from pathlib import Path
 import re
 import unittest
@@ -38,6 +39,17 @@ class HostRunTargetTest(unittest.TestCase):
         body = custom_target((REPO / TARGETS["run_echo_client"][0]).read_text(), "run_echo_client")
         self.assertIn("scripts/run-host-sample.py", body)
         self.assertIn("DEPENDS crux-networking-host", body)
+
+
+    def test_vs_code_tasks_run_the_host_samples(self):
+        # Terminal > Run Task in VS Code runs the same build targets without typing a command.
+        tasks = {t["label"]: t for t in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
+        for name in ("run_clock_shell", "run_echo_client"):
+            with self.subTest(target=name):
+                task = tasks[f"Host: {name}"]
+                self.assertEqual(task["command"], "cmake")
+                self.assertEqual(task["args"], ["--build", "--preset", "host-debug", "--target", name])
+                self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
 
 
 if __name__ == "__main__":

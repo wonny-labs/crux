@@ -77,7 +77,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
 
-   It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
+   In VS Code, **Terminal > Run Task > Board: Build and flash (west flash)** runs the build of step 7 and then this command. It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
 
 9. **Console, on Windows.** The container gets the probe's USB device, not the board's serial port. Open the DAPLink's COM port on Windows (Device Manager lists it under Ports) in a serial terminal at 115200 baud, 8-N-1. After a reset the Time sample prints the Zephyr boot banner and then:
 

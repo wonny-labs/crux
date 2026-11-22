@@ -42,6 +42,8 @@ Each Linux Host sample has a `run_<sample>` build target, the Host counterpart o
 cmake --build --preset host-debug --target run_clock_shell
 ```
 
+In VS Code, **Terminal > Run Task > Host: run_clock_shell** does the same without typing it.
+
 It prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. The Linux
 Host clock is controlled: it starts unset (`time get` answers `ERR NOT_SET`), keeps the value that `time set` gives it,
 and does not advance on its own, so two `time get` in a row print the same time. It never reads the PC's clock.

@@ -159,6 +159,8 @@ For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up fo
 
 3. Put the J-Link package `JLink_Linux_<version>_x86_64.deb` from SEGGER in `.devcontainer/jlink/packages/` and run **Dev Containers: Rebuild Container**.
 
+These three stay manual because nothing inside the container can do them: `usbipd` runs on Windows and `bind` needs an administrator; the udev rule belongs to the Linux system that owns the probe and needs `sudo` there, which the container's automatic set-up cannot ask for; and the SEGGER licence has to be accepted by you, so the package is never downloaded for you. After that, building, flashing and debugging run from VS Code tasks and debug profiles ([J-Link board route](board-jlink-usbipd.md)).
+
 On native Linux skip step 1. On a Windows PC with WSL2, the attach (without `--auto-attach`), the Linux-side checks done by hand and a placed package have been run once; `scripts/bootstrap.sh board-host` itself has not. The [J-Link board route](board-jlink-usbipd.md) has the checks, the flash and what to do when a step fails. Without the package, the container works for everything except flashing and debugging, and `scripts/bootstrap.sh status` says how to add it.
 
 ## 8. Supported environments

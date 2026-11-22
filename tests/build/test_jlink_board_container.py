@@ -158,6 +158,14 @@ class BoardDebugProfilesTest(unittest.TestCase):
         for forbidden in ("runToEntryPoint", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
             self.assertNotIn(forbidden, text)
 
+    def test_flash_task_builds_then_flashes_with_the_jlink_runner(self):
+        task = self.tasks["Board: Build and flash (west flash)"]
+        self.assertEqual(task["command"], "west")
+        self.assertEqual(task["args"], ["flash", "-d", "build/zephyr/mimxrt1060_evk_B_qspi", "-r", "jlink"])
+        self.assertEqual(task["dependsOn"], "Build firmware")
+        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
+        self.assertNotIn("--erase", json.dumps(task))
+
     def test_no_cppdbg_board_profiles_or_server_tasks_remain(self):
         self.assertFalse([name for name in self.launch if name.startswith("Board container:")])
         self.assertFalse([label for label in self.tasks if label.startswith("Board container:")])

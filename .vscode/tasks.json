@@ -61,6 +61,72 @@
         "panel": "shared",
         "clear": true
       }
+    },
+    {
+      "label": "Host: run_clock_shell",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "host-debug",
+        "--target",
+        "run_clock_shell"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Host: run_echo_client",
+      "type": "process",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "--preset",
+        "host-debug",
+        "--target",
+        "run_echo_client"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Board: Build and flash (west flash)",
+      "type": "process",
+      "command": "west",
+      "args": [
+        "flash",
+        "-d",
+        "build/zephyr/mimxrt1060_evk_B_qspi",
+        "-r",
+        "jlink"
+      ],
+      "dependsOn": "Build firmware",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
     }
   ],
   "inputs": [
