@@ -100,7 +100,7 @@ A `swap_info` that disagrees with `image_ok` (a test request with `image_ok` set
 | 1 | A check fails: any value or size above, a disagreement between the inspector and `imgtool verify`, `imgtool` crashing while it verifies a file, a missing `zephyr.signed.confirmed.bin` (the Zephyr v4.4.2 erratum of the [boot and update investigation](boot-update-investigation.md)), an image the inspector says does not fit the slot, an `imgtool sign` of the oversized check that crashes or that signs into a slot too small for the image and its trailer, or an image name that matches more than one file. |
 | 0 | Everything passed. If the public key could not be derived, the key hash row reads `info`, not `ok`, and the last line says `key hash NOT compared with the key`. |
 
-It finds the application's images only in the sysbuild directory `$build/zephyr/zephyr` (the first `zephyr` is the base name of `samples/controller/zephyr`, the second is sysbuild's output directory) with `find -maxdepth 1` for `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, so a stray copy deeper in the tree is not taken, and a name that matches more than one file fails, and the bootloader's image at `$build/mcuboot/zephyr/zephyr.bin`. It then checks:
+It finds the application's images only in the sysbuild directory `$build/zephyr/zephyr` (the first `zephyr` is the base name of `tests/boot_fixture/zephyr`, the second is sysbuild's output directory) with `find -maxdepth 1` for `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, so a stray copy deeper in the tree is not taken, and a name that matches more than one file fails, and the bootloader's image at `$build/mcuboot/zephyr/zephyr.bin`. It then checks:
 
 | Image | Checks |
 | --- | --- |

@@ -32,15 +32,14 @@ The Host script ends with the CTest summary, `100% tests passed`.
 
 ### 2. Run Crux samples on the Linux Host
 
-Step 1 built three Linux Host programs. From `/workspace/crux-pilot`:
+Step 1 built the Linux Host programs. From `/workspace/crux-pilot`:
 
 ```sh
 build/linux/debug/samples/time/clock_shell/host/crux-time-host
 ```
 
 It prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. Its
-clock is controlled and does not advance on its own. The other two are
-`build/linux/debug/samples/controller/host/crux-controller-host`, the same 20-cycle controller scenario, and
+clock is controlled and does not advance on its own. The other is
 `build/linux/debug/samples/networking/echo_client/host/crux-networking-host`, which needs an echo peer on `127.0.0.1` ports 42420
 and 42421 (CTest starts one for it, see the next step).
 
@@ -52,8 +51,8 @@ CTest runs each Linux Host sample once and checks its output. From `/workspace/c
 ctest --preset host-debug -L sample
 ```
 
-It runs `Sample.ClockShellHost`, `Sample.EchoClientHost` and `Controller.HostScenario`. Without `-L sample`, the same
-command runs every Host test of the repository.
+It runs `Sample.ClockShellHost` and `Sample.EchoClientHost`. Without `-L sample`, the same
+command runs every Host test of the repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
 
 ### 4. Change a Host build
 
@@ -62,10 +61,10 @@ CMake options configure the build itself. The Linux Host build selects Crux comp
 
 ```sh
 cmake -LH build/linux/debug | grep -B1 '^CRUX_'                       # list the options and their help
-cmake --preset host-debug -DCRUX_BUILD_REFERENCE_CONTROLLER=OFF
+cmake --preset host-debug -DCRUX_BUILD_TIME_PERIODIC_SCENARIO=OFF
 cmake --build --preset host-debug
-ctest --preset host-debug -L sample                                    # now two sample tests
-cmake --preset host-debug -DCRUX_BUILD_REFERENCE_CONTROLLER=ON         # back to the default
+ctest --preset host-debug -R TimePeriodic -N                           # the scenario test is gone
+cmake --preset host-debug -DCRUX_BUILD_TIME_PERIODIC_SCENARIO=ON       # back to the default
 ```
 
 The [capability and provider selection](build.md#capability-and-provider-selection) section lists the options that
@@ -117,12 +116,6 @@ build/time/zephyr/zephyr.exe -uart_stdinout
 ```
 
 Type `time get` (`ERR NOT_SET`), then `time set 2026-10-16T14:30:00` (`OK`), then `time get` again. Stop with Ctrl+C.
-
-The reference controller runs a fixed 20-cycle scenario and ends with `CONTROLLER_COMPLETE cycles=20`:
-
-```sh
-west build -p always -b native_sim/native/64 -d build/controller crux-pilot/samples/controller/zephyr -t run
-```
 
 [Samples](../samples/README.md) lists every sample folder, which ones run on their own, and which scripts use the
 others.
@@ -182,17 +175,16 @@ the next pristine build replaces, so copy a setting you want to keep into `prj.c
 
 Devicetree describes the hardware: which devices exist and how they are wired. An overlay changes it for one build.
 Zephyr picks up `app.overlay` or `boards/<board>.overlay` from the application folder by itself, and
-`-DEXTRA_DTC_OVERLAY_FILE=<file>` adds one from anywhere. For example, run the controller with the simulated RTC
+`-DEXTRA_DTC_OVERLAY_FILE=<file>` adds one from anywhere. For example, build the Time sample with the simulated RTC
 disabled:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/controller crux-pilot/samples/controller/zephyr -t run \
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell \
   -- -DEXTRA_DTC_OVERLAY_FILE=$PWD/crux-pilot/tests/time/zephyr/boards/native_sim_no_rtc.overlay
-grep -A3 'rtc: rtc' build/controller/zephyr/zephyr.dts
+grep -A3 'rtc: rtc' build/time/zephyr/zephyr.dts
 ```
 
-The scenario still ends with `CONTROLLER_COMPLETE cycles=20`, because the controller uses system realtime, not the
-RTC. `build/<dir>/zephyr/zephyr.dts` is the final Devicetree, with the file and line that set each property: it shows
+`build/<dir>/zephyr/zephyr.dts` is the final Devicetree, with the file and line that set each property: it shows
 `status = "disabled"` from the overlay.
 
 #### CMake options

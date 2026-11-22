@@ -27,15 +27,11 @@ form for `west build` and `west twister`.
 | `file/write_read/` | Runnable Zephyr application | Writes a file through the Crux File API and reads it back. `west build -p always -b native_sim/native/64 -d build/write_read crux-pilot/samples/file/write_read -t run`. Ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. Twister ids `crux.sample.file.write_read.simulator` and `crux.sample.file.write_read.fatfs_ram_disk` (the second selects FatFs on a RAM disk by configuration alone). See its README |
 | `time/clock_shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.clock_shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |
 | `time/clock_shell/host/` | Runnable Linux Host program | `build/linux/debug/samples/time/clock_shell/host/crux-time-host`, commands on stdin. CTest `Sample.ClockShellHost`; also `scripts/check-host-sample.sh` |
-| `controller/zephyr/`, default `prj.conf` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/controller crux-pilot/samples/controller/zephyr -t run`. Ends with `CONTROLLER_COMPLETE cycles=20`. Also `scripts/test-controller.sh` |
-| `controller/zephyr/`, the `m3*.conf` and overlay configurations | Board-only application | Device, network and integrated board probes, cross-built by `scripts/test-controller-integration.sh` (also reached through its historical name `scripts/test-m3.sh`) and by `scripts/test-m3-rt1170.sh` for the RT1170. See `controller/README.md` |
-| `controller/host/` | Runnable Linux Host program | `build/linux/debug/samples/controller/host/crux-controller-host`. CTest `Controller.HostScenario` (label `sample`) checks it with `scripts/check-controller.py` |
-| `controller/core/`, `controller/include/` | Building block | The portable controller core. The two controller applications above and the Host test `tests/controller` compile it, and so does the system-health scenario of `tests/system_consumer` |
 | `networking/echo_client/host/` | Runnable Linux Host program | `build/linux/debug/samples/networking/echo_client/host/crux-networking-host [numeric-ipv4]` exchanges one TCP and one UDP echo with a peer on ports 42420 and 42421 (default `127.0.0.1`). CTest `Sample.EchoClientHost` starts a local echo peer for it |
 | `networking/echo_client/` | Board-only application | The same exchange as an EVKB image, cross-built by `scripts/test-networking.sh`. It needs a board on an isolated network with a peer; Twister id `crux.sample.networking.echo_client` runs it only with the `crux_echo_peer` fixture. See its README |
 | `networking/echo_client/common/` | Building block | The echo client (`client.c`, `client.h`) that both networking programs and the tests `tests/networking`, `tests/networking_zephyr` compile |
 | `flash_safety_poc/` | Board-only application | A compile-only Flash safety proof of concept for the EVKB. `scripts/test-flash-poc.sh` builds and inspects it and never programs it |
-| `management_rt1060_mbed/` | Board-only application | The RT1060-EVKB management image on the Mbed TLS profile, built (never flashed) by `scripts/test-management-mbed-rt1060.sh`. See [the image page](../docs/rt1060-mbed-management-image.md) |
+| `boards/nxp/mimxrt1060_evk/web_management/` | Board-only application | The RT1060-EVKB management image on the Mbed TLS profile, built (never flashed) by `scripts/test-management-mbed-rt1060.sh`. See [the image page](../docs/rt1060-mbed-management-image.md) |
 | `storage_emmc/` | Board-only application | eMMC composition, link only on the EVKB (`testcase.yaml`), by `scripts/test-file-emmc-compile.sh`. `scripts/test-storage-emmc.sh` compiles its sources into the `native_sim` tests `tests/native/file_emmc_composition` and `tests/native/configuration_settings_reliance` |
 | `storage_reliance_sd/` | Board-only application | Reliance Edge microSD images, link only on the EVKB, by `scripts/test-file-emmc-compile.sh`. Its `native` scenarios are built for the rehearsal that `scripts/test-storage-emmc.sh` runs, and need the optional `crux-reliance` west group |
 | `storage_sd/`, `storage_sd_interrupt/`, `storage_sd_probe/`, `storage_sd_replace/` | Board-only application | microSD compositions and power-cut tests, link only on the EVKB (`testcase.yaml`), by `scripts/test-file-rt1060-compile.sh`. `scripts/test-storage-simulators.sh` compiles their sources into `native_sim` tests under `tests/native/` |
@@ -51,12 +47,22 @@ Scenarios that only a test compiles live with that test, not under `samples/`:
 | `tests/logging_consumer/scenario/`, `tests/serial_consumer/scenario/` | Compiled by `tests/logging_consumer` and `tests/serial_consumer`, which `scripts/test-logging.sh` and `scripts/test-serial.sh` run; `scripts/check-native-interfaces.py` checks their includes |
 | `tests/web/project_sample/project/` | A project's own page and API route beside the management routes. The Host test `tests/web/project_sample` (CTest `Web.project_sample`, run by `scripts/check-host.sh`) compiles it, and `tests/build/test_project_sample.py` checks it |
 
+### Where the reference controller went
+
+The reference controller is not a sample, because a sample that mixes a periodic task, board probes and network images
+teaches no single thing. Its checks are kept: the periodic scenario with its Host (ASan/UBSan), `native_sim` and EVKB
+checks is [`tests/time_periodic`](../tests/time_periodic/README.md); the boot fixture is
+[`tests/boot_fixture`](../tests/boot_fixture/README.md); the EVKB device, network and integrated images are
+[`tests/board_images/integration_probe`](../tests/board_images/integration_probe/README.md); the shared EVKB network
+overlay is `boards/nxp/mimxrt1060_evk/common/network.overlay`. For a first periodic task read Zephyr's
+`samples/basic/threads`; threads and synchronization are not Crux samples.
+
 ## Run every runnable sample
 
 ```sh
 # Zephyr: every runnable Zephyr application on native_sim
 west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
-# Linux Host: all three Host programs (run from crux-pilot after scripts/bootstrap-host.sh)
+# Linux Host: all Host programs (run from crux-pilot after scripts/bootstrap-host.sh)
 ctest --preset host-debug -L sample
 ```
 

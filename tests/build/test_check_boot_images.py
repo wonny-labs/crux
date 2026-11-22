@@ -142,8 +142,8 @@ class ScriptShape(unittest.TestCase):
     def test_the_script_derives_the_repository_root_from_its_depth(self):
         # tests/target/ is two levels below the repository root.
         self.assertIn('repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"', self.code)
-        self.assertTrue((REPO / "samples/controller/zephyr").is_dir())
-        self.assertIn('app="$repo/samples/controller/zephyr"', self.code)
+        self.assertTrue((REPO / "tests/boot_fixture/zephyr").is_dir())
+        self.assertIn('app="$repo/tests/boot_fixture/zephyr"', self.code)
         self.assertIn('inspector=("$python" "$repo/tests/target/inspect_boot_image.py")', self.code)
 
     def test_the_default_build_directory_is_under_the_derived_repository_root(self):

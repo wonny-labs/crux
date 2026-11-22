@@ -42,4 +42,4 @@ modules="$repo;$workspace/modules/hal/cmsis;$workspace/modules/hal/cmsis_6;$work
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
     -d "$repo/build/zephyr/networking-evkb" "$repo/samples/networking/echo_client" -- \
     -DZEPHYR_MODULES="$modules" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay")
+    -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay")

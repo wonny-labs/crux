@@ -221,7 +221,7 @@ static int test_close(int fd)
 #define net_if_ipv4_set_netmask_by_addr test_mask
 #define net_if_up test_up
 #define net_if_is_carrier_ok test_carrier
-#include "../../../samples/controller/zephyr/network_client.c"
+#include "../../../tests/board_images/integration_probe/network_client.c"
 
 static void before(void *fixture)
 {

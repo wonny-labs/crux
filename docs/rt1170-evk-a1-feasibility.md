@@ -99,9 +99,9 @@ cd "$workspace"
 west build -p always \
   -b 'mimxrt1170_evk@A/mimxrt1176/cm7' \
   -d "$repo/build/zephyr/rt1170-evk-a1-m3" \
-  "$repo/samples/controller/zephyr" -- \
+  "$repo/tests/board_images/integration_probe" -- \
   -DZEPHYR_EXTRA_MODULES="$repo" \
-  -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3.conf" \
+  -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/device_health_probe.conf" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
 
@@ -111,7 +111,7 @@ configuration without an application overlay. Set `CRUX_WORKSPACE` to the
 west workspace root when Crux is a sibling worktree; the usual `dirname(repo)`
 default only applies when Crux is nested directly in that workspace.
 
-`scripts/test-m3-rt1170.sh` contains this build, and the Zephyr GitHub workflow
+`scripts/test-integration-probe-rt1170.sh` contains this build, and the Zephyr GitHub workflow
 now invokes it and uploads the generated configuration, DTS, map, ELF, binary,
 and compile commands. A focused Host-side composition test checks the target
 and guards against explicit or automatically discovered RT1170 application
@@ -146,7 +146,7 @@ identify this CI output and not a build of current `main`.
 | SoC as configured | `CONFIG_SOC="mimxrt1176"`, series `imxrt11xx`, part number `MIMXRT1176DVMAA`, Cortex-M7 |
 | Zephyr and NXP HAL | Zephyr 4.4.0 (`684c9e8f32e4373a21098559f748f06915f950c9`, the pin in `west.yml`); NXP device files for `MIMXRT1176` from the `hal_nxp` module (`mcux-sdk-ng`) |
 | Toolchain and tools | Zephyr SDK 1.0.1; GCC 14.3.0 (`arm-zephyr-eabi`); GNU ld 2.43.1; dtc 1.7.0; CMake 3.28.4; west 1.4.0; Python 3.12.15 |
-| Configuration inputs | the board defconfig, `samples/controller/zephyr/prj.conf` and `m3.conf`; `CONFIG_CRUX_CONTROLLER_M3=y`; C17; no application overlay |
+| Configuration inputs | the board defconfig, `tests/board_images/integration_probe/prj.conf` and `device_health_probe.conf`; `CONFIG_CRUX_CONTROLLER_M3=y`; C17; no application overlay |
 | Memory and boot | XIP; Flash base `0x30000000`, 16 MiB; SDRAM (`zephyr,sram`) base `0x80000000`, 64 MiB; NXP boot header and FlexSPI NOR boot, XMCD and external SDRAM enabled |
 | Linker regions | FLASH `0x30000000` 16 MiB; RAM `0x80000000` 64 MiB; OCRAM `0x20200000` 256 KiB; ITCM `0x00000000` 256 KiB; DTCM `0x20000000` 256 KiB |
 | Image size | FLASH 65,324 B (0.39 %); RAM 14,016 B (0.02 %); ELF 1,241,236 B; binary 65,324 B |
@@ -169,7 +169,7 @@ identical linker map, devicetree and `.config` files but different ELF and
 binary hashes. A byte comparison of the binaries of runs 41305559734 and
 41314067098 found 12 differing bytes out of 65,324, at offset `0xeb14` in the
 read-only data. They are the 12-character source revision that
-`samples/controller/zephyr/CMakeLists.txt` takes from `git rev-parse --short=12 HEAD`
+`tests/board_images/integration_probe/CMakeLists.txt` takes from `git rev-parse --short=12 HEAD`
 and the M3 boot banner prints (`M3_BOOT source=...`): the commit CI checked out,
 which is `5df5d09cefc5` for the recorded run. Every other section with contents
 in the two ELF files was identical. So the images were identical apart from that

@@ -135,8 +135,6 @@
     "docs/writing-a-product-driver.md": "how-to",
     "patches/zephyr/README.md": "reference",
     "samples/README.md": "how-to",
-    "samples/controller/README.md": "how-to",
-    "samples/controller/zephyr/README.md": "how-to",
     "samples/messaging/README.md": "how-to",
     "samples/time/clock_shell/README.md": "how-to",
     "samples/web/angular/README.md": "how-to",

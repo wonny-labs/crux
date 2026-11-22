@@ -36,11 +36,11 @@ Zephyr, cross-build only, as `scripts/test-networking.sh` does it (build directo
 
 ```sh
 west build -b 'mimxrt1060_evk@B//qspi' -d build/zephyr/networking-evkb crux-pilot/samples/networking/echo_client -- \
-    -DDTC_OVERLAY_FILE=$PWD/crux-pilot/samples/controller/zephyr/m3-network.overlay
+    -DDTC_OVERLAY_FILE=$PWD/crux-pilot/samples/boards/nxp/mimxrt1060_evk/common/network.overlay
 ```
 
 On the EVKB, `CMakeLists.txt` also applies the ENET MDIO completion correction from
-`samples/controller/zephyr/mdio_completion.cmake` without changing the Zephyr checkout. Twister id
+`tests/board_images/integration_probe/mdio_completion.cmake` without changing the Zephyr checkout. Twister id
 `crux.sample.networking.echo_client` in [`sample.yaml`](sample.yaml) runs the image only when the
 `crux_echo_peer` fixture is supplied; otherwise Twister only builds it.
 

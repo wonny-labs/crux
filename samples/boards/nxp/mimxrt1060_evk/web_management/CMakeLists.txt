@@ -8,13 +8,13 @@
 # none of their sources into `app`. What `app` holds is its own composition and the route sources, which the module
 # cannot build because the route table belongs to the image.
 cmake_minimum_required(VERSION 3.20.0)
-get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../.." ABSOLUTE)
 set(composition_dir "${CRUX_ROOT}/tests/native/management_composition")
 set(EXTRA_CONF_FILE
     "${CRUX_ROOT}/tests/native/tls_offload_probe/mbed.conf"
     "${composition_dir}/profile-psa.conf")
 set(DTC_OVERLAY_FILE
-    "${CRUX_ROOT}/samples/controller/zephyr/m3-network.overlay"
+    "${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/common/network.overlay"
     "${CMAKE_CURRENT_LIST_DIR}/target.overlay"
     "${CMAKE_CURRENT_LIST_DIR}/ram_disk.overlay")
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
