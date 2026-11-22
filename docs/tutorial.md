@@ -28,11 +28,15 @@ Inside the container there are two folders you work from:
 
 ## Part A. Linux Host
 
-### 1. Bootstrap the Host build
+### 1. Check that the Host build is ready
 
-Run the Host tests row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It runs the Host build and tests.
+The Dev Container builds and tests the Linux Host when it is created ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)). From `/workspace/crux-pilot`:
 
-The Host script ends with the CTest summary, `100% tests passed`.
+```sh
+scripts/bootstrap.sh status
+```
+
+It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.sh host`; its output shows the CTest summary, `100% tests passed`, and ends with `bootstrap: host ok`.
 
 ### 2. Run Hello Crux on the Linux Host
 
@@ -41,24 +45,26 @@ consumes Crux the way an external application does, so it is built on its own. F
 
 ```sh
 cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
-cmake --build build/samples/hello_crux_host
-build/samples/hello_crux_host/hello-crux-host
+cmake --build build/samples/hello_crux_host --target run_hello_crux
 ```
+
+The `run_hello_crux` target builds the program and runs it in your terminal.
 
 It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. The clock is unset
 because Crux never invents a time of day. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
 
 ### 3. Run the networking sample on the Host
 
-`samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host program,
-`build/linux/debug/samples/networking/echo_client/host/crux-networking-host`, needs an echo peer on `127.0.0.1` ports
-42420 and 42421, so run it through CTest, which starts a local peer for it. From `/workspace/crux-pilot`:
+`samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host program needs an echo peer on
+`127.0.0.1` ports 42420 and 42421; the `run_echo_client` target starts a local peer for it and runs the sample once.
+From `/workspace/crux-pilot`:
 
 ```sh
-ctest --preset host-debug -R Sample.EchoClientHost --output-on-failure
+cmake --build --preset host-debug --target run_echo_client
 ```
 
-You should see `100% tests passed`. The sample's Zephyr image is for a board with an isolated network and a peer; its
+In VS Code, **Terminal > Run Task > Host: run_echo_client** does the same. CTest runs the same exchange as
+`Sample.EchoClientHost` (step 4). The sample's Zephyr image is for a board with an isolated network and a peer; its
 [README](../samples/networking/echo_client/README.md) describes it.
 
 ### 4. Run every Host sample with CTest
@@ -69,7 +75,7 @@ CTest runs each Host sample of the root build once and checks its output. From `
 ctest --preset host-debug -L sample
 ```
 
-It runs `Sample.ClockShellHost`, the Time shell on the Host, and `Sample.EchoClientHost`. (`hello_crux` is its own CMake
+It runs `Sample.ClockShellHost`, the Time shell on the Host (`cmake --build --preset host-debug --target run_clock_shell` runs it in your terminal), and `Sample.EchoClientHost`. (`hello_crux` is its own CMake
 project, so step 2 builds it, and CTest does not.) Without `-L sample`, the same command runs every Host test of the
 repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
 
@@ -91,11 +97,11 @@ matter for products.
 
 ## Part B. Zephyr
 
-### 6. Bootstrap the Zephyr workspace
+### 6. Check that the Zephyr workspace is ready
 
-Run the Zephyr samples row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It creates the west workspace and installs the Zephyr SDK. The west checkouts and the SDK are large downloads, and they are the longest part of this tutorial.
+The Dev Container also creates the west workspace and installs the Zephyr SDK when it is created. The west checkouts and the SDK are large downloads, the longest part of the set-up. From `/workspace/crux-pilot`, `scripts/bootstrap.sh status` shows `zephyr  ok`; otherwise run the command it prints, `scripts/bootstrap.sh zephyr`.
 
-The script turns `/workspace` into a west
+The set-up turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
 Zephyr module by itself.
 
@@ -255,15 +261,16 @@ Which components have evidence on each board is recorded in [Component readiness
 board up as its guide says before you start. Any operation on a board, such as connecting a probe, a reset or a
 download, needs approval for your task.
 
-The board guide has two routes. On Linux, and on Windows with WSL2, the J-Link software runs in the board Dev
-Container and `west flash` downloads the image: the steps below follow it. On a Mac, the J-Link GDB Server runs on the
-Mac and the VS Code profile **EVKB QSPI: Flash** downloads the Time sample only (step 14). The commands and options are
-in the board guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
+The board guide has two routes. On Linux, and on Windows with WSL2, the J-Link software runs in the Dev Container (it is
+installed when the J-Link package is provided; see [getting-started](getting-started.md#7-if-you-use-a-board)) and
+`west flash` downloads the image: the steps below follow it. On a Mac, the J-Link GDB Server runs on the Mac and the VS
+Code profile **EVKB QSPI: Flash** downloads the Time sample only (step 14). The commands and options are in the board
+guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
 [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) sections.
 
 ### 12. Check the J-Link connection
 
-In the board Dev Container, from `/workspace/crux-pilot`, with the switches and jumpers of the board guide:
+In the Dev Container, from `/workspace/crux-pilot`, with the switches and jumpers of the board guide:
 
 ```sh
 printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
@@ -291,14 +298,15 @@ output; the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-
 command runs and the speeds to try. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
 
 **No board result is recorded for this image yet.** The repository's **EVKB QSPI: Flash** profile builds and downloads
-the Time sample only, so use the commands above for `hello_crux`. They need the J-Link software of the board Dev
-Container, which the default Dev Container does not have.
+the Time sample only, so use the commands above for `hello_crux`. They need the J-Link software in the Dev Container,
+which is installed when the J-Link package is provided.
 
 ### 14. See the console line
 
 Once the image is running, the console shows the Zephyr boot banner and then the three lines of step 7, ending with
 `CRUX_HELLO_READY composition=zephyr`. The Time sample, `samples/time/clock_shell`, is the image that the **EVKB QSPI: Flash** profile
-builds and downloads (`scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'` is its build). It is the one image with
+builds and downloads (`scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'` is its build). On the Linux and WSL2 route, the VS Code
+task **Board: Build and flash (west flash)** builds that Time sample and flashes it with `west flash -r jlink`. It is the one image with
 a recorded board result: a download, a reset and the console line `CRUX_TIME_READY composition=zephyr`, as the board
 guide's
 [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section records.

@@ -6,8 +6,9 @@ This page finds the right page for what you want to do. Start at the [repository
 
 - [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options, then a sample built and flashed on your board (Part C).
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
-- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the setup commands.
+- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, the set-up that the one Dev Container runs by itself (`scripts/bootstrap.sh`), and what a board adds.
 - [Boards](boards/README.md): one page per board with its target, switches and jumpers, probe and connection, flash and debug, recovery and limits.
+- [J-Link board route on Linux and WSL2](board-jlink-usbipd.md): attach the probe, `scripts/bootstrap.sh board-host`, the J-Link package, then `west flash` and `west debug` from the Dev Container.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications and provider selection.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
 

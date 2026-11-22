@@ -6,7 +6,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 
 | Use case | Entry point | Scope |
 | --- | --- | --- |
-| Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
+| Develop and test Crux on Linux | The Dev Container, whose `scripts/bootstrap.sh` runs `scripts/bootstrap-host.sh`, and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
 | Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Zephyr only, no Crux release tag yet |
@@ -18,7 +18,7 @@ Linux Host is a development and test composition, **not** a qualified production
 
 **First set-up:** read [Getting started](getting-started.md) first. It covers the Git clone, the folder layout and the folder name the scripts require, Windows with WSL2, line endings, network and proxy access, and disk and memory.
 
-Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory.
+Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory. After it is created it runs `scripts/bootstrap.sh`, which installs those tools into a Python environment in the cache volume, builds and tests the Host preset and sets up the west workspace and the Zephyr SDK, skipping what is already done ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)). The same container serves a board: it can reach a USB debug probe and installs the J-Link software when its package is given ([J-Link board route](board-jlink-usbipd.md)).
 
 **Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
 
@@ -38,7 +38,7 @@ Run the commands below from `/workspace/crux-pilot` inside the container unless 
 
 **What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
-The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. For the initial build, dependency acquisition and Host CTest run:
+The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. The initial build, dependency acquisition and Host CTest run are the host step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created; by hand:
 
 ~~~sh
 scripts/bootstrap-host.sh
@@ -71,7 +71,7 @@ For the complete quality checks and component-specific runners, use the [test gu
 
 Zephyr is integrated through [zephyr/module.yml](../zephyr/module.yml), [zephyr/CMakeLists.txt](../zephyr/CMakeLists.txt) and [zephyr/Kconfig](../zephyr/Kconfig), **not** through the Linux Host root CMake entry point. The [west manifest](../west.yml) pins the Zephyr revision and selected CMSIS/NXP modules.
 
-After the Dev Container is ready, initialise or update the separate west workspace and install the pinned Zephyr SDK and Arm toolchain:
+The zephyr step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created, initialises or updates the separate west workspace and installs the pinned Zephyr SDK and Arm toolchain. By hand:
 
 ~~~sh
 scripts/bootstrap-zephyr.sh --install-sdk

@@ -1,4 +1,4 @@
-"""Checks for scripts/setup-board-host.sh, the Linux-side set-up of the J-Link board route.
+"""Checks for `scripts/bootstrap.sh board-host`, the Linux-side set-up of the J-Link board route.
 
 The script runs against stub tools (sudo, apt-get, lsusb, udevadm) and a fake
 /dev/bus/usb tree in a temporary folder. Nothing is installed and no USB device is
@@ -13,7 +13,7 @@ import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts" / "setup-board-host.sh"
+SCRIPT = REPO / "scripts" / "bootstrap.sh"
 RULE = REPO / ".devcontainer" / "jlink" / "99-crux-jlink.rules"
 SYSTEM_TOOLS = ("bash", "cat", "chmod", "cmp", "cp", "dirname", "grep", "id", "ls")
 JLINK_LINE = "Bus 001 Device 004: ID 1366:1015 SEGGER J-Link\n"
@@ -62,9 +62,10 @@ class SetupBoardHostTest(unittest.TestCase):
 
     def run_script(self, **environment):
         env = {"PATH": str(self.bin), "CRUX_USB_DIR": str(self.usb),
+               "CRUX_DOCKERENV": str(Path(self.temporary.name) / "no-dockerenv"),
                "CRUX_UDEV_RULES_DIR": str(self.rules), "HOME": self.temporary.name}
         env.update(environment)
-        return subprocess.run([str(self.bin / "bash"), str(SCRIPT)], env=env,
+        return subprocess.run([str(self.bin / "bash"), str(SCRIPT), "board-host"], env=env,
                               capture_output=True, text=True)
 
     def calls(self):
@@ -158,8 +159,22 @@ class SetupBoardHostTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("warning", result.stderr)
 
-    def test_script_never_flashes_or_runs_jlink(self):
+    def test_refused_inside_the_dev_container(self):
+        self.lsusb()
+        self.node(0o666)
+        result = self.run_script(CRUX_REPO="/workspace/crux-pilot")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not in the Dev Container", result.stderr)
+        marker = Path(self.temporary.name) / "dockerenv"
+        marker.write_text("")
+        result = self.run_script(CRUX_DOCKERENV=str(marker))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not in the Dev Container", result.stderr)
+        self.assertEqual(self.calls(), "")
+
+    def test_board_host_never_flashes_or_runs_jlink(self):
         text = SCRIPT.read_text()
+        text = text[text.index("# board_host begin"):text.index("# board_host end")]
         for forbidden in ("JLink", "west ", "flash", "nrfjprog", "pyocd"):
             self.assertNotIn(forbidden, text.replace("99-crux-jlink.rules", ""))
 
