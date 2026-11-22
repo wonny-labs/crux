@@ -8,8 +8,9 @@
 # It installs usbutils if lsusb is missing, checks that USB devices and a SEGGER
 # J-Link (USB vendor ID 1366) are visible, installs the udev rule
 # .devcontainer/jlink/99-crux-jlink.rules once, and reports whether the board
-# Dev Container can open the probe's device node. It never talks to the probe
-# or the board. It is safe to run again.
+# Dev Container can open the probe's current device node. A probe that
+# re-enumerates gets a new node, so run it again after a reattach. It never
+# talks to the probe or the board. It is safe to run again.
 #
 # Environment, for tests only:
 #   CRUX_USB_DIR         USB device tree (default /dev/bus/usb)
@@ -35,8 +36,10 @@ attach_hint() {
     cat >&2 <<'EOF'
 On WSL2, attach the probe from PowerShell on Windows, then run this script again:
 
-    usbipd attach --wsl --busid <BUSID>
+    usbipd attach --wsl --busid <BUSID> --auto-attach
 
+Keep that PowerShell window open: --auto-attach attaches the probe again when it
+re-enumerates, for example after a reset or a probe firmware update.
 `usbipd list` shows the BUSID of the J-Link (vendor ID 1366). It must be bound
 once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
 On native Linux, plug the probe in.
@@ -118,8 +121,9 @@ if [ "$blocked" -ne 0 ]; then
 The container user can open the probe only if the node is 0666, or 0660 with
 group ID $plugdev_gid (plugdev in the container). Check that $rule_dst is
 installed and that udev runs, then detach and attach the probe again
-(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>) or
-replug it. \`getent group plugdev\` must show ID $plugdev_gid; if it does not,
+(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>
+--auto-attach) or replug it. A probe that re-enumerated has a new node, which
+on WSL2 may not get the rule (crw-rw-r-- root). \`getent group plugdev\` must show ID $plugdev_gid; if it does not,
 use MODE="0666" in your local copy of the rule.
 EOF
     exit 1

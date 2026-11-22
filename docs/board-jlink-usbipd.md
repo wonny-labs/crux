@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do carried out by hand; the script and that handling themselves have not been run there yet. Steps 6 to 8 have not been run.
+**What has been run.** Steps 1 to 5 were run on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, with what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do carried out by hand; the script, that handling and `--auto-attach` themselves have not been run there yet. Steps 6 to 8 have not been run.
 
 ## What you need
 
@@ -19,10 +19,10 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    ~~~powershell
    usbipd list
    usbipd bind --busid <BUSID>
-   usbipd attach --wsl --busid <BUSID>
+   usbipd attach --wsl --busid <BUSID> --auto-attach
    ~~~
 
-   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. `attach` is needed again after the probe is replugged or WSL2 restarts. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
+   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. Keep the window of `attach --auto-attach` open: it attaches the probe again when it re-enumerates, for example after a reset or when J-Link software updates the probe's firmware, and the attachment is otherwise lost. Run it again after WSL2 restarts. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
 
 2. **WSL2 or Linux shell, in the repository checkout: prepare the Linux side.**
 
@@ -35,7 +35,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    - `crw-rw----` with group `plugdev`: the expected result on native Linux, where the rule applies.
    - `crw-rw-rw-` with owner and group `root`: seen on WSL2 for the usbipd-attached J-Link.
 
-   The script stops with advice if the node is neither. It never talks to the probe or the board.
+   The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run the script again after a reattach. It never talks to the probe or the board.
 
 3. **The J-Link package.** Put `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it. If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in `.devcontainer/jlink/devcontainer.json` instead, and the build downloads it and checks its SHA-256. A placed package wins over the URL. Without either, the build stops and says which file to place where. Nothing is downloaded from SEGGER, and no licence is accepted for you.
 
@@ -89,6 +89,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bind mount follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
 | Step 6 or 7 cannot connect | Retry with `-speed 100` or `--speed 100`, then check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
+| J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1, with `--auto-attach`) and run step 2 again |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
 The default Dev Container still works for builds: reopen it with **Crux Pilot (Ubuntu 24.04 amd64)**.

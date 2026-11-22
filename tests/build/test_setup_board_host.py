@@ -141,6 +141,15 @@ class SetupBoardHostTest(unittest.TestCase):
         self.assertIn("cannot open", result.stderr)
         self.assertIn("usbipd attach", result.stderr)
 
+    def test_re_enumerated_root_node_without_write_access_fails(self):
+        # After a re-enumeration on WSL2 the udev rule may not apply: crw-rw-r-- root.
+        self.lsusb()
+        self.node(0o664)
+        result = self.run_script(CRUX_PLUGDEV_GID="99999")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot open", result.stderr)
+        self.assertIn("--auto-attach", result.stderr)
+
     def test_udevadm_failure_is_a_warning_and_the_node_decides(self):
         self.lsusb()
         self.node(0o666)
