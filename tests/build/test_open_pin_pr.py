@@ -1,5 +1,6 @@
 """Check scripts/open-pin-pr.py with throwaway Git remotes, a fake gh and a local fake Bitbucket API."""
 import base64
+import hashlib
 import http.server
 import json
 import os
@@ -257,6 +258,71 @@ class GitHubTest(Base):
         result = self.run_script("--host", "github", env=dict(self.env, CRUX_PIN_TOKEN=TOKEN))
         self.assertEqual(DONE, result.returncode, result.stderr)
         self.assertFalse(marker.exists())
+
+    def git_config_sha256(self):
+        return hashlib.sha256((self.work / ".git/config").read_bytes()).hexdigest()
+
+    def test_a_local_fsmonitor_and_credential_helper_never_run(self):
+        # A build that ran as the same user may have set them in .git/config.
+        self.change("bbbb")
+        marker = self.tmp / "config-program-ran"
+        program = self.tmp / "evil.sh"
+        program.write_text(f'#!/bin/sh\necho "$0 $*" >> "{marker}"\nexit 1\n')
+        program.chmod(program.stat().st_mode | stat.S_IXUSR)
+        git("config", "core.fsmonitor", str(program), cwd=self.work)
+        git("config", "credential.helper", str(program), cwd=self.work)
+        real = shutil.which("git")
+        probe_log = self.tmp / "git-calls.log"
+        probe = self.tmp / "bin/git"
+        probe.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{probe_log}"\nexec "{real}" "$@"\n')
+        probe.chmod(probe.stat().st_mode | stat.S_IXUSR)
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertFalse(marker.exists(), marker.read_text() if marker.exists() else "")
+        calls = probe_log.read_text().splitlines()
+        self.assertTrue(calls)
+        for call in calls:
+            self.assertIn("core.fsmonitor=false", call)
+            self.assertIn("credential.helper= ", call)
+
+    def test_a_local_pushurl_is_ignored(self):
+        self.change("bbbb")
+        elsewhere = self.tmp / "elsewhere.git"
+        git("clone", "-q", "--bare", str(self.origin), str(elsewhere))
+        git("config", "remote.origin.pushurl", str(elsewhere), cwd=self.work)
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
+        missing = subprocess.run(["git", "rev-parse", "--verify", "-q", BRANCH], cwd=elsewhere,
+                                 text=True, capture_output=True)
+        self.assertNotEqual(0, missing.returncode)
+
+    def test_push_url_names_the_repository_to_push_to(self):
+        self.change("bbbb")
+        mirror = self.tmp / "mirror.git"
+        git("clone", "-q", "--bare", str(self.origin), str(mirror))
+        result = self.run_script("--host", "github", "--push-url", str(mirror), env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("revision: bbbb", git("show", f"{BRANCH}:west.yml", cwd=mirror))
+        self.assertIsNone(self.remote_ref(BRANCH))
+
+    def test_an_unchanged_git_config_passes_the_check(self):
+        self.change("bbbb")
+        result = self.run_script("--host", "github", "--git-config-sha256", self.git_config_sha256(),
+                                 env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
+
+    def test_a_git_config_changed_since_it_was_recorded_is_refused(self):
+        self.change("bbbb")
+        recorded = self.git_config_sha256()
+        # The hook or build adds a setting that later Git calls would obey.
+        git("config", "remote.origin.pushurl", str(self.tmp / "elsewhere.git"), cwd=self.work)
+        result = self.run_script("--host", "github", "--git-config-sha256", recorded, env=self.env)
+        self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
+        self.assertIn("Git configuration", result.stderr)
+        self.assertIsNone(self.remote_ref(BRANCH))
+        self.assertFalse(self.state.exists())
 
     def test_only_allowed_paths_are_committed(self):
         self.change("bbbb")

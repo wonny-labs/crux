@@ -13,6 +13,7 @@ bot branch holds a commit the bot did not make, 1 an error, 2 a usage error.
 
 import argparse
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -40,14 +41,44 @@ class PinPrError(Exception):
 SECRET_ENV = {"CRUX_PIN_TOKEN"}
 
 
+# A build that ran as the same user may have written hooks or settings that run a program.
+# These keep Git from running any: no hooks, no fsmonitor and no credential helper.
+SAFE_GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "credential.helper="]
+
+
 def git(*args, check=True):
-    # Repository hooks never run: a build may have written them, and they must not see the token.
-    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}
-    result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], text=True,
-                            capture_output=True, env=env)
+    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}  # Git never sees the token.
+    result = subprocess.run(["git", *SAFE_GIT, *args], text=True, capture_output=True, env=env)
     if check and result.returncode != 0:
         raise PinPrError(f"git {args[0]} failed: {result.stderr.strip()}")
     return result
+
+
+def git_config_sha256():
+    """SHA-256 of the repository's .git/config, followed by config.worktree when there is one."""
+    digest = hashlib.sha256()
+    common = Path(git("rev-parse", "--git-common-dir").stdout.strip())
+    digest.update((common / "config").read_bytes())
+    worktree = Path(git("rev-parse", "--git-dir").stdout.strip()) / "config.worktree"
+    if worktree.is_file():
+        digest.update(worktree.read_bytes())
+    return digest.hexdigest()
+
+
+def check_git_config(expected):
+    if expected and git_config_sha256() != expected.lower():
+        raise PinPrError("the repository's Git configuration changed after it was recorded, "
+                         "perhaps by the hook or a build; refusing to push")
+
+
+def push_target(remote, push_url):
+    """The URL to push to: --push-url, or the remote's url setting, never its pushurl."""
+    if push_url:
+        return push_url
+    url = git("config", "--get", f"remote.{remote}.url", check=False).stdout.strip()
+    if not url:
+        raise PinPrError(f"the remote {remote} has no url; give --push-url")
+    return url
 
 
 def read_message(path):
@@ -211,13 +242,19 @@ def make_host(args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    # prog is fixed: crux-pin-bot.py runs this script from its source on standard input.
+    parser = argparse.ArgumentParser(prog="open-pin-pr.py", description=__doc__.split("\n\n")[0])
     parser.add_argument("--host", required=True, choices=("github", "bitbucket-cloud"))
     parser.add_argument("--message-file", required=True, type=Path,
                         help="commit message: the pull request title, a blank line and its text")
     parser.add_argument("--base", default="main", help="the branch the pull request targets (default: main)")
     parser.add_argument("--branch", default="bot/crux-pin", help="the bot branch (default: bot/crux-pin)")
-    parser.add_argument("--remote", default="origin", help="the Git remote to push to (default: origin)")
+    parser.add_argument("--remote", default="origin",
+                        help="the Git remote whose url setting is pushed to (default: origin); its pushurl is ignored")
+    parser.add_argument("--push-url", metavar="URL", help="push to this URL instead of the --remote's url")
+    parser.add_argument("--git-config-sha256", metavar="HEX",
+                        help="refuse to push unless .git/config still has this SHA-256, "
+                             "recorded before the hook or a build ran")
     parser.add_argument("--repo", help="OWNER/REPO for github (default: what gh infers), "
                                        "WORKSPACE/REPOSITORY for bitbucket-cloud (required)")
     parser.add_argument("--api-url", default="https://api.bitbucket.org/2.0",
@@ -246,6 +283,8 @@ def main(argv=None):
         for extra in args.append_body:
             body = body.rstrip("\n") + "\n\n" + Path(extra).read_text().rstrip("\n") + "\n"
         os.chdir(top)  # Git paths and --allow-path are relative to the repository root.
+        check_git_config(args.git_config_sha256)  # Before any Git call that could obey a changed setting.
+        target = push_target(args.remote, args.push_url)
         host = make_host(args)  # Checks the token before anything is pushed.
         paths = changed_paths()
         if not paths:
@@ -254,9 +293,9 @@ def main(argv=None):
         unexpected = [path for path in paths if not allowed(path, args.allow_path)]
         if unexpected:
             raise PinPrError("changes outside --allow-path, nothing committed: " + ", ".join(unexpected))
-        old_head = remote_branch_head(args.remote, args.branch)
+        old_head = remote_branch_head(target, args.branch)
         if old_head:
-            foreign = foreign_commits(args.remote, args.base, args.branch)
+            foreign = foreign_commits(target, args.base, args.branch)
             if foreign:
                 print(f"open-pin-pr: {args.branch} holds commits the bot did not make "
                       f"({', '.join(sha[:12] for sha in foreign)}); merge or delete that branch first",
@@ -267,8 +306,9 @@ def main(argv=None):
         if not refresh:
             print(f"{args.branch} already holds this change")
         else:
+            check_git_config(args.git_config_sha256)
             lease = f"--force-with-lease=refs/heads/{args.branch}:{old_head or ''}"
-            git("push", "-q", lease, args.remote, f"{new_head}:refs/heads/{args.branch}")
+            git("push", "-q", lease, target, f"{new_head}:refs/heads/{args.branch}")
             print(f"pushed {new_head[:12]} to {args.branch}")
         action, url = host.upsert(args.base, args.branch, title, body, refresh)
         print(f"{action} {url}")

@@ -123,6 +123,75 @@ exec "{real}" "$@"
             self.assertTrue(call.startswith("||"), call)
             self.assertIn("core.hooksPath=/dev/null", call, call)
 
+    def copy_scripts(self):
+        """The three scripts in a directory a hook can write to, as a Crux checkout is."""
+        scripts = self.tmp / "crux-checkout/scripts"
+        scripts.mkdir(parents=True)
+        for name in ("crux-pin-bot.py", "update-crux-pin.py", "open-pin-pr.py"):
+            shutil.copy2(SCRIPT.parent / name, scripts / name)
+        return scripts
+
+    def add_hook(self, body):
+        hook = self.work / "scripts/crux-pin-hook"
+        hook.parent.mkdir()
+        hook.write_text("#!/bin/sh\n" + body)
+        hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
+        git("add", ".", cwd=self.work)
+        git("commit", "-q", "-m", "feat: hook", cwd=self.work)
+        git("push", "-q", "origin", "HEAD:main", cwd=self.work)
+
+    def run_copy(self, scripts, *args):
+        return subprocess.run([sys.executable, str(scripts / "crux-pin-bot.py"), "--host", "github", *args],
+                              cwd=self.work, text=True, capture_output=True, env=self.env)
+
+    def test_the_updater_runs_without_the_token_or_user_variables(self):
+        # The updater, PyYAML and the hook it starts must not inherit the secrets at all.
+        scripts = self.copy_scripts()
+        seen = self.tmp / "updater-env.json"
+        (scripts / "update-crux-pin.py").write_text(
+            f"import json, os, sys\njson.dump(dict(os.environ), open({str(seen)!r}, 'w'))\nsys.exit(3)\n")
+        self.env.update(CRUX_PIN_TOKEN="s3cret", PIN_USER="bot@example.invalid")
+        result = self.run_copy(scripts, "--user-env", "PIN_USER")
+        self.assertEqual(0, result.returncode, result.stderr)
+        env = json.loads(seen.read_text())
+        self.assertNotIn("CRUX_PIN_TOKEN", env)
+        self.assertNotIn("PIN_USER", env)
+        self.assertNotIn("s3cret", json.dumps(env))
+
+    def test_open_pin_pr_runs_as_read_before_the_hook_and_alone_gets_the_token(self):
+        # A hook that runs west update moves the Crux checkout, scripts included, to the new revision.
+        scripts = self.copy_scripts()
+        marker = self.tmp / "replaced-script-ran"
+        self.add_hook(f"cat > '{scripts / 'open-pin-pr.py'}' <<'EOF'\n"
+                      f"open({str(marker)!r}, 'w').write('ran')\nEOF\n")
+        self.env.update(CRUX_PIN_TOKEN="s3cret", GH_TOKEN="")
+        result = self.run_copy(scripts)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertFalse(marker.exists())
+        state = json.loads(self.state.read_text())
+        self.assertEqual(1, len(state["prs"]))
+        self.assertEqual({"s3cret"}, set(state["tokens"]))
+
+    def test_a_hook_that_changes_the_git_config_stops_the_push(self):
+        elsewhere = self.tmp / "elsewhere.git"
+        git("init", "-q", "--bare", str(elsewhere))
+        self.add_hook(f"git config remote.origin.pushurl '{elsewhere}'\n")
+        result = self.run_bot()
+        self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+        self.assertIn("Git configuration", result.stderr)
+        self.assertFalse(self.state.exists())
+        for repo in (self.origin, elsewhere):
+            found = subprocess.run(["git", "rev-parse", "--verify", "-q", BRANCH], cwd=repo,
+                                   text=True, capture_output=True)
+            self.assertNotEqual(0, found.returncode, repo)
+
+    def test_push_url_reaches_open_pin_pr(self):
+        mirror = self.tmp / "mirror.git"
+        git("clone", "-q", "--bare", str(self.origin), str(mirror))
+        result = self.run_bot("--push-url", str(mirror))
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(f"revision: {self.new}", git("show", f"{BRANCH}:west.yml", cwd=mirror))
+
     def test_an_error_in_the_updater_fails_the_run(self):
         result = self.run_bot("--to", "no-such-ref")
         self.assertEqual(1, result.returncode)
