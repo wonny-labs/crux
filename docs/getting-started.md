@@ -111,7 +111,7 @@ Inside the container, from `/workspace/crux-pilot`. Pick the row that fits what 
 | What you want | Run | Needs | Disk and time |
 | --- | --- | --- | --- |
 | Host tests only | `scripts/bootstrap-host.sh` | Nothing else | Not yet measured |
-| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once, then the [Tutorial](tutorial.md) | Nothing else. It does not need the Host script, but the Tutorial starts with `scripts/bootstrap-host.sh` in Part A. Both the west checkouts and the SDK are large downloads | Not yet measured |
+| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once, then Part B of the [Tutorial](tutorial.md#part-b-zephyr) | Nothing else. It does not need the Host script, but the Tutorial starts with `scripts/bootstrap-host.sh` in Part A. Both the west checkouts and the SDK are large downloads | Not yet measured |
 | Controller scenarios on `native_sim` and the board cross-build | Both bootstrap scripts, then `scripts/test-controller.sh` | `scripts/test-controller.sh` itself needs only the Zephyr bootstrap and its SDK. The Host script adds the Host tests | Not yet measured |
 | Before a pull request | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) | One earlier `scripts/bootstrap-host.sh`, because `check-host.sh` runs offline and reuses the GoogleTest that the bootstrap fetched | Not yet measured |
 

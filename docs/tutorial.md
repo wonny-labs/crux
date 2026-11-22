@@ -55,7 +55,7 @@ command runs every Host test of the repository.
 
 ### 4. Change a Host build
 
-CMake options configure the build itself rather than the image's features. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options. From
+CMake options configure the build itself. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options. From
 `/workspace/crux-pilot`:
 
 ```sh
@@ -73,7 +73,7 @@ matter for products.
 
 ### 5. Bootstrap the Zephyr workspace
 
-Run the Zephyr samples row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It creates the west workspace and installs the Zephyr SDK. The west checkouts and the SDK are large downloads, and they take most of the hour.
+Run the Zephyr samples row of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`. It creates the west workspace and installs the Zephyr SDK. The west checkouts and the SDK are large downloads, and they are the longest part of this tutorial.
 
 The script turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
