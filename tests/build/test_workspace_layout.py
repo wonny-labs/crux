@@ -46,6 +46,21 @@ class WorkspaceLayoutTest(unittest.TestCase):
             self.assertEqual(data["workspaceFolder"], data["containerEnv"]["CRUX_REPO"], config)
             self.assertNotIn("/workspaces/", json.dumps(data), config)
 
+    def test_the_tutorial_replaced_the_first_hour_page(self):
+        self.assertTrue((ROOT / "docs/tutorial.md").is_file())
+        self.assertFalse((ROOT / "docs/first-hour.md").exists())
+        hits = [
+            path.relative_to(ROOT).as_posix()
+            for path in described_files()
+            if path.suffix == ".md" and "first-hour" in path.read_text(encoding="utf-8")
+        ]
+        self.assertEqual([], hits)
+
+    def test_the_examples_use_one_parent_folder_name(self):
+        text = (ROOT / "docs/getting-started.md").read_text(encoding="utf-8")
+        self.assertIn("~/crux-workspace", text)
+        self.assertNotIn("crux-ws", text)
+
 
 if __name__ == "__main__":
     unittest.main()

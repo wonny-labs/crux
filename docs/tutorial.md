@@ -1,16 +1,14 @@
-# Your first hour with Crux
+# Tutorial: your first build and sample
 
-This page takes a new team member from a fresh clone to running Crux samples and changing a build, with no board.
+This tutorial takes you from a working Dev Container to running Crux samples and changing a build, with no board.
 It uses only the standard Zephyr and CMake tools: `west build`, `west twister`, `cmake` and `ctest`. Each step says
 what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
-Plan for the downloads in step 2 to take most of the hour. After that, each build takes about a minute.
+The downloads in step 2 are the long part. No durations have been measured yet.
 
-## 1. Open the Dev Container
+## 1. Prerequisites and the Dev Container
 
-Follow [Getting started](getting-started.md) for the clone, the folder layout (the repository folder must be named
-`crux-pilot`, inside an otherwise empty parent folder), Windows with WSL2, proxies and disk space. Then open the
-repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
+Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
 
 Inside the container there are two folders you work from:
 
@@ -21,14 +19,9 @@ Inside the container there are two folders you work from:
 
 ## 2. Bootstrap the workspace
 
-From `/workspace/crux-pilot`:
+Run the Host tests and Zephyr samples rows of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`, both in that order. The first runs the Host build and tests. The second creates the west workspace and installs the Zephyr SDK.
 
-```sh
-scripts/bootstrap-host.sh                    # Linux Host build and tests, and the GoogleTest cache
-scripts/bootstrap-zephyr.sh --install-sdk    # west workspace at the pinned Zephyr, and the Zephyr SDK
-```
-
-The first command ends with the CTest summary, `100% tests passed`. The second turns `/workspace` into a west
+The Host script ends with the CTest summary, `100% tests passed`. The Zephyr script turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
 Zephyr module by itself.
 
