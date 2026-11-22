@@ -11,7 +11,7 @@ commands may report.
 
 ## Zephyr on `native_sim`
 
-From the west workspace root (`/workspaces/crux` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
+From the west workspace root (`/workspace` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time -t run

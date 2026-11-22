@@ -25,14 +25,14 @@ Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Do
 Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
 ~~~text
-/workspaces/crux/
+/workspace/
   crux-pilot/    # This Git repository
   .west/         # Created by west init
   zephyr/        # Pinned upstream checkout
   modules/       # Selected Zephyr dependencies
 ~~~
 
-Run the commands below from `/workspaces/crux/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspaces/crux` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
+Run the commands below from `/workspace/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspace` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
 

@@ -11,7 +11,7 @@ Each folder under `samples/` is one of five kinds. Only the first two run on the
 | **Web front end** | Browser code that a web image packages. It is built with npm and tested in a browser against `native_sim` |
 
 The [first-hour guide](../docs/first-hour.md) walks through running them. Commands below run from the west workspace
-root, `/workspaces/crux` in the Dev Container, where `crux-pilot` is this repository. The Crux module needs no extra
+root, `/workspace` in the Dev Container, where `crux-pilot` is this repository. The Crux module needs no extra
 argument there, because the workspace's west manifest is this repository. Do not add `-DEXTRA_ZEPHYR_MODULES` pointing
 at a second Crux checkout, such as a linked Git worktree, in that workspace: both copies are then built, and CMake
 stops on duplicate targets. For a workspace that does not list Crux, the

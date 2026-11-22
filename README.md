@@ -18,15 +18,17 @@ The [architecture overview](docs/architecture.md) describes the public capabilit
 
 You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk. [Getting started](docs/getting-started.md) covers native Linux and Windows with WSL2.
 
-1. Clone the repository as [Getting started](docs/getting-started.md#1-use-a-git-clone) describes. It also covers the required folder layout, WSL2 and proxies.
+1. Create a parent folder and clone the repository into it, as [Getting started](docs/getting-started.md#2-folder-layout) describes: `mkdir -p ~/work/crux-ws`, then clone as `~/work/crux-ws/crux-pilot`. You create the folder. The Dev Container only mounts it at `/workspace`, and `scripts/bootstrap-zephyr.sh` creates `.west/`, `zephyr/` and `modules/` inside it. [Getting started](docs/getting-started.md) also covers WSL2 and proxies.
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**.
-3. Inside the container, from the repository root, build and test:
+3. Inside the container, from the repository root, run what fits your purpose:
 
-```sh
-scripts/bootstrap-host.sh                    # Host build and tests (CTest)
-scripts/bootstrap-zephyr.sh --install-sdk    # pinned west workspace and Zephyr SDK
-scripts/test-controller.sh                   # native_sim scenarios and a board cross-build
-```
+| What you want | Run |
+| --- | --- |
+| Host tests only | `scripts/bootstrap-host.sh` |
+| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once (the longest step), then the first-hour guide below |
+| Before a pull request | `scripts/check-host.sh` after one `scripts/bootstrap-host.sh`, and the [test guide](tests/README.md#before-you-open-a-pull-request) |
+
+[Getting started](docs/getting-started.md#6-what-to-run-first) adds full validation with the board cross-build, and what each script needs.
 
 None of these commands programs or resets a board. Next, the [first-hour guide](docs/first-hour.md) runs Zephyr's Hello World and the Crux samples, and shows how to change a build.
 

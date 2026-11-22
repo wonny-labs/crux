@@ -30,20 +30,26 @@ Caveats of an archive:
 
 ## 2. Folder layout
 
-The Dev Container mounts the **parent** folder of the repository (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) as `/workspaces/crux`, and opens `/workspaces/crux/crux-pilot`. `scripts/bootstrap-zephyr.sh` turns that parent folder into the west workspace. It runs `west init -l` there, and `west update` writes `zephyr/` and `modules/` beside the repository. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default. The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`.
+Three things are involved, and each has one owner:
 
-So:
+| Who | Creates |
+| --- | --- |
+| You | The parent folder, with `mkdir -p`, and the clone inside it. The parent folder can have any name. Use a short one that does not repeat the repository name, such as `~/work/crux-ws` |
+| The Dev Container | Nothing on your disk. It mounts the parent folder (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) at `/workspace` and opens the repository inside it |
+| `scripts/bootstrap-zephyr.sh` | `.west/`, `zephyr/` and `modules/` in the parent folder. It runs `west init -l` there and then `west update`. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default |
+
+The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`. So:
 
 - Name the clone folder `crux-pilot`. A folder such as `crux-pilot-main` or `crux` does not work.
 - Make the parent folder an empty folder that is used only for Crux.
 - Do not clone directly into your home directory. Its parent would be your whole home directory, which would be mounted into the container and filled with west checkouts.
 
-Recommended layout:
+One layout, on the host and in the container:
 
 ~~~text
-~/work/crux-ws/            # mounted as /workspaces/crux, becomes the west workspace
-  crux-pilot/              # this Git repository
-  .west/  zephyr/  modules/    # created by the bootstrap (bootloader/ only with the crux-boot group)
+~/work/crux-ws/            # you create it; mounted as /workspace; becomes the west workspace
+  crux-pilot/              # you clone the repository here; /workspace/crux-pilot
+  .west/  zephyr/  modules/    # created by bootstrap-zephyr.sh (bootloader/ only with the crux-boot group)
 ~~~
 
 Open `~/work/crux-ws/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
@@ -91,17 +97,18 @@ These figures are estimates. No minimum has been measured.
 - **WSL2.** The Docker disk lives in a virtual disk file that grows and does not shrink by itself. Check the free space of the Windows drive that holds it.
 - **Where it goes.** The SDK, the Python virtual environment and the caches are in the Docker volume `crux-host-cache`, mounted at `/opt/crux-cache`. The west checkouts are in the parent folder of the repository. Builds go to `build/` in the repository, which Git ignores.
 
-## 6. First commands
+## 6. What to run first
 
-Inside the container, from `/workspaces/crux/crux-pilot`:
+Inside the container, from `/workspace/crux-pilot`. Pick the row that fits what you want. Each script states its own prerequisite in the last column.
 
-~~~sh
-scripts/bootstrap-host.sh                      # Host build and tests
-scripts/bootstrap-zephyr.sh --install-sdk      # west workspace and SDK
-scripts/test-controller.sh                     # native_sim scenarios and EVKB cross-build
-~~~
+| What you want | Run | Needs | Disk and time |
+| --- | --- | --- | --- |
+| Host tests only | `scripts/bootstrap-host.sh` | Nothing else | Not yet measured |
+| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once, then the [first-hour guide](first-hour.md) | Nothing else. It does not need the Host script. The SDK download is the longest step | Not yet measured |
+| Full validation, including the board cross-build | Both bootstrap scripts, then `scripts/test-controller.sh` | `scripts/test-controller.sh` itself needs only the Zephyr bootstrap and its SDK. The Host script adds the Host tests | Not yet measured |
+| Before a pull request | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) | One earlier `scripts/bootstrap-host.sh`, because it works without network access | Not yet measured |
 
-The [test guide](../tests/README.md#before-you-open-a-pull-request) lists the checks to run before a pull request.
+None of these commands programs or resets a board.
 
 ## 7. Boards and debug probes
 
