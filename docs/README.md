@@ -80,6 +80,7 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md): code ownership, public interfaces, Git and pull request conventions, review requirements.
 2. [Composition interface rules](composition-interfaces.md), the [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md) and [upstream reuse](upstream-reuse.md).
+   For documentation pages, the [documentation guidelines](documentation-guidelines.md) set one type per page, the level of detail and where history and status go.
 3. The capability contract of the component you change (see [Use a platform service](#use-a-platform-service)).
 4. [AGENTS.md](../AGENTS.md) if an AI agent works on the change.
 
