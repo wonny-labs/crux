@@ -11,7 +11,8 @@
 /* The volume under the suite comes from a fixture header: FIXTURE_ROOT (the mount point), the mount
  * object fixture_mount, and fixture_provision(), which makes a volume that the Settings backend can
  * initialise on and mounts it. Only the FatFs fixture defines FIXTURE_HAS_READ_BACK, because the
- * read-back probe exists only in the provider copy that prepare_provider.py makes. */
+ * read-back probe exists only in the provider copy that prepare_provider.py makes. A fixture whose
+ * file system allocates a file's blocks only at a sync defines FIXTURE_FILL_SYNCS_EACH_CHUNK. */
 #ifndef FIXTURE_HEADER
 #define FIXTURE_HEADER "fixture_fatfs.h"
 #endif
@@ -323,6 +324,13 @@ static void fill_volume(void)
     zassert_ok(fs_open(&file, FIXTURE_ROOT "/filler", FS_O_CREATE | FS_O_WRITE));
     do {
         written = fs_write(&file, chunk, sizeof(chunk));
+#ifdef FIXTURE_FILL_SYNCS_EACH_CHUNK
+        /* LittleFS allocates the blocks of a file only when the file is synced. A filler whose
+         * close fails for lack of space would leave its blocks free, and the volume not full. */
+        if (written == (ssize_t)sizeof(chunk) && fs_sync(&file) != 0) {
+            break;
+        }
+#endif
     } while (written == (ssize_t)sizeof(chunk));
     (void)fs_close(&file);
 }

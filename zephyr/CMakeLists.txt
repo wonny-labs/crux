@@ -150,7 +150,9 @@ if(CONFIG_CRUX_FS_RELIANCE_EDGE)
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
 endif()
 
-if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+# Either Settings File selection of Configuration: on Reliance Edge (CRUX_CONFIGURATION_SETTINGS_FILE)
+# or on another mounted file system, never FatFs (CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS).
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/configuration")
     # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with

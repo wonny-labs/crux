@@ -1,8 +1,34 @@
-# The Settings File selection: Configuration over the Zephyr Settings File backend, on Reliance
-# Edge. The module's CMake adds this directory only under CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE.
+# The Settings File selections: Configuration over the Zephyr Settings File backend, on Reliance Edge
+# (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE) or on another mounted file system that is not FatFs
+# (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS). Both select CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER,
+# and the module's CMake adds this directory only under it.
 get_filename_component(CRUX_CONFIGURATION_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-if(NOT CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+if(NOT CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
   message(FATAL_ERROR "This directory is the Settings File selection of Configuration")
+endif()
+
+# The selection that does not depend on Reliance Edge has the same eMMC rule as Reliance Edge: a
+# settings file on an MMC disk needs the cache flush correction, or a sync leaves the saved record in
+# the card's cache. CRUX_EMMC_FLUSH_CONTROL lets a native_sim power-cut control build without it. It is
+# the same cache variable as in zephyr/fs/reliance_edge/CMakeLists.txt and zephyr/CMakeLists.txt: keep
+# the definitions equal.
+set(CRUX_EMMC_FLUSH_CONTROL OFF CACHE BOOL
+  "Test fixtures only: allow an MMC disk without the cache flush correction on native_sim")
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS)
+  # FatFs rename removes the destination first, so a power cut in a compaction can leave the
+  # settings file missing. A Kconfig dependency would only drop the selection with a warning.
+  if(CONFIG_FAT_FILESYSTEM_ELM)
+    message(FATAL_ERROR "The Settings File selection refuses FatFs (CONFIG_FAT_FILESYSTEM_ELM): its "
+      "rename can leave the settings file missing after a power cut")
+  endif()
+  if(CRUX_EMMC_FLUSH_CONTROL AND NOT CONFIG_BOARD_NATIVE_SIM)
+    message(FATAL_ERROR "CRUX_EMMC_FLUSH_CONTROL is a native_sim test fixture setting and is "
+      "refused on any other board")
+  endif()
+  if(CONFIG_DISK_DRIVER_MMC AND NOT CONFIG_CRUX_MMC_CACHE_FLUSH AND NOT CRUX_EMMC_FLUSH_CONTROL)
+    message(FATAL_ERROR "The Settings File selection on an MMC disk requires "
+      "CONFIG_CRUX_MMC_CACHE_FLUSH=y, because without it a disk sync does not flush the eMMC cache")
+  endif()
 endif()
 
 add_library(crux_configuration_api INTERFACE)
