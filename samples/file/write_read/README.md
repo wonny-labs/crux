@@ -4,8 +4,7 @@
 
 Writes a short text to a file through the Crux File API and reads it back. The sample shows **provider selection
 by build configuration**: two builds of the same application source use two different File providers and file
-systems, and only the Kconfig fragment and the devicetree overlay differ. This sample was at
-`samples/file/file_write_read` before the sample naming rules of the samples layout plan.
+systems, and only the Kconfig fragment and the devicetree overlay differ.
 
 | Scenario | Selected by | File provider | Storage |
 | --- | --- | --- | --- |
