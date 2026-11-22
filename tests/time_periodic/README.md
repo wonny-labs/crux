@@ -45,14 +45,14 @@ host process must exit successfully, allowing sanitizer shutdown diagnostics to 
 ### Build and run without hardware
 
 In the documented Linux environment, `scripts/check-host.sh` builds and tests the scenario
-alongside the other tests. Run `build/linux/debug/tests/time_periodic/host/crux-time-periodic-host`
+alongside the other tests. Run `build/linux/debug/samples/controller/host/crux-time-periodic-host` (the build folder keeps its historical name until the CI workflow that uploads its log is switched)
 for its output. `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` exercises the same
 scenario with ASan/UBSan. `CRUX_BUILD_TIME_PERIODIC_SCENARIO` controls the host executable (the old name
 `CRUX_BUILD_REFERENCE_CONTROLLER` still works as an alias); its default follows
 `CRUX_BUILD_HOST_SAMPLE`, preserving the library-only setup. CTest runs it as `TimePeriodic.HostScenario`
 through [`scripts/check-time-periodic.py`](../../scripts/check-time-periodic.py).
 
-`scripts/test-time-periodic.sh` (alias `scripts/test-time-periodic.sh` until the CI workflows switch) builds/runs normal and missing-RTC `native_sim` compositions
+`scripts/test-time-periodic.sh` (alias `scripts/test-controller.sh` until the CI workflows switch) builds/runs normal and missing-RTC `native_sim` compositions
 and cross-builds `mimxrt1060_evk@B//qspi`. It performs no hardware operations. Scenario logs
 are under `build/zephyr/controller-{normal,missing-rtc}/scenario.log`; the EVKB build is
 under `build/zephyr/controller-evkb/`. Existing host/Zephyr workflows run these paths and

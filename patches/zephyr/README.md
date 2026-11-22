@@ -56,7 +56,7 @@ The first physical corrected candidate booted but did not reach Link readiness
 within the original 15-second window. No application exchange or post-round PHY
 observation ran. The failure does not identify a poisoned bus or the initial cause.
 A default-off `CONFIG_CRUX_M3_MDIO_FAILURE_TRACE` adds observation only to the
-PHY diagnostic composition. Append `m3-mdio-trace.conf` as well as the existing
+PHY diagnostic composition. Append `mdio_failure_trace.conf` as well as the existing
 network, PHY diagnostic and completion-correction configuration files.
 
 The native driver retains its first wait failure in CPU-accessed BSS, publishing
@@ -85,7 +85,7 @@ inferred from these observations. The unchanged physical qualification remains
 required after any eventual fix.
 
 
-The private `m3-deferred-output.conf` is a separate opt-in software evaluation for
+The private `deferred_output.conf` is a separate opt-in software evaluation for
 that diagnostic. Native `LOG_PRINTK` queues raw records before the direct printk
 spinlock path; one native UART backend performs output later. This avoids a custom
 logging service but adds a finite 4096-byte buffer and 2048-byte logger stack at

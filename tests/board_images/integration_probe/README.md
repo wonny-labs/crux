@@ -33,7 +33,7 @@ disables development test commands and does not start network traffic or arm the
 
 This separate diagnostic composition uses native GPIO for the onboard
 `sw0` input and observes actual critical-worker completion before allowing a
-watchdog feed. It adds no Crux public interface. The basic periodic scenario and its finite UTC-step behaviour remain available.
+watchdog feed. It adds no Crux public interface. The periodic scenario is a separate application, [`tests/time_periodic`](../../time_periodic/README.md).
 
 From the documented Linux workspace, run
 `scripts/test-controller-integration.sh` for the three
@@ -56,7 +56,7 @@ west build -p always -b 'mimxrt1060_evk@B//qspi' \
 The development probe exposes `m3 status`, `m3 arm` and `m3 stall`. Arm is an
 explicit physical watchdog operation and stall deliberately stops critical work;
 use them only under the independently reviewed physical/recovery plan. Ordinary
-boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
+boot does neither. Add `without_test_commands.conf` after `device_health_probe.conf` (semicolon-separated in
 `EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
 
 `M3_WORK` reports input read status and an unset/valid Time status. The standalone
@@ -67,7 +67,7 @@ for identified firmware, tests, previous failures and support limits.
 
 ## Network probe
 
-`m3-network.conf` and `m3-network.overlay` select a separate native IPv4 client.
+`network_probe.conf` and `samples/boards/nxp/mimxrt1060_evk/common/network.overlay` select a separate native IPv4 client.
 Do not combine them with the independent health configuration. The overlay removes
 LED ownership of GPIO1.9 so PHY reset retains that pin, and selects local test MAC
 02:43:52:55:58:03. It uses EVKB 192.168.77.2/24 and Mac 192.168.77.1/24, with no

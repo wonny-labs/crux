@@ -61,7 +61,7 @@ For the controller sample at `1447750` and Zephyr v4.4.2, built with the explici
 The M7 configurations of [`scripts/test-time-periodic.sh`](../scripts/test-time-periodic.sh) and [`scripts/test-controller-integration.sh`](../scripts/test-controller-integration.sh) are the guard. At revision `1447750dd3f0`, ten EVKB configurations and two `native_sim` configurations built with exit 0. The `zephyr.bin` SHA-256 and the `firmware_identity` of the EVKB images are in [the evidence record](evidence/boot-composition/wp1a-evidence.md#6-the-m7-baseline) and in [`m7-baseline-1447750.json`](evidence/boot-composition/m7-baseline-1447750.json). Rebuilding two of them at another build path gave identical hashes.
 
 - **EVKB images:** compare `zephyr.bin` and `firmware_identity` with the record.
-- **`native_sim` images:** there is no `zephyr.bin`, and `zephyr.exe` differs with the build path. Compare `configuration_sha256` and the result of `scripts/check-controller.py`.
+- **`native_sim` images:** there is no `zephyr.bin`, and `zephyr.exe` differs with the build path. Compare `configuration_sha256` and the result of `scripts/check-time-periodic.py`.
 
 ## Not verified
 
