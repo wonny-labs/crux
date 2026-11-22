@@ -134,7 +134,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertTrue(task["isBackground"])
         self.assertEqual(task["command"], "west")
         self.assertEqual(task["args"], ["debugserver", "-d", "build/zephyr/mimxrt1060_evk_B_qspi",
-                                        "-r", "jlink", "--speed", "400"])
+                                        "-r", "jlink", "--speed", "4000"])
         background = task["problemMatcher"]["background"]
         self.assertIn("Waiting for GDB connection", background["endsPattern"])
 

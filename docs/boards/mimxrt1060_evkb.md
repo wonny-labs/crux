@@ -51,6 +51,8 @@ Operator practice from bench sessions, not a repository record: check all four S
    west -v flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
    ~~~
 
+   The run used `--speed 400`. The route's default is now `--speed 4000`, which has not been run yet; if it fails to connect, use 400, then 100.
+
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
 To debug from VS Code in the board container, use **Board container: Attach** (no download) or **Board container: Flash** (builds, downloads and stops at the reset entry); both start `west debugserver` in the container first ([guide](../board-jlink-usbipd.md#the-board-dev-container)). These profiles have not been run on hardware.

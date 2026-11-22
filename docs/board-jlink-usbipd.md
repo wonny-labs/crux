@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, 4000 kHz, and a console inside the container.
+**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz (4000 kHz, the default below, has not been run yet), and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, a flash at 4000 kHz, and a console inside the container.
 
 ## What you need
 
@@ -65,7 +65,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    ~~~sh
    cd /workspace/crux-pilot
    scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
-   west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
+   west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000
    ~~~
 
    At the GDB prompt run `compare-sections`, then `detach` and `quit`. Every loadable section should report `matched`; a mismatch means the board holds another image, not that the route is broken.
@@ -74,7 +74,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    ~~~sh
    cd /workspace/crux-pilot
-   west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
+   west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000
    ~~~
 
    It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
@@ -96,7 +96,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bind mount follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
-| Step 6 or 7 cannot connect | Retry with `-speed 100` or `--speed 100`, then check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
+| Step 7 or 8 cannot connect | Retry with `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
 | J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1, with `--auto-attach`) and run step 2 again |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
@@ -116,11 +116,11 @@ Options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The runner's default is `auto`. Make the first connection at 100 to 400 kHz; 400 kHz is the recorded value on the EVKB and the documented default here, and 100 kHz on a first connection. 4000 kHz, J-Link's usual value, should work once connected but has no record on this board yet |
+| `--speed <kHz>` | SWD speed. The runner's default is `auto`; this guide uses 4000 kHz. If the connection fails, retry with 400 kHz, then 100 kHz. 400 kHz is the speed of the recorded flash from WSL2 and of the macOS records; 100 kHz was the first connection on a new set-up. No run at 4000 kHz is recorded yet |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging in the board container** (not run on hardware yet). Two profiles in [`.vscode/launch.json`](../.vscode/launch.json) use a GDB Server inside the container on `localhost:2331`, which the task **Board container: start GDB Server** starts with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400` and leaves running in the background:
+**VS Code debugging in the board container** (not run on hardware yet). Two profiles in [`.vscode/launch.json`](../.vscode/launch.json) use a GDB Server inside the container on `localhost:2331`, which the task **Board container: start GDB Server** starts with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000` and leaves running in the background:
 
 - **Board container: Attach** asks for the ELF of the image on the board and connects without reset or download. Connecting may still halt the target.
 - **Board container: Flash** builds the Time sample, resets the board and downloads the image, then stops at the reset entry; Continue (F5) starts it.

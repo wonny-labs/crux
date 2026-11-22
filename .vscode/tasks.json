@@ -74,7 +74,7 @@
         "-r",
         "jlink",
         "--speed",
-        "400"
+        "4000"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
