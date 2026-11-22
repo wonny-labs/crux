@@ -3,7 +3,7 @@
 #
 #   --host    samples/hello_crux/host as a standalone consumer CMake project (Linux with CMake 3.28+,
 #             Ninja and a C compiler; the Host composition does not build on macOS)
-#   --zephyr  samples/hello_crux and samples/file/file_write_read with Twister on native_sim/native/64,
+#   --zephyr  samples/hello_crux and samples/file/write_read with Twister on native_sim/native/64,
 #             whose console harness checks each sample's output lines (Linux, west workspace)
 #
 # With no option it runs both. Nothing here flashes or resets a board.
@@ -49,7 +49,7 @@ if ((run_zephyr)); then
         exit 2
     fi
     (cd "$workspace" && west twister -p native_sim/native/64 -t sample \
-        -T "$repo/samples/hello_crux" -T "$repo/samples/file/file_write_read" \
+        -T "$repo/samples/hello_crux" -T "$repo/samples/file/write_read" \
         -O "$repo/build/zephyr/twister-starters" --inline-logs)
-    printf 'PASS: hello_crux and file_write_read on native_sim/native/64.\n'
+    printf 'PASS: hello_crux and write_read on native_sim/native/64.\n'
 fi
