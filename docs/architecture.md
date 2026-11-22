@@ -153,6 +153,20 @@ Thread and Sync are separate component-owned capabilities, frozen for new produc
 
 Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposal-not-adopted), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposal-not-adopted) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
+### Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `components/` | Public interfaces, shared implementations and OS-specific ports |
+| `samples/` | Capability examples and reference controller applications ([which ones run](../samples/README.md)) |
+| `zephyr/` | Out-of-tree Zephyr module integration |
+| `templates/` | Copy-and-start skeletons for product, hardware and kit repositories |
+| `tests/` | Host, Zephyr, build-policy and target tests |
+| `web/` | Management API specification and browser examples ([web guide](../web/README.md)) |
+| `scripts/`, `tools/` | Setup, build, analysis and test commands; board test tooling outside the runtime build |
+| `.devcontainer/` | Development environment |
+| `docs/` | Guides, contracts and decision records |
+
 ### Layout and naming of samples (proposal, not adopted)
 
 **Status: proposal, not adopted, for the owner's decision**, except for the folder and the first two names of the [applications](#applications-proposal-not-adopted), which the owner decided on 9 November 2026. It is a structure decision, so no rule here is adopted yet, and no existing sample was moved

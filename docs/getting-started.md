@@ -108,3 +108,15 @@ The [test guide](../tests/README.md#before-you-open-a-pull-request) lists the ch
 The only host on which debugging and physical tests have been run is macOS. `scripts/macos/start-jlink-gdbserver.command` (it prefers `/usr/local/bin/JLinkGDBServer` and falls back to a SEGGER `JLinkGDBServerCLExe`) and `scripts/test-target.sh` both exit on any other system, and `.vscode/launch.json` connects to `host.docker.internal:2331`. No Linux or Windows route has been run. On native Linux, Docker does not resolve `host.docker.internal` unless the container is started with `--add-host=host.docker.internal:host-gateway`; this too has not been tried. On WSL2, USB forwarding to the distribution is needed only if the GDB server runs inside WSL2; running the server on Windows is the other option. Both are untried. Any operation on a board needs approval for the task. See [RT1060-EVKB debugging](build.md#rt1060-evkb-debugging).
 
 Most work does not need a board. Host tests, `native_sim` runs and EVKB cross-builds run without one, and none of them proves physical operation.
+
+## 8. Supported environments
+
+| Environment | Scope |
+| --- | --- |
+| Linux Host (amd64) | Development and tests, including sanitizer builds and source-tree consumers. Not an Embedded Linux product variant |
+| Zephyr `native_sim` | Zephyr component and integration tests without hardware |
+| MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | First physical target. Results are limited to the documented firmware and configurations |
+| RT1170-EVK Rev A1, Cortex-M7 | Software only: cross-build, probe identification and review. Not verified on hardware |
+| Embedded Linux | Not implemented. It will be designed at the service boundary when a first product needs it |
+
+A Host test, a `native_sim` run, a target cross-build and a physical-board run each prove different things, and none implies another. [Component readiness](component-readiness.md) records which of them exist for each component.

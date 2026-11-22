@@ -83,6 +83,19 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 3. The capability contract of the component you change (see [Use a platform service](#use-a-platform-service)).
 4. [AGENTS.md](../AGENTS.md) if an AI agent works on the change.
 
+### Keep the README an entry point
+
+The [repository README](../README.md) lets a newcomer decide in a few minutes what Crux is, whether it fits, and how to start. It holds a short description and audience, capabilities in plain words, a quick start that works as written, links to read next, one or two lines of status, contributing and the licence. Put everything else on the page that owns it:
+
+| Do not put in the README | Put it in |
+| --- | --- |
+| Change history, removals and migration notes | The component's contract page, or the history pages |
+| Per-component lifecycle (frozen, to be removed, Experimental) and stability tiers | [Component readiness](component-readiness.md) |
+| Component and provider lists | The [capability inventory](architecture.md#current-capability-integration) and the contract pages |
+| Environment caveats and evidence limits | [Getting started](getting-started.md#8-supported-environments) and [Component readiness](component-readiness.md) |
+
+`tests/build/test_readme_scope.py` fails when the README contains the usual markers of the first two rows: change history, migration notes and lifecycle words. The other rows are checked in review.
+
 ## Decisions
 
 Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md), with the [research notes](research/platform-direction-review.md) behind them. ADR-0001 to ADR-0006 are accepted. The titles of ADR-0004 to ADR-0006 still carry the word "proposal", a leftover of their drafting.
