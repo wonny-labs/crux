@@ -54,7 +54,7 @@ Scenarios that only a test compiles live with that test, not under `samples/`:
 ## Run every runnable sample
 
 ```sh
-# Zephyr: the four runnable Zephyr applications (five test configurations) on native_sim
+# Zephyr: every runnable Zephyr application on native_sim
 west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
 # Linux Host: all three Host programs (run from crux-pilot after scripts/bootstrap-host.sh)
 ctest --preset host-debug -L sample

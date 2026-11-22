@@ -136,8 +136,8 @@ Twister builds each runnable Zephyr sample, runs it, and checks its output again
 west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
 ```
 
-It runs five test configurations, one for each of the Time, controller and Hello Crux samples and two for the File
-sample, and ends with `5 of 5 executed test configurations passed`. Its output and logs are under `twister-out/`. The tag
+Twister runs every runnable Zephyr sample that [Samples](../samples/README.md#classification) lists, and its summary
+line reports how many test configurations passed. Its output and logs are under `twister-out/`. The tag
 `-t sample` leaves out the link-only board images under `samples/`; the [samples page](../samples/README.md#run-every-runnable-sample)
 says why.
 
