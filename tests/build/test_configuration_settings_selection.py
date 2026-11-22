@@ -77,7 +77,12 @@ class Selections(unittest.TestCase):
 
     def test_the_provider_refuses_fatfs_at_compile_time_as_well(self):
         text = (ROOT / BUILD_FILES[-1]).read_text()
-        self.assertRegex(text, r"#if defined\(CONFIG_FAT_FILESYSTEM_ELM\)\n#error ")
+        self.assertRegex(text, rf"#if defined\(CONFIG_{ANY_FS}\) && "
+                               r"defined\(CONFIG_FAT_FILESYSTEM_ELM\)\n#error ")
+
+    def test_the_reliance_edge_selection_is_not_refused_with_fatfs(self):
+        text = (ROOT / BUILD_FILES[-1]).read_text()
+        self.assertNotRegex(text, r"#if defined\(CONFIG_FAT_FILESYSTEM_ELM\)\n#error ")
 
 
 if __name__ == "__main__":

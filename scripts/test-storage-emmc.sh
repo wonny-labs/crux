@@ -581,9 +581,11 @@ print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held o
       f'{leftovers} cases with a temporary left behind, all three controls failed as required')
 PY
 
-# The Settings File selection exists on Reliance Edge only. Without the file system, Kconfig drops
-# the selection and warns, naming the dependency, and the build is refused because the assignment of
-# the suite is not honoured. A selection that did not depend on Reliance Edge would configure.
+# CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE exists on Reliance Edge only. Without the file system, Kconfig
+# drops the selection and warns, naming the dependency, and the build is refused because the assignment
+# of the suite is not honoured. A selection that did not depend on Reliance Edge would configure. The
+# selection for other file systems is CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS, which
+# scripts/test-storage-simulators.sh runs on LittleFS.
 selection_dir="$repo/build/zephyr/settings-selection"
 selection_log="$selection_dir.log"
 if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$selection_dir" \

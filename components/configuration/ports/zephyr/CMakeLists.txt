@@ -9,7 +9,8 @@ endif()
 
 # The selection that does not depend on Reliance Edge has the same eMMC rule as Reliance Edge: a
 # settings file on an MMC disk needs the cache flush correction, or a sync leaves the saved record in
-# the card's cache. CRUX_EMMC_FLUSH_CONTROL lets a native_sim power-cut control build without it.
+# the card's cache. CRUX_EMMC_FLUSH_CONTROL lets a native_sim power-cut control build without it. It is
+# the same cache variable as in zephyr/fs/reliance_edge/CMakeLists.txt: keep the two definitions equal.
 set(CRUX_EMMC_FLUSH_CONTROL OFF CACHE BOOL
   "Test fixtures only: allow an MMC disk without the cache flush correction on native_sim")
 if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS)

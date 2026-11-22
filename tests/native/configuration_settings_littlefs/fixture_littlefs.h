@@ -19,8 +19,7 @@
 
 FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(fixture_littlefs);
 
-/* Not static: extra_cases.c unmounts and remounts the volume. */
-struct fs_mount_t fixture_mount = {
+static struct fs_mount_t fixture_mount = {
     .type = FS_LITTLEFS,
     .mnt_point = FIXTURE_ROOT,
     .fs_data = &fixture_littlefs,

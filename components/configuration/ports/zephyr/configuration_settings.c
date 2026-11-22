@@ -12,11 +12,12 @@
 #if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
 /* The target selections: Settings File on Reliance Edge or on another mounted file system, with the
  * corrected backend that the module stages. They are target selections and have no simulator
- * restriction. Kconfig already refuses FatFs; this repeats it for a build that bypasses Kconfig. */
+ * restriction. The module's CMake refuses FatFs for CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS;
+ * this repeats it at compile time. The Reliance Edge selection is not affected. */
 #if !defined(CONFIG_SETTINGS_FILE)
 #error "The Settings File selection requires CONFIG_SETTINGS_FILE"
 #endif
-#if defined(CONFIG_FAT_FILESYSTEM_ELM)
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS) && defined(CONFIG_FAT_FILESYSTEM_ELM)
 #error "The Settings File selection refuses FatFs: its rename can leave the settings file missing"
 #endif
 #else
