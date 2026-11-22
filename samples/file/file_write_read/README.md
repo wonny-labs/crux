@@ -11,7 +11,7 @@ systems, and only the Kconfig fragment and the devicetree overlay differ.
 | `crux.sample.file.file_write_read.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
 | `crux.sample.file.file_write_read.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
 
-**Both providers are Experimental.** `zephyr/Kconfig` calls them simulator candidates. They exist for software-only
+**Both providers are simulator candidates** (their status is in [component readiness](../../../docs/component-readiness.md)). `zephyr/Kconfig` calls them that too. They exist for software-only
 validation on `native_sim`, and this sample is their first consumer outside the tests. Neither is a product storage
 choice, and nothing here says anything about power loss or a real medium.
 
@@ -36,7 +36,7 @@ Container after `scripts/bootstrap-zephyr.sh`. No board is needed; both scenario
 
 ## Building and running
 
-From the west workspace root (`/workspaces/crux` in the Dev Container), where `crux-pilot` is this repository.
+From the west workspace root (`/workspace` in the Dev Container), where `crux-pilot` is this repository.
 
 Default scenario (simulator provider on LittleFS):
 
