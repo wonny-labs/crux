@@ -3,6 +3,7 @@
 # it is created (postCreateCommand); run it again by hand at any time, from /workspace/crux-pilot:
 #
 #   scripts/bootstrap.sh [--keep-going] [all|host|zephyr|status]
+#   scripts/bootstrap.sh board-host      # on the Linux host of a board user, outside the container
 #
 #   all     every step below (the default; CRUX_BOOTSTRAP=host|zephyr|all sets another default)
 #   host    tools, then scripts/bootstrap-host.sh: configure, build and test the Linux Host preset
@@ -11,6 +12,9 @@
 #           folder, Zephyr's Python requirements and the Zephyr SDK with arm-zephyr-eabi
 #   status  print the result of each step's last run and whether the J-Link software is installed;
 #           installs nothing (the Dev Container prints it when VS Code attaches)
+#   board-host  only for a board: prepare the Linux system that the J-Link probe is attached to
+#           (WSL2 or native Linux) so that the Dev Container can open it; see board_host below.
+#           Never run automatically, and refused inside the container
 #
 # The tools step adds the west workspace folders to Git's safe.directory list and installs the
 # pinned CMake, Ninja, clang-format, west and pytest into a Python virtual environment in the
@@ -39,23 +43,157 @@ safe_directories="$repo $workspace/zephyr $workspace/modules/hal/cmsis $workspac
 force=${CRUX_BOOTSTRAP_FORCE:-}
 
 usage() {
-    printf 'Usage: %s [--keep-going] [all|host|zephyr|status]\n' "$0" >&2
+    printf 'Usage: %s [--keep-going] [all|host|zephyr|status|board-host]\n' "$0" >&2
     printf '       (default: $CRUX_BOOTSTRAP, else all)\n' >&2
     exit 2
 }
+
+# board_host: the Linux side of the J-Link board route, run on that Linux system and never in the
+# Dev Container: a WSL2 distribution with the probe attached through usbipd-win, or a native
+# Linux machine. It installs usbutils if lsusb is missing, checks that USB devices and a SEGGER
+# J-Link (USB vendor ID 1366) are visible, installs the udev rule
+# .devcontainer/jlink/99-crux-jlink.rules once, and reports whether the Dev Container can open
+# the probe's current device node. A probe that re-enumerates gets a new node, so run it again
+# after a reattach. It never talks to the probe or the board. It is safe to run again.
+# Environment, for tests only: CRUX_USB_DIR (default /dev/bus/usb), CRUX_UDEV_RULES_DIR (default
+# /etc/udev/rules.d), CRUX_PLUGDEV_GID (group ID of plugdev in the container, default 46).
+# board_host begin
+board_host() {
+    if [ -n "${CRUX_REPO:-}" ] || [ -f /.dockerenv ]; then
+        printf 'error: run "scripts/bootstrap.sh board-host" on the Linux host that has the probe (the WSL2\n' >&2
+        printf 'error: distribution or native Linux), not in the Dev Container.\n' >&2
+        exit 2
+    fi
+    usb_dir=${CRUX_USB_DIR:-/dev/bus/usb}
+    rules_dir=${CRUX_UDEV_RULES_DIR:-/etc/udev/rules.d}
+    plugdev_gid=${CRUX_PLUGDEV_GID:-46}
+    rule_src=$repo/.devcontainer/jlink/99-crux-jlink.rules
+    rule_dst=$rules_dir/99-crux-jlink.rules
+
+    sudo=sudo
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo=
+    fi
+
+    step() { printf '\n== %s\n' "$*"; }
+    fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
+    attach_hint() {
+        cat >&2 <<'EOF'
+On WSL2, attach the probe from PowerShell on Windows, then run this script again:
+
+    usbipd attach --wsl --busid <BUSID> --auto-attach
+
+Keep that PowerShell window open: --auto-attach attaches the probe again when it
+re-enumerates, for example after a probe firmware update.
+`usbipd list` shows the BUSID of the J-Link (vendor ID 1366). It must be bound
+once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
+On native Linux, plug the probe in.
+EOF
+    }
+
+    step "1/5 usbutils"
+    if command -v lsusb >/dev/null 2>&1; then
+        echo "lsusb is installed"
+    else
+        $sudo apt-get update
+        $sudo apt-get install -y usbutils
+        command -v lsusb >/dev/null 2>&1 || fail "lsusb is still missing after installing usbutils"
+    fi
+
+    step "2/5 USB devices"
+    if [ ! -d "$usb_dir" ]; then
+        printf 'error: %s does not exist. On WSL2 it appears only after a USB device is attached.\n' "$usb_dir" >&2
+        attach_hint
+        exit 1
+    fi
+    echo "$usb_dir exists"
+
+    step "3/5 J-Link probe"
+    probes=$(lsusb -d 1366: 2>/dev/null || true)
+    if [ -z "$probes" ]; then
+        printf 'error: lsusb lists no SEGGER J-Link (USB vendor ID 1366).\n' >&2
+        attach_hint
+        exit 1
+    fi
+    printf '%s\n' "$probes"
+
+    step "4/5 udev rule"
+    if cmp -s "$rule_src" "$rule_dst"; then
+        echo "$rule_dst is already installed"
+    else
+        $sudo cp "$rule_src" "$rule_dst"
+        $sudo chmod 0644 "$rule_dst"
+        echo "installed $rule_dst"
+    fi
+    if $sudo udevadm control --reload-rules \
+        && $sudo udevadm trigger --subsystem-match=usb --attr-match=idVendor=1366 \
+        && $sudo udevadm settle; then
+        echo "udev rules reloaded"
+    else
+        printf 'warning: udevadm failed. On WSL2, udev runs only when the distribution runs systemd\n' >&2
+        printf 'warning: ([boot] systemd=true in /etc/wsl.conf). The check below decides.\n' >&2
+    fi
+
+    step "5/5 device permissions"
+    blocked=0
+    while read -r _ bus _ device _; do
+        device=${device%:}
+        node=$usb_dir/$bus/$device
+        if [ ! -e "$node" ]; then
+            printf 'error: %s is listed by lsusb but does not exist\n' "$node" >&2
+            blocked=1
+            continue
+        fi
+        ls -l "$node"
+        # shellcheck disable=SC2046  # split the ls -ln fields on purpose
+        set -- $(ls -ln "$node")
+        mode=$1
+        gid=$4
+        if [ "${mode:7:2}" = "rw" ]; then
+            echo "  Every user can open it (0666). The usual result on WSL2 with usbipd, even with"
+            echo "  owner root: the Dev Container can open the probe."
+        elif [ "$gid" = "$plugdev_gid" ] && [ "${mode:4:2}" = "rw" ]; then
+            echo "  Group plugdev (ID $plugdev_gid) can open it (0660). The expected result on native"
+            echo "  Linux: the container user is in plugdev and can open the probe."
+        else
+            printf 'error: the Dev Container cannot open %s (mode %s, group ID %s).\n' \
+                "$node" "$mode" "$gid" >&2
+            blocked=1
+        fi
+    done <<<"$probes"
+
+    if [ "$blocked" -ne 0 ]; then
+        cat >&2 <<EOF
+The container user can open the probe only if the node is 0666, or 0660 with
+group ID $plugdev_gid (plugdev in the container). Check that $rule_dst is
+installed and that udev runs, then detach and attach the probe again
+(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>
+--auto-attach) or replug it. A probe that re-enumerated has a new node, which
+on WSL2 may not get the rule (crw-rw-r-- root). \`getent group plugdev\` must show ID $plugdev_gid; if it does not,
+use MODE="0666" in your local copy of the rule.
+EOF
+        exit 1
+    fi
+    printf '\nThe Linux side is ready. Open the Dev Container next.\n'
+}
+# board_host end
 
 keep_going=0
 mode=
 for argument in "$@"; do
     case "$argument" in
         --keep-going) keep_going=1 ;;
-        all | host | zephyr | status)
+        all | host | zephyr | status | board-host)
             [ -z "$mode" ] || usage
             mode=$argument
             ;;
         *) usage ;;
     esac
 done
+if [ "$mode" = board-host ]; then
+    board_host
+    exit 0
+fi
 mode=${mode:-${CRUX_BOOTSTRAP:-all}}
 case "$mode" in
     all | host | zephyr | status) ;;
