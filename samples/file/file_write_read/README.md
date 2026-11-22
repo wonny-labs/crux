@@ -19,7 +19,9 @@ The source is split the way a product splits it:
 
 - **Application**: [`src/write_read.c`](src/write_read.c) uses only `<crux/file.h>` and links only `crux::file`. It
   does not know which provider or file system the build selected. `crux_assert_portable_consumer()` in
-  [`CMakeLists.txt`](CMakeLists.txt) fails the configure step if it reaches anything else.
+  [`CMakeLists.txt`](CMakeLists.txt) fails the configure step if the target's build requirements (include
+  directories, compile options, linked targets) name a native or vendor path, a private Crux directory or a provider
+  or composition target. It does not read the `#include` lines; those stay a review matter.
 - **Platform composition**: [`src/storage_littlefs.c`](src/storage_littlefs.c) or
   [`src/storage_fatfs_ram_disk.c`](src/storage_fatfs_ram_disk.c) mounts the file system with Zephyr's API, formats
   the blank simulated medium, creates a `files` directory and binds it as the File root with

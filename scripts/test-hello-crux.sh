@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds and runs the starter samples and checks their output.
 #
-#   --host    samples/hello_crux/host as a standalone consumer CMake project (any system with CMake,
-#             Ninja and a C compiler; the Linux Host composition is the supported one)
+#   --host    samples/hello_crux/host as a standalone consumer CMake project (Linux with CMake 3.28+,
+#             Ninja and a C compiler; the Host composition does not build on macOS)
 #   --zephyr  samples/hello_crux and samples/file/file_write_read with Twister on native_sim/native/64,
 #             whose console harness checks each sample's output lines (Linux, west workspace)
 #

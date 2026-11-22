@@ -12,13 +12,15 @@ The smallest application that uses Crux. It shows how a product application reac
   [`CMakeLists.txt`](CMakeLists.txt)) and includes its **public header** (`<crux/time.h>`). It never names a Crux
   source file, a port or a private include directory. That line is the consumer boundary.
 
-The program makes one public call: it prepares Crux Time and reads the realtime clock. Right after start the clock
+The program makes one public read after initialisation: it prepares Crux Time and reads the realtime clock. Right after start the clock
 is ready but unset, because Crux never invents a time of day, so the sample prints `unset`.
 
 The same portable source, [`src/hello_crux.c`](src/hello_crux.c), also builds on the Linux Host composition. The
 [`host/`](host/CMakeLists.txt) program is a separate CMake project that consumes Crux from its source tree, as an
-external Linux application does. There, `crux_assert_portable_consumer()` fails the configure step if the portable
-code reaches a native header, a private Crux directory or a provider target.
+external Linux application does. There, `crux_assert_portable_consumer()` fails the configure step if the build
+requirements of the portable target (include directories, compile options, linked targets) name a native or vendor
+path, a private Crux directory or a provider or composition target. It checks the build graph only, not the
+source's `#include` lines; those stay a review matter.
 
 | Part | Folder | Runs on |
 | --- | --- | --- |

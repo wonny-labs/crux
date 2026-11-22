@@ -17,7 +17,9 @@ else()
 endif()
 
 # The application part links the public File target only. The check fails the configure step
-# if it reaches a native header, a private Crux directory or a provider target.
+# if the target's build requirements (include directories, compile options, linked targets)
+# name a native path, a private Crux directory or a provider target. It does not read
+# #include lines.
 add_library(file_write_read_logic OBJECT src/write_read.c)
 target_link_libraries(file_write_read_logic PRIVATE crux::file)
 set_target_properties(file_write_read_logic PROPERTIES

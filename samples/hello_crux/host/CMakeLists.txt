@@ -19,9 +19,10 @@ set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 
 # The portable part, the same file the Zephyr application compiles. The check fails the
-# configure step if it reaches a native header, a private Crux directory or a provider target.
+# configure step if the target's build requirements (include directories, compile options,
+# linked targets) name a native path, a private Crux directory or a provider target. It does
+# not read #include lines.
 add_library(hello_crux_logic STATIC ../src/hello_crux.c)
-target_include_directories(hello_crux_logic PUBLIC ../src)
 set_target_properties(hello_crux_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 target_link_libraries(hello_crux_logic PRIVATE crux::time)
@@ -30,5 +31,6 @@ crux_assert_portable_consumer(hello_crux_logic)
 
 # The program: the final executable declares the Crux capability it uses.
 add_executable(hello-crux-host main.c)
+target_include_directories(hello-crux-host PRIVATE ../src)
 target_link_libraries(hello-crux-host PRIVATE hello_crux_logic crux::time)
 target_compile_options(hello-crux-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
