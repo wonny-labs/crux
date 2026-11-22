@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+
+project(file_write_read C)
+
+# The Kconfig selection of the File provider decides which composition file is compiled.
+# The application source is the same for both.
+if(CONFIG_CRUX_FILE_SIMULATOR)
+    set(storage_source src/storage_littlefs.c)
+elseif(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+    set(storage_source src/storage_fatfs_ram_disk.c)
+else()
+    message(FATAL_ERROR "file_write_read needs CONFIG_CRUX_FILE_SIMULATOR=y (prj.conf) or "
+        "CONFIG_CRUX_FILE_FATFS_SIMULATOR=y (fatfs_ram_disk.conf)")
+endif()
+
+# The application part links the public File target only. The check fails the configure step
+# if the target's build requirements (include directories, compile options, linked targets)
+# name a native path, a private Crux directory or a provider target. It does not read
+# #include lines.
+add_library(file_write_read_logic OBJECT src/write_read.c)
+target_link_libraries(file_write_read_logic PRIVATE crux::file)
+set_target_properties(file_write_read_logic PROPERTIES
+    C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+target_compile_options(file_write_read_logic PRIVATE -Wall -Wextra -Werror)
+crux_assert_portable_consumer(file_write_read_logic)
+
+# The composition part may use Zephyr and binds the File root through crux::file_zephyr, the
+# composition target of the Zephyr File provider.
+target_sources(app PRIVATE src/main.c ${storage_source}
+    $<TARGET_OBJECTS:file_write_read_logic>)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

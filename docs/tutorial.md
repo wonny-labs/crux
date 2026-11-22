@@ -1,40 +1,33 @@
-# Your first hour with Crux
+# Tutorial: your first build and sample
 
-This page takes a new team member from a fresh clone to running Crux samples and changing a build, with no board.
+This tutorial takes you from a working Dev Container to running Crux samples and changing a build, with no board.
 It uses only the standard Zephyr and CMake tools: `west build`, `west twister`, `cmake` and `ctest`. Each step says
 what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
-Plan for the downloads in step 2 to take most of the hour. After that, each build takes about a minute.
+The downloads in step 2 are the long part. No durations have been measured yet.
 
-## 1. Open the Dev Container
+## 1. Prerequisites and the Dev Container
 
-Follow [Getting started](getting-started.md) for the clone, the folder layout (the repository folder must be named
-`crux-pilot`, inside an otherwise empty parent folder), Windows with WSL2, proxies and disk space. Then open the
-repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
+Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
 
 Inside the container there are two folders you work from:
 
 | Folder | What it is | Run from here |
 | --- | --- | --- |
-| `/workspaces/crux` | The west workspace: `zephyr/`, `modules/` and this repository side by side | `west build`, `west twister` |
-| `/workspaces/crux/crux-pilot` | This repository | `scripts/...`, `cmake --preset`, `ctest --preset` |
+| `/workspace` | The west workspace: `zephyr/`, `modules/` and this repository side by side | `west build`, `west twister` |
+| `/workspace/crux-pilot` | This repository | `scripts/...`, `cmake --preset`, `ctest --preset` |
 
 ## 2. Bootstrap the workspace
 
-From `/workspaces/crux/crux-pilot`:
+Run the Host tests and Zephyr samples rows of [Setup commands](getting-started.md#6-setup-commands) from `/workspace/crux-pilot`, both in that order. The first runs the Host build and tests. The second creates the west workspace and installs the Zephyr SDK.
 
-```sh
-scripts/bootstrap-host.sh                    # Linux Host build and tests, and the GoogleTest cache
-scripts/bootstrap-zephyr.sh --install-sdk    # west workspace at the pinned Zephyr, and the Zephyr SDK
-```
-
-The first command ends with the CTest summary, `100% tests passed`. The second turns `/workspaces/crux` into a west
+The Host script ends with the CTest summary, `100% tests passed`. The Zephyr script turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
 Zephyr module by itself.
 
 ## 3. Run Zephyr's own Hello World
 
-From `/workspaces/crux`:
+From `/workspace`:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run
@@ -80,7 +73,7 @@ others.
 
 ## 5. Run Crux samples on the Linux Host
 
-Step 2 also built three Linux Host programs. From `/workspaces/crux/crux-pilot`:
+Step 2 also built three Linux Host programs. From `/workspace/crux-pilot`:
 
 ```sh
 build/linux/debug/samples/time/time_shell/host/crux-time-host
@@ -95,7 +88,7 @@ and 42421 (CTest starts one for it, see the next step).
 ## 6. Run every sample with Twister and CTest
 
 Twister builds each runnable Zephyr sample, runs it, and checks its output against the regular expression in its
-`sample.yaml`. From `/workspaces/crux`:
+`sample.yaml`. From `/workspace`:
 
 ```sh
 west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
@@ -105,7 +98,7 @@ It ends with `2 of 2 executed test configurations passed`. Its output and logs a
 `-t sample` leaves out the link-only board images under `samples/`; the [samples page](../samples/README.md#run-every-runnable-sample)
 says why.
 
-CTest runs each Linux Host sample once and checks its output. From `/workspaces/crux/crux-pilot`:
+CTest runs each Linux Host sample once and checks its output. From `/workspace/crux-pilot`:
 
 ```sh
 ctest --preset host-debug -L sample
@@ -175,7 +168,7 @@ For example, `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` makes a build stop, instead of 
 is not the release Crux was verified on.
 
 The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options. From
-`/workspaces/crux/crux-pilot`:
+`/workspace/crux-pilot`:
 
 ```sh
 cmake -LH build/linux/debug | grep -B1 '^CRUX_'                       # list the options and their help

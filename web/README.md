@@ -74,7 +74,8 @@ is described in [packaged web assets](../docs/web-assets.md). The folder must me
 
 `e2e/fixtures/project-entry.tsx` is a working example of the reuse rows, and a browser test runs it. **Limit:** a project
 cannot add a route to the Preact example's navigation without an entry file of its own, which is the intended seam, and the
-example's code is not published as a package, so a project copies or vendors the folder. [`samples/web_project`](../samples/web_project/README.md) is a small example project of its own page and route.
+example's code is not published as a package, so a project copies or vendors the folder. [`tests/web/project_sample/project`](../tests/web/project_sample/project/README.md) is a small example project of its own page
+and route, kept beside the Host test that builds it.
 
 ## Set up
 

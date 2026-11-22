@@ -2,7 +2,11 @@
 
 > **Status:** written from the scripts and `devcontainer.json`. It has not yet been run on WSL2 or on native Linux.
 
-This page takes you from nothing to a first build and test run on native Linux or on Windows with WSL2. It states what the scripts and the Dev Container require, so that the first build does not fail for a reason that is not obvious. For the builds themselves, see the [Build and Integration Guide](build.md).
+This page sets up the environment and takes you to a first working build, on native Linux or on Windows with WSL2. It states what the scripts and the Dev Container require, so that the first build does not fail for a reason that is not obvious. The [Tutorial](tutorial.md) continues from here, and the [Build and Integration Guide](build.md) covers the builds in depth.
+
+## Prerequisites
+
+Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk (see [Disk and memory](#5-disk-and-memory)). On Windows, use WSL2 ([section 3](#3-windows-with-wsl2)). Network access to the hosts in [section 4](#4-network-and-proxy-prerequisites).
 
 ## 1. Use a Git clone
 
@@ -11,8 +15,8 @@ The scripts find the repository with `git rev-parse --show-toplevel`. Nearly eve
 A real clone, made inside Linux or WSL2, is the recommended form. It keeps the executable bits and the LF line endings:
 
 ~~~sh
-mkdir -p ~/work/crux-ws
-git clone <repository-url> ~/work/crux-ws/crux-pilot
+mkdir -p ~/crux-workspace
+git clone <repository-url> ~/crux-workspace/crux-pilot
 ~~~
 
 An archive is a fallback with these caveats. If you received one, make it a Git repository from its root:
@@ -30,30 +34,39 @@ Caveats of an archive:
 
 ## 2. Folder layout
 
-The Dev Container mounts the **parent** folder of the repository (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) as `/workspaces/crux`, and opens `/workspaces/crux/crux-pilot`. `scripts/bootstrap-zephyr.sh` turns that parent folder into the west workspace. It runs `west init -l` there, and `west update` writes `zephyr/` and `modules/` beside the repository. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default. The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`.
+Three things are involved, and each has one owner:
 
-So:
+| Who | Creates |
+| --- | --- |
+| You | The parent folder, with `mkdir -p`, and the clone inside it. The parent folder can have any name, for example `~/crux-workspace`. Use a folder that holds only Crux |
+| The Dev Container | Nothing in the parent folder. It mounts the parent folder (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) at `/workspace` and opens the repository inside it |
+| `scripts/bootstrap-zephyr.sh` | `.west/`, `zephyr/` and `modules/` in the parent folder. It runs `west init -l` there and then `west update`. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default |
+
+The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`. So:
 
 - Name the clone folder `crux-pilot`. A folder such as `crux-pilot-main` or `crux` does not work.
 - Make the parent folder an empty folder that is used only for Crux.
 - Do not clone directly into your home directory. Its parent would be your whole home directory, which would be mounted into the container and filled with west checkouts.
 
-Recommended layout:
+One layout, on the host and in the container:
 
 ~~~text
-~/work/crux-ws/            # mounted as /workspaces/crux, becomes the west workspace
-  crux-pilot/              # this Git repository
-  .west/  zephyr/  modules/    # created by the bootstrap (bootloader/ only with the crux-boot group)
+~/crux-workspace/          # on the host: you create it; becomes the west workspace
+  crux-pilot/              # you clone the repository here
+  .west/  zephyr/  modules/    # created by bootstrap-zephyr.sh (bootloader/ only with the crux-boot group)
+
+/workspace/                # the same folder inside the Dev Container
+  crux-pilot/  zephyr/  modules/    # never /workspace/crux-pilot/crux-pilot
 ~~~
 
-Open `~/work/crux-ws/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
+Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
 
 ## 3. Windows with WSL2
 
 - Use Docker Desktop with the WSL2 backend, or Docker Engine inside the WSL2 distribution.
-- Clone inside the WSL2 file system, for example under `~/work/crux-ws`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
+- Clone inside the WSL2 file system, for example under `~/crux-workspace`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
 - Set `git config --global core.autocrlf false` in WSL2 before cloning. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
-- Start VS Code from WSL2 (`code ~/work/crux-ws/crux-pilot`) with the Dev Containers extension, then reopen in the container.
+- Start VS Code from WSL2 (`code ~/crux-workspace/crux-pilot`) with the Dev Containers extension, then reopen in the container.
 - Give the WSL2 virtual machine more than the container limit (see section 5). Memory and processors for WSL2 are set in `%UserProfile%\.wslconfig`.
 
 ## 4. Network and proxy prerequisites
@@ -91,17 +104,18 @@ These figures are estimates. No minimum has been measured.
 - **WSL2.** The Docker disk lives in a virtual disk file that grows and does not shrink by itself. Check the free space of the Windows drive that holds it.
 - **Where it goes.** The SDK, the Python virtual environment and the caches are in the Docker volume `crux-host-cache`, mounted at `/opt/crux-cache`. The west checkouts are in the parent folder of the repository. Builds go to `build/` in the repository, which Git ignores.
 
-## 6. First commands
+## 6. Setup commands
 
-Inside the container, from `/workspaces/crux/crux-pilot`:
+Inside the container, from `/workspace/crux-pilot`. Pick the row that fits what you want. The Needs column gives what each row needs first.
 
-~~~sh
-scripts/bootstrap-host.sh                      # Host build and tests
-scripts/bootstrap-zephyr.sh --install-sdk      # west workspace and SDK
-scripts/test-controller.sh                     # native_sim scenarios and EVKB cross-build
-~~~
+| What you want | Run | Needs | Disk and time |
+| --- | --- | --- | --- |
+| Host tests only | `scripts/bootstrap-host.sh` | Nothing else | Not yet measured |
+| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once, then the [Tutorial](tutorial.md) | Nothing else. It does not need the Host script, but the Tutorial also uses `scripts/bootstrap-host.sh` in its later steps. Both the west checkouts and the SDK are large downloads | Not yet measured |
+| Controller scenarios on `native_sim` and the board cross-build | Both bootstrap scripts, then `scripts/test-controller.sh` | `scripts/test-controller.sh` itself needs only the Zephyr bootstrap and its SDK. The Host script adds the Host tests | Not yet measured |
+| Before a pull request | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) | One earlier `scripts/bootstrap-host.sh`, because `check-host.sh` runs offline and reuses the GoogleTest that the bootstrap fetched | Not yet measured |
 
-The [test guide](../tests/README.md#before-you-open-a-pull-request) lists the checks to run before a pull request.
+None of these commands programs or resets a board.
 
 ## 7. Boards and debug probes
 

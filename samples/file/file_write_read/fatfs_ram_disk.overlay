@@ -1,0 +1,11 @@
+/* A 1 MiB RAM disk named "RAM" for scenario .fatfs_ram_disk. Its contents last until the
+ * program exits.
+ */
+/ {
+    ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "RAM";
+        sector-size = <512>;
+        sector-count = <2048>;
+    };
+};

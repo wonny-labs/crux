@@ -4,9 +4,9 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
-- [Your first hour with Crux](first-hour.md): from the Dev Container to Zephyr's Hello World, the Crux samples on `native_sim` and the Linux Host, Twister and CTest, and changing a build with Kconfig, Devicetree overlays and CMake options.
+- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to Zephyr's Hello World, the Crux samples on `native_sim` and the Linux Host, Twister and CTest, and changing a build with Kconfig, Devicetree overlays and CMake options.
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
-- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the first commands.
+- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the setup commands.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications, provider selection and debugging.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
 
@@ -80,6 +80,7 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md): code ownership, public interfaces, Git and pull request conventions, review requirements.
 2. [Composition interface rules](composition-interfaces.md), the [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md) and [upstream reuse](upstream-reuse.md).
+   For documentation pages, the [documentation guidelines](documentation-guidelines.md) set one type per page, the level of detail and where history and status go.
 3. The capability contract of the component you change (see [Use a platform service](#use-a-platform-service)).
 4. [AGENTS.md](../AGENTS.md) if an AI agent works on the change.
 

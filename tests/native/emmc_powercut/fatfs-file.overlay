@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* A RAM disk only for the dependency of CONFIG_CRUX_FILE_FATFS_SIMULATOR (see fatfs-file.conf).
+ * Nothing formats or mounts it. */
+/ {
+    powercut_ramdisk {
+        compatible = "zephyr,ram-disk";
+        disk-name = "RAM";
+        sector-size = <512>;
+        sector-count = <128>;
+    };
+};

@@ -7,6 +7,11 @@
  *   W3  creates, overwrites and removes files and a directory, each change synced and marked
  *   W4  saves through the Settings File backend, which compacts through a temporary and a rename;
  *       only in an image with CONFIG_SETTINGS_FILE, built from reliance.conf and settings.conf
+ *   W8  writes atomic/w8.tmp through the Crux File provider, syncs and closes it, renames it
+ *       onto atomic/w8 with the VFS rename and marks: the File data path of a replace
+ *   W8C W8-control: the same, but replaces as File allows today, crux_file_remove_at of
+ *       atomic/w8 and then crux_file_rename; a cut between the two can leave no atomic/w8
+ *   W8 and W8C exist only in an image with a File provider (file.conf or fatfs-file.conf)
  * files/keep and settings/w2 generation 0 are written at provision; files/keep never again.
  */
 #include "workloads.h"
@@ -20,6 +25,10 @@
 #include <zephyr/fs/fs.h>
 #ifdef CONFIG_SETTINGS_FILE
 #include <zephyr/settings/settings.h>
+#endif
+#if POWERCUT_HAS_FILE
+#include <crux/file.h>
+#include <crux/file_zephyr.h>
 #endif
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
@@ -247,6 +256,7 @@ static int prepare_common(void)
 }
 
 static int prepare_w4(void);
+static int prepare_w8(void);
 
 int powercut_prepare(enum powercut_workload w)
 {
@@ -264,6 +274,9 @@ int powercut_prepare(enum powercut_workload w)
         return w3_write(W3_A, w3_baseline[W3_A], 0, false);
     case POWERCUT_W4:
         return prepare_w4();
+    case POWERCUT_W8:
+    case POWERCUT_W8C:
+        return prepare_w8();
     default:
         return -EINVAL;
     }
@@ -358,6 +371,7 @@ int powercut_stage_w3(uint32_t steps, uint32_t empty_path)
 }
 
 static int run_w4(bool early_ack);
+static int run_w8(bool control, bool early_ack);
 
 int powercut_run(enum powercut_workload w, bool early_ack)
 {
@@ -370,6 +384,9 @@ int powercut_run(enum powercut_workload w, bool early_ack)
         return run_w3(early_ack);
     case POWERCUT_W4:
         return run_w4(early_ack);
+    case POWERCUT_W8:
+    case POWERCUT_W8C:
+        return run_w8(w == POWERCUT_W8C, early_ack);
     default:
         return -EINVAL;
     }
@@ -794,6 +811,163 @@ static int run_w4(bool early_ack)
 }
 #endif
 
+/*
+ * W8 and W8C: generations of atomic/w8, each made complete in atomic/w8.tmp through the File
+ * provider (create-and-replace open, write, sync, close) and then put in place. W8 uses the VFS
+ * rename, which on Reliance Edge replaces the destination in one transaction; no File operation
+ * does that yet. W8C uses what File allows today, remove the target and then rename, so a cut
+ * between the two can leave no target: the control that shows the check can see the window.
+ * Generation 0 is written at provision, through the VFS. Root 0 of File is bound to atomic.
+ */
+#define ATOMIC_DIR POWERCUT_MOUNT_POINT "/atomic"
+#define W8_NAME "w8"
+#define W8_TMP_NAME "w8.tmp"
+/*
+ * The names as stored. The FatFs File provider stores "f" and the name's bytes in hexadecimal
+ * (make_path in components/file/ports/zephyr/file_native.c), Reliance Edge stores the name as it
+ * is. The VFS rename of W8, the baseline and the check use these.
+ */
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#define W8_STORED "f7738"             /* "w8" */
+#define W8_TMP_STORED "f77382e746d70" /* "w8.tmp" */
+#else
+#define W8_STORED W8_NAME
+#define W8_TMP_STORED W8_TMP_NAME
+#endif
+#define W8_PATH ATOMIC_DIR "/" W8_STORED
+#define W8_TMP_PATH ATOMIC_DIR "/" W8_TMP_STORED
+#define W8_GENERATIONS 8U
+#define W8_MAGIC 0x4e473857U /* "W8GN" */
+#define W8_TAG(generation) (0xc0U + (generation))
+/* A File result that is not CRUX_FILE_OK, kept apart from the negative errno values. */
+#define W8_FILE_ERROR(result) (-1000 + (int)(result))
+
+/* Fills `to` with generation `generation` of atomic/w8 and returns its size. */
+static size_t w8_content(uint8_t *to, uint32_t generation)
+{
+    uint32_t length = 280U + 197U * generation;
+
+    fill(&to[W2_HEADER], length, W8_TAG(generation));
+    sys_put_le32(W8_MAGIC, &to[0]);
+    sys_put_le32(generation, &to[4]);
+    sys_put_le32(length, &to[8]);
+    sys_put_le32(crc32_ieee(&to[W2_HEADER], length), &to[12]);
+    return W2_HEADER + length;
+}
+
+static int prepare_w8(void)
+{
+#if POWERCUT_HAS_FILE
+    int rc = ensure_dir(ATOMIC_DIR);
+
+    return rc != 0 ? rc : replace_content(W8_PATH, buffer, w8_content(buffer, 0), 0, false);
+#else
+    return -ENOTSUP; /* W8 needs a File provider, from file.conf or fatfs-file.conf */
+#endif
+}
+
+#if POWERCUT_HAS_FILE
+/* Root 0 is bound once per process, on the mounted volume, as a composition binds it. */
+static int w8_bind(void)
+{
+    static bool bound;
+    crux_file_result_t result;
+
+    if (bound) {
+        return 0;
+    }
+    result = crux_file_zephyr_bind(ATOMIC_DIR);
+    bound = result == CRUX_FILE_OK;
+    return bound ? 0 : W8_FILE_ERROR(result);
+}
+
+/* Writes generation `generation` to atomic/w8.tmp through File: complete, synced and closed. */
+static int w8_write_temporary(uint32_t generation, bool early_ack)
+{
+    crux_file_t *file = NULL;
+    size_t size = w8_content(buffer, generation);
+    size_t written = 0;
+    crux_file_result_t result = crux_file_open_at(0, W8_TMP_NAME, CRUX_FILE_CREATE_REPLACE, &file);
+    crux_file_result_t closed;
+
+    if (result != CRUX_FILE_OK) {
+        return W8_FILE_ERROR(result);
+    }
+    result = crux_file_write(file, buffer, size, &written);
+    if (result == CRUX_FILE_OK && written != size) {
+        result = CRUX_FILE_ERR_NO_SPACE;
+    }
+    if (result == CRUX_FILE_OK && early_ack) {
+        ack(generation);
+    }
+    if (result == CRUX_FILE_OK) {
+        result = crux_file_sync(file);
+    }
+    closed = crux_file_close(&file);
+    if (result == CRUX_FILE_OK) {
+        result = closed;
+    }
+    return result == CRUX_FILE_OK ? 0 : W8_FILE_ERROR(result);
+}
+
+/* With early_ack, each generation is acknowledged before the temporary's sync: a control. */
+static int run_w8(bool control, bool early_ack)
+{
+    int rc = w8_bind();
+
+    for (uint32_t generation = 1; rc == 0 && generation <= W8_GENERATIONS; generation++) {
+        rc = w8_write_temporary(generation, early_ack);
+        if (rc == 0 && control) {
+            crux_file_result_t result = crux_file_remove_at(0, W8_NAME);
+
+            if (result == CRUX_FILE_OK) {
+                result = crux_file_rename(0, W8_TMP_NAME, W8_NAME);
+            }
+            rc = result == CRUX_FILE_OK ? 0 : W8_FILE_ERROR(result);
+        } else if (rc == 0) {
+            rc = fs_rename(W8_TMP_PATH, W8_PATH);
+        }
+        if (rc == 0 && !early_ack) {
+            ack(generation);
+        }
+    }
+    return rc;
+}
+#else
+static int run_w8(bool control, bool early_ack)
+{
+    ARG_UNUSED(control);
+    ARG_UNUSED(early_ack);
+    return -ENOTSUP;
+}
+#endif
+
+/*
+ * I3 for W8 and W8C: atomic/w8 is one complete generation. I2 adds that it is not older than
+ * acknowledged; no generation newer than the one in progress exists at a cut. A target that does
+ * not exist at all is reported apart, because that is the window W8C opens on purpose.
+ * settings/w2, which W8 never touches, is reported apart too, so that a damaged settings/w2 cannot
+ * hide behind a missing target.
+ */
+static void check_w8(uint32_t acked, struct powercut_result *out)
+{
+    size_t size = 0;
+    int rc = read_file(W8_PATH, buffer, MAX_FILE, &size);
+    uint32_t generation = 0;
+    bool complete = false;
+
+    note(rc, true, out);
+    out->target_missing = rc == -ENOENT;
+    if (rc == 0 && size >= W2_HEADER) {
+        generation = sys_get_le32(&buffer[4]);
+        complete = generation <= W8_GENERATIONS && size == w8_content(expected, generation) &&
+                   memcmp(buffer, expected, size) == 0;
+    }
+    out->w2_intact = out->replaced; /* check_w2 at floor 0, from powercut_verify */
+    out->replaced = complete;
+    out->data = complete && generation >= acked;
+}
+
 /* I5: the volume takes a new write, sync and remount. */
 static bool check_recommit(struct powercut_result *out)
 {
@@ -836,6 +1010,10 @@ void powercut_verify(enum powercut_workload w, uint32_t acked, struct powercut_r
         check_w4(acked, out);
         out->recommit = check_w4_recommit();
 #endif
+        break;
+    case POWERCUT_W8:
+    case POWERCUT_W8C:
+        check_w8(acked, out);
         break;
     default:
         break;

@@ -753,6 +753,15 @@ creating it. These cases are counted apart, and checks that must fail show that 
 refused as a lost acknowledged file or at another step. See the
 [Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
 
+W8 and W8C (W8-control, `--workload W8`) replace a file through the Crux File provider, on images built
+with `file.conf` (Reliance Edge, `red-fix-file` and `red-nofix-file`) or `fatfs-file.conf` (FatFs,
+`fat-fix-file`), as a run of their own with their own JSON. Both write each generation of `atomic/w8` to
+`atomic/w8.tmp` through File and sync it. W8 then uses the VFS rename, W8C removes the target and renames with
+File. On `red-fix-file` W8 must keep every invariant with no read error on both profiles, and W8C must lose the
+target at a cached `lost` cut inside every generation's replace and fail nothing else; otherwise the workload
+cannot see that window. The flush, early acknowledgement and damaged image controls run on W8. FatFs results are
+observations. See the [File replace replay record](../docs/evidence/emmc-reliance/replay-file-w8/README.md).
+
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
 It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a

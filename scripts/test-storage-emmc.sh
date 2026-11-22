@@ -618,6 +618,78 @@ print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held o
       f'{leftovers} cases with a temporary left behind, all three controls failed as required')
 PY
 
+# Power-cut replay of W8 and W8C (W8-control): a file replaced through the Crux File provider. Both
+# write a temporary through File; W8 puts it in place with the VFS rename, W8C with File's remove and
+# rename. On red-fix-file the invariants are asserted for W8 on both profiles, and W8C must lose the
+# target at a cached lost cut inside every generation's replace (the window control), with no other
+# violation and only inside that generation's unlink-to-rename span. The flush, early acknowledgement and damaged image controls must fail. On fat-fix-file
+# both workloads are observations. The run has its own JSON, so the runs above do not move.
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix-file" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;file.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-nofix-file" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;file.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=n -DCRUX_EMMC_FLUSH_CONTROL=ON)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/fat-fix-file" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
+    "-DEXTRA_CONF_FILE=fatfs.conf;fatfs-file.conf" -DEXTRA_DTC_OVERLAY_FILE=fatfs-file.overlay \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+# 64 samples took 52 to 95 s (Reliance Edge) and 20 to 29 s (FatFs) in an emulated amd64 container.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/red-fix-file/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/red-nofix-file/zephyr/zephyr.exe" \
+    --fs reliance --workload W8 --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/fat-fix-file/zephyr/zephyr.exe" \
+    --fs fatfs --workload W8 --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The counts are exact for seed 1 and 64 samples. They depend on the traces, so on the pinned Zephyr,
+# Reliance Edge and FatFs, and on the algorithms of Python's random module.
+python3 - "$powercut_dir/replay/reliance-w8.json" "$powercut_dir/replay/fatfs-w8.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+red = json.loads(Path(sys.argv[1]).read_text())
+if red.get('workload') != 'W8' or sorted(red['observations']) != ['W8', 'W8C']:
+    raise RuntimeError(f'not a W8 report: {sorted(red)}')
+for workload in ('W8', 'W8C'):
+    for profile, expected in models.items():
+        groups = red['observations'][workload][profile]
+        if set(groups) != expected or any(
+                group['cases'] == 0 or
+                group['passed'] + (group.get('window', 0) if workload == 'W8C' else 0) !=
+                group['cases'] for group in groups.values()):
+            raise RuntimeError(f'{workload} {profile}: missing or failing cases')
+        trace = red['traces'][workload][profile]
+        if trace['metaroot_positions'] == 0 or (profile == 'cached' and trace['commits'] == 0):
+            raise RuntimeError(f'{workload} {profile}: no metaroot write was recognised')
+controls = {control['name']: control['failed_as_required'] for control in red['controls']}
+if controls != {'flush': True, 'early acknowledgement': True, 'window': True,
+                'damaged image': True}:
+    raise RuntimeError(f'controls: {controls}')
+window = next(control for control in red['controls'] if control['name'] == 'window')
+if window['generations_with_missing_target'] != list(range(1, 9)):
+    raise RuntimeError(f'window control: {window["generations_with_missing_target"]}')
+if (red['counts']['cases'], red['window']['cases']) != (3546, 496) or red['failures']:
+    raise RuntimeError(f'counts {red["counts"]}, window {red["window"]["cases"]}, '
+                       f'failures {red["failures"]}')
+fat = json.loads(Path(sys.argv[2]).read_text())
+for workload in ('W8', 'W8C'):
+    for profile, expected in models.items():
+        groups = fat['observations'][workload][profile]
+        if set(groups) != expected or any(group['cases'] == 0 for group in groups.values()):
+            raise RuntimeError(f'fatfs {workload} {profile}: missing observations')
+if ({c['name']: c['failed_as_required'] for c in fat['controls']} != {'damaged image': True} or
+        fat['counts']['cases'] != 897 or fat['failures']):
+    raise RuntimeError(f'fatfs W8: counts {fat["counts"]}, failures {fat["failures"]}')
+print(f'replay reliance W8: {red["counts"]["cases"]} cases, invariants held for W8 on red-fix-file, '
+      f'W8C lost the target in every generation ({red["window"]["cases"]} cases), all four controls '
+      f'failed as required; replay fatfs W8: {fat["counts"]["cases"]} cases, '
+      f'{fat["window"]["cases"]} W8C cases with the target missing, recorded')
+PY
+
 # The Settings File selection exists on Reliance Edge only. Without the file system, Kconfig drops
 # the selection and warns, naming the dependency, and the build is refused because the assignment of
 # the suite is not honoured. A selection that did not depend on Reliance Edge would configure.

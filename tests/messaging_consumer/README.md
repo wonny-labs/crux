@@ -1,7 +1,7 @@
 # Portable controller timing consumer
 
 This directory builds and runs the portable reference-controller timing scenario in
-[`samples/messaging/controller.c`](../../samples/messaging/controller.c) as an independent
+[`scenario/controller.c`](scenario/controller.c) as an independent
 C17 consumer of `crux::time` and `crux::thread`. It demonstrates absolute monotonic releases and
 a consumer-owned 100 ms phase/skip rule. It does not add callback timers or modify RTC behaviour,
 and it does not qualify physical target timing or stack margins.

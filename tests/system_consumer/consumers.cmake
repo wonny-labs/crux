@@ -4,7 +4,7 @@ else()
     get_filename_component(system_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 endif()
 add_library(system_runtime STATIC "${CMAKE_CURRENT_LIST_DIR}/src/runtime.c" "${CMAKE_CURRENT_LIST_DIR}/src/consumer.cpp")
-add_library(system_controller STATIC "${system_root}/samples/controller/system/controller_system.c"
+add_library(system_controller STATIC "${CMAKE_CURRENT_LIST_DIR}/scenario/controller_system.c"
     "${system_root}/samples/controller/core/health.c")
 target_include_directories(system_controller PRIVATE "${system_root}/samples/controller/include")
 foreach(consumer IN ITEMS system_runtime system_controller)

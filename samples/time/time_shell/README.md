@@ -13,7 +13,7 @@ commands may report. This sample was at `samples/time/` before the samples layou
 
 ## Requirements
 
-- Zephyr: the west workspace from `scripts/bootstrap-zephyr.sh` (`/workspaces/crux` in the Dev Container).
+- Zephyr: the west workspace from `scripts/bootstrap-zephyr.sh` (`/workspace` in the Dev Container).
 - Linux Host: the Host build from `scripts/bootstrap-host.sh` or `scripts/check-host.sh`.
 
 ## Building and running on `native_sim`
