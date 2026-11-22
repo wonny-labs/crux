@@ -19,14 +19,12 @@ import runpy
 # fixtures pending migration, not portable consumers. Future application/runtime
 # consumers have no such exemption: classify a new provider deliberately.
 # The samples layout proposal (docs/plans/samples-layout-proposal.md) moves portable
-# sample code. Until each move lands, its old and new paths are both listed; the old
-# paths leave this table after the moves.
+# sample code. Each path below exists in the tree, except the planned
+# samples/time/time_periodic_task/common, listed before its move lands.
 PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
-    "samples/controller/core", "samples/controller/include", "samples/time/include",
-    "samples/time/src/time_command.c",
-    "samples/controller/configuration",
+    "samples/controller/core", "samples/controller/include",
     "tests/configuration_consumer/consumer.c", "tests/configuration_consumer/consumer.cpp",
 
     "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
@@ -35,16 +33,15 @@ PORTABLE_ROOTS = (
     "tests/i2c/consumer/tmp117.c", "tests/i2c/consumer/tmp117.h",
     "tests/spi/consumer/spi_flash_id.c", "tests/spi/consumer/spi_flash_id.h",
 
-    "samples/serial", "tests/serial_consumer/src/runtime.c",
+    "tests/serial_consumer/src/runtime.c",
     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/src/consumer.cpp",
-    "samples/logging", "tests/logging_consumer/src/runtime.c",
+    "tests/logging_consumer/src/runtime.c",
     "tests/logging_consumer/src/runtime.h", "tests/logging_consumer/src/consumer.cpp",
-    "samples/messaging", "samples/controller/system",
     "tests/system_consumer/src/runtime.c", "tests/system_consumer/src/runtime.h",
     "tests/system_consumer/src/consumer.cpp",
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp",
-    # New paths of the samples layout proposal.
+    # Paths of the samples layout proposal.
     "samples/time/time_periodic_task/common", "samples/time/clock_shell/include",
     "samples/time/clock_shell/src/time_command.c",
     "tests/configuration/controller_scenario.c",
@@ -54,10 +51,8 @@ PORTABLE_ROOTS = (
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.
 NETWORKING_PROFILE = frozenset((
-    "samples/networking/client.c", "samples/networking/client.h",
     "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
     "tests/networking_consumer/consumer.h", "tests/networking_consumer/cpp_probe.cpp",
-    # New path of the samples layout proposal.
     "samples/networking/echo_client/common/client.c",
     "samples/networking/echo_client/common/client.h",
 ))
