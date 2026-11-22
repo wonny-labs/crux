@@ -88,7 +88,7 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 | Situation | What exists |
 | --- | --- |
 | The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz) |
-| An image under test must be replaced by a known one | The `restore` mode of the program and restore driver loads the accepted normal image, built from `samples/controller`, and verifies it twice before it starts it. It needs its own approval and evidence directory ([board image profiles](../board-image-profiles.md)) |
+| An image under test must be replaced by a known one | The `restore` mode of the program and restore driver loads the accepted normal image, built from `tests/board_images/integration_probe`, and verifies it twice before it starts it. It needs its own approval and evidence directory ([board image profiles](../board-image-profiles.md)) |
 | The image in flash does not start | The boot ROM serial downloader (`BOOT_MODE` `01`; the switch setting is in the NXP user manual), not tested on this board. It loads an image into RAM and has no flash command ([bootloader update investigation](../boot-bootloader-update-investigation.md)) |
 
 ## Board image profiles

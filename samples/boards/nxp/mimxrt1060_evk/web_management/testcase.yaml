@@ -5,5 +5,5 @@ common:
   platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
   tags: [crux, management, mbedtls, link_only]
 tests:
-  crux.sample.management_rt1060_mbed:
+  crux.sample.boards.mimxrt1060_evk.web_management:
     extra_args: []

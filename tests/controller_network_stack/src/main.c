@@ -1,7 +1,7 @@
 #include <zephyr/ztest.h>
 
 /* Real native sockets and production exchange; no syscall or clock mocks. */
-#include "../../../samples/controller/zephyr/network_client.c"
+#include "../../../tests/board_images/integration_probe/network_client.c"
 
 static struct k_thread tcp_thread;
 static struct k_thread udp_thread;

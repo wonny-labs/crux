@@ -9,7 +9,7 @@ This page is a build recipe for work package WP1a of [issue #296](https://github
 
 ## What this is
 
-A product that wants a boot loader builds its application with [sysbuild](https://docs.zephyrproject.org/latest/build/sysbuild/index.html), which builds MCUboot and the application as two images and signs the application. The composition is a set of arguments to `west build`. It adds files that Crux keeps in this repository, so the product copies nothing. It does not change the [M7 reference composition](../samples/controller/README.md), which keeps building without a boot loader.
+A product that wants a boot loader builds its application with [sysbuild](https://docs.zephyrproject.org/latest/build/sysbuild/index.html), which builds MCUboot and the application as two images and signs the application. The composition is a set of arguments to `west build`. It adds files that Crux keeps in this repository, so the product copies nothing. It does not change the [M7 reference composition](../tests/time_periodic/README.md), which keeps building without a boot loader.
 
 The first composition is RAM load with revert on the RT1060-EVK Rev B (`mimxrt1060_evk@B//qspi`): MCUboot is configured to run from the QSPI Flash, validate the signed image in slot 0, copy it to the SDRAM, jump to it and revert an image that is not confirmed. That behaviour is the intent of the configuration and is **Not verified** (see the end of this page).
 
@@ -23,7 +23,7 @@ The first composition is RAM load with revert on the RT1060-EVK Rev B (`mimxrt10
 
 ## The argument set
 
-The arguments below are the interface of the composition. The four files live in the Crux module, in `zephyr/boot/boards/<board>/` ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-owner-decision)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the controller sample in `samples/controller/zephyr` is the image `zephyr`.
+The arguments below are the interface of the composition. The four files live in the Crux module, in `zephyr/boot/boards/<board>/` ([evidence, section 4](evidence/boot-composition/wp1a-evidence.md#4-layout-of-the-composition-files-owner-decision)). `<crux>` is the checkout of this repository, `<app>` is the application directory of the product and `<image>` is the **base name of that directory**: sysbuild names the main image after it (`share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` in the pinned Zephyr), so the boot fixture in `tests/boot_fixture/zephyr`, which the check script builds, is the image `zephyr`.
 
 ```text
 west build --sysbuild -b 'mimxrt1060_evk@B//qspi' <app> -d <build> -- \
@@ -58,10 +58,10 @@ For the controller sample at `1447750` and Zephyr v4.4.2, built with the explici
 
 ## Checking that the reference composition is untouched
 
-The M7 configurations of [`scripts/test-controller.sh`](../scripts/test-controller.sh) and [`scripts/test-controller-integration.sh`](../scripts/test-controller-integration.sh) are the guard. At revision `1447750dd3f0`, ten EVKB configurations and two `native_sim` configurations built with exit 0. The `zephyr.bin` SHA-256 and the `firmware_identity` of the EVKB images are in [the evidence record](evidence/boot-composition/wp1a-evidence.md#6-the-m7-baseline) and in [`m7-baseline-1447750.json`](evidence/boot-composition/m7-baseline-1447750.json). Rebuilding two of them at another build path gave identical hashes.
+The M7 configurations of [`scripts/test-time-periodic.sh`](../scripts/test-time-periodic.sh) and [`scripts/test-controller-integration.sh`](../scripts/test-controller-integration.sh) are the guard. At revision `1447750dd3f0`, ten EVKB configurations and two `native_sim` configurations built with exit 0. The `zephyr.bin` SHA-256 and the `firmware_identity` of the EVKB images are in [the evidence record](evidence/boot-composition/wp1a-evidence.md#6-the-m7-baseline) and in [`m7-baseline-1447750.json`](evidence/boot-composition/m7-baseline-1447750.json). Rebuilding two of them at another build path gave identical hashes.
 
 - **EVKB images:** compare `zephyr.bin` and `firmware_identity` with the record.
-- **`native_sim` images:** there is no `zephyr.bin`, and `zephyr.exe` differs with the build path. Compare `configuration_sha256` and the result of `scripts/check-controller.py`.
+- **`native_sim` images:** there is no `zephyr.bin`, and `zephyr.exe` differs with the build path. Compare `configuration_sha256` and the result of `scripts/check-time-periodic.py`.
 
 ## Not verified
 

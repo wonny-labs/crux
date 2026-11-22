@@ -187,13 +187,15 @@ class ExternalApplicationTest(unittest.TestCase):
             self.assertNotIn('time_port_memory.c', commands)
 
     def test_controlled_samples_reject_system_clock_provider(self):
-        for sample, controller in (('ON', 'OFF'), ('OFF', 'ON')):
-            with self.subTest(sample=sample), tempfile.TemporaryDirectory() as temporary:
+        for sample, controller, option in (('ON', 'OFF', 'CRUX_BUILD_TIME_PERIODIC_SCENARIO'),
+                                           ('OFF', 'ON', 'CRUX_BUILD_TIME_PERIODIC_SCENARIO'),
+                                           ('OFF', 'ON', 'CRUX_BUILD_REFERENCE_CONTROLLER')):
+            with self.subTest(sample=sample, option=option), tempfile.TemporaryDirectory() as temporary:
                 result = subprocess.run(
                     [CMAKE, '-S', str(REPO), '-B', temporary, '-G', 'Ninja',
                      '-DCRUX_TIME_PROVIDER=linux', '-DCRUX_BUILD_TESTS=OFF',
                      f'-DCRUX_BUILD_HOST_SAMPLE={sample}',
-                     f'-DCRUX_BUILD_REFERENCE_CONTROLLER={controller}'],
+                     f'-D{option}={controller}'],
                     text=True, capture_output=True)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('controlled Time samples require CRUX_TIME_PROVIDER=memory',

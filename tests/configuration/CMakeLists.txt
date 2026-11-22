@@ -13,12 +13,12 @@ add_test(NAME Configuration.NoProvider COMMAND crux_configuration_no_provider_te
 set_tests_properties(Configuration.NoProvider PROPERTIES TIMEOUT 10)
 # The controller configuration scenario, a building block that only this test compiles.
 add_library(configuration_controller_portable OBJECT controller_scenario.c)
-target_link_libraries(configuration_controller_portable PRIVATE crux::configuration crux_controller_core)
+target_link_libraries(configuration_controller_portable PRIVATE crux::configuration crux_time_periodic_core)
 target_compile_options(configuration_controller_portable PRIVATE -Wall -Wextra -Wpedantic -Werror)
 cmake_language(DEFER DIRECTORY "${PROJECT_SOURCE_DIR}" CALL crux_assert_portable_consumer configuration_controller_portable)
 add_executable(crux_configuration_controller controller_main.c fault_provider.c)
 target_include_directories(crux_configuration_controller PRIVATE . ../../components/configuration/src)
 target_link_libraries(crux_configuration_controller PRIVATE configuration_controller_portable
-    crux::configuration crux_controller_core crux::time)
+    crux::configuration crux_time_periodic_core crux::time)
 add_test(NAME Configuration.ControllerScenario COMMAND crux_configuration_controller)
 set_tests_properties(Configuration.ControllerScenario PROPERTIES TIMEOUT 10)

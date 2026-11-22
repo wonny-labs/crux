@@ -16,7 +16,7 @@ class ControllerRunnerTest(unittest.TestCase):
             stub.write_text(f"#!{sys.executable}\nprint('CONTROLLER_COMPLETE cycles=20')\n"
                             "raise SystemExit(1)\n")
             stub.chmod(0o700)
-            result = subprocess.run([sys.executable, str(REPO / "scripts/check-controller.py"),
+            result = subprocess.run([sys.executable, str(REPO / "scripts/check-time-periodic.py"),
                                      str(stub), "--log", str(root / "scenario.log")],
                                     capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)

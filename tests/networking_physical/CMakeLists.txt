@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(m5_physical_fixture LANGUAGES C)
-include(../../samples/controller/zephyr/mdio_completion.cmake)
+include(../../tests/board_images/integration_probe/mdio_completion.cmake)
 execute_process(COMMAND git rev-parse --short=12 HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE m5_source OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/source.h "#define M5_SOURCE \"${m5_source}\"\n")

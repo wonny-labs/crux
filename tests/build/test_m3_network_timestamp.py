@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 @unittest.skipUnless(shutil.which('cc'), 'C compiler required')
 class NetworkTimestampTests(unittest.TestCase):
     def test_exchange_uses_one_completion_snapshot(self):
-        source = (ROOT / 'samples/controller/zephyr/network_client.c').read_text()
+        source = (ROOT / 'tests/board_images/integration_probe/network_client.c').read_text()
         body = source[source.index('static int perform_exchange('):
                       source.index('\nint controller_network_pair(')]
         harness = r'''

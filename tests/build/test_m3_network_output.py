@@ -95,7 +95,7 @@ class NativeOutput(unittest.TestCase):
             with self.assertRaises(ValueError):validate_stage(expanded,peer,1,'echo',errno_abi=LINUX,native_output=True,native_capture=bad)
 
     def test_actual_request_publishes_ack_before_work(self):
-        source=(Path(__file__).resolve().parents[2]/'samples/controller/zephyr/network_probe.c').read_text()
+        source=(Path(__file__).resolve().parents[2]/'tests/board_images/integration_probe/network_probe.c').read_text()
         function=source[source.index('static int request_round('):source.index('SHELL_CMD_REGISTER(')]
         model=r"""
 #include <assert.h>

@@ -28,7 +28,7 @@ set -euo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 python="${CRUX_PYTHON:-python3}"
-app="$repo/samples/controller/zephyr"
+app="$repo/tests/boot_fixture/zephyr"
 image="$(basename "$app")"
 build="${1:-$repo/build/zephyr/boot-composition}"
 mcuboot="$workspace/bootloader/mcuboot"
