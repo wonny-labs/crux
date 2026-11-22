@@ -1,4 +1,5 @@
 """Check scripts/open-pin-pr.py with throwaway Git remotes, a fake gh and a local fake Bitbucket API."""
+import base64
 import http.server
 import json
 import os
@@ -28,6 +29,7 @@ state_path = os.environ["FAKE_GH_STATE"]
 state = json.load(open(state_path)) if os.path.exists(state_path) else {"prs": [], "calls": []}
 args = sys.argv[1:]
 state["calls"].append(args)
+state.setdefault("tokens", []).append(os.environ.get("GH_TOKEN", ""))
 def opt(name):
     return args[args.index(name) + 1] if name in args else None
 if args[:2] == ["pr", "list"]:
@@ -127,6 +129,14 @@ class GitHubTest(Base):
         message = git("log", "-1", "--format=%B", BRANCH, cwd=self.origin)
         self.assertIn("Pin-Bot: open-pin-pr", message)
 
+    def test_the_token_variable_reaches_gh_as_gh_token(self):
+        self.change("bbbb")
+        env = dict(self.env, CRUX_PIN_TOKEN=TOKEN, GH_TOKEN="")
+        result = self.run_script("--host", "github", env=env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual(TOKEN, self.gh()["tokens"][-1])
+        self.assertNotIn(TOKEN, result.stdout + result.stderr)
+
     def test_a_later_run_updates_the_same_pr_and_rebuilds_the_branch(self):
         self.change("bbbb")
         self.assertEqual(DONE, self.run_script("--host", "github", env=self.env).returncode)
@@ -210,7 +220,7 @@ class FakeBitbucket(http.server.BaseHTTPRequestHandler):
         self.body = json.loads(self.rfile.read(length)) if length else None
         self.server.calls.append({"method": self.command, "path": self.path,
                                   "auth": self.headers.get("Authorization"), "body": self.body})
-        if self.headers.get("Authorization") != f"Bearer {TOKEN}":
+        if self.headers.get("Authorization") not in self.server.accepted:
             self.reply(401, {"type": "error", "error": {"message": "Unauthorized"}})
             return False
         return True
@@ -259,15 +269,17 @@ class BitbucketCloudTest(Base):
         super().setUp()
         self.server = LocalServer(("127.0.0.1", 0), FakeBitbucket)
         self.server.calls, self.server.prs = [], []
+        basic = base64.b64encode(f"bot@example.invalid:{TOKEN}".encode()).decode()
+        self.server.accepted = {f"Bearer {TOKEN}", f"Basic {basic}"}
         thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         thread.start()
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
         self.api = f"http://127.0.0.1:{self.server.server_port}/2.0"
 
-    def run_bitbucket(self, env=None):
-        return self.run_script("--host", "bitbucket-cloud", "--repo", "ws/repo", "--api-url", self.api,
-                               env=env if env is not None else {"BITBUCKET_TOKEN": TOKEN})
+    def run_bitbucket(self, env=None, *extra):
+        return self.run_script("--host", "bitbucket-cloud", "--repo", "ws/repo", "--api-url", self.api, *extra,
+                               env=env if env is not None else {"CRUX_PIN_TOKEN": TOKEN})
 
     def test_creates_then_updates_one_pr_and_never_prints_the_token(self):
         self.change("bbbb")
@@ -293,18 +305,35 @@ class BitbucketCloudTest(Base):
 
     def test_a_missing_token_fails_before_any_push_or_request(self):
         self.change("bbbb")
-        result = self.run_bitbucket(env={"BITBUCKET_TOKEN": ""})
+        result = self.run_bitbucket(env={"CRUX_PIN_TOKEN": ""})
         self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
-        self.assertIn("BITBUCKET_TOKEN", result.stderr)
+        self.assertIn("CRUX_PIN_TOKEN", result.stderr)
         self.assertEqual([], self.server.calls)
         self.assertIsNone(self.remote_ref(BRANCH))
 
     def test_a_rejected_token_is_reported_without_the_token(self):
         self.change("bbbb")
-        result = self.run_bitbucket(env={"BITBUCKET_TOKEN": "wrong-" + TOKEN})
+        result = self.run_bitbucket(env={"CRUX_PIN_TOKEN": "wrong-" + TOKEN})
         self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
         self.assertIn("401", result.stderr)
         self.assertNotIn(TOKEN, result.stdout + result.stderr)
+
+
+    def test_basic_authentication_with_a_user_variable(self):
+        self.change("bbbb")
+        result = self.run_bitbucket({"CRUX_PIN_TOKEN": TOKEN, "PIN_USER": "bot@example.invalid"},
+                                    "--user-env", "PIN_USER")
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertTrue(self.server.calls[0]["auth"].startswith("Basic "))
+        self.assertNotIn(TOKEN, result.stdout + result.stderr)
+
+    def test_a_plain_http_api_url_is_refused_unless_local(self):
+        self.change("bbbb")
+        result = self.run_script("--host", "bitbucket-cloud", "--repo", "ws/repo",
+                                 "--api-url", "http://bitbucket.example/2.0", env={"CRUX_PIN_TOKEN": TOKEN})
+        self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
+        self.assertIn("https", result.stderr)
+        self.assertIsNone(self.remote_ref(BRANCH))
 
 
 if __name__ == "__main__":

@@ -40,8 +40,13 @@ class PinError(Exception):
 def git(*args, cwd=None):
     result = subprocess.run(["git", *args], cwd=cwd, text=True, capture_output=True)
     if result.returncode != 0:
-        raise PinError(f"git {args[0]} failed: {result.stderr.strip()}")
+        raise PinError(f"git {args[0]} failed: {scrub(result.stderr.strip())}")
     return result.stdout
+
+
+def scrub(text):
+    """Drop user names and tokens from every URL in a message."""
+    return re.sub(r"(://)[^/@\s]+@", r"\1", text)
 
 
 def redact(url):
@@ -86,7 +91,7 @@ def resolve(url, to, branch):
         return to.lower(), to.lower()
     wanted = [f"refs/heads/{branch}"] if not to else [f"refs/heads/{to}", f"refs/tags/{to}"]
     refs = {}
-    for line in git("ls-remote", url, *wanted).splitlines():
+    for line in git("ls-remote", "--", url, *wanted).splitlines():
         sha, ref = line.split("\t", 1)
         refs[ref] = sha
     found = {}
@@ -188,7 +193,7 @@ def commit_log(checkout, url, ref, old, new, limit):
         if repo is None or not has_commit(repo, new):
             temp = tempfile.mkdtemp(prefix="crux-pin-")
             repo = Path(temp) / "crux.git"
-            git("clone", "-q", "--bare", "--filter=blob:none", url, str(repo))
+            git("clone", "-q", "--bare", "--filter=blob:none", "--", url, str(repo))
             if not has_commit(repo, new):
                 return [], "The new revision was not found on the remote, so no log is shown."
         if not SHA.match(old.lower()) or not has_commit(repo, old):
@@ -252,11 +257,13 @@ def main(argv=None):
                         help="write a commit message: a title line, a blank line and the old..new log")
     parser.add_argument("--log-limit", type=int, default=100, help="the most commits to list (default: 100)")
     parser.add_argument("--no-hook", action="store_true", help=f"do not run {HOOK}")
-    parser.add_argument("--dry-run", action="store_true", help="change no file and run no hook")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="leave the manifest alone and run no hook; --summary is still written")
     args = parser.parse_args(argv)
 
     try:
-        text = args.manifest.read_text()
+        with args.manifest.open(newline="") as handle:  # Keeps CRLF line endings.
+            text = handle.read()
         manifest = yaml.safe_load(text)
         project = find_project(manifest, args.project)
         name = project["name"]
@@ -275,7 +282,8 @@ def main(argv=None):
             args.summary.write_text(summary(name, args.manifest.name, old, new, source, lines, note))
         if args.dry_run:
             return EXIT_CHANGED
-        args.manifest.write_text(updated)
+        with args.manifest.open("w", newline="") as handle:
+            handle.write(updated)
         if not args.no_hook:
             run_hook(product_root(args.manifest), {
                 "CRUX_PIN_OLD": old, "CRUX_PIN_NEW": new, "CRUX_PIN_PROJECT": name,

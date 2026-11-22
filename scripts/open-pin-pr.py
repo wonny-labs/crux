@@ -92,13 +92,14 @@ def same_change(old_head, new_head):
 
 
 class GitHub:
-    """Pull requests through the gh command line, which reads GH_TOKEN itself."""
+    """Pull requests through the gh command line, given the token as GH_TOKEN."""
 
-    def __init__(self, repo):
+    def __init__(self, repo, token):
         self.repo = ["--repo", repo] if repo else []
+        self.env = dict(os.environ, GH_TOKEN=token) if token else None
 
     def gh(self, *args):
-        result = subprocess.run(["gh", *args, *self.repo], text=True, capture_output=True)
+        result = subprocess.run(["gh", *args, *self.repo], text=True, capture_output=True, env=self.env)
         if result.returncode != 0:
             raise PinPrError(f"gh {' '.join(args[:2])} failed: {result.stderr.strip()}")
         return result.stdout
@@ -137,7 +138,8 @@ class BitbucketCloud:
     def call(self, method, url, data=None):
         request = urllib.request.Request(url, method=method,
                                          data=json.dumps(data).encode() if data is not None else None)
-        request.add_header("Authorization", self.auth)
+        # Never sent again to the target of a redirect.
+        request.add_unredirected_header("Authorization", self.auth)
         request.add_header("Accept", "application/json")
         if data is not None:
             request.add_header("Content-Type", "application/json")
@@ -170,9 +172,12 @@ class BitbucketCloud:
 
 
 def make_host(args):
-    if args.host == "github":
-        return GitHub(args.repo)
     token = os.environ.get(args.token_env, "")
+    if args.host == "github":
+        return GitHub(args.repo, token)  # Without a token, gh uses its own login.
+    parts = urllib.parse.urlsplit(args.api_url)
+    if parts.scheme != "https" and parts.hostname not in ("127.0.0.1", "localhost", "::1"):
+        raise PinPrError("--api-url must use https")
     if not token:
         raise PinPrError(f"set the token in the environment variable {args.token_env}")
     user = os.environ.get(args.user_env, "") if args.user_env else ""
@@ -191,8 +196,9 @@ def main(argv=None):
                                        "WORKSPACE/REPOSITORY for bitbucket-cloud (required)")
     parser.add_argument("--api-url", default="https://api.bitbucket.org/2.0",
                         help="the Bitbucket Cloud API root (default: https://api.bitbucket.org/2.0)")
-    parser.add_argument("--token-env", default="BITBUCKET_TOKEN", metavar="NAME",
-                        help="the variable that holds the Bitbucket token (default: BITBUCKET_TOKEN)")
+    parser.add_argument("--token-env", default="CRUX_PIN_TOKEN", metavar="NAME",
+                        help="the variable that holds the token (default: CRUX_PIN_TOKEN); "
+                             "required for bitbucket-cloud, optional for github")
     parser.add_argument("--user-env", metavar="NAME",
                         help="a variable with a user name or e-mail; when set, use Basic instead of Bearer")
     args = parser.parse_args(argv)

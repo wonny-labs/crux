@@ -100,6 +100,30 @@ class UpdateCruxPinTest(unittest.TestCase):
         self.assertEqual(1, len(changed))
         self.assertEqual(f"      revision: {self.third}", changed[0][1])
 
+    def test_crlf_line_endings_are_kept(self):
+        self.manifest.write_bytes(self.manifest.read_bytes().replace(b"\n", b"\r\n"))
+        before = self.manifest.read_bytes()
+        self.assertEqual(CHANGED, self.run_script().returncode)
+        after = self.manifest.read_bytes()
+        self.assertEqual(before.count(b"\r\n"), after.count(b"\r\n"))
+        self.assertNotIn(b"\n", after.replace(b"\r\n", b""))
+        self.assertEqual(self.third, self.revision())
+
+    def test_credentials_in_a_url_never_reach_the_output(self):
+        url = "https://user:t0ken-value@127.0.0.1:9/crux-pilot"
+        summary = self.tmp / "summary.md"
+        result = self.run_script("--remote-url", url, "--to", self.third, "--summary", str(summary))
+        self.assertEqual(CHANGED, result.returncode, result.stderr)
+        self.assertNotIn("t0ken-value", result.stdout + result.stderr + summary.read_text())
+        result = self.run_script("--remote-url", url)
+        self.assertNotIn(result.returncode, (CHANGED, CURRENT))
+        self.assertNotIn("t0ken-value", result.stdout + result.stderr)
+
+    def test_a_quoted_revision_is_replaced_whole(self):
+        self.write_manifest(f'"{self.first}"')
+        self.assertEqual(CHANGED, self.run_script().returncode)
+        self.assertIn(f"      revision: {self.third}\n", self.manifest.read_text())
+
     def test_exit_three_when_the_pin_is_already_current(self):
         self.write_manifest(self.third)
         text = self.manifest.read_text()
@@ -208,8 +232,9 @@ class UpdateCruxPinTest(unittest.TestCase):
         self.assertFalse((self.product / "ran").exists())
         self.write_manifest(self.first)
         result = self.run_script()
-        self.assertNotIn(result.returncode, (CHANGED, CURRENT))
+        self.assertEqual(1, result.returncode)
         self.assertIn("crux-pin-hook", result.stderr)
+        self.assertIn("status 7", result.stderr)
 
     def test_no_hook_skips_it(self):
         self.write_hook("touch ran\n")

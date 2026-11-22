@@ -94,7 +94,7 @@ product style cases still skip there, because they need a Zephyr tree (`ZEPHYR_B
 `tests/build/test_ci_wiring.py` fails if the sanitizer preset stops aborting on undefined behaviour,
 or if a workflow stops running the File service checks, the Zephyr smoke check, those installs or the `CLANG_TIDY` setting.
 
-`tests/build/test_update_crux_pin.py` and `tests/build/test_open_pin_pr.py` hold the checks of the Crux pin bot scripts,
+`tests/build/test_update_crux_pin.py`, `tests/build/test_open_pin_pr.py` and `tests/build/test_crux_pin_bot.py` hold the checks of the Crux pin bot scripts,
 see [Keeping the Crux pin current](../docs/product-composition.md#keeping-the-crux-pin-current). They use throwaway Git
 repositories, a fake `gh` and a local fake Bitbucket API, and need no network. The manifest cases need PyYAML and skip without it.
 

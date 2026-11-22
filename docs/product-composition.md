@@ -347,7 +347,7 @@ A product pins Crux by full commit SHA. A bot keeps one pull request open that m
 - **Pin.** A full SHA, or a tag once Crux has them. A branch pin rebuilds differently from day to day, as Yocto's `AUTOREV` does, and the [build record](#release) refuses it.
 - **One bot pull request.** The bot rebuilds the branch `bot/crux-pin` as one commit on the product's `main` and updates the one open pull request, as the Chromium autoroller and Renovate or Dependabot do, instead of opening one per Crux commit. Its text lists the Crux commits since the old pin. Zephyr moves its own module pins with reviewed manifest pull requests in the same way.
 - **Checks.** The product's usual pull request checks, including `west crux-pins` and the build.
-- **Merge.** A person merges. To adapt the product to a Crux change, push a commit to the bot branch: the bot then leaves the branch alone until it is merged or deleted.
+- **Merge.** A person merges. To adapt the product to a Crux change, push a commit to the bot branch. As in Renovate, the bot then stops refreshing the branch until the branch is deleted, which a merge does when the branch is set to close on merge. A person who amends the bot's commit instead loses that edit at the next run.
 - **Early warning.** A scheduled build against Crux `main` that commits nothing reports a break before the next bot run.
 - **Release branches.** The bot never moves them. They keep their frozen manifest, as Android's `repo` snapshot manifests do, see [Release](#release).
 
@@ -359,53 +359,71 @@ A team may later let the bot pull request merge itself. Allow it only on the def
 - No Crux commit in the range is marked breaking (`!` or `BREAKING CHANGE` in Conventional Commits).
 - No person has pushed to the bot branch.
 
-### Commands
+### The command
 
-Run both from the product repository in a west workspace that holds Crux. They need Python 3, Git and PyYAML, which west installs. A product whose Crux pin predates these scripts moves its pin once by hand.
+Run `crux-pin-bot.py` from the product repository in a west workspace that holds Crux. It needs Python 3, Git and PyYAML, which west installs. A product whose Crux pin predates the script moves its pin once by hand.
 
 ```sh
 cd product-x
-python3 ../crux-pilot/scripts/update-crux-pin.py --summary ../pin.txt
-python3 ../crux-pilot/scripts/open-pin-pr.py --host github --message-file ../pin.txt
+python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
 ```
 
-`update-crux-pin.py` rewrites only the `revision:` value of the Crux project and drops that line's comment. It finds the project named `crux` or `crux-pilot`, and resolves the head of `main` at the manifest's URL with `git ls-remote`.
+It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes the options of both scripts, with `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text.
+
+| Variable | Use |
+| --- | --- |
+| `CRUX_PIN_TOKEN` | The token, for both hosts. Another name with `--token-env NAME` |
+
+- **GitHub.** A GitHub App token or fine-grained token with contents and pull request write access, passed to `gh` as `GH_TOKEN`. Without one, `gh` uses its own login. A pull request pushed and opened with the default `GITHUB_TOKEN` starts no other workflow, so its checks would not run.
+- **Bitbucket Cloud.** A repository or workspace access token with the `pullrequest:write` scope, sent as a Bearer token. With `--user-env NAME`, it is sent with the user name or e-mail address in that variable as Basic authentication instead.
+
+The push goes through the remote `origin` with the job's own Git credentials, which must be allowed to push the bot branch. The commit uses the repository's Git identity, or `Crux pin bot` when none is set.
+
+### The two scripts
+
+`update-crux-pin.py` resolves the target to a full SHA, rewrites only the `revision:` value of the Crux project and drops that line's comment, which described the old revision. Exit status `0` means the pin moved, `3` that it is already current. Anything else is an error.
 
 | Option | Default | Use |
 | --- | --- | --- |
 | `--manifest PATH` | `west.yml` | The product manifest |
 | `--project NAME` | `crux` or `crux-pilot` | The Crux project |
-| `--to REV` | Head of `--branch` | A full SHA, branch or tag. A short SHA is refused |
-| `--branch NAME` | `main` | The Crux branch to follow |
+| `--to REV` | Head of `--branch` | A full SHA, branch or tag. A short SHA is refused. A full SHA is taken as given |
+| `--branch NAME` | `main` | The Crux branch to follow, resolved with `git ls-remote` |
 | `--remote-url URL` | The manifest's URL | A mirror |
 | `--summary FILE` | None | Write a commit message: a title, a blank line, the Crux log |
 | `--checkout PATH` | Found from `.west` | The Crux checkout passed to the hook |
 | `--log-limit N` | 100 | The most commits to list |
-| `--no-hook`, `--dry-run` | Off | Skip the hook, or change no file |
+| `--no-hook` | Off | Skip the hook |
+| `--dry-run` | Off | Leave the manifest alone and run no hook. `--summary` is still written |
 
-Exit status `0` means the pin moved, `3` that it is already current. Anything else is an error. If the product has an executable `scripts/crux-pin-hook`, it runs after the move, from the product root, with `CRUX_PIN_OLD`, `CRUX_PIN_NEW`, `CRUX_PIN_PROJECT`, `CRUX_PIN_MANIFEST` and `CRUX_PIN_CHECKOUT` set, the last empty when no checkout was found. Use it for files that quote the pin, such as tests or documents. A failing hook fails the run.
+If the product has an executable `scripts/crux-pin-hook`, it runs after the move, from the product root, so the product can update files that quote the pin, such as tests or documents. Its exit status `0` means success. Any other status fails the run with status `1` and leaves the manifest updated, so the bot opens no pull request.
 
-`open-pin-pr.py` commits every change in the working tree on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer, pushes it to the bot branch with `--force-with-lease`, and creates or updates the pull request. The message file must be outside the repository. It pushes nothing when the branch already holds the same change.
+| Variable | Value |
+| --- | --- |
+| `CRUX_PIN_OLD`, `CRUX_PIN_NEW` | The old revision and the new SHA |
+| `CRUX_PIN_PROJECT` | The Crux project's name |
+| `CRUX_PIN_MANIFEST` | The manifest's absolute path |
+| `CRUX_PIN_CHECKOUT` | The Crux checkout, still at the old revision, or empty when none was found |
+
+`open-pin-pr.py` commits every change in the working tree on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
 
 | Option | Default | Use |
 | --- | --- | --- |
-| `--host` | Required | `github`, through `gh`, which reads `GH_TOKEN`, or `bitbucket-cloud`, through the REST API 2.0 |
-| `--message-file FILE` | Required | The pull request title and text, from `--summary` |
+| `--host` | Required | `github`, through `gh`, or `bitbucket-cloud`, through the REST API 2.0 |
+| `--message-file FILE` | Required | The title line, a blank line and the pull request text. Keep it outside the repository |
 | `--base NAME` | `main` | The target branch |
 | `--branch NAME` | `bot/crux-pin` | The bot branch. `main`, `master`, `release*` and the base are refused |
 | `--remote NAME` | `origin` | The remote to push to |
 | `--repo NAME` | Inferred by `gh` | `OWNER/REPO`, or `WORKSPACE/REPOSITORY`, required for Bitbucket |
-| `--token-env NAME` | `BITBUCKET_TOKEN` | The variable that holds the Bitbucket access token, sent as a Bearer token |
-| `--user-env NAME` | None | A variable that holds a user name or e-mail address, to send Basic authentication with an API token instead |
-| `--api-url URL` | `https://api.bitbucket.org/2.0` | The API root |
-
-Exit status `0` means the pull request is open and current, `3` that the working tree has no change, and `4` that the bot branch holds a commit the bot did not make. Anything else is an error. The script never merges, never prints the token and never pushes a branch other than the bot branch.
+| `--token-env NAME` | `CRUX_PIN_TOKEN` | The token's variable |
+| `--user-env NAME` | None | Basic authentication for Bitbucket, see above |
+| `--api-url URL` | `https://api.bitbucket.org/2.0` | The Bitbucket API root, `https` only |
 
 ### CI wrappers
 
-Keep the wrapper thin: it checks out the product, fetches Crux, runs the two commands and treats status `3` as success. Run it on a schedule, hourly to daily, and one job at a time. These examples use `product-x`, as the template does.
+Run the command on a schedule, hourly to daily, one job at a time, on a fresh checkout. These examples use `product-x` and a Crux project named `crux-pilot`, as the template does. Replace both names with your own.
 
-GitHub Actions. Use a GitHub App or fine-grained token with contents and pull request write access: a pull request pushed and opened with the default `GITHUB_TOKEN` starts no other workflow, so its checks would not run.
+GitHub Actions:
 
 ```yaml
 name: Crux pin
@@ -418,41 +436,34 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with: {path: product-x, token: "${{ secrets.PIN_BOT_TOKEN }}"}
-      - env: {GH_TOKEN: "${{ secrets.PIN_BOT_TOKEN }}"}
+        with: {path: product-x, token: "${{ secrets.CRUX_PIN_TOKEN }}"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - env: {CRUX_PIN_TOKEN: "${{ secrets.CRUX_PIN_TOKEN }}"}
         run: |
           pip install west
           west init -l product-x && west update crux-pilot
-          cd product-x
-          status=0
-          python3 ../crux-pilot/scripts/update-crux-pin.py --summary ../pin.txt || status=$?
-          [ "$status" = 3 ] && exit 0
-          [ "$status" = 0 ] || exit "$status"
-          python3 ../crux-pilot/scripts/open-pin-pr.py --host github --message-file ../pin.txt
+          cd product-x && python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
 ```
 
-Jenkins with Bitbucket Cloud, in a declarative pipeline job on a Docker agent with the product's Dev Container image. The token is a repository access token with pull request write scope, and the SSH key may push the bot branch.
+Jenkins with Bitbucket Cloud, as a declarative pipeline on a Docker agent with the product's Dev Container image. `crux-pin-token` holds the access token, and `crux-pin-ssh` a key that may push the bot branch.
 
 ```groovy
 pipeline {
   agent { docker { image 'registry.example/acme/product-x-dev:1' } }
   triggers { cron('H 3 * * *') }
-  options { disableConcurrentBuilds() }
+  options { disableConcurrentBuilds(); skipDefaultCheckout() }
   stages {
     stage('Crux pin') {
       steps {
+        deleteDir()
         dir('product-x') { checkout scm }
-        sshagent(['crux-pin-bot-ssh']) {
-          withCredentials([string(credentialsId: 'crux-pin-bot-token', variable: 'BITBUCKET_TOKEN')]) {
+        sshagent(['crux-pin-ssh']) {
+          withCredentials([string(credentialsId: 'crux-pin-token', variable: 'CRUX_PIN_TOKEN')]) {
             sh '''
               west init -l product-x && west update crux-pilot
               cd product-x
-              status=0
-              python3 ../crux-pilot/scripts/update-crux-pin.py --summary ../pin.txt || status=$?
-              [ "$status" = 3 ] && exit 0
-              [ "$status" = 0 ] || exit "$status"
-              python3 ../crux-pilot/scripts/open-pin-pr.py --host bitbucket-cloud \
-                  --repo acme/product-x --message-file ../pin.txt
+              python3 ../crux-pilot/scripts/crux-pin-bot.py --host bitbucket-cloud --repo acme/product-x
             '''
           }
         }
@@ -659,7 +670,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - `scripts/test-product-template.sh <board>` runs in one shard of the Zephyr workflow, `storage`, and that workflow does not run for [documentation-only changes](ci-zephyr-shards.md#documentation-only-changes). It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
 - `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, delivery lines with a fix on the older one, the hash-list check, a commercial edition under a new project name, a reused project name that must fail, a hand-pinned manifest with no import or with a Zephyr-only import, and the steps for a Zephyr patch release. All of these used invented local repositories. None of these routes built anything with Zephyr.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
-- `tests/build/test_update_crux_pin.py` and `tests/build/test_open_pin_pr.py` run the two pin scripts on local throwaway Git repositories, with a fake `gh` and a local fake of the Bitbucket Cloud pull request API. No real GitHub, Bitbucket or Jenkins job ran them.
+- `tests/build/test_update_crux_pin.py`, `tests/build/test_open_pin_pr.py` and `tests/build/test_crux_pin_bot.py` run the pin scripts on local throwaway Git repositories, with a fake `gh` and a local fake of the Bitbucket Cloud pull request API. No real GitHub, Bitbucket or Jenkins job ran them.
 
 **What was not run**
 
