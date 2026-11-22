@@ -943,9 +943,11 @@ static int run_w8(bool control, bool early_ack)
 #endif
 
 /*
- * I3 for W8 and W8C: atomic/w8 is one complete generation, old or new. I2 adds that it is not
- * older than acknowledged. A target that does not exist at all is reported apart, because that is
- * the window W8C opens on purpose. settings/w2, which W8 never touches, is checked as in W1.
+ * I3 for W8 and W8C: atomic/w8 is one complete generation. I2 adds that it is not older than
+ * acknowledged; no generation newer than the one in progress exists at a cut. A target that does
+ * not exist at all is reported apart, because that is the window W8C opens on purpose.
+ * settings/w2, which W8 never touches, is reported apart too, so that a damaged settings/w2 cannot
+ * hide behind a missing target.
  */
 static void check_w8(uint32_t acked, struct powercut_result *out)
 {
@@ -961,7 +963,8 @@ static void check_w8(uint32_t acked, struct powercut_result *out)
         complete = generation <= W8_GENERATIONS && size == w8_content(expected, generation) &&
                    memcmp(buffer, expected, size) == 0;
     }
-    out->replaced = out->replaced && complete;
+    out->w2_intact = out->replaced; /* check_w2 at floor 0, from powercut_verify */
+    out->replaced = complete;
     out->data = complete && generation >= acked;
 }
 

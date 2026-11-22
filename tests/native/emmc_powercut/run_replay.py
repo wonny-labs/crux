@@ -60,15 +60,19 @@ With --workload W8, W8 and W8C (W8-control) run, on images built with a Crux Fil
 fatfs-w8.json). Both write each generation of atomic/w8 to atomic/w8.tmp through File (create,
 write, sync, close). W8 then renames it onto atomic/w8 with the VFS rename, the data path of an
 atomic replace; W8C removes atomic/w8 with File and then renames with File, which is all File allows
-today. I3 is that atomic/w8 is one complete generation, I2 that it is not older than acknowledged,
-and the verifier reports missing=1 when atomic/w8 does not exist. On red-fix-file, W8 must keep
-every invariant and read_error=0 on both profiles. W8C must fail I3 with the target missing, at a
-cached lost cut between the removal's commit and the rename's commit of every generation (the window
-control); if it does not, the workload cannot see the window. A W8C case whose only violations are
-I2 and I3 with missing=1 is counted as a window case; any other W8C violation is a failure. The
-flush, early acknowledgement and damaged image controls run on W8 and must fail as required. On
-FatFs both workloads are recorded as observations, with only the damaged image control, and no
-fat-nofix image is needed.
+today. I3 is that atomic/w8 is one complete generation, I2 that it is not older than acknowledged.
+The verifier reports missing=1 when atomic/w8 does not exist, and w2=0 when settings/w2, which W8
+never touches, is damaged (a violation of its own). On red-fix-file, W8 must keep every invariant
+and read_error=0 on both profiles. A W8C case is a window case when its only violations are I2 and
+I3, the target is missing, and the cut lies inside the replace of the generation after the
+acknowledged one: after the first metaroot sector of its unlink commit and not after the end of its
+rename commit (the closing flush on the cached profile, the last metaroot sector without a cache).
+Any other W8C violation is a failure. W8C must show a window case at a cached lost cut in every
+generation (the window control); if it does not, the workload cannot see the window. The flush,
+early acknowledgement and damaged image controls run on W8 and must fail as required. On FatFs both
+workloads are recorded as observations, a missing target is counted with no span check (FatFs has
+no metaroot), only the damaged image control runs, and no fat-nofix image is needed. In a W8 run
+every cut case is listed in the JSON with its position and seed.
 
 The profile commits when a file is created, so a W3 step that creates a file commits twice and a
 cut between the two can leave the new file present and empty. On Reliance Edge the W3 verifier runs
@@ -109,7 +113,7 @@ METAROOT_MODELS = ('prefix', 'torn', 'reordered')
 FIELDS = ('mount', 'data', 'read_error', 'replace', 'untouched', 'recommit')
 VIOLATIONS = {'mount': 'I1', 'data': 'I2', 'replace': 'I3', 'untouched': 'I4', 'recommit': 'I5'}
 LINE = re.compile(r'POWERCUT ' + ' '.join(f'{field}=([01])' for field in FIELDS) +
-                  r'(?: created_empty=([01]))?(?: cmp=([01]))?(?: missing=([01]))?')
+                  r'(?: created_empty=([01]))?(?: cmp=([01]))?(?: missing=([01]) w2=([01]))?')
 TIMEOUT = 60
 # On W1 the other copy of the file's inode is a valid older inode and file data has no check, so a
 # draw that keeps the new metaroot only gives data=0, which an older state explains: the barrier
@@ -145,6 +149,8 @@ def violations(result):
     found = [invariant for field, invariant in VIOLATIONS.items() if result[field] == 0]
     if result['read_error']:
         found.append('read_error')
+    if result.get('w2') == 0:
+        found.append('w2')
     return found
 
 
@@ -251,6 +257,7 @@ class Replay:
                 result['cmp'] = int(lines[0].group(len(FIELDS) + 2))
             if has_missing:
                 result['missing'] = int(lines[0].group(len(FIELDS) + 3))
+                result['w2'] = int(lines[0].group(len(FIELDS) + 4))
             answer = (result, None)
         self.memo[key] = answer
         return answer
@@ -326,14 +333,51 @@ class Replay:
             if not ok:
                 self.fail(record, 'the verifier does not pass on an uncut image', image)
 
+    def w8c_spans(self, events, profile):
+        """For each W8C generation, the cut positions where its target may be missing.
+
+        The trace holds four commits per generation (create, sync, unlink, rename), each a run of
+        metaroot sector writes. Generation n's window starts after the first metaroot sector of its
+        unlink commit and ends with its rename commit: at the closing flush on the cached profile,
+        at the last metaroot sector without a cache. Returns {generation: (first, last)}, both
+        positions inclusive.
+        """
+        runs = []
+        index = 0
+        while index < len(events):
+            if events[index].kind == 'write' and events[index].sector in self.metaroot:
+                end = index
+                while (end < len(events) and events[end].kind == 'write' and
+                       events[end].sector in self.metaroot):
+                    end += 1
+                runs.append((index, end - 1))
+                index = end
+            else:
+                index += 1
+        if len(runs) != 4 * W8_GENERATIONS:
+            raise RunError(f'W8C {profile}: {len(runs)} metaroot writes, not four per generation')
+        spans = {}
+        for generation in range(1, W8_GENERATIONS + 1):
+            unlink = runs[4 * (generation - 1) + 2]
+            rename = runs[4 * (generation - 1) + 3]
+            last = rename[1] + 1
+            if profile == 'cached':
+                last = next(i for i in range(rename[1] + 1, len(events))
+                            if events[i].kind == 'flush')
+            spans[generation] = (unlink[0] + 1, last)
+        return spans
+
     def observe(self, events, workload, profile):
         groups = {}
         failed = []
+        spans = self.w8c_spans(events, profile) if workload == 'W8C' and self.reliance else None
         for position, model in self.positions(events, workload, profile):
             record, image, result = self.case('fix', events, workload, profile, model, position)
             group = groups.setdefault(model, {'cases': 0, 'passed': 0, 'no_result': 0,
                                               'violations': {}})
             group['cases'] += 1
+            if self.w8:
+                group.setdefault('positions', []).append([position, record['seed']])
             if model == 'torn':
                 tore = position < len(events) and events[position].kind == 'write'
                 group['tore'] = group.get('tore', 0) + tore
@@ -352,12 +396,17 @@ class Replay:
             if not found:
                 group['passed'] += 1
                 continue
+            in_span = spans is None or (
+                record['acked'] + 1 in spans and
+                spans[record['acked'] + 1][0] <= position <= spans[record['acked'] + 1][1])
             if (workload == 'W8C' and result.get('missing') and
-                    set(found) <= WINDOW_VIOLATIONS):
+                    set(found) <= WINDOW_VIOLATIONS and in_span):
                 # The window that remove-then-rename opens on purpose: not a failure of the
                 # file system, and the window control needs it.
                 group['window'] = group.get('window', 0) + 1
-                self.window.append(dict(record, result=result))
+                self.window.append(dict(record, result=result,
+                                        span=None if spans is None else
+                                        list(spans[record['acked'] + 1])))
                 continue
             for invariant in found:
                 group['violations'][invariant] = group['violations'].get(invariant, 0) + 1
@@ -513,8 +562,9 @@ class Replay:
         A lost cut keeps everything before the last flush. Right after the removal's commit, and
         before the rename's, that is the volume without atomic/w8. Each generation n has such a cut,
         with n - 1 generations acknowledged, among the mandatory positions (each side of every
-        flush), so each must show missing=1 with mount=1. If one does not, the replay cannot see
-        the window and W8 passing proves nothing.
+        flush), so each must show missing=1 with mount=1, at a position inside generation n's
+        span from its unlink commit to its rename commit (checked when the case is classified). If
+        one does not, the replay cannot see the window and W8 passing proves nothing.
         """
         cases = [case for case in self.window
                  if case['profile'] == 'cached' and case['model'] == 'lost']
@@ -531,6 +581,7 @@ class Replay:
             'required': 'mount=1, missing=1 and I3 failing in every generation\'s replace',
             'generations_with_missing_target': seen,
             'positions': sorted(case['position'] for case in cases),
+            'spans': {str(case['acked'] + 1): case['span'] for case in cases},
             'cases': cases, 'failed_as_required': ok,
         }
 
@@ -731,7 +782,7 @@ class Replay:
             record['no_result'] = reason
         if not ok:
             self.fail(record, 'the damaged image control did not report mount=0', image)
-        return {'name': 'damaged image', 'image': 'fat-fix', 'required': 'mount=0',
+        return {'name': 'damaged image', 'image': self.names['fix'], 'required': 'mount=0',
                 'case': dict(record, result=result), 'failed_as_required': ok}
 
     def execute(self):

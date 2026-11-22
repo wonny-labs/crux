@@ -14,7 +14,8 @@
  *              --create-may-be-empty lets the W3 check accept a created, still empty file of the
  *              step in progress, and appends created_empty=0|1 to the line; for W4 the line ends
  *              with cmp=0|1, whether the Settings File backend's temporary is left behind; for
- *              W8 and W8C it ends with missing=0|1, whether the replaced file is absent
+ *              W8 and W8C it ends with missing=0|1 w2=0|1, whether the replaced file is
+ *              absent and whether settings/w2 is intact
  */
 #include "fs_backend.h"
 #include "workloads.h"
@@ -221,7 +222,7 @@ static void verify(enum powercut_workload w)
         printf(" cmp=%d", result.cmp_left);
     }
     if (w == POWERCUT_W8 || w == POWERCUT_W8C) {
-        printf(" missing=%d", result.target_missing);
+        printf(" missing=%d w2=%d", result.target_missing, result.w2_intact);
     }
     printf("\n");
     fflush(stdout);

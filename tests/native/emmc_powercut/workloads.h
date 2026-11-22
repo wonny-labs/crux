@@ -59,6 +59,8 @@ struct powercut_result {
     bool cmp_left;
     /* W8 and W8C only: the replaced file does not exist at all, as distinct from a damaged one. */
     bool target_missing;
+    /* W8 and W8C only: settings/w2, which they never touch, is intact. Kept apart from replaced. */
+    bool w2_intact;
 };
 
 /* Expects the volume unmounted; mounts it without formatting and leaves it mounted. */

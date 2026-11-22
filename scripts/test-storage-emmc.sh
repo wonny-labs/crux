@@ -585,7 +585,7 @@ PY
 # write a temporary through File; W8 puts it in place with the VFS rename, W8C with File's remove and
 # rename. On red-fix-file the invariants are asserted for W8 on both profiles, and W8C must lose the
 # target at a cached lost cut inside every generation's replace (the window control), with no other
-# violation. The flush, early acknowledgement and damaged image controls must fail. On fat-fix-file
+# violation and only inside that generation's unlink-to-rename span. The flush, early acknowledgement and damaged image controls must fail. On fat-fix-file
 # both workloads are observations. The run has its own JSON, so the runs above do not move.
 (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix-file" \
     "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;file.conf" \
@@ -597,7 +597,7 @@ PY
     "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
     "-DEXTRA_CONF_FILE=fatfs.conf;fatfs-file.conf" -DEXTRA_DTC_OVERLAY_FILE=fatfs-file.overlay \
     -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
-# 64 samples took about 50 s (Reliance Edge) and 22 s (FatFs) in an emulated amd64 container.
+# 64 samples took about 95 s (Reliance Edge) and 29 s (FatFs) in an emulated amd64 container.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
     --exe-fix "$powercut_dir/red-fix-file/zephyr/zephyr.exe" \
     --exe-nofix "$powercut_dir/red-nofix-file/zephyr/zephyr.exe" \
