@@ -240,6 +240,8 @@ touch "{self.workspace}/.west/config"
         config = json.loads((REPO / ".devcontainer" / "devcontainer.json").read_text())
         self.assertEqual(config["postCreateCommand"], "bash scripts/bootstrap.sh --keep-going")
         self.assertEqual(config["postAttachCommand"], "bash scripts/bootstrap.sh status")
+        # CRUX_BOOTSTRAP set on the host before the container is created picks the steps.
+        self.assertEqual(config["containerEnv"]["CRUX_BOOTSTRAP"], "${localEnv:CRUX_BOOTSTRAP:all}")
 
 
 if __name__ == "__main__":

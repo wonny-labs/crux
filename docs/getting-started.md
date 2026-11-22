@@ -1,6 +1,6 @@
 # Getting started
 
-> **Status:** written from the scripts and `devcontainer.json`. It has not yet been run on WSL2 or on native Linux.
+> **Status:** written from the scripts and `devcontainer.json`. On Windows with WSL2 the board route ran once with an earlier container set-up (see the [board page](boards/mimxrt1060_evkb.md#probe-and-connection)); the single Dev Container and its automatic `scripts/bootstrap.sh` have not been run yet, on WSL2 or on native Linux.
 
 This page sets up the environment and takes you to a first working build, on native Linux or on Windows with WSL2. It states what the scripts and the Dev Container require, so that the first build does not fail for a reason that is not obvious. The [Tutorial](tutorial.md) continues from here, and the [Build and Integration Guide](build.md) covers the builds in depth.
 
@@ -40,7 +40,7 @@ Three things are involved, and each has one owner:
 | --- | --- |
 | You | The parent folder, with `mkdir -p`, and the clone inside it. The parent folder can have any name, for example `~/crux-workspace`. Use a folder that holds only Crux |
 | The Dev Container | Nothing in the parent folder. It mounts the parent folder (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) at `/workspace` and opens the repository inside it |
-| `scripts/bootstrap-zephyr.sh` | `.west/`, `zephyr/` and `modules/` in the parent folder. It runs `west init -l` there and then `west update`. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default |
+| `scripts/bootstrap.sh`, which the Dev Container runs (through `scripts/bootstrap-zephyr.sh`) | `.west/`, `zephyr/` and `modules/` in the parent folder. It runs `west init -l` there and then `west update`. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default |
 
 The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`. So:
 
@@ -53,13 +53,13 @@ One layout, on the host and in the container:
 ~~~text
 ~/crux-workspace/          # on the host: you create it; becomes the west workspace
   crux-pilot/              # you clone the repository here
-  .west/  zephyr/  modules/    # created by bootstrap-zephyr.sh (bootloader/ only with the crux-boot group)
+  .west/  zephyr/  modules/    # created by the bootstrap (bootloader/ only with the crux-boot group)
 
 /workspace/                # the same folder inside the Dev Container
   crux-pilot/  zephyr/  modules/    # never /workspace/crux-pilot/crux-pilot
 ~~~
 
-Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
+Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. There is one Dev Container, for work with and without a board ([section 6](#6-the-dev-container-sets-itself-up)). The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
 
 ## 3. Windows with WSL2
 
@@ -77,19 +77,20 @@ The first set-up downloads from these places. Each one has to be reachable, dire
 | --- | --- | --- |
 | Dev Container base image | `mcr.microsoft.com` (`.devcontainer/Dockerfile`) | Building the container |
 | Ubuntu packages | The Ubuntu archive | The Dockerfile (`apt-get`) |
-| Python packages | PyPI | The Dockerfile's own `pip install` (west, pytest), `postCreateCommand` in `devcontainer.json`, and the pip installs in `scripts/bootstrap-zephyr.sh` (Zephyr requirements) and `scripts/test-boot-composition.sh` (MCUboot requirements) |
+| Python packages | PyPI | The Dockerfile's own `pip install` (west, pytest), the tools step of `scripts/bootstrap.sh`, and the pip installs in `scripts/bootstrap-zephyr.sh` (Zephyr requirements) and `scripts/test-boot-composition.sh` (MCUboot requirements) |
 | west projects | `github.com` (`zephyrproject-rtos` by default; the `wolfSSL` and `tuxera` projects only when their optional west groups are enabled, see `west.yml`) | `west update` in `scripts/bootstrap-zephyr.sh` |
-| GoogleTest | A source archive from `github.com/google/googletest`, fetched by CMake (`CMakeLists.txt`) | The first Host configure with `scripts/bootstrap-host.sh` |
-| Zephyr SDK | Zephyr SDK release assets on GitHub. `west sdk install` looks the release up through the GitHub REST API | `scripts/bootstrap-zephyr.sh --install-sdk` |
+| GoogleTest | A source archive from `github.com/google/googletest`, fetched by CMake (`CMakeLists.txt`) | The first Host configure, in the host step of `scripts/bootstrap.sh` (`scripts/bootstrap-host.sh`) |
+| Zephyr SDK | Zephyr SDK release assets on GitHub. `west sdk install` looks the release up through the GitHub REST API | The zephyr step of `scripts/bootstrap.sh` (`scripts/bootstrap-zephyr.sh --install-sdk`) |
+| J-Link software, only for a board | A package you download from SEGGER, or a copy your organisation hosts (`CRUX_JLINK_URL`) | The image build ([board route](board-jlink-usbipd.md#steps), step 3) |
 
 What the code does about the network:
 
-- `scripts/check-host.sh` runs with dependency resolution off, so it needs the first `scripts/bootstrap-host.sh` run to have fetched GoogleTest.
+- `scripts/check-host.sh` runs with dependency resolution off, so it needs the host step of the bootstrap to have fetched GoogleTest.
 - `scripts/bootstrap-zephyr.sh` reads `CRUX_GITHUB_TOKEN`. When it is set, the script passes it to `west sdk install` as `--personal-access-token`. Use it when the unauthenticated GitHub API rate limit stops the SDK download:
 
   ~~~sh
   export CRUX_GITHUB_TOKEN=<read-only token>
-  scripts/bootstrap-zephyr.sh --install-sdk
+  scripts/bootstrap.sh zephyr
   ~~~
 
 - A proxy allowlist may also need `api.github.com`, `codeload.github.com` and the hosts of the SDK release files.
@@ -104,24 +105,61 @@ These figures are estimates. No minimum has been measured.
 - **WSL2.** The Docker disk lives in a virtual disk file that grows and does not shrink by itself. Check the free space of the Windows drive that holds it.
 - **Where it goes.** The SDK, the Python virtual environment and the caches are in the Docker volume `crux-host-cache`, mounted at `/opt/crux-cache`. The west checkouts are in the parent folder of the repository. Builds go to `build/` in the repository, which Git ignores.
 
-## 6. Setup commands
+## 6. The Dev Container sets itself up
 
-Inside the container, from `/workspace/crux-pilot`. Pick the row that fits what you want. The Needs column gives what each row needs first.
+After the container is created, it runs `scripts/bootstrap.sh` by itself (`postCreateCommand` in `devcontainer.json`). You do not run a set-up command. In order, it:
 
-| What you want | Run | Needs | Disk and time |
-| --- | --- | --- | --- |
-| Host tests only | `scripts/bootstrap-host.sh` | Nothing else | Not yet measured |
-| Zephyr samples | `scripts/bootstrap-zephyr.sh --install-sdk` once, then Part B of the [Tutorial](tutorial.md#part-b-zephyr) | Nothing else. It does not need the Host script, but the Tutorial starts with `scripts/bootstrap-host.sh` in Part A. Both the west checkouts and the SDK are large downloads | Not yet measured |
-| Controller scenarios on `native_sim` and the board cross-build | Both bootstrap scripts, then `scripts/test-controller.sh` | `scripts/test-controller.sh` itself needs only the Zephyr bootstrap and its SDK. The Host script adds the Host tests | Not yet measured |
-| Before a pull request | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) | One earlier `scripts/bootstrap-host.sh`, because `check-host.sh` runs offline and reuses the GoogleTest that the bootstrap fetched | Not yet measured |
+1. adds the west workspace folders to Git's `safe.directory` list and installs the pinned CMake, Ninja, clang-format, west and pytest into a Python environment in the cache volume;
+2. configures, builds and tests the Linux Host preset `host-debug` (`scripts/bootstrap-host.sh`), which fetches GoogleTest once;
+3. creates the west workspace in the parent folder, installs Zephyr's Python requirements and the Zephyr SDK with the `arm-zephyr-eabi` toolchain (`scripts/bootstrap-zephyr.sh --install-sdk`).
 
-None of these commands programs or resets a board.
+A step that finished is skipped the next time, so reopening or rebuilding the container is quick; a step whose inputs change (the tool pins, `west.yml`, a deleted build folder, a deleted cache volume) runs again. Each step writes its output to `/opt/crux-cache/bootstrap/<step>.log`.
+
+If a download fails, the container still opens. The terminal shows which step failed, its log, and the command that runs it again. Each time VS Code attaches, `scripts/bootstrap.sh status` prints the result of every step. From `/workspace/crux-pilot`:
+
+~~~sh
+scripts/bootstrap.sh status      # what finished, what failed, and the command to rerun it
+scripts/bootstrap.sh             # run every unfinished step again
+scripts/bootstrap.sh zephyr      # one step: host or zephyr
+CRUX_BOOTSTRAP_FORCE=1 scripts/bootstrap.sh   # run every step again, finished or not
+~~~
+
+To set up less, set `CRUX_BOOTSTRAP` to `host` or `zephyr` in the shell that starts VS Code before the container is created; the default is `all`. Host work needs only `host`; the Zephyr samples on `native_sim` and a board need `zephyr`.
+
+| What you want | Needs | Then |
+| --- | --- | --- |
+| Host tests and samples | The host step | Part A of the [Tutorial](tutorial.md) |
+| Zephyr samples on `native_sim`, Twister, board cross-builds | The zephyr step. The west checkouts and the SDK are large downloads | Part B of the [Tutorial](tutorial.md#part-b-zephyr) |
+| A board | Both steps, the J-Link package and the Linux side ([section 7](#7-if-you-use-a-board)) | Part C of the [Tutorial](tutorial.md#part-c-run-on-your-board) |
+| Before a pull request | The host step, because `scripts/check-host.sh` runs offline and reuses the GoogleTest that it fetched | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) |
+
+Disk and time of the steps have not been measured. None of these commands programs or resets a board.
 
 ## 7. If you use a board
 
 Most work needs no board. Host tests, `native_sim` runs and board cross-builds run without one, and none of them proves physical operation.
 
-To run Crux on a board you need the board's debug probe and a USB connection for its console. The page for your board under [Boards](boards/README.md) says which probe, which connectors and which host have been used, and holds every board procedure. On Windows the probe and the serial port are USB devices of Windows: a tool inside WSL2 sees them only through USB forwarding, and the board page says whether its route needs it. Any operation on a board needs approval for the task. [Part C of the Tutorial](tutorial.md#part-c-run-on-your-board) builds a sample for your board and flashes it.
+To run Crux on a board you need the board's debug probe and a USB connection for its console. The page for your board under [Boards](boards/README.md) says which probe, which connectors and which host have been used, and holds every board procedure. Any operation on a board needs approval for the task. [Part C of the Tutorial](tutorial.md#part-c-run-on-your-board) builds a sample for your board and flashes it.
+
+For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up for the probe; three things are yours, once:
+
+1. In PowerShell on Windows (install [usbipd-win](https://github.com/dorssel/usbipd-win) first; `bind` needs an administrator PowerShell, once per device; keep the `attach` window open):
+
+   ~~~powershell
+   usbipd list
+   usbipd bind --busid <BUSID>
+   usbipd attach --wsl --busid <BUSID> --auto-attach
+   ~~~
+
+2. In the WSL2 shell, in the repository checkout (not in the container), prepare the Linux side: `usbutils`, the udev rule and a check of the probe's device node:
+
+   ~~~sh
+   scripts/bootstrap.sh board-host
+   ~~~
+
+3. Put the J-Link package `JLink_Linux_<version>_x86_64.deb` from SEGGER in `.devcontainer/jlink/packages/` and run **Dev Containers: Rebuild Container**.
+
+On native Linux skip step 1. The [J-Link board route](board-jlink-usbipd.md) has the checks, the flash and what to do when a step fails. Without the package, the container works for everything except flashing and debugging, and `scripts/bootstrap.sh status` says how to add it.
 
 ## 8. Supported environments
 

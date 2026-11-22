@@ -1,16 +1,16 @@
 # J-Link board route on Linux and WSL2
 
-This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is attached to Linux (to WSL2 through usbipd-win on Windows), the J-Link software runs in the optional board Dev Container, and Zephyr's `west flash`, `west debug` and `west attach` drive it through the J-Link runner. [ADR-0007](decisions/0007-west-flash-and-debug-for-people-and-automation.md) records the decision and its conditions. The commands below use the RT1060-EVKB QSPI target; its [board page](boards/mimxrt1060_evkb.md) has the switches, jumpers and recovery.
+This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is attached to Linux (to WSL2 through usbipd-win on Windows), the J-Link software runs in the Dev Container, and Zephyr's `west flash`, `west debug` and `west attach` drive it through the J-Link runner. [ADR-0007](decisions/0007-west-flash-and-debug-for-people-and-automation.md) records the decision and its conditions. The commands below use the RT1060-EVKB QSPI target; its [board page](boards/mimxrt1060_evkb.md) has the switches, jumpers and recovery.
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows; `west debugserver` at 4000 kHz connected once for a VS Code attach. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: the default speed `auto` used below, step 7 (`west attach` and `compare-sections`), `west debug`, the Cortex-Debug profiles, and a console inside the container.
+**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows; `west debugserver` at 4000 kHz connected once for a VS Code attach. That run used the separate board Dev Container configuration of that time, which bound `/dev/bus/usb` with a `mounts` entry; what `scripts/bootstrap.sh board-host` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`. Not run there yet: the single Dev Container described here (its `-v` binding of `/dev/bus/usb`, `CRUX_JLINK=auto` and the automatic `scripts/bootstrap.sh`), `scripts/bootstrap.sh board-host` itself, that udevadm handling, `--auto-attach`, the default speed `auto` used below, step 7 (`west attach` and `compare-sections`), `west debug`, the Cortex-Debug profiles, and a console inside the container.
 
 ## What you need
 
 - On Windows: WSL2 with Docker Engine inside it (not Docker Desktop) and the clone in the WSL2 file system, as [Getting started](getting-started.md) describes. On native Linux: Docker Engine.
 - The SEGGER J-Link software for Linux, the 64-bit x86 Debian package `JLink_Linux_<version>_x86_64.deb`, downloaded by you from SEGGER after accepting its licence, or the URL and SHA-256 of a copy that your organisation hosts (step 3). The Zephyr runner applies the board's QSPI flash loader only with J-Link software 7.70d or newer.
-- The Zephyr workspace bootstrapped with `scripts/bootstrap-zephyr.sh`, which installs `pylink-square` for the J-Link runner.
+- The Zephyr workspace, which the Dev Container sets up by itself with `scripts/bootstrap.sh` (it runs `scripts/bootstrap-zephyr.sh`, which installs `pylink-square` for the J-Link runner). `scripts/bootstrap.sh status` shows whether it finished.
 
 ## Steps
 
@@ -27,7 +27,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 2. **WSL2 or Linux shell, in the repository checkout: prepare the Linux side.**
 
    ~~~sh
-   scripts/setup-board-host.sh
+   scripts/bootstrap.sh board-host
    ~~~
 
    It installs `usbutils` if `lsusb` is missing (with `sudo apt-get`), stops with the `usbipd attach` line if `/dev/bus/usb` is missing, checks that a J-Link is listed, installs the udev rule [`99-crux-jlink.rules`](../.devcontainer/jlink/99-crux-jlink.rules) once, and prints the probe's device node. Either of these results lets the container open the probe:
@@ -35,11 +35,11 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    - `crw-rw----` with group `plugdev`: the result when the rule applies, on native Linux and also seen on WSL2.
    - `crw-rw-rw-` with owner and group `root`: seen on WSL2 for a usbipd-attached J-Link before the rule applied.
 
-   The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run the script again after a reattach. It never talks to the probe or the board.
+   The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run it again after a reattach. It refuses to run inside the container. It never talks to the probe or the board.
 
-3. **The J-Link package.** Put `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it. If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in `.devcontainer/jlink/devcontainer.json` instead, and the build downloads it and checks its SHA-256. A placed package wins over the URL. Without either, the build stops and says which file to place where. Nothing is downloaded from SEGGER, and no licence is accepted for you.
+3. **The J-Link package.** Put `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it. If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) instead, and the build downloads it and checks its SHA-256. A placed package wins over the URL. Without either, the image is built without the J-Link software and the build log, and `scripts/bootstrap.sh status` in the container, say which file to place where. Nothing is downloaded from SEGGER, and no licence is accepted for you.
 
-4. **VS Code: open the board Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** and choose **Crux Pilot board, J-Link**. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
+4. **VS Code: open the Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** (**Rebuild Container** if it is already open), so that the image picks up the package. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
 
 5. **In the container: check the probe and the tools.** Run this and every later command in the container from the repository root, the folder VS Code opens (`/workspace/crux-pilot`):
 
@@ -91,26 +91,24 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
 | Symptom | What to do |
 | --- | --- |
-| Docker refuses to start the board container because `/dev/bus/usb` is missing | Attach the probe first (step 1), then rebuild |
-| The build stops with `no SEGGER J-Link package` | Place the package or set the URL and checksum (step 3) |
+| `scripts/bootstrap.sh status` or the build log says `J-Link software is not installed` | Place the package or set the URL and checksum (step 3), then **Rebuild Container** |
+| Step 5 shows an empty `/dev/bus/usb` | The container started before the probe was attached; attach it (step 1). The folder is bound, so the probe appears without a restart |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
-| Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bind mount follows a new attach |
+| Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
 | Step 7 or 8 cannot connect | Retry with `--speed 4000`, then `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
 | J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1, with `--auto-attach`) and run step 2 again |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
-The default Dev Container still works for builds: reopen it with **Crux Pilot (Ubuntu 24.04 amd64)**.
+## The Dev Container and the board
 
-## The board Dev Container
+There is one Dev Container, [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json), and it is ready for a board. Without a probe or a J-Link package it works the same for Host and `native_sim` work. For the board it does three things:
 
-[`.devcontainer/jlink/devcontainer.json`](../.devcontainer/jlink/devcontainer.json) reuses the default [Dockerfile](../.devcontainer/Dockerfile) with the build argument `CRUX_JLINK=1`, which runs [`install-jlink.sh`](../.devcontainer/jlink/install-jlink.sh). The default container is unchanged for people without a board: it mounts no USB devices and installs no J-Link software. The board container differs in these ways:
+- The build argument `CRUX_JLINK=auto` runs [`install-jlink.sh`](../.devcontainer/jlink/install-jlink.sh), which installs the J-Link package and `usbutils` and adds the `vscode` user to `plugdev` (ID 46 on Debian and Ubuntu) when a package or URL is given (step 3), and otherwise prints a warning and installs nothing. `CRUX_JLINK=1` makes a missing package an error; `0` skips the step. The package's install script calls `udevadm`, which the image does not have, so `install-jlink.sh` provides a no-op `/usr/sbin/udevadm` during the install only and removes it afterwards; the udev rule acts on the Linux side, not in the container.
+- It binds the host's `/dev/bus/usb` with `docker run -v` (in `runArgs`) and allows only USB character devices (`--device-cgroup-rule=c 189:* rmw`). It does not use `--privileged`. `-v` creates the folder when it does not exist yet, as on WSL2 before the first `usbipd attach`, where a `mounts` entry would stop the container from starting; a probe attached later, or one that re-enumerates, appears in the bound folder. The binding gives the container every USB device node of the host, which a process in the container can open where the node's permissions allow it.
+- It adds the Cortex-Debug extension (below).
 
-- It installs the J-Link package and `usbutils` and adds the `vscode` user to `plugdev` (ID 46 on Debian and Ubuntu). The package's install script calls `udevadm`, which the image does not have, so `install-jlink.sh` provides a no-op `/usr/sbin/udevadm` during the install only and removes it afterwards; the udev rule acts on the Linux side, not in the container.
-- It bind-mounts the host's `/dev/bus/usb` and allows only USB character devices (`--device-cgroup-rule=c 189:* rmw`). It does not use `--privileged`. A probe that re-enumerates after a reset or a new attach stays reachable.
-- `CRUX_JLINK_DEB` picks one of several packages in the folder by file name.
-
-Build provenance records the default `.devcontainer/devcontainer.json` and the Dockerfile, not the board configuration, so use the default container for builds whose provenance matters. A package left in `packages/` is copied into every image build, including the default one, and enlarges it without installing anything.
+`CRUX_JLINK_DEB` picks one of several packages in the folder by file name. Build provenance hashes `devcontainer.json` and the Dockerfile; it does not record whether a J-Link package was installed. A package left in `packages/` is copied into every image build.
 
 Options of the J-Link runner:
 
@@ -120,12 +118,12 @@ Options of the J-Link runner:
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging in the board container.** The board container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
+**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
-Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from this container. Settings you may add to a local copy of a profile, none of them tried here:
+Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from the board container configuration of that time. Settings you may add to a local copy of a profile, none of them tried here:
 
 - `svdFile`: the MIMXRT1062 SVD file, for the peripheral register view. No SVD file is in the Zephyr workspace; NXP ships one with its MCUXpresso SDK and device packs under NXP's licence.
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
@@ -136,4 +134,4 @@ The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host G
 ## Not covered
 
 - Images that run from SDRAM, which need a J-Link script that sets up SDRAM before loading. No such script exists in Crux.
-- Docker Desktop, which handles USB devices differently.
+- Docker Desktop, which handles USB devices differently. Without a board, the Dev Container also starts on Docker Desktop: on macOS (Docker Desktop 29.8.2) `docker run -v /dev/bus/usb:/dev/bus/usb` started a container, and a missing `-v` source folder was created where a `--mount` bind refused to start. Docker Desktop on Windows was not tried.

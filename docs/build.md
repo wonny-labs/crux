@@ -6,7 +6,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 
 | Use case | Entry point | Scope |
 | --- | --- | --- |
-| Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
+| Develop and test Crux on Linux | The Dev Container, whose `scripts/bootstrap.sh` runs `scripts/bootstrap-host.sh`, and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
 | Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Zephyr only, no Crux release tag yet |
@@ -38,7 +38,7 @@ Run the commands below from `/workspace/crux-pilot` inside the container unless 
 
 **What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
 
-The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. For the initial build, dependency acquisition and Host CTest run:
+The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. The initial build, dependency acquisition and Host CTest run are the host step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created; by hand:
 
 ~~~sh
 scripts/bootstrap-host.sh
@@ -71,7 +71,7 @@ For the complete quality checks and component-specific runners, use the [test gu
 
 Zephyr is integrated through [zephyr/module.yml](../zephyr/module.yml), [zephyr/CMakeLists.txt](../zephyr/CMakeLists.txt) and [zephyr/Kconfig](../zephyr/Kconfig), **not** through the Linux Host root CMake entry point. The [west manifest](../west.yml) pins the Zephyr revision and selected CMSIS/NXP modules.
 
-After the Dev Container is ready, initialise or update the separate west workspace and install the pinned Zephyr SDK and Arm toolchain:
+The zephyr step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created, initialises or updates the separate west workspace and installs the pinned Zephyr SDK and Arm toolchain. By hand:
 
 ~~~sh
 scripts/bootstrap-zephyr.sh --install-sdk
