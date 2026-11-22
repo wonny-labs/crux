@@ -192,6 +192,41 @@ class GitHubTest(Base):
         self.assertIn("outside", result.stderr)
         self.assertIsNone(self.remote_ref(BRANCH))
 
+    def test_a_shallow_checkout_works_as_actions_checkout_makes_it(self):
+        def shallow():
+            shutil.rmtree(self.work)
+            git("clone", "-q", "--depth", "1", self.origin.as_uri(), str(self.work))
+            self.assertEqual("true", git("rev-parse", "--is-shallow-repository", cwd=self.work))
+            (self.work / "west.yml").write_text(f"revision: {self.revision}\n")
+            self.message.write_text(f"build(deps): move to {self.revision}\n\nLog.\n")
+
+        self.revision = "bbbb"
+        shallow()
+        self.assertEqual(DONE, self.run_script("--host", "github", env=self.env).returncode)
+        # The base moves on, then a later run rebuilds the bot branch from a new shallow clone.
+        seed = self.tmp / "seed"
+        git("pull", "-q", cwd=seed)
+        (seed / "other.txt").write_text("more\n")
+        git("add", ".", cwd=seed)
+        git("commit", "-q", "-m", "feat: more", cwd=seed)
+        git("push", "-q", "origin", "HEAD:main", cwd=seed)
+        self.revision = "cccc"
+        shallow()
+        result = self.run_script("--host", "github", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual(self.remote_ref("main"), self.remote_ref(f"{BRANCH}~1"))
+        self.assertEqual(1, len(self.gh()["prs"]))
+        # A person's commit is still found from a shallow clone.
+        person = self.tmp / "person"
+        git("clone", "-q", "-b", BRANCH, str(self.origin), str(person))
+        (person / "fix.txt").write_text("hand fix\n")
+        git("add", ".", cwd=person)
+        git("commit", "-q", "-m", "fix: adapt", cwd=person)
+        git("push", "-q", "origin", BRANCH, cwd=person)
+        self.revision = "dddd"
+        shallow()
+        self.assertEqual(FOREIGN, self.run_script("--host", "github", env=self.env).returncode)
+
     def test_the_branch_may_not_be_the_base(self):
         self.change("bbbb")
         result = self.run_script("--host", "github", "--branch", "main", env=self.env)

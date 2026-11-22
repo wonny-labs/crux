@@ -423,9 +423,9 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 
 ### CI wrappers
 
-Run the command on a schedule, hourly to daily, one job at a time, on a fresh checkout. These examples use `product-x` and a Crux project named `crux-pilot`, as the template does. Replace both names with your own.
+Run the command on a schedule, hourly to daily, one job at a time, on a fresh checkout. Turn the schedule on only once the token exists and the pin has reached a Crux commit that holds the scripts. A shallow checkout works, but the script then fetches the whole history, so the examples fetch it at once. These examples use `product-x` and a Crux project named `crux-pilot`, as the template does. Replace both names with your own.
 
-GitHub Actions:
+GitHub Actions. The checkout keeps the token in `.git/config` for the push, so add no other steps to this job.
 
 ```yaml
 name: Crux pin
@@ -438,12 +438,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with: {path: product-x, token: "${{ secrets.CRUX_PIN_TOKEN }}"}
+        with: {path: product-x, fetch-depth: 0, token: "${{ secrets.CRUX_PIN_TOKEN }}"}
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - env: {CRUX_PIN_TOKEN: "${{ secrets.CRUX_PIN_TOKEN }}"}
         run: |
-          pip install west
+          pip install west==1.4.0
           west init -l product-x && west update crux-pilot
           cd product-x && python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
 ```

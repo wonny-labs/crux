@@ -61,6 +61,9 @@ def remote_branch_head(remote, branch):
 def foreign_commits(remote, base, branch):
     """Commits on the bot branch, past the base, that lack the bot's trailer."""
     tracking = f"refs/pin-bot/{branch}"
+    if git("rev-parse", "--is-shallow-repository").stdout.strip() == "true":
+        # A shallow clone cannot tell an older base commit from a person's commit.
+        git("fetch", "-q", "--unshallow", remote)
     git("fetch", "-q", remote, f"+refs/heads/{branch}:{tracking}", f"+refs/heads/{base}:refs/pin-bot/base")
     shas = git("rev-list", f"refs/pin-bot/base..{tracking}").stdout.split()
     return [sha for sha in shas
