@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Crux Queue was removed (docs/messaging-contract.md). This runner keeps the checks that did not
-# depend on it: the portable controller timing scenario (samples/messaging/controller.c) on Host,
+# depend on it: the portable controller timing scenario (tests/messaging_consumer/scenario/controller.c) on Host,
 # and the fractional Thread timing suite on native_sim.
 set -euo pipefail
 repo="$(git rev-parse --show-toplevel)"

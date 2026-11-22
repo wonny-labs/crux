@@ -10,7 +10,7 @@ set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 include("${CRUX_SOURCE_DIR}/cmake/CruxConsumerBoundary.cmake")
 crux_assert_portable_usage(crux::time crux::thread)
-add_library(messaging_controller_portable OBJECT "${CRUX_SOURCE_DIR}/samples/messaging/controller.c")
+add_library(messaging_controller_portable OBJECT scenario/controller.c)
 target_link_libraries(messaging_controller_portable PRIVATE crux::time crux::thread)
 # Only the composition selects native providers; no provider usage is exposed to
 # the independently compiled C17 portable source target above.

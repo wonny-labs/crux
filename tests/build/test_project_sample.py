@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The small example project of Issue #220 needs no native header and nothing outside the public contracts.
 
-samples/web_project adds a page and an API route. Its C sources may include Crux's public web header and
-the C standard library, and nothing from Zephyr, a board, a vendor or a component's private folders. Its page
+tests/web/project_sample/project adds a page and an API route. Its C sources may include Crux's public web
+header and the C standard library, and nothing from Zephyr, a board, a vendor or a component's private folders. Its page
 must load under the strict content policy, so it holds no inline script, inline style or other origin. The
 Host suite Web.project_sample serves it on the real core.
 """
@@ -11,7 +11,7 @@ import re
 import unittest
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
-SAMPLE = REPOSITORY / "samples/web_project"
+SAMPLE = REPOSITORY / "tests/web/project_sample/project"
 STANDARD = {"stdbool.h", "stddef.h", "stdint.h", "string.h", "stdio.h", "stdlib.h"}
 PUBLIC = {"crux/web.h"}
 INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.MULTILINE)

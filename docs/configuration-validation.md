@@ -46,7 +46,7 @@ composition without exposing provider headers/types to consumers.
 
 ## Application activation example
 
-`samples/controller/configuration/scenario.c` uses the existing portable
+`tests/configuration/controller_scenario.c` uses the existing portable
 controller core and application-owned `report_every_cycles` (default 5, range
 1–100) and `diagnostics_enabled` (default false). It demonstrates missing defaults,
 read/update/save/load, rejected updates, and a runtime snapshot captured at cycle
@@ -140,7 +140,7 @@ scripts/check-dependencies.sh
 scripts/analyze-host.sh
 clang-tidy-18 -p build/linux/debug components/configuration/src/configuration.c \
   tests/configuration/conformance.c tests/configuration/fault_provider.c \
-  samples/controller/configuration/scenario.c
+  tests/configuration/controller_scenario.c
 ```
 
 Additional focused manual gate for changes to this mechanism or pinned Settings
