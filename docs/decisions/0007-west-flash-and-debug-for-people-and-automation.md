@@ -2,7 +2,7 @@
 
 Status: **Accepted** by the maintainer on 21 November 2026: W0, people and agents or automation may use `west flash` and `west debug`. W1 to W3 keep existing rules and W4 to W6 put W0 into practice; all six were recommended with the decision and are confirmed by the maintainer's approval of this record's pull request. W4 was amended by the maintainer on 22 November 2026: one Dev Container, ready for a board, instead of an optional board container. Baseline: `origin/main` at `37643805cf7d33914fca43f668b0cd53a348cf50`. Zephyr files were read in a v4.4.0 checkout; `git diff v4.4.0 v4.4.2` is empty for each file cited, so the facts hold for the pinned v4.4.2. Author: Claude Code, model `claude-opus-5-5`.
 
-This record decides who may use Zephyr's standard `west flash` and `west debug` commands, and under which conditions. It adds documentation, J-Link support in the Dev Container and checks that its files parse. What has been run is listed under [What was not verified](#what-was-not-verified). The route it documents is in the [board guide](../board-jlink-usbipd.md).
+This record decides who may use Zephyr's standard `west flash` and `west debug` commands, and under which conditions. It adds documentation, an optional board Dev Container and checks that its files parse (one board-ready Dev Container since the W4 amendment). What has been run is listed under [What was not verified](#what-was-not-verified). The route it documents is in the [board guide](../board-jlink-usbipd.md).
 
 **Labels.** **Verified** means read at the baseline revision, or in the pinned Zephyr v4.4.2 source, and cited. **Reported** means the maintainer reported it and it was not re-checked here. **Not verified** means no run exists.
 

@@ -62,6 +62,7 @@ class SetupBoardHostTest(unittest.TestCase):
 
     def run_script(self, **environment):
         env = {"PATH": str(self.bin), "CRUX_USB_DIR": str(self.usb),
+               "CRUX_DOCKERENV": str(Path(self.temporary.name) / "no-dockerenv"),
                "CRUX_UDEV_RULES_DIR": str(self.rules), "HOME": self.temporary.name}
         env.update(environment)
         return subprocess.run([str(self.bin / "bash"), str(SCRIPT), "board-host"], env=env,
@@ -162,6 +163,11 @@ class SetupBoardHostTest(unittest.TestCase):
         self.lsusb()
         self.node(0o666)
         result = self.run_script(CRUX_REPO="/workspace/crux-pilot")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not in the Dev Container", result.stderr)
+        marker = Path(self.temporary.name) / "dockerenv"
+        marker.write_text("")
+        result = self.run_script(CRUX_DOCKERENV=str(marker))
         self.assertEqual(result.returncode, 2)
         self.assertIn("not in the Dev Container", result.stderr)
         self.assertEqual(self.calls(), "")

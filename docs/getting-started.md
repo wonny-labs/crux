@@ -63,7 +63,7 @@ Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reope
 
 ## 3. Windows with WSL2
 
-- Use Docker Desktop with the WSL2 backend, or Docker Engine inside the WSL2 distribution.
+- Use Docker Engine inside the WSL2 distribution; the board route needs it. Docker Desktop with the WSL2 backend may also work without a board; the Dev Container's `/dev/bus/usb` binding has not been tried with it on Windows.
 - Clone inside the WSL2 file system, for example under `~/crux-workspace`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
 - Set `git config --global core.autocrlf false` in WSL2 before cloning. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
 - Start VS Code from WSL2 (`code ~/crux-workspace/crux-pilot`) with the Dev Containers extension, then reopen in the container.

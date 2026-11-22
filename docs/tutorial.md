@@ -32,7 +32,7 @@ The Dev Container builds and tests the Linux Host when it is created ([The Dev C
 scripts/bootstrap.sh status
 ```
 
-It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.sh host`, which ends with the CTest summary, `100% tests passed`.
+It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.sh host`; its output shows the CTest summary, `100% tests passed`, and ends with `bootstrap: host ok`.
 
 ### 2. Run Crux samples on the Linux Host
 

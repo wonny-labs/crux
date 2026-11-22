@@ -56,10 +56,11 @@ usage() {
 # the probe's current device node. A probe that re-enumerates gets a new node, so run it again
 # after a reattach. It never talks to the probe or the board. It is safe to run again.
 # Environment, for tests only: CRUX_USB_DIR (default /dev/bus/usb), CRUX_UDEV_RULES_DIR (default
-# /etc/udev/rules.d), CRUX_PLUGDEV_GID (group ID of plugdev in the container, default 46).
+# /etc/udev/rules.d), CRUX_PLUGDEV_GID (group ID of plugdev in the container, default 46),
+# CRUX_DOCKERENV (the file that marks a container, default /.dockerenv).
 # board_host begin
 board_host() {
-    if [ -n "${CRUX_REPO:-}" ] || [ -f /.dockerenv ]; then
+    if [ -n "${CRUX_REPO:-}" ] || [ -f "${CRUX_DOCKERENV:-/.dockerenv}" ]; then
         printf 'error: run "scripts/bootstrap.sh board-host" on the Linux host that has the probe (the WSL2\n' >&2
         printf 'error: distribution or native Linux), not in the Dev Container.\n' >&2
         exit 2
@@ -258,6 +259,7 @@ rerun_hint() { printf 'scripts/bootstrap.sh %s' "$1"; }
 run_step() {
     local name=$1 log=$state/$1.log status
     if is_done "$name"; then
+        printf 'ok\n' >"$state/$name.status"
         printf 'bootstrap: %s already done\n' "$name"
         return 0
     fi
@@ -287,8 +289,9 @@ run_step() {
 jlink_notice() {
     # Only in the Dev Container (containerEnv sets CRUX_REPO): elsewhere the probe tools are the host's.
     [ -n "${CRUX_REPO:-}" ] || return 0
-    if command -v JLinkExe >/dev/null 2>&1; then
-        printf 'J-Link software: installed (%s)\n' "$(command -v JLinkExe)"
+    # CRUX_JLINK_EXE: the tool looked for; only tests change it.
+    if command -v "${CRUX_JLINK_EXE:-JLinkExe}" >/dev/null 2>&1; then
+        printf 'J-Link software: installed (%s)\n' "$(command -v "${CRUX_JLINK_EXE:-JLinkExe}")"
         return 0
     fi
     cat <<'EOF'
@@ -301,7 +304,13 @@ EOF
 
 if [ "$mode" = status ]; then
     for name in tools host zephyr; do
-        result=$(cat "$state/$name.status" 2>/dev/null || printf 'not run')
+        # A finished step counts only while its record still matches, as in a real run.
+        if is_done "$name"; then
+            result=ok
+        else
+            result=$(cat "$state/$name.status" 2>/dev/null || printf 'not run')
+            [ "$result" != ok ] || result='not run'
+        fi
         line=$(printf '%-7s %s' "$name" "$result")
         case "$result" in
             ok) ;;

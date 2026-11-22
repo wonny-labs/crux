@@ -86,10 +86,10 @@ touch "{self.workspace}/.west/config"
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
     def run_bootstrap(self, *arguments, **environment):
-        # A J-Link installed on the test machine must not answer for the container.
-        path = [d for d in os.environ["PATH"].split(os.pathsep) if d and not (Path(d) / "JLinkExe").exists()]
         env = {
-            "PATH": os.pathsep.join([str(self.bin), *path]),
+            "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
+            # A J-Link installed on the test machine must not answer for the container.
+            "CRUX_JLINK_EXE": "crux-test-jlink-exe",
             "HOME": self.temporary.name,
             "CRUX_WORKSPACE": str(self.workspace),
             "CRUX_REPO": str(self.repo),
@@ -221,12 +221,21 @@ touch "{self.workspace}/.west/config"
         self.assertRegex(result.stdout, r"zephyr +FAILED \(exit 4\)")
         self.assertIn("scripts/bootstrap.sh zephyr", result.stdout)
 
+    def test_status_follows_the_records(self):
+        self.assertOk(self.run_bootstrap())
+        shutil.rmtree(self.repo / "build" / "linux" / "debug")
+        self.assertRegex(self.run_bootstrap("status").stdout, r"host +not run")
+        # A deleted cache volume loses the status files; a skipped step writes its status again.
+        shutil.rmtree(self.cache / "bootstrap")
+        self.assertOk(self.run_bootstrap("--keep-going"))
+        self.assertRegex(self.run_bootstrap("status").stdout, r"host +ok")
+
     def test_jlink_notice_when_the_tools_are_missing(self):
         result = self.run_bootstrap("host")
         self.assertOk(result)
         self.assertIn("J-Link software is not installed", result.stdout)
         self.assertIn(".devcontainer/jlink/packages/", result.stdout)
-        self.stub(self.bin / "JLinkExe", "exit 0\n")
+        self.stub(self.bin / "crux-test-jlink-exe", "exit 0\n")
         result = self.run_bootstrap("host")
         self.assertNotIn("J-Link software is not installed", result.stdout)
 
