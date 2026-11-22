@@ -61,7 +61,7 @@
       "externalConsole": false
     },
     {
-      "name": "Board container: Flash",
+      "name": "Board container: Flash and run to main",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf",
@@ -77,7 +77,7 @@
         }
       ],
       "launchCompleteCommand": "exec-continue",
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "externalConsole": false,
       "miDebuggerServerAddress": "localhost:2331",
       "postRemoteConnectCommands": [
@@ -90,11 +90,21 @@
           "text": "-target-download",
           "description": "Program the QSPI image through the J-Link flash loader",
           "ignoreFailures": false
+        },
+        {
+          "text": "monitor reset",
+          "description": "Reset and halt the target so the new image starts from the boot ROM",
+          "ignoreFailures": false
+        },
+        {
+          "text": "-break-insert -t main",
+          "description": "Stop once at main",
+          "ignoreFailures": false
         }
       ]
     },
     {
-      "name": "Board container: Attach",
+      "name": "Board container: Attach (no reset)",
       "type": "cppdbg",
       "request": "launch",
       "targetArchitecture": "arm",

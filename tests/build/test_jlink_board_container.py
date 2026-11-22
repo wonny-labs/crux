@@ -139,7 +139,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertIn("Waiting for GDB connection", background["endsPattern"])
 
     def test_attach_connects_to_the_container_server_without_download_or_reset(self):
-        attach = self.launch["Board container: Attach"]
+        attach = self.launch["Board container: Attach (no reset)"]
         self.assertEqual(attach["preLaunchTask"], "Board container: start GDB Server")
         setup = self.commands(attach, "customLaunchSetupCommands")
         self.assertIn("-target-select remote localhost:2331", setup)
@@ -148,11 +148,13 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertNotIn("monitor reset", text)
         self.assertNotIn("host.docker.internal", text)
 
-    def test_flash_builds_downloads_and_stops_at_entry(self):
-        flash = self.launch["Board container: Flash"]
+    def test_flash_builds_downloads_and_runs_to_main(self):
+        flash = self.launch["Board container: Flash and run to main"]
         self.assertEqual(flash["miDebuggerServerAddress"], "localhost:2331")
-        self.assertTrue(flash["stopAtEntry"])
-        self.assertEqual(self.commands(flash, "postRemoteConnectCommands"), ["monitor reset", "-target-download"])
+        self.assertFalse(flash["stopAtEntry"])
+        self.assertEqual(flash["launchCompleteCommand"], "exec-continue")
+        self.assertEqual(self.commands(flash, "postRemoteConnectCommands"),
+                         ["monitor reset", "-target-download", "monitor reset", "-break-insert -t main"])
         task = self.tasks[flash["preLaunchTask"]]
         self.assertEqual(task["dependsOrder"], "sequence")
         self.assertEqual(task["dependsOn"], ["Build firmware", "Board container: start GDB Server"])

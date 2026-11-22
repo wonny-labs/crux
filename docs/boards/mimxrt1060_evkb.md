@@ -51,13 +51,13 @@ Operator practice from bench sessions, not a repository record: check all four S
    west -v flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
    ~~~
 
-   The run used `--speed 400`. The route's default is now `--speed 4000`, which has not been run yet; if it fails to connect, use 400, then 100.
+   The run used `--speed 400`. The route's default is `--speed 4000`, which has connected once through `west debugserver` but has not been used for a flash yet; if it fails to connect, use 400, then 100.
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the board container, use **Board container: Attach** (no download) or **Board container: Flash** (builds, downloads and stops at the reset entry); both start `west debugserver` in the container first ([guide](../board-jlink-usbipd.md#the-board-dev-container)). These profiles have not been run on hardware.
+To debug from VS Code in the board container, pick **Board container: Attach (no reset)** to look at the image already running (it cannot stop at `main`, which has already run) or **Board container: Flash and run to main** to build, download, reset and stop at `main`. Both start `west debugserver` in the container first ([guide](../board-jlink-usbipd.md#the-board-dev-container)). An attach of this kind worked once with the GDB Server started by hand at 4000 kHz; the two profiles as written have not been run.
 
-Not run on this route: the VS Code board container profiles, the read-only `west attach` check with `compare-sections`, `west debug`, SWD at 4000 kHz, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
+Not run on this route: the two VS Code board container profiles as written, the read-only `west attach` check with `compare-sections`, `west debug`, a flash at 4000 kHz, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
 ## Flash and debug
 

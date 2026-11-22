@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz (4000 kHz, the default below, has not been run yet), and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, a flash at 4000 kHz, and a console inside the container.
+**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz (4000 kHz, the default below, has not been used for a flash yet), and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, a flash at 4000 kHz, and a console inside the container.
 
 ## What you need
 
@@ -116,14 +116,16 @@ Options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The runner's default is `auto`; this guide uses 4000 kHz. If the connection fails, retry with 400 kHz, then 100 kHz. 400 kHz is the speed of the recorded flash from WSL2 and of the macOS records; 100 kHz was the first connection on a new set-up. No run at 4000 kHz is recorded yet |
+| `--speed <kHz>` | SWD speed. The runner's default is `auto`; this guide uses 4000 kHz. If the connection fails, retry with 400 kHz, then 100 kHz. 400 kHz is the speed of the recorded flash from WSL2 and of the macOS records; 100 kHz was the first connection on a new set-up. 4000 kHz has connected once through `west debugserver`; no flash at 4000 kHz is recorded yet |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging in the board container** (not run on hardware yet). Two profiles in [`.vscode/launch.json`](../.vscode/launch.json) use a GDB Server inside the container on `localhost:2331`, which the task **Board container: start GDB Server** starts with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000` and leaves running in the background:
+**VS Code debugging in the board container.** Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both connect to a GDB Server inside the container on `localhost:2331`, which their task **Board container: start GDB Server** starts first with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000` and leaves running in the background:
 
-- **Board container: Attach** asks for the ELF of the image on the board and connects without reset or download. Connecting may still halt the target.
-- **Board container: Flash** builds the Time sample, resets the board and downloads the image, then stops at the reset entry; Continue (F5) starts it.
+- **Board container: Attach (no reset)** asks for the ELF of the image on the board and connects without reset or download. The image keeps running from where it is, so it cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board container: Flash and run to main** builds the Time sample, resets the board, downloads the image, resets it again and stops once at `main`; Continue (F5) runs on.
+
+As reported by the maintainer, an attach of this kind worked once from WSL2, with the GDB Server started by hand at 4000 kHz and a hand-edited copy of the Mac profile; the two profiles as written here and the flash at 4000 kHz have not been run.
 
 The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop the GDB Server task (**Terminal: Terminate Task**) before you use `west flash` or J-Link Commander, which need the probe.
 
