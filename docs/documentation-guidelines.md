@@ -45,7 +45,7 @@ The type of each page outside the typed folders is recorded in [`tests/build/fix
 
 ### Examples
 
-- The [tutorial](first-hour.md) gives one command per step and the line to expect, such as `CONTROLLER_COMPLETE cycles=20`. It does not compare Twister with CTest; the [test guide](../tests/README.md) does that.
+- The [tutorial](tutorial.md) gives one command per step and the line to expect, such as `CONTROLLER_COMPLETE cycles=20`. It does not compare Twister with CTest; the [test guide](../tests/README.md) does that.
 - A contract page that opens with `Status: merged in PR #210 for Issue #177` mixes a record into a reference page. The pull request already holds that provenance, and [Component readiness](component-readiness.md) holds the evidence level. The contract keeps the interface.
 - A section called "Decisions for review" or "What is built, faked and untested" on a contract page is a record or a plan. It belongs in the issue, the pull request, a record page or `docs/plans/`.
 - An architecture page that contains a proposal "not adopted, for the owner's decision" mixes a plan into an explanation. The proposal belongs in `docs/plans/` until it is adopted.
