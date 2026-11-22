@@ -54,21 +54,20 @@ def main(argv=None):
                 update += [flag, value]
         if args.no_hook:
             update.append("--no-hook")
+        update += ["--token-env", args.token_env] + (["--user-env", args.user_env] if args.user_env else [])
         status = subprocess.run(update).returncode
         if status == CURRENT:
             return 0
         if status != 0:
             return 1
-        with message.open("a") as out:
-            for extra in args.append_body:
-                out.write("\n" + Path(extra).read_text().rstrip("\n") + "\n")
-
         open_pr = [sys.executable, str(HERE / "open-pin-pr.py"), "--host", args.host,
                    "--message-file", str(message), "--base", args.base, "--branch", args.branch,
                    "--remote", args.remote, "--token-env", args.token_env]
         for flag, value in (("--repo", args.repo), ("--user-env", args.user_env), ("--api-url", args.api_url)):
             if value:
                 open_pr += [flag, value]
+        for extra in args.append_body:
+            open_pr += ["--append-body", extra]
         for path in args.allow_path or [args.manifest]:
             open_pr += ["--allow-path", path]
         status = subprocess.run(open_pr).returncode

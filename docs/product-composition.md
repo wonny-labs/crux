@@ -370,7 +370,7 @@ cd product-x
 python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
 ```
 
-It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, with `--allow-path` defaulting to the manifest, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text. Exit status `0` after a person's commit means the pin is not moving, so look at a bot pull request that stays open.
+It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, with `--allow-path` defaulting to the manifest, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text but not the commit. Exit status `0` after a person's commit means the pin is not moving, so look at a bot pull request that stays open.
 
 | Variable | Use |
 | --- | --- |
@@ -397,8 +397,9 @@ The push goes through the remote `origin` with the job's own Git credentials, wh
 | `--log-limit N` | 100 | The most commits to list |
 | `--no-hook` | Off | Skip the hook |
 | `--dry-run` | Off | Leave the manifest alone and run no hook. `--summary` is still written |
+| `--token-env NAME`, `--user-env NAME` | `CRUX_PIN_TOKEN`, none | Variables kept from Git and the hook |
 
-If the product has an executable `scripts/crux-pin-hook`, it runs after the move, from the product root, so the product can update files that quote the pin, such as tests or documents. Its exit status `0` means success. Any other status fails the run with status `1` and leaves the manifest updated, so the bot opens no pull request.
+If the product has an executable `scripts/crux-pin-hook`, it runs after the move, from the product root, so the product can update files that quote the pin, such as tests or documents. It never gets the token's variable. Its exit status `0` means success. Any other status fails the run with status `1` and leaves the manifest updated, so the bot opens no pull request.
 
 | Variable | Value |
 | --- | --- |
@@ -407,7 +408,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `CRUX_PIN_MANIFEST` | The manifest's absolute path |
 | `CRUX_PIN_CHECKOUT` | The Crux checkout, still at the old revision, or empty when none was found |
 
-`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run, and Git processes do not get the token's variable. A token that the checkout stored in `.git/config` stays there for the push. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
+`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run in either script, and their Git processes do not get the token's variable. A token that the checkout stored in `.git/config` stays there for the push. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. When the branch already holds the same change, it pushes nothing and leaves the open pull request's text alone, so evidence added to it stays. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
 
 | Option | Default | Use |
 | --- | --- | --- |
@@ -420,6 +421,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `--token-env NAME` | `CRUX_PIN_TOKEN` | The token's variable |
 | `--user-env NAME` | None | Basic authentication for Bitbucket, see above |
 | `--api-url URL` | `https://api.bitbucket.org/2.0` | The Bitbucket API root, `https` only |
+| `--append-body FILE` | None | Add the file to the pull request text, not the commit. May repeat |
 | `--allow-path PATH` | `west.yml` | A file or directory, from the repository root, that the commit may change, such as one the hook updates. May repeat |
 
 ### CI wrappers

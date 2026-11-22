@@ -36,13 +36,13 @@ class PinPrError(Exception):
     pass
 
 
-# Set from --token-env in main(); kept out of every Git process.
-TOKEN_ENV = "CRUX_PIN_TOKEN"
+# Set from --token-env and --user-env in main(); kept out of every Git process.
+SECRET_ENV = {"CRUX_PIN_TOKEN"}
 
 
 def git(*args, check=True):
     # Repository hooks never run: a build may have written them, and they must not see the token.
-    env = {k: v for k, v in os.environ.items() if k != TOKEN_ENV}
+    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}
     result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], text=True,
                             capture_output=True, env=env)
     if check and result.returncode != 0:
@@ -126,12 +126,14 @@ class GitHub:
             raise PinPrError(f"gh {' '.join(args[:2])} failed: {result.stderr.strip()}")
         return result.stdout
 
-    def upsert(self, base, branch, title, body):
+    def upsert(self, base, branch, title, body, refresh=True):
         found = json.loads(self.gh("pr", "list", "--head", branch, "--base", base, "--state", "open",
                                    "--json", "number,url") or "[]")
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
             handle.write(body)
         try:
+            if found and not refresh:
+                return "unchanged", found[0]["url"]
             if found:
                 number = str(found[0]["number"])
                 self.gh("pr", "edit", number, "--title", title, "--body-file", handle.name)
@@ -177,10 +179,12 @@ class BitbucketCloud:
         except urllib.error.URLError as error:
             raise PinPrError(f"Bitbucket {method} failed: {error.reason}") from None
 
-    def upsert(self, base, branch, title, body):
+    def upsert(self, base, branch, title, body, refresh=True):
         query = (f'source.branch.name="{branch}" AND destination.branch.name="{base}" '
                  f'AND state="OPEN"')
         found = self.call("GET", f"{self.base_url}?{urllib.parse.urlencode({'q': query})}").get("values", [])
+        if found and not refresh:
+            return "unchanged", found[0]["links"]["html"]["href"]
         if found:
             pr = self.call("PUT", f"{self.base_url}/{found[0]['id']}",
                            {"title": title, "description": body})
@@ -226,10 +230,11 @@ def main(argv=None):
     parser.add_argument("--allow-path", action="append", metavar="PATH",
                         help="a file or directory, from the repository root, that the commit may change; "
                              "may repeat (default: west.yml)")
+    parser.add_argument("--append-body", action="append", default=[], metavar="FILE",
+                        help="add this file to the pull request text, not the commit; may repeat")
     args = parser.parse_args(argv)
     args.allow_path = args.allow_path or ["west.yml"]
-    global TOKEN_ENV
-    TOKEN_ENV = args.token_env
+    SECRET_ENV.update(name for name in (args.token_env, args.user_env) if name)
 
     try:
         if args.branch in (args.base, "main", "master") or args.branch.startswith("release"):
@@ -238,6 +243,8 @@ def main(argv=None):
         if top == args.message_file.resolve().parent or top in args.message_file.resolve().parents:
             raise PinPrError("keep --message-file outside the repository, or it is committed")
         title, body, message = read_message(args.message_file)
+        for extra in args.append_body:
+            body = body.rstrip("\n") + "\n\n" + Path(extra).read_text().rstrip("\n") + "\n"
         os.chdir(top)  # Git paths and --allow-path are relative to the repository root.
         host = make_host(args)  # Checks the token before anything is pushed.
         paths = changed_paths()
@@ -256,13 +263,14 @@ def main(argv=None):
                       file=sys.stderr)
                 return EXIT_FOREIGN
         new_head = commit(message, paths)
-        if same_change(old_head, new_head):
+        refresh = not same_change(old_head, new_head)
+        if not refresh:
             print(f"{args.branch} already holds this change")
         else:
             lease = f"--force-with-lease=refs/heads/{args.branch}:{old_head or ''}"
             git("push", "-q", lease, args.remote, f"{new_head}:refs/heads/{args.branch}")
             print(f"pushed {new_head[:12]} to {args.branch}")
-        action, url = host.upsert(args.base, args.branch, title, body)
+        action, url = host.upsert(args.base, args.branch, title, body, refresh)
         print(f"{action} {url}")
         return EXIT_DONE
     except (PinPrError, OSError) as error:

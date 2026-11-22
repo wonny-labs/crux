@@ -37,8 +37,25 @@ class PinError(Exception):
     pass
 
 
+# Variables that hold the pin bot's secrets; set from --token-env and --user-env in main().
+SECRET_ENV = {"CRUX_PIN_TOKEN"}
+
+
+def clean_env(extra=None):
+    """The environment without the secrets, for Git and the product hook."""
+    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}
+    env.update(extra or {})
+    return env
+
+
+def run_git(*args, cwd=None, text=False):
+    # Repository hooks never run, and Git never sees the pin bot's secrets.
+    return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], cwd=cwd, text=text,
+                          capture_output=True, env=clean_env())
+
+
 def git(*args, cwd=None):
-    result = subprocess.run(["git", *args], cwd=cwd, text=True, capture_output=True)
+    result = run_git(*args, cwd=cwd, text=True)
     if result.returncode != 0:
         raise PinError(f"git {args[0]} failed: {scrub(result.stderr.strip())}")
     return result.stdout
@@ -178,8 +195,7 @@ def workspace_checkout(manifest_path, project):
 
 
 def has_commit(repo, sha):
-    return subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=repo,
-                          capture_output=True).returncode == 0
+    return run_git("cat-file", "-e", f"{sha}^{{commit}}", cwd=repo).returncode == 0
 
 
 def commit_log(checkout, url, ref, old, new, limit):
@@ -189,7 +205,7 @@ def commit_log(checkout, url, ref, old, new, limit):
         repo = checkout
         if repo is not None and not has_commit(repo, new):
             # A fetch only adds objects and FETCH_HEAD; west's refs stay as they are.
-            subprocess.run(["git", "fetch", "-q", url, ref], cwd=repo, capture_output=True)
+            run_git("fetch", "-q", url, ref, cwd=repo)
         if repo is None or not has_commit(repo, new):
             temp = tempfile.mkdtemp(prefix="crux-pin-")
             repo = Path(temp) / "crux.git"
@@ -199,8 +215,7 @@ def commit_log(checkout, url, ref, old, new, limit):
         if not SHA.match(old.lower()) or not has_commit(repo, old):
             return [], f"The previous revision `{old}` is not a commit SHA here, so no log is shown."
         note = None
-        if subprocess.run(["git", "merge-base", "--is-ancestor", old, new], cwd=repo,
-                          capture_output=True).returncode != 0:
+        if run_git("merge-base", "--is-ancestor", old, new, cwd=repo).returncode != 0:
             note = "**The new revision does not contain the previous one.** Check that this move is intended."
         out = git("log", "--format=%h %s", "--abbrev=12", f"{old}..{new}", cwd=repo).splitlines()
         if len(out) > limit:
@@ -226,8 +241,7 @@ def summary(name, manifest_rel, old, new, source, lines, note):
 
 
 def product_root(manifest_path):
-    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=manifest_path.parent,
-                            text=True, capture_output=True)
+    result = run_git("rev-parse", "--show-toplevel", cwd=manifest_path.parent, text=True)
     return Path(result.stdout.strip()) if result.returncode == 0 else manifest_path.parent
 
 
@@ -237,7 +251,7 @@ def run_hook(root, env):
         return
     if not os.access(hook, os.X_OK):
         raise PinError(f"{HOOK} exists but is not executable")
-    result = subprocess.run([str(hook)], cwd=root, env=dict(os.environ, **env))
+    result = subprocess.run([str(hook)], cwd=root, env=clean_env(env))  # No secrets.
     if result.returncode != 0:
         raise PinError(f"{HOOK} failed with status {result.returncode}; the manifest is already updated")
 
@@ -259,7 +273,11 @@ def main(argv=None):
     parser.add_argument("--no-hook", action="store_true", help=f"do not run {HOOK}")
     parser.add_argument("--dry-run", action="store_true",
                         help="leave the manifest alone and run no hook; --summary is still written")
+    parser.add_argument("--token-env", default="CRUX_PIN_TOKEN", metavar="NAME",
+                        help="a variable kept from Git and the hook (default: CRUX_PIN_TOKEN)")
+    parser.add_argument("--user-env", metavar="NAME", help="another variable kept from Git and the hook")
     args = parser.parse_args(argv)
+    SECRET_ENV.update(name for name in (args.token_env, args.user_env) if name)
 
     try:
         with args.manifest.open(newline="") as handle:  # Keeps CRLF line endings.

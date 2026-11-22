@@ -151,15 +151,34 @@ class GitHubTest(Base):
         self.assertEqual(self.main, self.remote_ref(f"{BRANCH}~1"))
         self.assertEqual(self.main, self.remote_ref("main"))
 
-    def test_the_same_change_again_pushes_nothing(self):
+    def test_the_same_change_again_pushes_nothing_and_keeps_the_pr_text(self):
         self.change("bbbb")
         self.assertEqual(DONE, self.run_script("--host", "github", env=self.env).returncode)
         head = self.remote_ref(BRANCH)
+        # A product job adds its evidence to the pull request text by hand.
+        state = self.gh()
+        state["prs"][0]["body"] += "\nEvidence: image sha256 00ff\n"
+        self.state.write_text(json.dumps(state))
         self.change("bbbb")
         result = self.run_script("--host", "github", env=self.env)
         self.assertEqual(DONE, result.returncode, result.stderr)
         self.assertEqual(head, self.remote_ref(BRANCH))
-        self.assertEqual(1, len(self.gh()["prs"]))
+        prs = self.gh()["prs"]
+        self.assertEqual(1, len(prs))
+        self.assertIn("Evidence: image sha256 00ff", prs[0]["body"])
+        self.assertNotIn("edit", [call[1] for call in self.gh()["calls"]])
+
+    def test_append_body_goes_to_the_pr_text_only(self):
+        self.change("bbbb")
+        evidence = self.tmp / "evidence.md"
+        evidence.write_text("## Evidence\n\nimage sha256: 00ff\n")
+        result = self.run_script("--host", "github", "--append-body", str(evidence), env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        body = self.gh()["prs"][0]["body"]
+        self.assertTrue(body.startswith("Log for bbbb."))
+        self.assertTrue(body.rstrip().endswith("image sha256: 00ff"))
+        message = git("log", "-1", "--format=%B", BRANCH, cwd=self.origin)
+        self.assertNotIn("Evidence", message)
 
     def test_a_clean_tree_proposes_nothing(self):
         self.change("aaaa")
@@ -388,6 +407,16 @@ class BitbucketCloudTest(Base):
             self.assertNotIn(TOKEN, result.stdout + result.stderr)
         self.assertIn("pull-requests/1", second.stdout)
         self.assertEqual("revision: cccc", self.remote_file(BRANCH))
+
+    def test_the_same_change_again_leaves_the_pr_text_alone(self):
+        self.change("bbbb")
+        self.assertEqual(DONE, self.run_bitbucket().returncode)
+        self.server.prs[0]["description"] += "Evidence by hand\n"
+        self.change("bbbb")
+        result = self.run_bitbucket()
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual(["GET", "POST", "GET"], [c["method"] for c in self.server.calls])
+        self.assertIn("Evidence by hand", self.server.prs[0]["description"])
 
     def test_a_missing_token_fails_before_any_push_or_request(self):
         self.change("bbbb")

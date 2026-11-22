@@ -80,6 +80,9 @@ class CruxPinBotTest(unittest.TestCase):
         self.assertIn(self.new[:12], prs[0]["title"])
         self.assertIn("feat: new", prs[0]["body"])
         self.assertTrue(prs[0]["body"].rstrip().endswith("image sha256: 00ff"))
+        message = git("log", "-1", "--format=%B", BRANCH, cwd=self.origin)
+        self.assertIn("feat: new", message)
+        self.assertNotIn("image sha256", message)  # Evidence goes to the pull request only.
         pinned = git("show", f"{BRANCH}:west.yml", cwd=self.origin)
         self.assertIn(f"revision: {self.new}", pinned)
 
@@ -91,6 +94,34 @@ class CruxPinBotTest(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("already pinned", result.stdout)
         self.assertEqual(1, len(json.loads(self.state.read_text())["prs"]))
+
+    def test_no_git_process_and_no_product_hook_sees_the_token(self):
+        # A probe in front of git records each call's arguments and whether the secrets are set.
+        real = shutil.which("git", path=os.environ["PATH"])
+        probe_log = self.tmp / "git-calls.log"
+        bindir = self.tmp / "bin"
+        probe = bindir / "git"
+        probe.write_text(f"""#!/bin/sh
+printf '%s|%s|%s\\n' "${{CRUX_PIN_TOKEN:+token}}" "${{PIN_USER:+user}}" "$*" >> "{probe_log}"
+exec "{real}" "$@"
+""")
+        probe.chmod(probe.stat().st_mode | stat.S_IXUSR)
+        hook = self.work / "scripts/crux-pin-hook"
+        hook.parent.mkdir()
+        hook.write_text(f'#!/bin/sh\necho "[$CRUX_PIN_TOKEN][$PIN_USER]" > "{self.tmp / "hook.out"}"\n')
+        hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
+        git("add", ".", cwd=self.work)
+        git("commit", "-q", "-m", "feat: hook", cwd=self.work)
+        git("push", "-q", "origin", "HEAD:main", cwd=self.work)
+        self.env.update(CRUX_PIN_TOKEN="s3cret", PIN_USER="bot@example.invalid")
+        result = self.run_bot("--user-env", "PIN_USER")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("[][]", (self.tmp / "hook.out").read_text().strip())
+        calls = probe_log.read_text().splitlines()
+        self.assertTrue(calls)
+        for call in calls:
+            self.assertTrue(call.startswith("||"), call)
+            self.assertIn("core.hooksPath=/dev/null", call, call)
 
     def test_an_error_in_the_updater_fails_the_run(self):
         result = self.run_bot("--to", "no-such-ref")
