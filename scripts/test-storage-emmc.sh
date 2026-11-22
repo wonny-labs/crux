@@ -273,6 +273,43 @@ for allowed in -DCONFIG_CRUX_MMC_CACHE_FLUSH=y -DCRUX_EMMC_FLUSH_CONTROL=ON; do
 done
 printf 'Reliance Edge MMC guard: refused without the correction, allowed with it or the control\n'
 
+# The same guard for every File composition on an MMC disk, here FatFs: a File sync is the provider's
+# flush, which does not reach the medium past a turned-on eMMC cache without the correction. The
+# fat-nofix replay image with the FatFs simulator File provider added (and the RAM disk of
+# file_fatfs, only for that provider's dependency) must fail naming the option, and configure with
+# the correction or the fixture-only control. The fat-nofix image itself, without File, still
+# configures. A Reliance Edge image is refused by the adapter's guard above.
+file_guard_dir="$repo/build/zephyr/file-mmc-guard"
+file_guard_log="$file_guard_dir.log"
+file_guard_args=(-DZEPHYR_MODULES="$fatfs" -DEXTRA_CONF_FILE=fatfs.conf
+    -DCONFIG_CRUX_FILE_FATFS_SIMULATOR=y -DCONFIG_DISK_DRIVER_RAM=y
+    -DEXTRA_DTC_OVERLAY_FILE="$repo/tests/native/file_fatfs/app.overlay")
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$file_guard_dir" \
+        "$repo/tests/native/emmc_powercut" -- "${file_guard_args[@]}") >"$file_guard_log" 2>&1; then
+    printf 'A FatFs File composition on an MMC disk configured without CONFIG_CRUX_MMC_CACHE_FLUSH\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$file_guard_log")"
+[[ "$folded" == *'A Crux File composition on an MMC disk requires CONFIG_CRUX_MMC_CACHE_FLUSH=y'* ]] || {
+    printf 'The File MMC guard did not fail for the stated reason; see %s\n' "$file_guard_log" >&2
+    exit 1
+}
+for allowed in -DCONFIG_CRUX_MMC_CACHE_FLUSH=y -DCRUX_EMMC_FLUSH_CONTROL=ON; do
+    (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$file_guard_dir" \
+        "$repo/tests/native/emmc_powercut" -- "${file_guard_args[@]}" "$allowed") \
+        >"$file_guard_log" 2>&1 || {
+        printf 'The File MMC guard refused %s; see %s\n' "$allowed" "$file_guard_log" >&2
+        exit 1
+    }
+    grep -q '^CONFIG_CRUX_FILE_FATFS_SIMULATOR=y$' "$file_guard_dir/zephyr/.config" &&
+        grep -q '^CONFIG_DISK_DRIVER_MMC=y$' "$file_guard_dir/zephyr/.config" || {
+        printf 'The File MMC guard case with %s lost the FatFs File provider or the MMC disk\n' \
+            "$allowed" >&2
+        exit 1
+    }
+done
+printf 'File MMC guard (FatFs): refused without the correction, allowed with it or the control\n'
+
 # A tree that is not there is a configuration error that names the west group.
 missing_dir="$repo/build/zephyr/reliance-missing"
 missing_log="$missing_dir.log"
