@@ -141,6 +141,8 @@ Most work needs no board. Host tests, `native_sim` runs and board cross-builds r
 
 To run Crux on a board you need the board's debug probe and a USB connection for its console. The page for your board under [Boards](boards/README.md) says which probe, which connectors and which host have been used, and holds every board procedure. Any operation on a board needs approval for the task. [Part C of the Tutorial](tutorial.md#part-c-run-on-your-board) builds a sample for your board and flashes it.
 
+**The container can open the host's USB devices.** So that a debug probe works without a second configuration, the Dev Container binds the host's `/dev/bus/usb` and allows USB character devices (`--device-cgroup-rule=c 189:* rmw`); it does not use `--privileged`. The `vscode` user can use `sudo`, so a process in the container can open any USB device of the host, such as a keyboard, a security key or a storage device, whether or not you have a board. Use it with code you trust. If a security policy does not allow this, a configuration without the USB binding and the cgroup rule can be added back next to this one; Host and `native_sim` work need neither.
+
 For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up for the probe; three things are yours, once:
 
 1. In PowerShell on Windows (install [usbipd-win](https://github.com/dorssel/usbipd-win) first; `bind` needs an administrator PowerShell, once per device; keep the `attach` window open):
