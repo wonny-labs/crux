@@ -216,10 +216,9 @@ Which components have evidence on each board is recorded in [Component readiness
 board up as its guide says before you start. Any operation on a board, such as connecting a probe, a reset or a
 download, needs approval for your task.
 
-The steps below use the one board route that has been used: the J-Link GDB Server on a Mac and the build in the Dev
-Container. On Windows with WSL2, the board page's Linux and WSL2 route flashes from a board Dev Container instead.
-The commands are those
-of the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
+The steps below use the Mac route: the J-Link GDB Server on a Mac and the build in the Dev Container. On Windows with
+WSL2, the board page's Linux and WSL2 route flashes from a board Dev Container instead. The commands are those of the
+board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
 
 ### 10. Build a sample for your board
 

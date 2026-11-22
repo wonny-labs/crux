@@ -77,6 +77,7 @@ class SetupBoardHostTest(unittest.TestCase):
         self.node(0o666)
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("sudo apt-get update", self.calls())
         self.assertIn("sudo apt-get install -y usbutils", self.calls())
 
     def test_keeps_an_installed_lsusb(self):

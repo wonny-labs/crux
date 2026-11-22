@@ -39,7 +39,7 @@ On WSL2, attach the probe from PowerShell on Windows, then run this script again
     usbipd attach --wsl --busid <BUSID> --auto-attach
 
 Keep that PowerShell window open: --auto-attach attaches the probe again when it
-re-enumerates, for example after a reset or a probe firmware update.
+re-enumerates, for example after a probe firmware update.
 `usbipd list` shows the BUSID of the J-Link (vendor ID 1366). It must be bound
 once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
 On native Linux, plug the probe in.
@@ -50,6 +50,7 @@ step "1/5 usbutils"
 if command -v lsusb >/dev/null 2>&1; then
     echo "lsusb is installed"
 else
+    $sudo apt-get update
     $sudo apt-get install -y usbutils
     command -v lsusb >/dev/null 2>&1 || fail "lsusb is still missing after installing usbutils"
 fi

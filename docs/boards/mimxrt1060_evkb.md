@@ -34,13 +34,23 @@ Operator practice from bench sessions, not a repository record: check all four S
 | --- | --- |
 | Debug probe | An external SEGGER J-Link (a J-Link PLUS is recorded) on the 20-pin J2 header, with J9 and J10 removed. SWD at 400 kHz, device `MIMXRT1062xxx6A`, J-Link software V9.86a. The first connection on a new setup failed at 1000 kHz and was made at 100 kHz after J9 and J10 had been corrected |
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
-| Host | A Mac runs the J-Link GDB Server. The Dev Container runs the build and GDB and connects to the server at `host.docker.internal:2331` |
+| Host | On macOS, a Mac runs the J-Link GDB Server and the Dev Container runs the build and GDB, connecting to the server at `host.docker.internal:2331`. On Linux and WSL2, everything runs in the board Dev Container (below) |
 
-**Linux and Windows with WSL2.** The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the board Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a. In that run the work of `scripts/setup-board-host.sh` and of the udevadm handling in `install-jlink.sh` was done by hand and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` have not been run there themselves. The [J-Link board route](../board-jlink-usbipd.md) guide explains each step and the failures seen.
+**Linux and Windows with WSL2.** The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the board Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a; the image was built with a no-op `/usr/sbin/udevadm` added by hand, which `install-jlink.sh` now adds itself. The [J-Link board route](../board-jlink-usbipd.md) guide gives a shorter path with `scripts/setup-board-host.sh`, `usbipd attach --auto-attach` and an organisation-hosted package URL, which have not been run, and explains the failures seen.
 
-1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID> --auto-attach` in a window that stays open, so the probe is attached again when it re-enumerates. `/dev/bus/usb` exists in WSL2 only after the attach.
-2. WSL2 or Linux shell, in the repository checkout: `scripts/setup-board-host.sh`. It installs `usbutils` if needed, installs the udev rule and prints the probe's node: `crw-rw----` with group `plugdev`, or `crw-rw-rw-` owned by `root` (seen on WSL2 before the rule applied). The container can open either. Run it again after the probe re-enumerates.
-3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set the build arguments `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy that your organisation hosts.
+1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID>`, again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
+2. WSL2 shell, in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
+
+   ~~~sh
+   sudo apt-get update && sudo apt-get install -y usbutils
+   sudo cp .devcontainer/jlink/99-crux-jlink.rules /etc/udev/rules.d/
+   sudo udevadm control --reload-rules && sudo udevadm trigger
+   lsusb -d 1366:
+   ls -l /dev/bus/usb/*/*
+   ~~~
+
+   The J-Link's node was `crw-rw-rw-` owned by `root` before the rule applied, and `crw-rw----` with owner `root` and group `plugdev` after a reattach. The container can open either.
+3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`.
 4. VS Code: **Dev Containers: Rebuild and Reopen in Container**, choose **Crux Pilot board, J-Link**.
 5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
 6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
@@ -102,7 +112,7 @@ Without either option the build directory is the one that the VS Code profile an
 |---|---|---|
 | The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
 
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
+The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The default Dev Container has none, so on macOS the split between the Mac-hosted server and the container GDB stays. The board Dev Container has the J-Link software (see [Probe and connection](#probe-and-connection)).
 
 ## Recovery
 

@@ -45,7 +45,9 @@ if [ -z "$deb" ]; then
                 ;;
         esac
         deb=JLink_Linux_download_x86_64.deb
-        # The URL is not printed: an internal URL may carry an access token.
+        # Put no token in the URL: build arguments are visible in the image
+        # history and in the tracked devcontainer.json.
+        command -v curl >/dev/null 2>&1 || { echo "error: CRUX_JLINK_URL needs curl in the image" >&2; exit 1; }
         echo "Downloading the J-Link package from CRUX_JLINK_URL"
         curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$deb" "$url"
     else

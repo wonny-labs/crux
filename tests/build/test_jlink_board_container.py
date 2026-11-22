@@ -40,7 +40,7 @@ class BoardContainerConfigTest(unittest.TestCase):
         self.assertEqual(build["args"]["CRUX_JLINK"], "1")
 
     def test_board_container_leaves_the_package_url_empty(self):
-        # The company copy substitutes an internal URL at export; GitHub keeps it empty.
+        # A copy of the repository may set an internal URL; this repository keeps it empty.
         args = self.board["build"]["args"]
         self.assertEqual(args["CRUX_JLINK_URL"], "")
         self.assertEqual(args["CRUX_JLINK_DEB_SHA256"], "")
@@ -176,13 +176,14 @@ class InstallScriptTest(unittest.TestCase):
         self.server = root / "server"
         self.server.mkdir()
         # A fake apt-get: "install" runs what the J-Link package's postinst runs, with
-        # dpkg's maintainer-script PATH reduced to the stub's folder and the system tools.
+        # dpkg's maintainer-script PATH reduced to the stub's folder, so a real udevadm on the
+        # test machine is never found.
         self.stub("apt-get", f'''echo "$@" >> "{self.log}"
 case "$1" in
 install)
     test -x "{self.udevadm}" && echo "stub present" >> "{self.log}"
-    PATH="{self.udevadm.parent}:/usr/bin:/bin" udevadm control --reload-rules || exit 1
-    PATH="{self.udevadm.parent}:/usr/bin:/bin" udevadm trigger --action=add --subsystem-match=usb || exit 1
+    PATH="{self.udevadm.parent}" udevadm control --reload-rules || exit 1
+    PATH="{self.udevadm.parent}" udevadm trigger --action=add --subsystem-match=usb || exit 1
     echo "postinst done" >> "{self.log}"
     exit "${{FAKE_APT_STATUS:-0}}"
     ;;

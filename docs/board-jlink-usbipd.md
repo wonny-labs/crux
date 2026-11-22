@@ -22,7 +22,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    usbipd attach --wsl --busid <BUSID> --auto-attach
    ~~~
 
-   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. Keep the window of `attach --auto-attach` open: it attaches the probe again when it re-enumerates, for example after a reset or when J-Link software updates the probe's firmware, and the attachment is otherwise lost. Run it again after WSL2 restarts. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
+   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. Keep the window of `attach --auto-attach` open: it attaches the probe again when it re-enumerates, for example when J-Link software updates the probe's firmware, and the attachment is otherwise lost. Run it again after WSL2 restarts. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
 
 2. **WSL2 or Linux shell, in the repository checkout: prepare the Linux side.**
 
@@ -52,7 +52,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    The J-Link is listed, `plugdev` is among the groups, and both tools are found.
 
-6. **Connection check.** Before any write, check the board as its page says: on the EVKB the J-Link on J2, J9 and J10 removed, SW4 OFF–OFF–ON–OFF, and the board powered ([board page](boards/mimxrt1060_evkb.md#switches-and-jumpers)). Then connect with J-Link Commander alone, which prints what the runner hides:
+6. **Connection check.** Before any write, set the board up as its [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) says, including its power. Then connect with J-Link Commander alone, which prints what the runner hides:
 
    ~~~sh
    printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
