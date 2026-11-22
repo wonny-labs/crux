@@ -60,7 +60,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    Look for `VTref` of about 3.3 V and `Found Cortex-M7`. `VTref=0.000V` means the probe sees no target power: check the supply before anything else. This step connects to the target and may halt it.
 
-7. **Read-only check: attach and compare.** Do this before the first write on a new set-up. Build the ELF of the image on the board, here the Time sample (`samples/time/clock_shell`), the image that has been flashed this way; [Part C of the tutorial](tutorial.md#part-c-run-on-your-board) sets which samples to run on a board and in which order. Then attach without reset or load. `-r jlink` is required, because Zephyr's default runner for this board is LinkServer. The build directory is relative to the repository root.
+7. **Read-only check: attach and compare.** Do this before the first write on a new set-up. Build the ELF of the image on the board, here the Time sample (`samples/time/clock_shell`), the image that has been flashed this way; [Part C of the tutorial](tutorial.md#part-c-run-on-your-board) sets which samples to flash and in which order. Then attach without reset or load. `-r jlink` is required, because Zephyr's default runner for this board is LinkServer. The build directory is relative to the repository root.
 
    ~~~sh
    cd /workspace/crux-pilot
