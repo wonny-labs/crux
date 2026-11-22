@@ -61,50 +61,6 @@
         "panel": "shared",
         "clear": true
       }
-    },
-    {
-      "label": "Board container: start GDB Server",
-      "detail": "Board Dev Container only: J-Link GDB Server through west, on port 2331",
-      "type": "process",
-      "command": "west",
-      "args": [
-        "debugserver",
-        "-d",
-        "build/zephyr/mimxrt1060_evk_B_qspi",
-        "-r",
-        "jlink",
-        "--speed",
-        "4000"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "jlink-gdb-server",
-        "pattern": {
-          "regexp": "^ERROR: (.*)$",
-          "message": 1
-        },
-        "background": {
-          "activesBegin": true,
-          "beginsPattern": "SEGGER J-Link GDB Server",
-          "endsPattern": "Waiting for GDB connection"
-        }
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      }
-    },
-    {
-      "label": "Board container: build and start GDB Server",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Build firmware",
-        "Board container: start GDB Server"
-      ],
-      "problemMatcher": []
     }
   ],
   "inputs": [

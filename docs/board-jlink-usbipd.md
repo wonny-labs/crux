@@ -4,7 +4,7 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz (4000 kHz, the default below, has not been used for a flash yet), and the console line on Windows. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: step 7 (`west attach` and `compare-sections`), `west debug`, a flash at 4000 kHz, and a console inside the container.
+**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows; `west debugserver` at 4000 kHz connected once for a VS Code attach. In that run what `scripts/setup-board-host.sh` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`; the script, that handling and `--auto-attach` themselves have not been run there yet. Not run: the default speed `auto` used below, step 7 (`west attach` and `compare-sections`), `west debug`, the Cortex-Debug profiles, and a console inside the container.
 
 ## What you need
 
@@ -65,7 +65,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    ~~~sh
    cd /workspace/crux-pilot
    scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
-   west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000
+   west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
 
    At the GDB prompt run `compare-sections`, then `detach` and `quit`. Every loadable section should report `matched`; a mismatch means the board holds another image, not that the route is broken.
@@ -74,7 +74,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    ~~~sh
    cd /workspace/crux-pilot
-   west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000
+   west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
 
    It runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
@@ -96,7 +96,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bind mount follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
-| Step 7 or 8 cannot connect | Retry with `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
+| Step 7 or 8 cannot connect | Retry with `--speed 4000`, then `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
 | J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1, with `--auto-attach`) and run step 2 again |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
@@ -116,18 +116,22 @@ Options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The runner's default is `auto`; this guide uses 4000 kHz. If the connection fails, retry with 400 kHz, then 100 kHz. 400 kHz is the speed of the recorded flash from WSL2 and of the macOS records; 100 kHz was the first connection on a new set-up. 4000 kHz has connected once through `west debugserver`; no flash at 4000 kHz is recorded yet |
+| `--speed <kHz>` | SWD speed. The commands above leave it out, so the runner uses its default, `auto`. If the connection fails, retry with 4000, then 400, then 100. Recorded on this board: a flash at 400 kHz (from WSL2 and in the macOS records), a `west debugserver` connection at 4000 kHz, and 100 kHz for a first connection on a new set-up. `auto` has no record yet |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging in the board container.** Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both connect to a GDB Server inside the container on `localhost:2331`, which their task **Board container: start GDB Server** starts first with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 4000` and leaves running in the background:
+**VS Code debugging in the board container.** The board container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
-- **Board container: Attach (no reset)** asks for the ELF of the image on the board and connects without reset or download. The image keeps running from where it is, so it cannot stop at `main`, which has already run. Connecting may still halt the target.
-- **Board container: Flash and run to main** builds the Time sample, resets the board, downloads the image, resets it again and stops once at `main`; Continue (F5) runs on.
+- **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
+- **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
-As reported by the maintainer, an attach of this kind worked once from WSL2, with the GDB Server started by hand at 4000 kHz and a hand-edited copy of the Mac profile; the two profiles as written here and the flash at 4000 kHz have not been run.
+Neither profile has been run. As reported by the maintainer, Cortex-Debug with J-Link is in use for development on other projects, and a VS Code attach through `west debugserver` at 4000 kHz worked once from this container. Settings you may add to a local copy of a profile, none of them tried here:
 
-The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop the GDB Server task (**Terminal: Terminate Task**) before you use `west flash` or J-Link Commander, which need the probe.
+- `svdFile`: the MIMXRT1062 SVD file, for the peripheral register view. No SVD file is in the Zephyr workspace; NXP ships one with its MCUXpresso SDK and device packs under NXP's licence.
+- `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
+- `rttConfig`: an RTT console, for an image built with Zephyr's RTT console instead of the UART.
+
+The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
 
 ## Not covered
 

@@ -114,7 +114,9 @@ class BoardContainerConfigTest(unittest.TestCase):
 
 
 class BoardDebugProfilesTest(unittest.TestCase):
-    """The VS Code profiles for a GDB Server inside the board container."""
+    """The Cortex-Debug profiles for the board container and the unchanged Mac profiles."""
+
+    ELF = "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf"
 
     def setUp(self):
         vscode = REPO / ".vscode"
@@ -129,35 +131,42 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertIn("-target-select remote host.docker.internal:2331",
                       self.commands(self.launch["EVKB QSPI: Attach"], "customLaunchSetupCommands"))
 
-    def test_gdb_server_task_runs_west_debugserver_in_the_background(self):
-        task = self.tasks["Board container: start GDB Server"]
-        self.assertTrue(task["isBackground"])
-        self.assertEqual(task["command"], "west")
-        self.assertEqual(task["args"], ["debugserver", "-d", "build/zephyr/mimxrt1060_evk_B_qspi",
-                                        "-r", "jlink", "--speed", "4000"])
-        background = task["problemMatcher"]["background"]
-        self.assertIn("Waiting for GDB connection", background["endsPattern"])
+    def check_jlink(self, profile):
+        self.assertEqual(profile["type"], "cortex-debug")
+        self.assertEqual(profile["servertype"], "jlink")
+        self.assertEqual(profile["device"], "MIMXRT1062xxx6A")
+        self.assertEqual(profile["interface"], "swd")
+        self.assertEqual(profile["executable"], self.ELF)
+        args = profile["serverArgs"]
+        self.assertEqual(args[args.index("-speed") + 1], "auto")
+        self.assertNotIn("host.docker.internal", json.dumps(profile))
 
-    def test_attach_connects_to_the_container_server_without_download_or_reset(self):
-        attach = self.launch["Board container: Attach (no reset)"]
-        self.assertEqual(attach["preLaunchTask"], "Board container: start GDB Server")
-        setup = self.commands(attach, "customLaunchSetupCommands")
-        self.assertIn("-target-select remote localhost:2331", setup)
+    def test_flash_profile_builds_downloads_and_runs_to_main(self):
+        flash = self.launch["Board: Flash and run to main"]
+        self.check_jlink(flash)
+        self.assertEqual(flash["request"], "launch")
+        self.assertEqual(flash["runToEntryPoint"], "main")
+        self.assertEqual(flash["preLaunchTask"], "Build firmware")
+
+    def test_attach_profile_neither_resets_nor_downloads(self):
+        attach = self.launch["Board: Attach (no reset)"]
+        self.check_jlink(attach)
+        self.assertEqual(attach["request"], "attach")
         text = json.dumps(attach)
-        self.assertNotIn("target-download", text)
-        self.assertNotIn("monitor reset", text)
-        self.assertNotIn("host.docker.internal", text)
+        for forbidden in ("runToEntryPoint", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
+            self.assertNotIn(forbidden, text)
 
-    def test_flash_builds_downloads_and_runs_to_main(self):
-        flash = self.launch["Board container: Flash and run to main"]
-        self.assertEqual(flash["miDebuggerServerAddress"], "localhost:2331")
-        self.assertFalse(flash["stopAtEntry"])
-        self.assertEqual(flash["launchCompleteCommand"], "exec-continue")
-        self.assertEqual(self.commands(flash, "postRemoteConnectCommands"),
-                         ["monitor reset", "-target-download", "monitor reset", "-break-insert -t main"])
-        task = self.tasks[flash["preLaunchTask"]]
-        self.assertEqual(task["dependsOrder"], "sequence")
-        self.assertEqual(task["dependsOn"], ["Build firmware", "Board container: start GDB Server"])
+    def test_no_cppdbg_board_profiles_or_server_tasks_remain(self):
+        self.assertFalse([name for name in self.launch if name.startswith("Board container:")])
+        self.assertFalse([label for label in self.tasks if label.startswith("Board container:")])
+
+    def test_only_the_board_container_adds_cortex_debug(self):
+        board = load(BOARD / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        default = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        self.assertIn("marus25.cortex-debug", board)
+        self.assertNotIn("marus25.cortex-debug", default)
+        for extension in default:
+            self.assertIn(extension, board)
 
 
 class InstallScriptTest(unittest.TestCase):
