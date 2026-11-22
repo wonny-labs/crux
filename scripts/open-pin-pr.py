@@ -2,7 +2,7 @@
 """Commit the working tree's changes to one bot branch and keep one pull request open for it.
 
 Run it in a product repository after scripts/update-crux-pin.py has changed the
-manifest. It commits the changes on top of HEAD, pushes them to the bot branch
+manifest. It commits the changes, which must lie in --allow-path, on top of HEAD, pushes them to the bot branch
 (replacing the bot's earlier commit there) and creates the pull request, or
 updates the open one. It never merges and never pushes any other branch. If a
 person has pushed a commit to the bot branch, it changes nothing.
@@ -36,8 +36,15 @@ class PinPrError(Exception):
     pass
 
 
+# Set from --token-env in main(); kept out of every Git process.
+TOKEN_ENV = "CRUX_PIN_TOKEN"
+
+
 def git(*args, check=True):
-    result = subprocess.run(["git", *args], text=True, capture_output=True)
+    # Repository hooks never run: a build may have written them, and they must not see the token.
+    env = {k: v for k, v in os.environ.items() if k != TOKEN_ENV}
+    result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], text=True,
+                            capture_output=True, env=env)
     if check and result.returncode != 0:
         raise PinPrError(f"git {args[0]} failed: {result.stderr.strip()}")
     return result
@@ -70,8 +77,20 @@ def foreign_commits(remote, base, branch):
             if TRAILER not in git("log", "-1", "--format=%B", sha).stdout.splitlines()]
 
 
-def commit(message):
-    git("add", "--all")
+def changed_paths():
+    """Every tracked change against HEAD and every untracked file, as repository paths."""
+    tracked = git("diff", "--name-only", "--no-renames", "-z", "HEAD").stdout.split("\0")
+    untracked = git("ls-files", "--others", "--exclude-standard", "-z").stdout.split("\0")
+    return sorted({path for path in tracked + untracked if path})
+
+
+def allowed(path, allow):
+    entries = [os.path.normpath(entry) for entry in allow]
+    return any(path == entry or path.startswith(entry + "/") for entry in entries)
+
+
+def commit(message, paths):
+    git("add", "--all", "--", *paths)
     identity = []
     if not git("config", "user.email", check=False).stdout.strip():
         identity = ["-c", f"user.name={BOT_NAME}", "-c", f"user.email={BOT_EMAIL}"]
@@ -204,7 +223,12 @@ def main(argv=None):
                              "required for bitbucket-cloud, optional for github")
     parser.add_argument("--user-env", metavar="NAME",
                         help="a variable with a user name or e-mail; when set, use Basic instead of Bearer")
+    parser.add_argument("--allow-path", action="append", metavar="PATH",
+                        help="a file or directory the commit may change; may repeat (default: west.yml)")
     args = parser.parse_args(argv)
+    args.allow_path = args.allow_path or ["west.yml"]
+    global TOKEN_ENV
+    TOKEN_ENV = args.token_env
 
     try:
         if args.branch in (args.base, "main", "master") or args.branch.startswith("release"):
@@ -214,9 +238,13 @@ def main(argv=None):
             raise PinPrError("keep --message-file outside the repository, or it is committed")
         title, body, message = read_message(args.message_file)
         host = make_host(args)  # Checks the token before anything is pushed.
-        if not git("status", "--porcelain").stdout.strip():
+        paths = changed_paths()
+        if not paths:
             print("nothing to propose: the working tree is clean")
             return EXIT_NOTHING
+        unexpected = [path for path in paths if not allowed(path, args.allow_path)]
+        if unexpected:
+            raise PinPrError("changes outside --allow-path, nothing committed: " + ", ".join(unexpected))
         old_head = remote_branch_head(args.remote, args.branch)
         if old_head:
             foreign = foreign_commits(args.remote, args.base, args.branch)
@@ -225,7 +253,7 @@ def main(argv=None):
                       f"({', '.join(sha[:12] for sha in foreign)}); merge or delete that branch first",
                       file=sys.stderr)
                 return EXIT_FOREIGN
-        new_head = commit(message)
+        new_head = commit(message, paths)
         if same_change(old_head, new_head):
             print(f"{args.branch} already holds this change")
         else:

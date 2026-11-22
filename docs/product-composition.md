@@ -363,14 +363,14 @@ A team may later let the bot pull request merge itself. Allow it only on the def
 
 Run `crux-pin-bot.py` from the product repository in a west workspace that holds Crux. It needs Python 3, Git and PyYAML, which west installs.
 
-Run the scripts from the Crux checkout at the revision the product pins, as `west update` leaves it, never from Crux `main`. Crux `main` is read only as data, through `git ls-remote` and a fetch for the log. A new version of the scripts then reaches a product only through a reviewed pin move, and a Crux commit never gets the product's write token unreviewed. A product whose Crux pin predates the scripts moves its pin once by hand. Give the token access to the one product repository only, to write contents and pull requests.
+Run the scripts from the Crux checkout at the revision the product pins, as `west update` leaves it, never from Crux `main`. Crux `main` is read only as data, through `git ls-remote` and a fetch for the log. A new version of the scripts then reaches a product only through a reviewed pin move, and a Crux commit never gets the product's write token unreviewed. A product whose Crux pin predates the scripts moves its pin once by hand. Give the token access to the one product repository only, to write contents and pull requests. Everything the job runs, the hook included, can write to the checkout and its `.git`, so the bot job runs no build and nothing else untrusted.
 
 ```sh
 cd product-x
 python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
 ```
 
-It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text. Exit status `0` after a person's commit means the pin is not moving, so look at a bot pull request that stays open.
+It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, with `--allow-path` defaulting to the manifest, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text. Exit status `0` after a person's commit means the pin is not moving, so look at a bot pull request that stays open.
 
 | Variable | Use |
 | --- | --- |
@@ -407,7 +407,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `CRUX_PIN_MANIFEST` | The manifest's absolute path |
 | `CRUX_PIN_CHECKOUT` | The Crux checkout, still at the old revision, or empty when none was found |
 
-`open-pin-pr.py` commits every change in the working tree on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
+`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run, and Git never sees the token. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
 
 | Option | Default | Use |
 | --- | --- | --- |
@@ -420,6 +420,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `--token-env NAME` | `CRUX_PIN_TOKEN` | The token's variable |
 | `--user-env NAME` | None | Basic authentication for Bitbucket, see above |
 | `--api-url URL` | `https://api.bitbucket.org/2.0` | The Bitbucket API root, `https` only |
+| `--allow-path PATH` | `west.yml` | A file or directory the commit may change, such as one the hook updates. May repeat |
 
 ### CI wrappers
 

@@ -40,6 +40,8 @@ def main(argv=None):
                         help="the variable that holds the token (default: CRUX_PIN_TOKEN)")
     parser.add_argument("--user-env", metavar="NAME", help="as for open-pin-pr.py")
     parser.add_argument("--api-url", help="as for open-pin-pr.py")
+    parser.add_argument("--allow-path", action="append", metavar="PATH",
+                        help="a file or directory the commit may change; may repeat (default: --manifest)")
     args = parser.parse_args(argv)
 
     temp = tempfile.mkdtemp(prefix="crux-pin-")  # Outside the repository, so it is not committed.
@@ -67,6 +69,8 @@ def main(argv=None):
         for flag, value in (("--repo", args.repo), ("--user-env", args.user_env), ("--api-url", args.api_url)):
             if value:
                 open_pr += [flag, value]
+        for path in args.allow_path or [args.manifest]:
+            open_pr += ["--allow-path", path]
         status = subprocess.run(open_pr).returncode
         if status == FOREIGN:
             print(f"warning: {args.branch} was not refreshed because a person pushed to it", file=sys.stderr)

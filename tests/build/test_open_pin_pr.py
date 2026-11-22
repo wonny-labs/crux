@@ -227,6 +227,46 @@ class GitHubTest(Base):
         shallow()
         self.assertEqual(FOREIGN, self.run_script("--host", "github", env=self.env).returncode)
 
+    def test_repository_hooks_never_run_and_never_see_the_token(self):
+        self.change("bbbb")
+        hooks = self.work / ".git/hooks"
+        marker = self.tmp / "hook-ran"
+        for name in ("pre-commit", "commit-msg", "post-commit", "pre-push", "reference-transaction"):
+            hook = hooks / name
+            hook.write_text(f'#!/bin/sh\necho "$CRUX_PIN_TOKEN" >> "{marker}"\n')
+            hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
+        result = self.run_script("--host", "github", env=dict(self.env, CRUX_PIN_TOKEN=TOKEN))
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertFalse(marker.exists())
+
+    def test_only_allowed_paths_are_committed(self):
+        self.change("bbbb")
+        (self.work / "docs").mkdir()
+        (self.work / "docs/pin.md").write_text("pin bbbb\n")
+        (self.work / "RELEASE.md").write_text("pin bbbb\n")
+        result = self.run_script("--host", "github", "--allow-path", "west.yml", "--allow-path", "docs",
+                                 "--allow-path", "RELEASE.md", env=self.env)
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("pin bbbb", self.remote_file(BRANCH, "docs/pin.md"))
+        self.assertEqual("pin bbbb", self.remote_file(BRANCH, "RELEASE.md"))
+
+    def assert_refused(self, result, path):
+        self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
+        self.assertIn(path, result.stderr)
+        self.assertIsNone(self.remote_ref(BRANCH))
+        self.assertFalse(self.state.exists())
+
+    def test_a_tracked_change_outside_the_allowed_paths_fails_and_commits_nothing(self):
+        self.change("bbbb")
+        (self.work / "README.md").write_text("changed by a build\n")
+        git("add", "README.md", cwd=self.work)
+        self.assert_refused(self.run_script("--host", "github", env=self.env), "README.md")
+
+    def test_an_untracked_file_outside_the_allowed_paths_fails_and_commits_nothing(self):
+        self.change("bbbb")
+        (self.work / "build.log").write_text("x\n")
+        self.assert_refused(self.run_script("--host", "github", env=self.env), "build.log")
+
     def test_the_branch_may_not_be_the_base(self):
         self.change("bbbb")
         result = self.run_script("--host", "github", "--branch", "main", env=self.env)
