@@ -597,7 +597,7 @@ PY
     "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
     "-DEXTRA_CONF_FILE=fatfs.conf;fatfs-file.conf" -DEXTRA_DTC_OVERLAY_FILE=fatfs-file.overlay \
     -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
-# 64 samples took about 95 s (Reliance Edge) and 29 s (FatFs) in an emulated amd64 container.
+# 64 samples took 52 to 95 s (Reliance Edge) and 20 to 29 s (FatFs) in an emulated amd64 container.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
     --exe-fix "$powercut_dir/red-fix-file/zephyr/zephyr.exe" \
     --exe-nofix "$powercut_dir/red-nofix-file/zephyr/zephyr.exe" \

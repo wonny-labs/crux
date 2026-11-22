@@ -12,8 +12,9 @@ power-cut campaign can show those.
 
 ## What ran
 
-- Revision: `30c1abd7` on branch `claude/file-w8-replay`, based on `main` at `2c017f68`. The working tree was
-  clean. Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`, Reliance Edge
+- Revision: `0ac05682` on branch `claude/file-w8-replay`, based on `main` at `2c017f68`, with the tracked tree
+  clean. It holds the review fixes on top of the first code commit `30c1abd7`. The commit that adds this record
+  changes only a timing comment in `scripts/test-storage-emmc.sh` besides the record. Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`, Reliance Edge
   `6706984258c5bb61c778fe8ca2edd04b559efb78`, FatFs `f4ead3bf4a6dab3a07d7b5f5315795c073db568d`,
   `native_sim/native/64`.
 - Environment: the Dev Container image, run with Docker as `linux/amd64` under emulation on an arm64 Mac, limited
@@ -40,10 +41,13 @@ power-cut campaign can show those.
       --fs fatfs --workload W8 --seed 1 --samples 64 --max-seconds 300 --out build/zephyr/emmc-powercut/replay
   ```
 
-  Reliance Edge: exit 0, 3546 cases, 454 verifier processes, 94.9 s. FatFs: exit 0, 897 cases, 375 verifier
-  processes, 29.0 s. The same seed gave the same counts in an earlier run from the uncommitted tree.
-- [`reliance-w8.json`](reliance-w8.json) and [`fatfs-w8.json`](fatfs-w8.json) are the runs' output, with every
-  sampled position and its seed. No medium image is kept.
+  Reliance Edge: exit 0, 3546 cases, 454 verifier processes, 51.8 s. FatFs: exit 0, 897 cases, 375 verifier
+  processes, 20.1 s. The same seed gave the same counts at `30c1abd7` (94.9 s and 29.0 s on a busier machine) and
+  in an earlier run from the uncommitted tree.
+- [`reliance-w8.json`](reliance-w8.json) and [`fatfs-w8.json`](fatfs-w8.json) are the runs' output. Each group of
+  each workload, profile and model lists every cut case as `[position, seed]` under `positions` (3519 and 888
+  cases); the controls, the window cases and the failed cases are listed with their positions, seeds and results.
+  No medium image is kept.
 - The rest of `scripts/test-storage-emmc.sh`, and `scripts/test-storage-simulators.sh`, were not part of this
   local run. The W1 to W3 and W4 runs build other images, which this change does not alter, so their pinned
   counts (4947, 1182 and 2232) are not expected to move. The full scripts run in CI on the pull request.
@@ -62,13 +66,21 @@ power-cut campaign can show those.
 - On FatFs the File provider stores `f` and the name's bytes in hexadecimal, so the VFS rename and the check use
   those stored names. On Reliance Edge names are stored as they are.
 - `verify` mounts without formatting and reads `atomic/w8` through the VFS:
-  - I3, reported as `replace`: `atomic/w8` is one complete generation, old or new (and `settings/w2`, which W8
-    never touches, is intact).
-  - I2, reported as `data`: that generation is not older than the number of acknowledged replaces.
+  - I3, reported as `replace`: `atomic/w8` is one complete generation.
+  - I2, reported as `data`: that generation is not older than the number of acknowledged replaces. Together
+    with I3 this is "complete old or complete new", because no generation newer than the one in progress
+    exists at a cut; the check bounds the generation from below only.
   - `missing=1`: `atomic/w8` does not exist at all, as distinct from a damaged file.
+  - `w2=0`: `settings/w2`, which W8 never touches, is damaged. It is a violation of its own, so it cannot hide
+    behind a missing target.
   - I1, I4 (`files/keep`), I5 (a further write, sync and remount) and `read_error` as in the other workloads.
-- On `red-fix-file`, a W8C case whose only violations are I2 and I3 with `missing=1` is counted as a window case.
-  Any other W8C violation, and any W8 violation, is a failure.
+- On `red-fix-file`, a W8C case is a window case when its only violations are I2 and I3, `missing=1`, and the
+  cut lies inside the replace of the generation after the acknowledged one: after the first metaroot sector of
+  its unlink commit, and not after the end of its rename commit (the closing flush on the cached profile, the
+  last metaroot sector without a cache). The driver finds these spans from the trace and stops if it does not
+  hold four commits per generation. Any other W8C violation, and any W8 violation, is a failure. On FatFs,
+  which has no metaroot, a W8C case with only I2, I3 and `missing=1` is counted the same way, with no span
+  check, as an observation.
 
 ## Result on Reliance Edge (`red-fix-file`)
 
@@ -94,9 +106,10 @@ power-cut campaign can show those.
   flush), three per replace (create, sync, rename), in 761 events and 704 written sectors.
 - **W8C failed I3 with the target missing, as required.** Every one of its 496 violations was a window case:
   `atomic/w8` absent, mount, `files/keep`, recommit and reads all intact. No W8C case showed a damaged target.
-  Under `lost` on the cached profile, the target was missing at 52 positions, covering all eight generations,
-  each with the generations before it acknowledged. That is the cut after the removal's commit and before the
-  rename's. The cached W8C trace holds 32 commits, four per replace (create, sync, unlink, rename).
+  Every window case lay inside its generation's span, from the unlink commit to the rename commit (cached
+  spans: events 79-120 for generation 1, then every 121 events to 926-967 for generation 8). Under `lost` on
+  the cached profile, the target was missing at 52 positions, covering all eight generations, each with the
+  generations before it acknowledged. The cached W8C trace holds 32 commits, four per replace (create, sync, unlink, rename).
 - Controls, each required to fail, all failed as required:
   - window: W8C, cached, `lost`, `atomic/w8` missing with `mount=1` in every generation (generations 1 to 8).
   - flush: `red-nofix-file`, cached, `lost`, W8: `data=0` with `mount=1` after each of the 8 marks. The trace has
@@ -127,7 +140,7 @@ power-cut campaign can show those.
   as the board's microSD replace cuts showed. W8 lost it too: Zephyr's FatFs rename removes an existing
   destination before it renames, so on FatFs the VFS rename has the same window as W8C. Under `torn` a few cuts
   left the target present but not one complete generation. Mount, `files/keep`, recommit and reads held in every
-  case. The damaged image control (boot sector overwritten) did not mount, as required.
+  case. The damaged image control on `fat-fix-file` (boot sector overwritten) did not mount, as required.
 - The 897 cases are 888 cut cases, 8 sanity cases and 1 damaged-image case.
 
 ## What this shows and does not show
