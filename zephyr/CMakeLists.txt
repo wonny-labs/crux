@@ -115,6 +115,23 @@ endif()
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
    CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
    CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
+    # The guard of the eMMC flush correction for every File composition on an MMC disk. A File
+    # sync is the provider's flush, and without the correction a disk sync does not flush a
+    # turned-on eMMC cache, whatever the file system. An image with Reliance Edge is refused by the
+    # adapter's own guard (fs/reliance_edge), with its own message, so this one leaves it to that.
+    # CRUX_EMMC_FLUSH_CONTROL is the same test-fixture variable, honoured on native_sim only.
+    set(CRUX_EMMC_FLUSH_CONTROL OFF CACHE BOOL
+        "Test fixtures only: allow an MMC disk without the cache flush correction on native_sim")
+    if(CRUX_EMMC_FLUSH_CONTROL AND NOT CONFIG_BOARD_NATIVE_SIM)
+        message(FATAL_ERROR "CRUX_EMMC_FLUSH_CONTROL is a native_sim test fixture setting and is "
+            "refused on any other board")
+    endif()
+    if(CONFIG_DISK_DRIVER_MMC AND NOT CONFIG_CRUX_MMC_CACHE_FLUSH AND
+       NOT CRUX_EMMC_FLUSH_CONTROL AND NOT CONFIG_CRUX_FS_RELIANCE_EDGE)
+        message(FATAL_ERROR "A Crux File composition on an MMC disk requires "
+            "CONFIG_CRUX_MMC_CACHE_FLUSH=y, because without it a File sync does not flush the "
+            "eMMC cache")
+    endif()
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
