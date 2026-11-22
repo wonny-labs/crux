@@ -26,7 +26,7 @@ The correction:
 
 `CONFIG_CRUX_M3_MDIO_COMPLETION_FIX` defaults off and requires native NXP MDIO,
 RT1062, no SMP and no zero-latency interrupts. Append
-`samples/controller/zephyr/m3-mdio-completion.conf` to the network configuration
+`tests/board_images/integration_probe/mdio_completion_fix.conf` to the network configuration
 for a candidate build. This is not a platform API, portable driver replacement,
 new timing guarantee or physical qualification claim. No timeout is increased.
 Native PHY errors do not necessarily change cached carrier state: the patch

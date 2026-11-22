@@ -144,7 +144,7 @@ comparison, not physical scheduling/stack guarantees. Static pool ownership and 
 uptime fit the demonstrated consumer without a common OS dependency; this is the basis
 for the scoped native choice. POSIX remains an option for another evidenced consumer.
 
-The early controller (`samples/controller`, listed in the [samples overview](../samples/README.md)) implements this bounded choice.
+The early controller (now the periodic scenario [`tests/time_periodic`](../tests/time_periodic/README.md), formerly `samples/controller`) implements this bounded choice.
 At that software checkpoint physical target execution/timing/stack/resource validation
 remained **Pending** and could not be replaced by software checks or used to close #7/M2.
 
@@ -165,7 +165,7 @@ the 30-second exit limit. This failure is retained; its cause is unconfirmed. Th
 retry passed 1/1 and the full unmodified sanitizer retry passed 34/34. No timeout increase,
 source workaround or sanitizer suppression was applied.
 
-Local `scripts/test-controller.sh` passed normal and missing-RTC native_sim scenarios
+Local `scripts/test-time-periodic.sh` passed normal and missing-RTC native_sim scenarios
 and the EVKB B/QSPI cross-build. It began at `4a2feaa`; the subsequent `8fab8f20` change
 only repairs host CTest discovery and records that failure, leaving all Zephyr compiled
 inputs unchanged. Normal simulation recorded 20 cycles, unset Time at cycles 0–1, valid

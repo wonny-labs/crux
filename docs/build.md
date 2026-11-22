@@ -63,7 +63,7 @@ cmake --build --preset host-debug
 ctest --preset host-debug
 ~~~
 
-The root build enables Crux's development components and samples by default. `CRUX_BUILD_TESTS` initially follows the root project's `BUILD_TESTING` setting. Disabling internal tests also avoids the Crux GoogleTest/C++ test setup. The test and sample options are independent, so set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_REFERENCE_CONTROLLER=OFF` as well when the corresponding development targets are not wanted. Component-specific options are described below.
+The root build enables Crux's development components and samples by default. `CRUX_BUILD_TESTS` initially follows the root project's `BUILD_TESTING` setting. Disabling internal tests also avoids the Crux GoogleTest/C++ test setup. The test and sample options are independent, so set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO=OFF` as well when the corresponding development targets are not wanted. Component-specific options are described below.
 
 For the complete quality checks and component-specific runners, use the [test guide](../tests/README.md). `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` validate formatting, configured analysis and dependency boundaries. Analysis uses the configured compiler database and can report existing upstream or suppressed diagnostics, so a successful run does not imply zero warnings. The list of sources that clang-tidy analyses is moving from hand-written paths to a list generated from the compile databases (`scripts/tidy-sources.py`); [static-analysis coverage](static-analysis-coverage.md) gives the measurement, the stages and their status.
 
@@ -82,7 +82,7 @@ The bootstrap uses `west init -l` when needed, updates the pinned dependencies a
 Run a documented reference-controller scenario on Zephyr `native_sim` and cross-build its EVKB firmware:
 
 ~~~sh
-scripts/test-controller.sh
+scripts/test-time-periodic.sh
 ~~~
 
 For the Time capability's Twister tests, `native_sim` sample build and EVKB cross-build:
@@ -103,7 +103,7 @@ workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west build -p always -b native_sim/native/64 \
     -d "$repo/build/zephyr/controller-example" \
-    "$repo/samples/controller/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
+    "$repo/tests/time_periodic/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
 ~~~
 
 **Applications with MCUboot (build only).** The sysbuild route of `scripts/test-boot-composition.sh` passes Crux with the older spelling, `-DZEPHYR_EXTRA_MODULES=<crux>`. MCUboot itself is not added as a module: it is the plain west project `mcuboot` in the optional group `crux-boot`, which the script enables with `west config manifest.group-filter` and fetches with `west update mcuboot`. Do not pass MCUboot through the module flags. The signing step needs packages that the Zephyr requirements do not list; the script installs them with `python3 -m pip install -r <workspace>/bootloader/mcuboot/scripts/requirements.txt` after the fetch. Run it by hand the same way if you build outside the script. The [boot composition](boot-composition.md) page gives the argument set and its status.
@@ -281,7 +281,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Symptom | Check |
 | --- | --- |
 | Unknown `crux::...` CMake target | Enable the matching `CRUX_BUILD_*` option **before** `add_subdirectory()`. For Zephyr, use the correct Kconfig/module path |
-| Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
+| Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
 | `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux Queue was removed. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |

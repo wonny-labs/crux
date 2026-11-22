@@ -82,7 +82,7 @@ class SystemCompositionTest(unittest.TestCase):
                 result = subprocess.run([
                     'west', 'build', '--cmake-only', '-b', board, '-d', str(build), str(app), '--',
                     f'-DZEPHYR_MODULES={";".join(modules)}',
-                    f'-DKCONFIG_ROOT={REPO / "samples/controller/zephyr/Kconfig"}',
+                    f'-DKCONFIG_ROOT={REPO / "tests/board_images/integration_probe/Kconfig"}',
                     f'-DEXTRA_DTC_OVERLAY_FILE={case / "case.overlay"}',
                     f'-DEXTRA_CONF_FILE={case / "case.conf"}', *extra],
                     text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=240)

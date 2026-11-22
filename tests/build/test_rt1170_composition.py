@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNNER = ROOT / "scripts/test-m3-rt1170.sh"
+RUNNER = ROOT / "scripts/test-integration-probe-rt1170.sh"
 
 # Variables that Zephyr's CMake honours and that would inject configuration or overlays
 # without any file in this repository showing it.
@@ -20,7 +20,7 @@ class RT1170CompositionTests(unittest.TestCase):
         runner = RUNNER.read_text()
         self.assertIn("mimxrt1170_evk@A/mimxrt1176/cm7", runner)
         self.assertIn("ZEPHYR_EXTRA_MODULES=", runner)
-        self.assertIn("samples/controller/zephyr/m3.conf", runner)
+        self.assertIn("tests/board_images/integration_probe/device_health_probe.conf", runner)
         self.assertIn("EXTRA_CONF_FILE=", runner)
         self.assertIn("rt1170-evk-a1-m3", runner)
 
@@ -39,7 +39,7 @@ class RT1170CompositionTests(unittest.TestCase):
         self.assertIn(f"unset {INJECTION_VARIABLES}", runner)
 
     def test_sample_has_no_rt1170_specific_overlay_or_configuration(self):
-        app = ROOT / "samples/controller/zephyr"
+        app = ROOT / "tests/board_images/integration_probe"
         for name in ("app.overlay", "app.conf"):
             self.assertFalse((app / name).exists(), name)
         for directory, pattern in (("boards", "*mimxrt1170*"), ("socs", "*mimxrt1176*")):

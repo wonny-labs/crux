@@ -17,7 +17,13 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 option(CRUX_BUILD_TESTS "Build Crux's internal test suite" ${_crux_tests_default})
 option(CRUX_BUILD_HOST_SAMPLE "Build the host Time and networking samples" ${PROJECT_IS_TOP_LEVEL})
-option(CRUX_BUILD_REFERENCE_CONTROLLER "Build the early reference controller" ${CRUX_BUILD_HOST_SAMPLE})
+option(CRUX_BUILD_TIME_PERIODIC_SCENARIO "Build the Host program of the periodic Time scenario (tests/time_periodic)"
+    ${CRUX_BUILD_HOST_SAMPLE})
+# Deprecated alias of CRUX_BUILD_TIME_PERIODIC_SCENARIO, kept until the first tag for builds that still set it.
+if(DEFINED CRUX_BUILD_REFERENCE_CONTROLLER)
+    message(DEPRECATION "CRUX_BUILD_REFERENCE_CONTROLLER is renamed CRUX_BUILD_TIME_PERIODIC_SCENARIO")
+    set(CRUX_BUILD_TIME_PERIODIC_SCENARIO ${CRUX_BUILD_REFERENCE_CONTROLLER})
+endif()
 
 # Base has no provider and is the foundation for selected capabilities.
 add_subdirectory(components/base)
@@ -144,10 +150,10 @@ endif()
 if(CRUX_BUILD_HOST_SAMPLE AND NOT (CRUX_BUILD_TIME AND CRUX_BUILD_NETIF AND CRUX_BUILD_SOCKETS))
     message(FATAL_ERROR "CRUX_BUILD_HOST_SAMPLE requires Time, Netif and Sockets")
 endif()
-if(CRUX_BUILD_REFERENCE_CONTROLLER AND NOT CRUX_BUILD_TIME)
-    message(FATAL_ERROR "CRUX_BUILD_REFERENCE_CONTROLLER requires Time")
+if(CRUX_BUILD_TIME_PERIODIC_SCENARIO AND NOT CRUX_BUILD_TIME)
+    message(FATAL_ERROR "CRUX_BUILD_TIME_PERIODIC_SCENARIO requires Time")
 endif()
-if((CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_REFERENCE_CONTROLLER) AND
+if((CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TIME_PERIODIC_SCENARIO) AND
    NOT CRUX_TIME_PROVIDER STREQUAL "memory")
     message(FATAL_ERROR "controlled Time samples require CRUX_TIME_PROVIDER=memory")
 endif()
@@ -167,16 +173,18 @@ if(CRUX_BUILD_HOST_SAMPLE)
     add_subdirectory(samples/networking/echo_client/host)
 endif()
 
-if(CRUX_BUILD_REFERENCE_CONTROLLER OR CRUX_BUILD_TESTS)
-    add_library(crux_controller_core STATIC samples/controller/core/controller.c
-        samples/controller/core/health.c)
-    target_include_directories(crux_controller_core PUBLIC samples/controller/include
+if(CRUX_BUILD_TIME_PERIODIC_SCENARIO OR CRUX_BUILD_TESTS)
+    add_library(crux_time_periodic_core STATIC tests/time_periodic/core/controller.c
+        tests/time_periodic/core/health.c)
+    target_include_directories(crux_time_periodic_core PUBLIC tests/time_periodic/include
         PRIVATE components/time/include)
-    target_link_libraries(crux_controller_core PUBLIC crux::base)
-    target_compile_options(crux_controller_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_link_libraries(crux_time_periodic_core PUBLIC crux::base)
+    target_compile_options(crux_time_periodic_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
-if(CRUX_BUILD_REFERENCE_CONTROLLER)
-    add_subdirectory(samples/controller/host)
+if(CRUX_BUILD_TIME_PERIODIC_SCENARIO)
+    # The binary directory keeps the historical path build/<preset>/samples/controller/host, where the held CI
+    # workflow uploads controller.log, until that workflow is switched.
+    add_subdirectory(tests/time_periodic/host samples/controller/host)
 endif()
 
 if(CRUX_BUILD_TESTS)
@@ -293,8 +301,8 @@ cmake_language(DEFER CALL crux_assert_credential_adapter_unreachable ${_crux_pub
 if(TARGET crux_time_commands)
     cmake_language(DEFER CALL crux_assert_portable_consumer crux_time_commands)
 endif()
-if(TARGET crux_controller_core)
-    cmake_language(DEFER CALL crux_assert_portable_consumer crux_controller_core)
+if(TARGET crux_time_periodic_core)
+    cmake_language(DEFER CALL crux_assert_portable_consumer crux_time_periodic_core)
 endif()
 if(TARGET networking_client_fake)
     cmake_language(DEFER CALL crux_assert_portable_consumer networking_client_fake networking_runtime_fake)

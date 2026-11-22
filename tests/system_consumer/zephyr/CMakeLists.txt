@@ -4,7 +4,7 @@ project(crux_system_evkb LANGUAGES C CXX)
 include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxConsumerBoundary.cmake")
 include(../consumers.cmake)
 target_sources(app PRIVATE main.c)
-target_include_directories(app PRIVATE ../src ../scenario ../../../samples/controller/include)
+target_include_directories(app PRIVATE ../src ../scenario ../../../tests/time_periodic/include)
 target_link_libraries(app PRIVATE system_runtime system_controller crux::system)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # Retain all six public operations for representative resource accounting without

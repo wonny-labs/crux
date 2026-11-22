@@ -51,7 +51,7 @@ class GeneratedDriverTests(unittest.TestCase):
                 'int k_thread_priority_get(k_tid_t thread);\n')
             (headers / "logging/log_ctrl.h").write_text(
                 '#include <stdint.h>\nuint32_t log_buffered_cnt(void);\n')
-            sample = ROOT / "samples/controller/zephyr"
+            sample = ROOT / "tests/board_images/integration_probe"
             subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
                             "-DCONFIG_CRUX_M3_DEFERRED_OUTPUT=1", "-DCONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048",
                             "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"), str(sample / "native_logger.c"),
@@ -73,7 +73,7 @@ class GeneratedDriverTests(unittest.TestCase):
             (headers / "devicetree.h").write_text(
                 '#define DT_NODELABEL(name) 1\n#define DT_PARENT(node) 2\n')
             (headers / "kernel.h").write_text('int printk(const char *format, ...);\n')
-            sample = ROOT / "samples/controller/zephyr"
+            sample = ROOT / "tests/board_images/integration_probe"
             subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
                             "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"),
                             str(Path(__file__).with_name("observer_model.c")),
@@ -101,7 +101,7 @@ class GeneratedDriverTests(unittest.TestCase):
             (work / "register_macros.inc").write_text("\n".join(macros) + "\n")
             subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
                             "-DCONFIG_CRUX_M3_MDIO_FAILURE_TRACE=1", "-I", str(work),
-                            "-I", str(ROOT / "samples/controller/zephyr"),
+                            "-I", str(ROOT / "tests/board_images/integration_probe"),
                             str(Path(__file__).with_name("trace_model.c")), "-o", str(work / "trace_model")], check=True)
             subprocess.run([str(work / "trace_model")], check=True)
 
@@ -150,7 +150,7 @@ class GeneratedDriverTests(unittest.TestCase):
                     + ('target_sources(drivers__ethernet PRIVATE ' + listing + ')\n' if count else '')
                     + 'set(ZEPHYR_BASE "' + str(ZEPHYR) + '")\n'
                     + 'set(PYTHON_EXECUTABLE "' + os.sys.executable + '")\n'
-                    + 'include("' + str(ROOT / 'samples/controller/zephyr/mdio_completion.cmake') + '")\n')
+                    + 'include("' + str(ROOT / 'tests/board_images/integration_probe/mdio_completion.cmake') + '")\n')
                 result = subprocess.run(['cmake', '-S', str(project), '-B', str(project / 'build')],
                                         capture_output=True, text=True)
                 self.assertNotEqual(result.returncode, 0)

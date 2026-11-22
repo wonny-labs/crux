@@ -25,7 +25,7 @@ pull request that added this file. It has not yet run on a real build.
 
 Usage: scripts/check-boot-config.py [build-dir] [--image NAME]
   build-dir  the build directory of the composition ($repo/build/zephyr/boot-composition by default)
-  --image    the application's directory in the sysbuild tree (zephyr, the basename of samples/controller/zephyr)
+  --image    the application's directory in the sysbuild tree (zephyr, the basename of tests/boot_fixture/zephyr)
 Exit status: 0 every check passed, 1 a check failed, 2 a configuration cannot be used (missing build directory
 or file, or a file without a single CONFIG_ option).
 """

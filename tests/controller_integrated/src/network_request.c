@@ -27,7 +27,7 @@ static void unused_report(void)
 #define controller_network_round unused_round
 #define controller_network_report unused_report
 #define CRUX_M3_SOURCE "controlled-request-fixture"
-#include "../../../samples/controller/zephyr/network_probe.c"
+#include "../../../tests/board_images/integration_probe/network_probe.c"
 #undef main
 
 static void command_record(const char *format, ...)

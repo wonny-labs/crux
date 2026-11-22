@@ -51,7 +51,7 @@ modules="$repo;$workspace/modules/hal/cmsis;$workspace/modules/hal/cmsis_6;$work
 (cd "$workspace" && west build --cmake -b 'mimxrt1060_evk@B//qspi' \
     -d "$target_build" "$repo/tests/networking_physical" -- \
     -DZEPHYR_MODULES="$modules" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay")
+    -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay")
 if "$freeze"; then
     cmake --build "$target_build" --target rom_report ram_report
     python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" \

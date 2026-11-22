@@ -654,7 +654,7 @@ Pending; no PR merge or issue/milestone closure is authorised by this work.
 
 The polling candidate subsequently reproduced a brief reported carrier loss
 followed by failed TCP/UDP exchanges. A separate opt-in configuration,
-`samples/controller/zephyr/m3-phy-diagnostic.conf`, supplements the network
+`tests/board_images/integration_probe/phy_diagnostic.conf`, supplements the network
 configuration for investigation only. It adds read-only RT1062 MAC observations
 around an explicit round and native PHY register reads after the round finishes.
 It performs no register writes, driver replacement or automatic application traffic.
