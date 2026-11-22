@@ -107,7 +107,7 @@ A page may carry a document status at its top only when its type is not current-
 | `provenance` (any case) | `merged in PR` or `merged in pull request`, `for review in a Draft PR`, and `on`, `since` or `until` followed by a written date such as `on 9 November 2026` | None |
 | `status` (all case-sensitive) | `Experimental`, `Unstable`, `frozen` (not `frozen manifest`, `frozen lock`, `frozen-style` and similar release terms), `to be removed`, `deprecated`, and `ran`, `run`, `been run` or `executed` followed by `on a`, `on the` or `on any` and `board`, with an optional `real` or `physical` before `board` | [Component readiness](component-readiness.md) |
 
-It skips fenced code blocks, text in code spans, pages of the other types, and the repository README, which `tests/build/test_readme_scope.py` (added by pull request #543) guards on its own.
+It skips fenced code blocks, text in code spans, pages of the other types, and the repository README, which [`test_readme_scope.py`](../tests/build/test_readme_scope.py) guards on its own.
 
 The pages that break these rules today are recorded in the fixture's allowlist, with the number of markers per rule, as found by the [documentation audit](plans/documentation-audit-2026-11.md). The test fails when a page has more markers than its allowlist entry, so new drift fails while existing text does not block unrelated work. When you fix a page, lower or remove its entry; never raise one. If a marker is a false positive that cannot be reworded, raise it in review rather than in the allowlist.
 

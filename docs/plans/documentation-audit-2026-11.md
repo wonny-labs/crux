@@ -88,7 +88,7 @@ Classification notes:
 | [docs/emmc-reliance-physical-gate.md](../emmc-reliance-physical-gate.md) | how-to | 2 | 36, 114 | 36: “… and the supply check. On 5 November 2026 the owner reported that …” | The PR and issue (drop from the page) |
 | [docs/microsd-physical-gate.md](../microsd-physical-gate.md) | how-to | 1 | 50 | 50: “… photo check recorded afterwards, on 3 November 2026 at 16:33 UTC, as …” | The PR and issue (drop from the page) |
 | [docs/porting-to-a-new-board.md](../porting-to-a-new-board.md) | how-to | 1 | 28 | 28: “… code, and Crux Queue was removed in favour of Zephyr k_msgq .” | Contract migration notes, release notes or `docs/history/` |
-| [docs/product-composition.md](../product-composition.md) | how-to | 2 | 174, 178 | 174: “… is CONFIG_CRUX_MODULE . It was renamed from CONFIG_CRUX_PILOT_MODULE , and there is …” | Contract migration notes, release notes or `docs/history/` |
+| [docs/product-composition.md](../product-composition.md) | how-to | 2 | 174, 178 | 174: “It was renamed from” the module switch's former name (quote shortened) | Contract migration notes, release notes or `docs/history/` |
 | [docs/secure-boot-board-test-procedure.md](../secure-boot-board-test-procedure.md) | how-to | 2 | 460 | 460: “… and without a cause: on 5 November 2026 a port cut left …” | The PR and issue (drop from the page) |
 | [docs/shared-hardware-modules.md](../shared-hardware-modules.md) | how-to | 1 | 96 | 96: “… since the board-name refusals were removed (crux-pilot pull request #503, merge commit …” | Contract migration notes, release notes or `docs/history/` |
 | [docs/vendor-kits.md](../vendor-kits.md) | how-to | 1 | 92 | 92: “… at that tag would no longer equal the delivery's list, and the …” | Contract migration notes, release notes or `docs/history/` |
@@ -276,6 +276,7 @@ Decisions for the owner before the batches start:
 ## Limits of this audit
 
 - The lexical scan over-reports in a few places and under-reports history written without its marker words. Two scanned rows are false positives and are marked so in their tables: `docs/logging-contract.md:38` ("previously pending SIGPIPE" is signal behaviour) and `docs/management-glossary.md:3` (evidence records are frozen, not a component). Their markers stay in the allowlist so that the check does not fail on them. Other rows hold a mix of real and false markers (for example a URL anchor such as `#frozen-then-removed-gpio-i2c-and-spi`); each row was read, but not every marker was judged one by one, and a fix batch re-reads its pages.
+- The audit was made at the revisions named under Scope. Pull request #538, merged into `main` afterwards, moved lines of `docs/product-composition.md` and added one more `history` marker there (`no longer`, line 426 at `main` `5784e253`); the allowlist records it, so that page's entry is 3, not the 2 its row shows.
 - Some current-state pages open with a status block that has no marker word (for example `docs/boot-composition.md:3`); rule 4 applies to them, but the scan does not see them.
 - Group (c) covers duplicated commands found mechanically and facts found by reading the entry, product and contract pages; it is not a complete search for every repeated sentence.
 - No page of the typed folders (decisions, plans, history, evidence, research) was audited for content: their type allows dated text.
