@@ -224,7 +224,8 @@ def main(argv=None):
     parser.add_argument("--user-env", metavar="NAME",
                         help="a variable with a user name or e-mail; when set, use Basic instead of Bearer")
     parser.add_argument("--allow-path", action="append", metavar="PATH",
-                        help="a file or directory the commit may change; may repeat (default: west.yml)")
+                        help="a file or directory, from the repository root, that the commit may change; "
+                             "may repeat (default: west.yml)")
     args = parser.parse_args(argv)
     args.allow_path = args.allow_path or ["west.yml"]
     global TOKEN_ENV
@@ -237,6 +238,7 @@ def main(argv=None):
         if top == args.message_file.resolve().parent or top in args.message_file.resolve().parents:
             raise PinPrError("keep --message-file outside the repository, or it is committed")
         title, body, message = read_message(args.message_file)
+        os.chdir(top)  # Git paths and --allow-path are relative to the repository root.
         host = make_host(args)  # Checks the token before anything is pushed.
         paths = changed_paths()
         if not paths:

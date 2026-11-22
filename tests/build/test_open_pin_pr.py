@@ -250,6 +250,17 @@ class GitHubTest(Base):
         self.assertEqual("pin bbbb", self.remote_file(BRANCH, "docs/pin.md"))
         self.assertEqual("pin bbbb", self.remote_file(BRANCH, "RELEASE.md"))
 
+    def test_it_works_from_a_subdirectory(self):
+        self.change("bbbb")
+        (self.work / "docs").mkdir()
+        (self.work / "docs/pin.md").write_text("pin bbbb\n")
+        result = subprocess.run([sys.executable, str(SCRIPT), "--message-file", str(self.message), "--host", "github",
+                                 "--allow-path", "west.yml", "--allow-path", "docs"],
+                                cwd=self.work / "docs", text=True, capture_output=True, env=dict(os.environ, **self.env))
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("pin bbbb", self.remote_file(BRANCH, "docs/pin.md"))
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
+
     def assert_refused(self, result, path):
         self.assertNotIn(result.returncode, (DONE, NOTHING, FOREIGN))
         self.assertIn(path, result.stderr)

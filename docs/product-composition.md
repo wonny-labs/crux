@@ -407,7 +407,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `CRUX_PIN_MANIFEST` | The manifest's absolute path |
 | `CRUX_PIN_CHECKOUT` | The Crux checkout, still at the old revision, or empty when none was found |
 
-`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run, and Git never sees the token. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
+`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run, and Git processes do not get the token's variable. A token that the checkout stored in `.git/config` stays there for the push. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. It pushes nothing when the branch already holds the same change. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
 
 | Option | Default | Use |
 | --- | --- | --- |
@@ -420,7 +420,7 @@ If the product has an executable `scripts/crux-pin-hook`, it runs after the move
 | `--token-env NAME` | `CRUX_PIN_TOKEN` | The token's variable |
 | `--user-env NAME` | None | Basic authentication for Bitbucket, see above |
 | `--api-url URL` | `https://api.bitbucket.org/2.0` | The Bitbucket API root, `https` only |
-| `--allow-path PATH` | `west.yml` | A file or directory the commit may change, such as one the hook updates. May repeat |
+| `--allow-path PATH` | `west.yml` | A file or directory, from the repository root, that the commit may change, such as one the hook updates. May repeat |
 
 ### CI wrappers
 
