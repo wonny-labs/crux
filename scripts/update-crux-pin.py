@@ -51,7 +51,7 @@ def clean_env(extra=None):
 # Git reads no system or user configuration, and ssh no user configuration: a build that ran as the same
 # user may have written them, and ~/.ssh/config can run a program.
 ISOLATION = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_ATTR_NOSYSTEM": "1",
-             "GIT_SSH_COMMAND": "ssh -F /dev/null"}
+             "GIT_SSH_COMMAND": "ssh -F /dev/null", "GIT_NO_REPLACE_OBJECTS": "1"}
 
 
 def run_git(*args, cwd=None, text=False):

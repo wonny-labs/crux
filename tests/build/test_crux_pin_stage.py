@@ -165,6 +165,14 @@ class PrepareTest(Base):
         result = self.prepare(target="main")
         self.assertEqual(ERROR, result.returncode)
 
+    def test_a_workdir_that_is_not_empty_is_refused(self):
+        # A workdir that already holds files is refused: the stage starts from nothing.
+        self.work.mkdir()
+        (self.work / "leftover").write_text("x")
+        result = self.prepare()
+        self.assertEqual(ERROR, result.returncode)
+        self.assertIn("empty", result.stderr)
+
     def test_git_ignores_the_global_and_system_configuration(self):
         # The user's configuration would redirect the product remote to an empty repository.
         empty = self.tmp / "empty.git"
@@ -243,14 +251,6 @@ class ProposeTest(Base):
         result = self.propose()
         self.assertEqual(ERROR, result.returncode)
         self.assertEqual([], self.server.prs)
-
-    def test_a_workdir_that_is_not_empty_is_refused(self):
-        # A workdir that already holds files is refused: the stage starts from nothing.
-        self.work.mkdir()
-        (self.work / "leftover").write_text("x")
-        result = self.prepare()
-        self.assertEqual(ERROR, result.returncode)
-        self.assertIn("empty", result.stderr)
 
 
 if __name__ == "__main__":

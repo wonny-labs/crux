@@ -568,6 +568,7 @@ pipeline {
       when { beforeAgent true; expression { env.PIN_MOVED == 'true' } }
       agent { docker { image 'registry.example/acme/product-x-dev:1' } }
       steps {
+        deleteDir()   // The workspace may be the Update stage's: start empty.
         sshagent(['crux-pin-ssh']) {
           script {
             // No token yet: clone, read the pin and take the stage script from Crux at that revision.
@@ -595,7 +596,7 @@ pipeline {
 }
 ```
 
-The Propose stage cannot see the Update stage's workspace, manifest or text. The token is bound only around `propose`, and `crux-pin-stage.py` passes it to `open-pin-pr.py` alone. Replace `acme/product-x` and the image with your own.
+The Propose stage starts with an emptied workspace and takes nothing from the Update stage. The token is bound only around `propose`, and `crux-pin-stage.py` passes it to `open-pin-pr.py` alone. Replace `acme/product-x` and the image with your own.
 
 ## Upgrades and security fixes
 

@@ -389,12 +389,19 @@ class GitHubTest(Base):
 
     def test_replace_refs_do_not_change_what_is_committed(self):
         self.change("bbbb")
+        # The replacement's tree already holds the changed manifest, so a bot that obeyed it would
+        # see no change in the working tree and propose nothing.
         head = git("rev-parse", "HEAD", cwd=self.work)
-        other = git("commit-tree", "-m", "other", f"{head}^{{tree}}", cwd=self.work)
+        blob = git("hash-object", "-w", "west.yml", cwd=self.work)
+        tree = subprocess.run(
+            ["git", "mktree"], cwd=self.work, input=f"100644 blob {blob}\twest.yml\n", text=True,
+            check=True, capture_output=True).stdout.strip()
+        other = git("commit-tree", "-m", "other", tree, cwd=self.work)
         git("replace", head, other, cwd=self.work)
         result = self.run_script("--host", "github", env=self.env)
-        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual(DONE, result.returncode, result.stdout + result.stderr)
         self.assertEqual(head, git("rev-parse", f"{BRANCH}^", cwd=self.origin))
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
 
     def test_the_branch_may_not_be_the_base(self):
         self.change("bbbb")
