@@ -1,10 +1,10 @@
-# The small example project of Issue #220, samples/web_project, on the real web core and the
+# The small example project of Issue #220, in project/, on the real web core and the
 # fake transport: its folder packaged by the real packager under the strict setting, and its route
 # registered through the public route contract, with no native header. These exist only when Crux
 # builds its own tests.
 include(${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxWebAssets.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxWebRoutes.cmake)
-set(project_sample ${CMAKE_CURRENT_LIST_DIR}/../../../samples/web_project)
+set(project_sample ${CMAKE_CURRENT_LIST_DIR}/project)
 
 add_library(web_project_sample_core STATIC ${CRUX_WEB_SOURCES} ../fake_transport.c ../web_test.c
     ${project_sample}/src/greeting_route.c)
@@ -17,8 +17,10 @@ target_compile_options(web_project_sample_core PRIVATE -Wall -Wextra -Wpedantic 
 # What the project writes, as its README says: the folder and the route source.
 crux_web_assets(web_project_sample_core FOLDER ${project_sample}/site STYLE strict
     RESPONSE_DEADLINE_MS 3000)
+# scripts/check-web-routes.py accepts the project's own list only when a CMake file names it after REVIEWED
+# by a path that contains its repository-relative path, hence the long form.
 crux_web_routes(web_project_sample_core SOURCES ${project_sample}/src/greeting_route.c FAKE_MANIFEST
-    REVIEWED ${CMAKE_CURRENT_LIST_DIR}/../../../samples/web_project/reviewed-routes.txt)
+    REVIEWED ${CMAKE_CURRENT_LIST_DIR}/../../../tests/web/project_sample/project/reviewed-routes.txt)
 
 add_executable(web_project_sample project_sample.c)
 target_link_libraries(web_project_sample PRIVATE web_project_sample_core)

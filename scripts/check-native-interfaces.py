@@ -18,6 +18,9 @@ import runpy
 # samples/controller/{host,zephyr} are legacy native compositions/qualification
 # fixtures pending migration, not portable consumers. Future application/runtime
 # consumers have no such exemption: classify a new provider deliberately.
+# The samples layout proposal (docs/plans/samples-layout-proposal.md) moves portable
+# sample code. Until each move lands, its old and new paths are both listed; the old
+# paths leave this table after the moves.
 PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
@@ -41,6 +44,12 @@ PORTABLE_ROOTS = (
     "tests/system_consumer/src/consumer.cpp",
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp",
+    # New paths of the samples layout proposal.
+    "samples/time/time_periodic_task/common", "samples/time/time_shell/include",
+    "samples/time/time_shell/src/time_command.c",
+    "tests/configuration/controller_scenario.c",
+    "tests/serial_consumer/scenario", "tests/logging_consumer/scenario",
+    "tests/messaging_consumer/scenario", "tests/system_consumer/scenario",
 )
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.
@@ -48,6 +57,9 @@ NETWORKING_PROFILE = frozenset((
     "samples/networking/client.c", "samples/networking/client.h",
     "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
     "tests/networking_consumer/consumer.h", "tests/networking_consumer/cpp_probe.cpp",
+    # New path of the samples layout proposal.
+    "samples/networking/tcp_udp_echo/common/client.c",
+    "samples/networking/tcp_udp_echo/common/client.h",
 ))
 NETWORKING_HEADERS = {"sys/socket.h", "netinet/in.h", "arpa/inet.h", "poll.h",
                       "fcntl.h", "unistd.h"}

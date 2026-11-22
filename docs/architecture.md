@@ -448,7 +448,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 - [Native-free consumer policy](native-interface-policy.md)
 - [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
 - [Test organisation and commands](../tests/README.md)
-- [Reference controller and supported scenarios](../samples/controller/README.md)
+- Reference controller and supported scenarios: `samples/controller/README.md`, listed in the [samples overview](../samples/README.md)
 
 ## Private execution context
 

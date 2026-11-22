@@ -18,23 +18,17 @@ The [architecture overview](docs/architecture.md) describes the public capabilit
 
 You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk. [Getting started](docs/getting-started.md) covers native Linux and Windows with WSL2.
 
-1. Clone the repository as [Getting started](docs/getting-started.md#1-use-a-git-clone) describes. It also covers the required folder layout, WSL2 and proxies.
+1. Create a parent folder and clone the repository into it, as [Getting started](docs/getting-started.md#2-folder-layout) describes. You create the folder. The Dev Container only mounts it at `/workspace`, and `scripts/bootstrap-zephyr.sh` creates `.west/`, `zephyr/` and `modules/` inside it. [Getting started](docs/getting-started.md) also covers WSL2 and proxies.
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**.
-3. Inside the container, from the repository root, build and test:
+3. Inside the container, run the commands for your purpose from [Setup commands](docs/getting-started.md#6-setup-commands): Host tests only, Zephyr samples, the controller scenarios with the board cross-build, or the checks before a pull request. That table also says what each script needs.
 
-```sh
-scripts/bootstrap-host.sh                    # Host build and tests (CTest)
-scripts/bootstrap-zephyr.sh --install-sdk    # pinned west workspace and Zephyr SDK
-scripts/test-controller.sh                   # native_sim scenarios and a board cross-build
-```
-
-None of these commands programs or resets a board. Next, the [first-hour guide](docs/first-hour.md) runs Zephyr's Hello World and the Crux samples, and shows how to change a build.
+None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then Zephyr's Hello World and the Crux samples, and shows how to change a build.
 
 ## Where to read next
 
 | You want to | Read |
 | --- | --- |
-| Run your first builds and samples | [Your first hour with Crux](docs/first-hour.md) and [Samples](samples/README.md) |
+| Run your first builds and samples | [Tutorial: your first build and sample](docs/tutorial.md) and [Samples](samples/README.md) |
 | Find any page by task | [Documentation map](docs/README.md) |
 | Find your way around the repository | [Repository layout](docs/architecture.md#repository-layout) |
 | Understand the layers and ownership | [Architecture overview](docs/architecture.md) and [Choosing an API](docs/choosing-an-api.md) |

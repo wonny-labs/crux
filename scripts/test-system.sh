@@ -43,6 +43,6 @@ cp "$build/zephyr/.config" "$evidence/selected.config"
 (cd "$build" && sha256sum zephyr/.config zephyr/zephyr.dts zephyr/zephyr.elf) > "$evidence/sha256.txt"
 (cd "$workspace" && west list zephyr cmsis cmsis_6 hal_nxp -f '{name} {revision} {path}') > "$evidence/modules.txt"
 (cd "$repo" && git ls-files --cached --others --exclude-standard \
-    components/system tests/system tests/system_consumer tests/consumer_system samples/controller/system \
+    components/system tests/system tests/system_consumer tests/consumer_system \
     zephyr cmake/CruxConsumerBoundary.cmake scripts/test-system.sh scripts/test-consumer-system.sh | sort -u | \
     while IFS= read -r file; do sha256sum "$file"; done) > "$evidence/input-sha256.txt"
