@@ -3,7 +3,7 @@
 Status: **spike result, proposed, not adopted.** It authorises no implementation, public interface, dependency,
 hardware operation or merge, and it changes no source, test, script or evidence file. The owner approved the spike on
 22 November 2026 as item 4 of a product team's list of Crux gaps. Baseline: `main` at
-`2c017f68f8dfbf43ea4c7e9a7c3e9bf6bb2ba1f4`.
+`2c017f685e0215e0e269d4bc77272889d06a07d8`.
 
 The question: what Crux needs so that a product can update a file and, after a power cut at any moment, find either the
 complete old content or the complete new content, never a torn or missing file. A product needs this for the power-loss
