@@ -196,12 +196,14 @@ default branches. Listings only; no example was built.
    `http_server`, `coap_client`, `sntp_client`. The role suffix appears whenever both sides could exist.
 4. Where the area is a folder, the leaf does not repeat it (`net/mqtt`, `storage/fatfs`, `drivers/rtc`); the
    platforms that repeat it (STM32Cube `LwIP_*`, NXP `lwip_*`) have no area folder above, or one per library.
-5. An interactive command sample ends in `_shell` after what it controls (`flash_shell`, `modem_shell`,
-   `leds_shell`), or sits under a `console`/`shell` area when the console itself is the subject.
+5. An interactive command sample usually ends in `_shell` after what it controls (`flash_shell`, `modem_shell`,
+   `leds_shell`; nRF's `shell_bt_nus` is the other order), or sits under a `console`/`shell` area when the console
+   itself is the subject.
 6. Time samples are named after the mechanism they show: `sntp`, `rtc`, `RTC_Alarm`, `gettimeofday`, `alarm`,
    `timer_periodic_wakeup`.
 7. Variants (board, provider, feature, OS) are configuration files or scenarios, not new folder names.
-8. The first sample is `hello_world` or a close form on every platform.
+8. Where a platform has a first sample, it is `hello_world` or a close form (Zephyr, NXP, RIOT `hello-world`, NuttX
+   `hello`); the survey did not record one for nRF Connect SDK, ESP-IDF or STM32Cube.
 
 ### First samples a new user runs
 
@@ -300,7 +302,7 @@ Feature samples stay optional, minimal and generic:
 
 | Feature sample | From | Shows |
 | --- | --- | --- |
-| `samples/time/utc_clock_shell` | today's `samples/time` | Time read, set and step from a shell, on `native_sim` and Linux Host |
+| `samples/time/utc_clock_shell` | today's `samples/time` | Time read and set from a shell (`time get`, `time set <UTC>`), on `native_sim` and Linux Host |
 | `samples/time/periodic_task` | the default scenario of `samples/controller` (if kept, [section 6](#6-samplescontroller-keep-slim-or-remove)) | A task released every 100 ms that reads Time |
 | `samples/networking/echo_client` | today's `samples/networking` | One TCP and one UDP echo exchange with a peer, on Linux Host and on the EVKB |
 
@@ -329,8 +331,10 @@ sample already runs on both compositions. Until `hello_crux` exists, Time stays 
 1. A folder under `samples/` is a sample only if it builds on its own, shows one thing, and has a `README.md` and a
    `sample.yaml` with a console regular expression or, for a Linux Host program, a CTest output check. A board sample
    names its board in `platform_allow` and its README.
-2. Starter samples sit at the top of `samples/`. Feature samples sit under an area named after the Crux component they
-   show: `samples/<component>/<name>/`. Board-only samples sit under `samples/boards/nxp/<board>/<name>/`.
+2. A starter that is not about one component sits at the top of `samples/` (`hello_crux`); a starter that shows one
+   component sits under that component's area, as feature samples do (`file/write_read`). Feature samples sit under an
+   area named after the Crux component they show: `samples/<component>/<name>/`. Board-only samples sit under
+   `samples/boards/nxp/<board>/<name>/`.
 3. Names follow the [naming rules](#naming-rules) below: `hello_crux`, `time/utc_clock_shell`, `networking/echo_client`,
    `file/write_read`.
 4. A Linux Host program of a sample stays inside the sample as `host/`, as `samples/time/host/` does today.
@@ -347,8 +351,9 @@ From the survey in [section 2](#naming-practice-across-platforms). Owner request
 roughly tell from the name what a sample does, without the name carrying every detail; terms follow standards or
 industry practice.
 
-- **N1 Place.** Starters: `samples/<name>/`. Feature samples: `samples/<area>/<name>/`, where `<area>` is the Crux
-  component folder name (`time`, `file`, `networking`). Board-only samples:
+- **N1 Place.** Starters that are not about one component: `samples/<name>/` (`hello_crux`). Feature samples, and
+  starters that show one component: `samples/<area>/<name>/`, where `<area>` is the Crux component folder name
+  (`time`, `file`, `networking`). Board-only samples:
   `samples/boards/<vendor>/<board>/<name>/`. Board test images: `tests/board_images/<name>/`.
 - **N2 Form.** Lowercase `snake_case`, one to three words, saying what the sample does. The leaf does not repeat its
   area: `file/write_read`, not `file/file_write_read`.
@@ -367,13 +372,14 @@ industry practice.
 
 ### Names of every sample folder
 
-Every folder under `samples/` on `main` at `b0b81a78`, with its proposed name. "Now" means renamed by the open PR 4
+Every folder under `samples/` on `main` at `b0b81a78` (newer than the baseline above), with its proposed name. Script
+names, such as `scripts/test-time-periodic-task.sh`, are outside these rules. "Now" means renamed by the open PR 4
 (#551) or by the starter rename PR; the others belong to the wave named.
 
 | Current (`main`) | Proposed | When | Why |
 | --- | --- | --- | --- |
 | `hello_crux/` | `hello_crux/` (unchanged) | — | `hello_<platform>` is the first-sample name everywhere (N3) |
-| `file/file_write_read/` | `file/write_read/` | now, starter rename PR | The area is not repeated (N2), as `storage/fatfs`, `net/mqtt` |
+| `file/file_write_read/` | `file/write_read/` | now, starter rename PR (#555) | The area is not repeated (N2), as `storage/fatfs`, `net/mqtt` |
 | `time/` (Zephyr app and `host/`; `time/time_shell` in #551 before this update) | `time/utc_clock_shell/` | now, PR 4 (#551) | A shell that reads and sets the UTC clock (`time get`, `time set <UTC>`); `_shell` after its subject, as `flash_shell` (N3) |
 | `networking/` (`zephyr/`, `host/`, `client.*`; `networking/tcp_udp_echo` in #551 before this update) | `networking/echo_client/` | now, PR 4 (#551) | The client side of a TCP and UDP echo exchange: Zephyr's `net/sockets/echo_client` for the same behaviour |
 | `controller/zephyr/` default and `controller/host/` | `time/periodic_task/` | PR 5 | A task released every 100 ms that reads Time; the area says Time, so the leaf need not (N2), as RIOT `timer_periodic_wakeup` |
@@ -400,7 +406,7 @@ the mapping below.
 | Old path | New path | New id or test name | Why |
 | --- | --- | --- | --- |
 | (new) | `samples/hello_crux/` with `host/` | `crux.sample.hello_crux`, CTest `Sample.HelloCruxHost` | Starter: minimal consumer |
-| (new) | `samples/file/write_read/` | `crux.sample.file.write_read.simulator`, `.fatfs_ram_disk` | Starter: provider selection |
+| (new) | `samples/file/write_read/` (created by PR 2 as `file/file_write_read`, renamed by #555) | `crux.sample.file.write_read.simulator`, `.fatfs_ram_disk` | Starter: provider selection |
 | `samples/time/` (Zephyr app, `host/`, `include/`, `src/`) | `samples/time/utc_clock_shell/` | `crux.sample.time.utc_clock_shell` (was `crux.sample.time.shell`); CTest `Sample.TimeHost` → `Sample.UtcClockShellHost` | Explicit name |
 | `samples/controller/zephyr/` default and `samples/controller/host/` | `samples/time/periodic_task/` with `host/` (slim option) | `crux.sample.time.periodic_task` (was `crux.sample.controller.basic`); CTest `Sample.PeriodicTaskHost` (was `Controller.HostScenario`) | [Section 6](#6-samplescontroller-keep-slim-or-remove) |
 | `samples/controller/core/`, `include/` | `samples/time/periodic_task/common/` (slim) or `tests/controller/` (remove) | library `crux_periodic_task_core` (was `crux_controller_core`) | Section 6 |
@@ -622,7 +628,7 @@ Common rules for every PR:
 | Wave | PR | Content | Exact file set | Protected files | Where the coverage goes | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | **PR 1 shared tables** | Path tables accept both the old and the new paths; Markdown links from shared docs to sample folders become code spans or links to `samples/README.md`, so later moves break no link | `scripts/check-native-interfaces.py`, `scripts/measure-tidy-coverage.py`, `scripts/check-web-routes.py`, `scripts/analyze-host.sh`, `scripts/tidy-sources.py`, `scripts/tidy-sources.conf` (checked; changed only where a path rule needs both paths), `tests/build/test_native_interfaces.py`, `tests/build/test_web_routes.py`, `samples/README.md`, `docs/architecture.md`, `docs/execution-profile.md`, `tests/README.md` | the five scripts and `scripts/tidy-sources.conf` | unchanged; tables cover both paths | — |
-| 1 | **PR 2 starters** | New `samples/hello_crux` (Zephyr app plus `host/` built as a standalone consumer project) and `samples/file/write_read` (scenarios `.simulator`, `.fatfs_ram_disk`), test first: their console checks are written and fail first | `samples/hello_crux/**`, `samples/file/write_read/**`, new `scripts/test-hello-crux.sh` | none (new script) | new coverage. No workflow runs Twister with the `sample` tag today, and the Host program is a standalone consumer project outside the root CTest tree, so the new samples run in CI only after PR H wires `scripts/test-hello-crux.sh` and a `-t sample` Twister step into the workflows; until then the PR records local or Dev Container runs | — |
+| 1 | **PR 2 starters** | New `samples/hello_crux` (Zephyr app plus `host/` built as a standalone consumer project) and `samples/file/file_write_read` (scenarios `.simulator`, `.fatfs_ram_disk`; renamed to `file/write_read` by #555 under the naming rules), test first: their console checks are written and fail first | `samples/hello_crux/**`, `samples/file/write_read/**`, new `scripts/test-hello-crux.sh` | none (new script) | new coverage. No workflow runs Twister with the `sample` tag today, and the Host program is a standalone consumer project outside the root CTest tree, so the new samples run in CI only after PR H wires `scripts/test-hello-crux.sh` and a `-t sample` Twister step into the workflows; until then the PR records local or Dev Container runs | — |
 | 2 | **PR 3 building blocks** | `samples/{logging,serial,messaging,web_project}` and `samples/controller/{system,configuration}` move into the tests that compile them | the six source folders; `scripts/test-messaging.sh`, `scripts/test-system.sh`; `tests/{logging_consumer,serial_consumer,messaging_consumer,system_consumer,consumer_poc}/**`, `tests/logging/zephyr/consumers.cmake`, `tests/configuration/CMakeLists.txt`, `tests/web/project_sample/**`, `tests/build/test_project_sample.py`, `web/README.md`; `docs/{configuration-validation,e2e-native-220,messaging-validation,serial-validation,static-analysis-coverage}.md` | `scripts/test-messaging.sh`, `scripts/test-system.sh` | same tests, same CTest names | PR 1 |
 | 2 | **PR 4 Time and networking samples** | `samples/time` → `samples/time/utc_clock_shell`; `samples/networking` → `samples/networking/echo_client` with a new `sample.yaml`; CTest `Sample.UtcClockShellHost`, `Sample.EchoClientHost`; Twister `crux.sample.time.utc_clock_shell` | `samples/time/**`, `samples/networking/**`, root `CMakeLists.txt`, `.vscode/tasks.json`, `scripts/{build-debug-target,build-target,check-host-sample,test-zephyr-time,test-networking}.sh`, `scripts/{run-host-sample,check-networking-dependencies,compile-networking-cpp-probe}.py`, `tests/build/test_debug_target.py`, `tests/build/test_run_host_sample.py`, `tests/networking/CMakeLists.txt`, `tests/networking_zephyr/CMakeLists.txt`, `tests/time/zephyr/CMakeLists.txt`, `docs/{time-contract,networking-contract,implementation-status}.md` | the eight scripts | same programs and checks under new names | PR 1 |
 | 3 | **PR 5 controller split** | Slim option of section 6: `samples/time/periodic_task` (default scenario, `host/`, `common/`), boot fixture `tests/boot_fixture/zephyr` (basename `zephyr` keeps the sysbuild image name), probes to `tests/board_images/evkb_integration_probe` with the configuration names of section 5 (build folder names and the Host log path unchanged until PR H), overlay to `samples/boards/nxp/mimxrt1060_evk/common/network.overlay`, `samples/management_rt1060_mbed` → `samples/boards/nxp/mimxrt1060_evk/https_management`, Kconfig and C names of section 7 (incl. the Zephyr patch and its hash), `scripts/test-controller.sh` → `scripts/test-time-periodic-task.sh`, `scripts/test-m3-rt1170.sh` → `scripts/test-integration-probe-rt1170.sh` (aliases kept) | `samples/controller/**` (except the two folders of PR 3), `samples/management_rt1060_mbed/**`; move targets `samples/time/periodic_task/**`, `samples/boards/nxp/mimxrt1060_evk/common/network.overlay`, `samples/boards/nxp/mimxrt1060_evk/https_management/**`, `tests/boot_fixture/**`, `tests/board_images/evkb_integration_probe/**`; root `CMakeLists.txt`, `components/system/ports/zephyr/CMakeLists.txt`, `patches/zephyr/{README.md,nxp-enet-mdio-completion.patch}`; `scripts/{test-controller,test-controller-integration,test-m3-rt1170,test-boot-composition,test-management-mbed-rt1060,test-networking,test-networking-physical}.sh`, `scripts/{check-boot-config,check-controller,prepare-nxp-mdio}.py`; the content (paths, Kconfig symbols, console tokens) of `tests/build/test_m3_*.py`, `tests/build/test_m5_image.py`, `tests/controller_m3/CMakeLists.txt` (compiles `samples/controller/core/health.c` and `zephyr/device_input.c`), `tests/target/{m3_image,m3_integrated_output,capture_m3_integrated,capture_m3_network}.py`; `tests/controller/**`, `tests/controller_integrated/**`, `tests/controller_network/**`, `tests/controller_network_stack/**`, `tests/networking_physical/CMakeLists.txt`, `tests/zephyr/management_rt1060_compile/CMakeLists.txt`, `tests/native/{integrated_output,logger_phase,network_output_burst,mdio_completion,deferred_output}/**` (in `tests/native/mdio_completion/test_driver.py` the call of `scripts/test-m3.sh` changes to `scripts/test-controller-integration.sh`, so PR 10 can delete the alias), `tests/target/{check_boot_images.sh,check_boot_reproducibility.sh,compare-mcuboot-crypto-backends.sh}`, the `tests/build/` tests that read controller or management paths (`test_check_boot_config`, `test_check_boot_images`, `test_dependencies`, `test_external_application`, `test_management_mbed_rt1060_image`, `test_psa_threading_provider`, `test_rt1170_composition`, `test_system_composition`, `test_bench_image_profile`, `test_bench_profile_wiring`, `test_device_control`), new `tests/boot_fixture/**`, `tests/board_images/evkb_integration_probe/**`; the docs that name controller, probe, boot or management paths and are not in PR 8's list (listed in the PR description) | all scripts listed | Host scenario and `native_sim` runs → `periodic_task`; boot checks → `tests/boot_fixture`; probes → `tests/board_images`; `tests/controller` keeps its 13 cases | PR 3, PR 4 |
