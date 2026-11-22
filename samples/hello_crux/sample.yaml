@@ -19,3 +19,10 @@ common:
       - "CRUX_HELLO_READY composition=zephyr"
 tests:
   crux.sample.hello_crux: {}
+  # Build only: the same application cross-built for the EVKB. It has not been run on the board.
+  crux.sample.hello_crux.evkb:
+    build_only: true
+    platform_allow:
+      - mimxrt1060_evk@B/mimxrt1062/qspi
+    integration_platforms:
+      - mimxrt1060_evk@B/mimxrt1062/qspi

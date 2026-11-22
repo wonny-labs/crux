@@ -98,7 +98,7 @@ The board test tooling programs and restores only registered images. Each image 
 ## Known limits
 
 - The only host used for debugging and physical tests is macOS ([Probe and connection](#probe-and-connection)).
-- The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` is built and run on `native_sim` only.
+- The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` runs on `native_sim` and is cross-built for this board; no board result is recorded for it.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).

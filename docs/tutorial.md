@@ -10,7 +10,7 @@ Part A runs on the Linux Host and gives a first result in minutes, before the lo
 Zephyr, so Part B is the main body of the tutorial. The examples go from the general to the specific: Zephyr's own
 `hello_world` (is Zephyr installed?), then Crux's `hello_crux` (does a Crux consumer build?), then one example per
 Crux idea: a shell (`time/clock_shell`), provider selection by configuration (`file/write_read`) and a networking
-client (`networking/echo_client`). On a board, Zephyr's `blinky` checks the board before the first Crux image.
+client (`networking/echo_client`). On a board, Zephyr's `blinky` checks the board, then `hello_crux` is the first Crux image and `clock_shell` the interactive one. The order is Linux Host, then `native_sim`, then the board.
 
 The Zephyr downloads at the start of Part B are the long part. No durations have been measured yet.
 
@@ -294,14 +294,30 @@ west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/
 ```
 
 Download it the way Zephyr's own page for the board describes, with your probe; the board's user LED then blinks. The
-VS Code profile of step 15 downloads only the Time sample, and Crux does not wrap this step. This repository records
+VS Code profile of step 16 downloads only the Time sample, and Crux does not wrap this step. This repository records
 no run of `blinky` on the board, so a result here tells you about your setup, not about Crux. If it does not blink,
 fix the board, probe or connection with the board guide's recovery section before you go on.
 
-### 14. Build a Crux sample for your board
+### 14. Hello Crux on the board
 
-The board route builds and flashes the Time sample of step 8. `samples/hello_crux` is built and run on `native_sim`
-only. In the Dev Container, from `/workspace/crux-pilot`, pass the board's `-b` target:
+The first Crux example on the board is the one from step 7, which is cross-built for the board. In the Dev Container,
+from `/workspace/crux-pilot`:
+
+```sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/hello_crux
+```
+
+The build directory is `build/zephyr/mimxrt1060_evk_B_qspi--samples_hello_crux`. Download the ELF the same way as
+`blinky` in step 13. The console, the DAPLink serial port at 115200 baud, 8-N-1, should show the Zephyr boot banner and
+then the three lines of step 7, ending with `CRUX_HELLO_READY composition=zephyr`.
+
+**No board result is recorded for this image.** CI only cross-builds it. The repository's VS Code profile does not
+download it either, so there is no recorded console output for it; treat what you see as your own first result.
+
+### 15. Build the Time sample for your board
+
+The next example is interactive: the Time shell of step 8. This is the route that has a recorded board result ([component readiness](component-readiness.md)). In the
+Dev Container, from `/workspace/crux-pilot`, pass the board's `-b` target:
 
 ```sh
 scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
@@ -310,7 +326,7 @@ scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
 The script prints the build directory, `build/zephyr/mimxrt1060_evk_B_qspi`, before it builds and the ELF path when it
 finishes.
 
-### 15. Flash it
+### 16. Flash it
 
 On the Mac, from the repository checkout (not the Dev Container), start the GDB Server and leave it running:
 
@@ -319,11 +335,11 @@ bash scripts/macos/start-jlink-gdbserver.command
 ```
 
 Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. Then, in VS Code in
-the Dev Container, start the debug configuration **EVKB QSPI: Flash**. It runs the build of step 14, resets the board
+the Dev Container, start the debug configuration **EVKB QSPI: Flash**. It runs the build of step 15, resets the board
 and downloads the image. The debugger then stops at the reset entry (`reset.S`); press Continue (F5) to start the
 image.
 
-### 16. See it run
+### 17. See it run
 
 The console shows the Zephyr boot banner, then:
 
