@@ -34,9 +34,40 @@ Operator practice from bench sessions, not a repository record: check all four S
 | --- | --- |
 | Debug probe | An external SEGGER J-Link (a J-Link PLUS is recorded) on the 20-pin J2 header, with J9 and J10 removed. SWD at 400 kHz, device `MIMXRT1062xxx6A`, J-Link software V9.86a. The first connection on a new setup failed at 1000 kHz and was made at 100 kHz after J9 and J10 had been corrected |
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
-| Host | A Mac runs the J-Link GDB Server. The Dev Container runs the build and GDB and connects to the server at `host.docker.internal:2331` |
+| Host | On macOS, a Mac runs the J-Link GDB Server and the Dev Container runs the build and GDB, connecting to the server at `host.docker.internal:2331`. On Linux and WSL2, everything runs in the Dev Container (below) |
 
-**Linux and Windows with WSL2.** No Linux or Windows route has been run. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and whether the server command works on Linux is not verified. On native Linux, Docker does not resolve `host.docker.internal` unless the container is started with `--add-host=host.docker.internal:host-gateway`; this too has not been tried. On WSL2, USB forwarding of the probe to the distribution is needed only if the GDB server runs inside WSL2; running the server on Windows is the other option. Both are untried. On Linux the console would have a name such as `/dev/ttyACM0`, which is not verified either. This page will describe the Linux and WSL2 route once it has been verified.
+**Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a, using a separate board Dev Container configuration; the image was built with a no-op `/usr/sbin/udevadm` added by hand, which `install-jlink.sh` adds itself. The [J-Link board route](../board-jlink-usbipd.md) guide gives the current path, with the single Dev Container, `scripts/bootstrap.sh board-host`, `usbipd attach --auto-attach` and an organisation-hosted package URL, which have not been run, and explains the failures seen.
+
+1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID>`, again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
+2. WSL2 shell, in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
+
+   ~~~sh
+   sudo apt-get update && sudo apt-get install -y usbutils
+   sudo cp .devcontainer/jlink/99-crux-jlink.rules /etc/udev/rules.d/
+   sudo udevadm control --reload-rules && sudo udevadm trigger
+   lsusb -d 1366:
+   ls -l /dev/bus/usb/*/*
+   ~~~
+
+   The J-Link's node was `crw-rw-rw-` owned by `root` before the rule applied, and `crw-rw----` with owner `root` and group `plugdev` after a reattach. The container can open either.
+3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`.
+4. VS Code: **Dev Containers: Rebuild and Reopen in Container**. That run used a separate board configuration; the [guide](../board-jlink-usbipd.md#steps) uses the one Dev Container.
+5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`, which was not checked in that run.
+6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
+7. Build and flash the Time sample:
+
+   ~~~sh
+   scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+   west -v flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
+   ~~~
+
+   The run used `--speed 400`. The [guide](../board-jlink-usbipd.md#steps) leaves the speed out, so the runner uses `auto`, which has not been run yet; if `auto` fails, use 4000, then 400, then 100. `west debugserver` at 4000 kHz connected once.
+
+8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
+
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Flash and run to main** to build, download, reset and stop at `main`, or **Board: Attach (no reset)** to look at the image already running (it cannot stop at `main`, which has already run) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
+
+Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-only `west attach` check with `compare-sections`, `west debug`, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
 ## Flash and debug
 
@@ -81,13 +112,13 @@ Without either option the build directory is the one that the VS Code profile an
 |---|---|---|
 | The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
 
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
+The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. On macOS the probe stays on the Mac, so the split between the Mac-hosted server and the container GDB stays. On Linux and WSL2 the Dev Container has the J-Link software once its package is given (see [Probe and connection](#probe-and-connection)).
 
 ## Recovery
 
 | Situation | What exists |
 | --- | --- |
-| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz) |
+| The J-Link does not connect | Check that J9 and J10 are removed and the probe is on J2, then lower the SWD speed (the first connection on a new setup was made at 100 kHz). If J-Link Commander reports `VTref=0.000V`, the target has no power: check the supply before anything else |
 | An image under test must be replaced by a known one | The `restore` mode of the program and restore driver loads the accepted normal image, built from `tests/board_images/integration_probe`, and verifies it twice before it starts it. It needs its own approval and evidence directory ([board image profiles](../board-image-profiles.md)) |
 | The image in flash does not start | The boot ROM serial downloader (`BOOT_MODE` `01`; the switch setting is in the NXP user manual), not tested on this board. It loads an image into RAM and has no flash command ([bootloader update investigation](../boot-bootloader-update-investigation.md)) |
 
@@ -97,7 +128,7 @@ The board test tooling programs and restores only registered images. Each image 
 
 ## Known limits
 
-- The only host used for debugging and physical tests is macOS ([Probe and connection](#probe-and-connection)).
+- Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
 - The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` is built and run on `native_sim` only.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).

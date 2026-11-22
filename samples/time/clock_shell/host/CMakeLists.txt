@@ -1,6 +1,10 @@
 add_executable(crux-time-host main.c)
 target_link_libraries(crux-time-host PRIVATE crux_time_commands crux::time)
 target_compile_options(crux-time-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
+# `cmake --build --preset host-debug --target run_clock_shell` builds the sample and runs it with
+# the terminal as its console, like `west build -t run` on native_sim. The clock is controlled:
+# it starts unset and does not advance by itself.
+add_custom_target(run_clock_shell COMMAND crux-time-host USES_TERMINAL)
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # `ctest -L sample` runs every Linux Host sample once and checks its output.

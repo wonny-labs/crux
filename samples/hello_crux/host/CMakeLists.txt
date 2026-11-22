@@ -34,3 +34,6 @@ add_executable(hello-crux-host main.c)
 target_include_directories(hello-crux-host PRIVATE ../src)
 target_link_libraries(hello-crux-host PRIVATE hello_crux_logic crux::time)
 target_compile_options(hello-crux-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# `cmake --build <build folder> --target run_hello_crux` builds the program and runs it.
+add_custom_target(run_hello_crux COMMAND hello-crux-host USES_TERMINAL)

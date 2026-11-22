@@ -18,9 +18,9 @@ The [architecture overview](docs/architecture.md) describes the public capabilit
 
 You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk. [Getting started](docs/getting-started.md) covers native Linux and Windows with WSL2.
 
-1. Create a parent folder and clone the repository into it, as [Getting started](docs/getting-started.md#2-folder-layout) describes. You create the folder. The Dev Container only mounts it at `/workspace`, and `scripts/bootstrap-zephyr.sh` creates `.west/`, `zephyr/` and `modules/` inside it. [Getting started](docs/getting-started.md) also covers WSL2 and proxies.
-2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**.
-3. Inside the container, run the commands for your purpose from [Setup commands](docs/getting-started.md#6-setup-commands): Host tests only, Zephyr samples, the controller scenarios with the board cross-build, or the checks before a pull request. That table also says what each script needs.
+1. Create a parent folder and clone the repository into it, as [Getting started](docs/getting-started.md#2-folder-layout) describes. You create the folder. The Dev Container only mounts it at `/workspace`, and its set-up creates `.west/`, `zephyr/` and `modules/` inside it. [Getting started](docs/getting-started.md) also covers WSL2 and proxies.
+2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**. The one Dev Container serves work with and without a board.
+3. Wait for the set-up that the container runs by itself, `scripts/bootstrap.sh`: the tools, the Host build and tests, the west workspace and the Zephyr SDK. If a download fails, the container still opens and the terminal names the command that runs the step again; `scripts/bootstrap.sh status` shows each step. [The Dev Container sets itself up](docs/getting-started.md#6-the-dev-container-sets-itself-up) has the details, and section 7 there what a board adds.
 
 None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then Zephyr's Hello World and the Crux samples, shows how to change a build, and ends with a sample on your board.
 

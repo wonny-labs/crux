@@ -2,8 +2,14 @@ add_executable(crux-networking-host main.c ../common/client.c)
 target_include_directories(crux-networking-host PRIVATE ../common)
 target_link_libraries(crux-networking-host PRIVATE crux::sockets crux::netif)
 target_compile_options(crux-networking-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# `cmake --build --preset host-debug --target run_echo_client` builds the sample and runs it once
+# against the local TCP and UDP echo peer that the driver serves on 127.0.0.1.
+add_custom_target(run_echo_client
+    COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/run-host-sample.py
+            $<TARGET_FILE:crux-networking-host> --echo-peer
+    DEPENDS crux-networking-host USES_TERMINAL)
 if(BUILD_TESTING)
-    find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # The driver serves the TCP and UDP echo peer that the sample talks to on 127.0.0.1.
     add_test(NAME Sample.EchoClientHost
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/run-host-sample.py
