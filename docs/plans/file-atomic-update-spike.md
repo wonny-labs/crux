@@ -30,11 +30,11 @@ Docker workspace, and free disk space was under the limit for new builds.
   is atomic across power loss. Its managed upload uses a sidecar and a recovery at start. The recovery is ordered and
   conservative. One same-size state keeps both files and holds the name until a host repair, and no repair tool exists
   for Reliance Edge (assessment, row 4).
-- **[O]** The credential store does not rename. It writes two slots with a tag and a generation and accepts a slot only
-  when the tag and generation check pass. Its guarantee does not depend on file system atomicity
+- **[O]** The credential store does not rename. It writes two slots with a tag and a generation and takes the valid slot
+  with the higher generation. Its guarantee does not depend on file system atomicity
   ([credential store](../credential-store.md)).
 - **[O]** On 4 November 2026 the owner decided to keep the File contract as it is and to reconsider atomic replace
-  after physical evidence (recorded in the [eMMC design](emmc-reliance-design.md), D2, and the assessment).
+  after physical evidence (recorded in the owner's decisions of 4 November 2026 in the [eMMC design](emmc-reliance-design.md), and in the assessment).
 
 ### What each file system offers
 
@@ -53,11 +53,15 @@ today.
 
 - **[O]** At the Zephyr pin, the MMC stack turns the eMMC cache on when the device has one, and the disk sync only waits
   for the card to be ready. It sends no flush (design F2, [eMMC semantics](../evidence/boot-emmc/emmc-semantics-and-hardware.md), E17).
-  So on such a device a successful `crux_file_sync` does not mean the data is on the medium, whatever the file system.
+  So on such a device, without the correction below, a successful sync does not mean the data is on the medium, whatever
+  the file system.
 - **[O]** Reliance Edge needs the flush as a barrier before and after the metaroot write (design F3). Without it, the
   file system's own atomicity is not guaranteed.
 - **[O]** The correction exists as a build-local patch, `CONFIG_CRUX_MMC_CACHE_FLUSH`, **default `n`**
-  (`zephyr/Kconfig:419`). Nothing makes a Reliance Edge composition on eMMC select it.
+  (`zephyr/Kconfig:419`). **[O]** The Reliance Edge adapter's build guard stops configuration on an MMC disk without it
+  (`zephyr/fs/reliance_edge/CMakeLists.txt:17-19`). The only exception is the replay's flush-control fixture
+  `CRUX_EMMC_FLUSH_CONTROL`, which the same file refuses on any board but `native_sim` (lines 13-15). **[O]** No such
+  guard exists for other file systems on an MMC disk, for example FatFs.
 - **[U]** Whether a single-sector write is atomic on a device, and whether its cache keeps write order, are not
   established from any free source (E16). Reliable Write is not used by the stack (E19). Cache and flush behaviour
   depend on the part, so each candidate eMMC part is its own case.
@@ -69,7 +73,7 @@ today.
 | Host, fake | `crux_file_fake` cuts a forked child at a chosen mutation. File service and credential store cut walks use it. | The order of a caller's sequence. The fake's power model is simpler than any file system (`tests/file/fake_file.h:14-18`). |
 | `native_sim`, replay | `tests/native/emmc_powercut`: an eMMC simulator, four cut models (lost, prefix, reordered, torn), invariants I1 to I5, workloads W1 to W4, negative controls. | Reliance Edge keeps I1 to I5 for append, VFS-rename replace and Settings saves, in a model written by the author of the code. **[O]** W2 and W4 call the VFS rename. No workload replaces a file through File or runs the File service. |
 | Physical, FatFs, microSD | 33 append cuts and 100 replace cuts on one board and one card. | Appends with a sync each held. The replace window is real. |
-| Physical, Reliance Edge | **None.** Stage A (Reliance Edge on microSD) and Stage B (eMMC) of the [physical gate](../emmc-reliance-physical-gate.md) have images and a run sheet but have not run. | Nothing. |
+| Physical, Reliance Edge | **None.** Stage A (Reliance Edge on microSD) of the [physical gate](../emmc-reliance-physical-gate.md) has images and a run sheet. Stage B (eMMC) has a list of steps, and its images and board values are still to be fixed. Neither has run. | Nothing. |
 | Rig | `scripts/power_cut.py` with `--cut-cmd`, and the Stage A replace image `samples/storage_reliance_sd` with `CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST`. | Ready for a campaign. The replace image calls `fs_rename`, not File. |
 
 ## 2. The gap
@@ -77,8 +81,8 @@ today.
 | Guarantee a product wants | State |
 | --- | --- |
 | Replace a named file, old or new after a cut | **Not offered by File on any provider.** The File contract forbids it on purpose. Shown on a model only for Reliance Edge, through the VFS rename, not through File. Shown to fail on FatFs on the board. |
-| Update a file in place, old or new after a cut | **Not offered and not safe to offer generally.** Plausible on littlefs. On Reliance Edge it holds only while no other handle commits. Not true on FatFs. |
-| A sync that means "on the medium" | **Claimed by the contract only as "the provider's flush".** On eMMC it is false unless the composition sets `CONFIG_CRUX_MMC_CACHE_FLUSH`, and the build does not require that. |
+| Update a file in place, old or new after a cut | **Not offered and not safe to offer generally.** Plausible on littlefs. **[I]** On Reliance Edge it holds only while no other handle commits. Not true on FatFs. |
+| A sync that means "on the medium" | **Claimed by the contract only as "the provider's flush".** On a cached eMMC it is false without `CONFIG_CRUX_MMC_CACHE_FLUSH`. The build requires it for Reliance Edge on an MMC disk, not for other file systems there. |
 | Append, with acknowledged records kept | Shown on FatFs on the board (33 cuts) and on Reliance Edge in the model. The product owns the record format that skips a torn tail. |
 | Two-slot records, old or new | Offered by the credential store's design for its own records. Not offered as a general File helper. |
 
@@ -86,7 +90,8 @@ What a product's power-loss campaign needs from Crux:
 
 1. **A named guarantee it can test against**: one File operation whose contract says "old or new after a cut", and a
    way for the product to know at build time whether the selected provider gives it.
-2. **A sync that reaches the medium** in every composition that claims the guarantee, enforced by the build.
+2. **A sync that reaches the medium** in every composition that claims the guarantee, enforced by the build. This
+   holds today for Reliance Edge on an MMC disk.
 3. **A reference workload and a checker** that use File, not the VFS, so the product runs the same code path in its
    campaign that Crux tested. The existing rig, `scripts/power_cut.py`, can drive it.
 4. **Software evidence before board time**: the same workload in the replay model, with a negative control, so that a
@@ -103,18 +108,20 @@ What a product's power-loss campaign needs from Crux:
 
 Option D is the only one that also works on FatFs. It changes the product's file layout and doubles storage for each
 record, and the credential store already shows the pattern. It is a useful later addition, not the first step. It is not
-recommended now, because it does not give the "named file, old or new" semantics that a campaign tests, and the product's
-medium is eMMC with a transactional file system.
+recommended now, because it does not give the "named file, old or new" semantics that a campaign tests, and the
+product's medium is eMMC, where the M14 design chose a transactional file system. The product's own file system choice
+is still open (decision 5).
 
 ## 4. Recommendation
 
-**Path: option B, a capability-gated atomic replace in File, plus a build rule that every composition claiming it has a
-durable sync.** In-place atomic update and multi-file transactions are not offered.
+**Path: option B, a capability-gated atomic replace in File, offered only where the build already guarantees a durable
+sync.** In-place atomic update and multi-file transactions are not offered.
 
 Why:
 
 - **[O]** The one failure measured on a board (missing target after a cut) is exactly the window that File's own rule
-  forces open. **[O]** The product's chosen file system closes it in one transaction, and the model agrees.
+  forces open. **[O]** Reliance Edge, the file system of the M14 design, closes it in one transaction, and the model agrees. **[U]**
+  Whether the product ships Reliance Edge is decision 5.
 - **[I]** A replace through a temporary file is safe against other File users' commits, because the target does not
   change until the rename transaction. An in-place update is not, on Reliance Edge.
 - **[I]** Refusing on FatFs keeps every promise true. A name that means "atomic" only on some providers, the
@@ -136,7 +143,10 @@ VFS rename would replace an empty directory. A missing destination is allowed an
 the capability (a compile definition of `crux::file`, such as `CRUX_FILE_HAS_ATOMIC_REPLACE`, or a runtime call) is an
 owner decision below.
 
-### Smallest next step: replay workload W6, no interface change
+### Smallest next step: replay workload W8, no interface change
+
+W8 is numbered after the assessment's proposed W5 (credential save) and W6 (File service commit), which it does not
+replace.
 
 This answers the deciding question in software, before any public change: **does a replace through the File provider
 stack keep "old or new" on the Reliance Edge model, and can the replay see the window when it does not?**
@@ -145,29 +155,28 @@ Work, all inside `tests/native/emmc_powercut` and its driver. **[O]** The replay
 links no File provider, so the Reliance Edge image first selects `CONFIG_CRUX_FILE_RELIANCE_EDGE` and binds a File root
 on the replay's mount:
 
-- **W6**, through File: open the temporary with `CREATE_REPLACE`, write, `crux_file_sync`, close, then replace the
+- **W8**, through File: open the temporary with `CREATE_REPLACE`, write, `crux_file_sync`, close, then replace the
   target with the VFS rename on the same mount. The rename is called directly, because no File operation exists yet.
   This is the File-level data path of the proposed operation. W2 has no File layer.
-- **W6-control**, the sequence File allows today: the same, but `crux_file_remove_at` of the target, then
+- **W8-control**, the sequence File allows today: the same, but `crux_file_remove_at` of the target, then
   `crux_file_rename`.
-- Optional **W7**, in-place update under a concurrent commit: overwrite a file through one handle while a second handle
+- Optional **W9**, in-place update under a concurrent commit: overwrite a file through one handle while a second handle
   syncs another file, to confirm on the model the reason option C and in-place update are rejected.
 
 Acceptance criteria:
 
-1. On `red-fix`, W6 keeps I1 to I5 with `read_error=0` in all four cut models, at every mandatory position (each side of
+1. On `red-fix`, W8 keeps I1 to I5 with `read_error=0` in all four cut models, at every mandatory position (each side of
    every flush, each metaroot sector), with the sampled positions recorded with their seeds.
-2. On `red-fix`, W6-control **fails I3** (target missing) at the cut between the removal's transaction and the rename's.
+2. On `red-fix`, W8-control **fails I3** (target missing) at the cut between the removal's transaction and the rename's.
    If it does not fail, the workload cannot see the window, and criterion 1 proves nothing.
-3. On `red-nofix`, cached, lost model, W6 fails I2 or I3, as the existing flush control does.
-4. On `fat-fix`, W6-control is run and recorded as an observation (expected: missing target, as W2).
+3. On `red-nofix`, cached, lost model, W8 fails I2 or I3, as the existing flush control does.
+4. On `fat-fix`, W8-control is run and recorded as an observation (expected: missing target, as W2).
 5. Only test code and the replay driver change. The CI selection stays within the replay's existing bound. A new record
    under `docs/evidence/` gives the revision, commands, images, counts and seeds. No existing evidence file changes.
-6. A separate small change proposes the build rule: a composition that selects `CONFIG_CRUX_FILE_RELIANCE_EDGE` with
-   `CONFIG_MMC_STACK` fails configuration unless `CONFIG_CRUX_MMC_CACHE_FLUSH` is set, with the replay's flush-control
-   image as the one allowed exception (it already needs `CRUX_EMMC_FLUSH_CONTROL`).
+6. The images keep the existing flush guard: `red-fix` sets `CONFIG_CRUX_MMC_CACHE_FLUSH`, and only `red-nofix` uses
+   `CRUX_EMMC_FLUSH_CONTROL`.
 
-Model and cost: general implementation with a defined scope (Opus medium under the current routing). It needs the
+Cost: it needs the
 Reliance Edge west group and the Docker workspace, so it waits for free disk space above the stop line.
 
 ### After the owner's decisions: the operation itself
@@ -178,7 +187,7 @@ If the owner adopts option B, implement it test first:
   rule "reaches storage when it returns", and a cut walk of the consumer pattern (write temporary, sync, close, replace)
   shows old or new at every mutation. The fake's result proves order only. The FatFs provider test shows
   `NOT_SUPPORTED` with both files unchanged.
-- **`native_sim`.** `tests/native/file_reliance` runs the conformance cases. W6 switches from the direct VFS call to
+- **`native_sim`.** `tests/native/file_reliance` runs the conformance cases. W8 switches from the direct VFS call to
   `crux_file_replace`, with the same criteria. The littlefs composition (`tests/native/file_littlefs`) must run, not only
   compile, before littlefs claims the capability. littlefs on NOR has no cut model here, so its claim rests on upstream
   documentation until a NOR cut model or a board run exists.
@@ -202,13 +211,13 @@ needed), then Stage B on each eMMC part. Each needs the owner's approval for the
 
 | # | Decision | Recommendation | Impact |
 | --- | --- | --- | --- |
-| 1 | Start W6 (software only, no interface change) now, before Stage A has run? The 4 November decision waits for physical evidence before changing the contract. W6 changes no contract. | **Yes.** It gives the model evidence that a Stage A run then confirms, and it can fail cleanly. | Test code and one evidence record. Needs disk space for the Reliance Edge build. |
+| 1 | Start W8 (software only, no interface change) now, before Stage A has run? The 4 November decision waits for physical evidence before changing the contract. W8 changes no contract. | **Yes.** It gives the model evidence that a Stage A run then confirms, and it can fail cleanly. | Test code and one evidence record. Needs disk space for the Reliance Edge build. |
 | 2 | Adopt option B as the direction, with the contract sentence held until physical evidence? | **Yes**, direction now, contract text after Stage A. | The alternative is option A: each product writes its own recovery. |
 | 3 | How a product learns the capability: a compile definition of `crux::file` or a runtime call. | **Compile definition.** One File provider is selected per image, and a campaign wants a build-time answer. | A runtime call would also serve images with providers per root, which no composition has. |
-| 4 | Require `CONFIG_CRUX_MMC_CACHE_FLUSH` in every Reliance Edge composition on the MMC stack? | **Yes.** Without it no sync on a cached eMMC is durable. | Changes Kconfig, an unprotected path. Until the upstream fix lands, every eMMC product carries the build-local patch. |
+| 4 | Extend the existing flush guard, today only in the Reliance Edge adapter, to every File composition on an MMC disk (FatFs too), and offer the replace capability only where the guard applies? | **Yes.** Without the correction no sync on a cached eMMC is durable, on any file system. | A small build change outside protected paths. Until the upstream fix lands, every eMMC image carries the build-local patch, as Reliance Edge images already do. |
 | 5 | Which file system the product ships on eMMC. The Reliance Edge commercial licence is still open. | Decide before option B is implemented. | If not Reliance Edge, option B helps only if littlefs or another atomic-rename file system is chosen. On FAT, option D or option A is the only route. |
 | 6 | Must the File service keep its FatFs commit path? (Assessment, option 3.) | Keep it while any composition uses FatFs for the service. | Two commit paths and two sets of tests. |
-| 7 | Board time for Stage A and Stage B. | Later, after W6 passes. | Needs the board, its custody and an approval for that task. |
+| 7 | Board time for Stage A and Stage B. | Later, after W8 passes. | Needs the board, its custody and an approval for that task. |
 
 ## What this note does not do
 
