@@ -18,6 +18,14 @@ stops on duplicate targets. For a workspace that does not list Crux, the
 [Build and Integration Guide](../docs/build.md#testing-a-consumer-application) gives the `EXTRA_ZEPHYR_MODULES`
 form for `west build` and `west twister`.
 
+## Where to start
+
+Run them in this order: Zephyr's own `hello_world` (is Zephyr installed?), `hello_crux/` (does a Crux consumer
+build?), `time/clock_shell/` (a shell on Crux Time), `file/write_read/` (a provider chosen by configuration) and
+`networking/echo_client/` (a client that needs a board and a peer). The [Tutorial](../docs/tutorial.md) follows this
+order. Threads and synchronization have no Crux sample; use Zephyr's `samples/basic/threads` and
+`samples/synchronization`.
+
 ## Classification
 
 | Folder | Kind | Build and run, or what uses it |
