@@ -144,7 +144,7 @@ comparison, not physical scheduling/stack guarantees. Static pool ownership and 
 uptime fit the demonstrated consumer without a common OS dependency; this is the basis
 for the scoped native choice. POSIX remains an option for another evidenced consumer.
 
-The [early controller](../samples/controller/README.md) implements this bounded choice.
+The early controller (`samples/controller`, listed in the [samples overview](../samples/README.md)) implements this bounded choice.
 At that software checkpoint physical target execution/timing/stack/resource validation
 remained **Pending** and could not be replaced by software checks or used to close #7/M2.
 
