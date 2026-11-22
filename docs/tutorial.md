@@ -61,7 +61,7 @@ ports 42420 and 42421 (CTest starts one for it, see the next step).
 
 ### 3. Run every Host sample with CTest
 
-CTest runs each Linux Host sample once and checks its output. From `/workspace/crux-pilot`:
+CTest runs each Host sample of the root build once and checks its output. From `/workspace/crux-pilot`:
 
 ```sh
 ctest --preset host-debug -L sample
@@ -182,7 +182,7 @@ explains the two options after `--`.
 ### 10. Networking and threads
 
 The networking sample `samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host
-program ran in step 2. Its Zephyr image is for the board only and needs an isolated network with a peer, so it does
+program ran in step 3 (CTest `Sample.EchoClientHost`, which starts a local echo peer). Its Zephyr image is for the board only and needs an isolated network with a peer, so it does
 not run on `native_sim`; its [README](../samples/networking/echo_client/README.md) describes it.
 
 Threads and synchronization have no Crux sample. For them, read Zephyr's own samples,
