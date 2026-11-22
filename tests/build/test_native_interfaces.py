@@ -1,5 +1,6 @@
 """Run the source boundary checker on isolated, representative source trees."""
 from pathlib import Path
+import runpy
 import subprocess
 import shutil
 import sys
@@ -31,7 +32,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_logging_consumers_reject_native_leakage(self):
         for path in ("tests/logging_consumer/src/runtime.c", "tests/logging_consumer/src/consumer.cpp",
-                     "tests/logging_consumer/src/runtime.h", "samples/logging/controller.c"):
+                     "tests/logging_consumer/src/runtime.h", "tests/logging_consumer/scenario/controller.c"):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
@@ -40,7 +41,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_serial_consumers_reject_native_leakage(self):
         for path in ("tests/serial_consumer/src/runtime.c", "tests/serial_consumer/src/consumer.cpp",
-                     "tests/serial_consumer/src/runtime.h", "samples/serial/controller.c"):
+                     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/scenario/controller.c"):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
@@ -56,12 +57,23 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_messaging_consumers_reject_native_leakage(self):
-        for path in ("samples/messaging/controller.c",):
+        for path in ("tests/messaging_consumer/scenario/controller.c",):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
                 good = self.check_source("#include <crux/thread.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
+    def test_listed_sample_and_test_paths_exist(self):
+        # A stale path checks nothing.
+        planned = set()
+        checker = runpy.run_path(str(CHECKER))
+        for name in ("PORTABLE_ROOTS", "NETWORKING_PROFILE"):
+            for path in checker[name]:
+                if not path.startswith(("samples/", "tests/")) or path in planned:
+                    continue
+                with self.subTest(table=name, path=path):
+                    self.assertTrue((REPO / path).exists(), path)
 
     def test_rejects_native_header_families_and_include_spacing(self):
         for header in ("zephyr/kernel.h", "board.h", "fsl_gpio.h", "fsl_device_registers.h",
@@ -129,7 +141,9 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/new/runtime_porting/lock.h", "runtime_porting/include/lock.h",
                      "applications/new/src/main.c", "runtime/src/thread.c",
                      "tests/time_periodic/core/task.c", "tests/time_periodic/include/task.h",
-                     "samples/time/include/time_command.h", "samples/time/src/time_command.c",
+                     "samples/time/clock_shell/include/time_command.h",
+                     "samples/time/clock_shell/src/time_command.c",
+                     "tests/configuration/controller_scenario.c",
                      "tests/configuration_consumer/consumer.c",
                      "tests/configuration_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
@@ -143,8 +157,7 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_applies_to_the_new_sample_layout_paths(self):
-        # The samples layout proposal moves portable sample code; until the moves land, the old
-        # paths (above) and the new paths (here) are both portable roots.
+        # Paths of the samples layout proposal, including the earlier name time_periodic_task.
         for path in ("samples/time/clock_shell/include/time_command.h",
                      "samples/time/clock_shell/src/time_command.c",
                      "tests/configuration/controller_scenario.c",
@@ -180,7 +193,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_networking_profile_is_scoped_to_registered_consumers(self):
         source = "#include <sys/socket.h>\n#include <poll.h>\nclock_gettime(CLOCK_MONOTONIC, &now);\n"
-        for path in ("samples/networking/client.c", "tests/networking/runtime_port.c",
+        for path in ("samples/networking/echo_client/common/client.c", "tests/networking/runtime_port.c",
                      "tests/networking_consumer/cpp_probe.cpp"):
             with self.subTest(path=path):
                 result = self.check_source(source, path)
@@ -194,7 +207,7 @@ class NativeInterfaceTest(unittest.TestCase):
                        "pthread_join(t, 0);", "clock_gettime(CLOCK_REALTIME, &now);",
                        "clock_gettime(clock, &now);", "#include <sys/socket.h>\nbind(fd, a, n);"):
             with self.subTest(source=source):
-                result = self.check_source(source, "samples/networking/client.c")
+                result = self.check_source(source, "samples/networking/echo_client/common/client.c")
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_native_providers_and_compositions_remain_native(self):
@@ -213,7 +226,7 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/netif/ports/linux/backend.c",
                      "components/netif/ports/zephyr/backend.c",
                      "components/file/ports/linux/backend.c",
-                     "tests/time_periodic/host/main.c", "samples/time/src/main.c"):
+                     "tests/time_periodic/host/main.c", "samples/time/clock_shell/src/main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
