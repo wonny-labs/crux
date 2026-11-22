@@ -12,7 +12,7 @@ common:
     - native_sim/native/64
   harness: console
 tests:
-  crux.sample.file.file_write_read.simulator:
+  crux.sample.file.write_read.simulator:
     harness_config:
       type: multi_line
       ordered: true
@@ -21,7 +21,7 @@ tests:
         - "Wrote 25 bytes to greeting.txt"
         - "Read 25 bytes: Hello from Crux File API!"
         - "CRUX_FILE_WRITE_READ_OK provider=simulator"
-  crux.sample.file.file_write_read.fatfs_ram_disk:
+  crux.sample.file.write_read.fatfs_ram_disk:
     extra_args:
       - EXTRA_CONF_FILE=fatfs_ram_disk.conf
       - EXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
