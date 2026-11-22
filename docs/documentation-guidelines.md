@@ -2,7 +2,7 @@
 
 These rules decide what goes on each documentation page and how much detail it carries. They apply to every Markdown page under `docs/`, to the `README.md` files of samples, templates, tests, tools and the web folder, and to the repository README. Code comments and public API documentation follow the [coding guidelines](coding-guidelines.md) instead.
 
-The rules have five parts: one page type per page, current state only, detail by reader, status in one place, and a check that stops new drift.
+The rules have six parts: one page type per page, current state only, detail by reader, status in one place, a check that stops new drift, and one structure for onboarding and board pages.
 
 ## 1. One type per page
 
@@ -112,3 +112,18 @@ It skips fenced code blocks, text in code spans, pages of the other types, and t
 The pages that break these rules today are recorded in the fixture's allowlist, with the number of markers per rule, as found by the [documentation audit](plans/documentation-audit-2026-11.md). The test fails when a page has more markers than its allowlist entry, so new drift fails while existing text does not block unrelated work. When you fix a page, lower or remove its entry; never raise one. If a marker is a false positive that cannot be reworded, raise it in review rather than in the allowlist.
 
 The check is lexical and narrow. It does not judge page types, duplication or the level of detail: review does that against sections 1 to 4.
+
+## 6. Onboarding and board pages
+
+Onboarding follows Zephyr's getting-started structure: one path, in which the board is a parameter (`-b <board>`), the last part builds a sample for the reader's board and flashes it, and `native_sim` is one more target. This structure is the rule for Crux and for the product repositories built on it, such as crux-controller and crux-codesys.
+
+| Page | Holds | Leaves out |
+| --- | --- | --- |
+| Getting started ([`getting-started.md`](getting-started.md)) | The environment and a first working build. One short "If you use a board" section: the probe, the USB connection, WSL2 USB forwarding as a pointer, and a link to the board pages | Every board procedure |
+| Tutorial ([`tutorial.md`](tutorial.md)) | One path in three parts: A on the Linux Host, B on `native_sim`, C on your board. Part C opens with "No board? Parts A and B run every sample and test.", then a table of supported boards (board, `-b` target, probe, board guide link, and no status words: it links [Component readiness](component-readiness.md) for status), then build, flash and the console line to expect | Board switches, jumpers, recovery and other board detail; a procedure that has not been run |
+| Board pages (`docs/boards/<board>.md`, indexed by [`docs/boards/README.md`](boards/README.md)) | Everything specific to one board, in fixed sections: Board target, Switches and jumpers, Probe and connection, Flash and debug, Recovery, Board image profiles, Known limits | Anything that is not specific to that board |
+
+- **Board details live in Crux.** Only `docs/boards/<board>.md` in Crux describes a board that Crux supports. A product repository links the Crux board page and keeps only its product-specific board steps, such as its own image, wiring or fixtures.
+- **Adding a board** is one new board page, one row in `docs/boards/README.md` and one row in the tutorial's board table.
+- **Only run procedures.** A board page and Part C describe a route only after it has been run, and they say on which host. A route that has not been run is named in one sentence, not written as steps.
+- [`tests/build/test_docs_onboarding.py`](../tests/build/test_docs_onboarding.py) checks this structure in Crux.

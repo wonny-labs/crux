@@ -1,7 +1,9 @@
 # Tutorial: your first build and sample
 
-This tutorial takes you from a working Dev Container to running Crux samples and changing a build, with no board.
-It uses only the standard Zephyr and CMake tools: `west build`, `west twister`, `cmake` and `ctest`. Each step says
+This tutorial takes you from a working Dev Container to running Crux samples, changing a build, and running a sample on
+your board. It is one path: Part A runs on the Linux Host, Part B on Zephyr's `native_sim`, and Part C on a board. Parts
+A and B need no board.
+Parts A and B use only the standard Zephyr and CMake tools: `west build`, `west twister`, `cmake` and `ctest`. Each step says
 what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
 Part A runs on the Linux Host and gives a first result in minutes, before the long Zephyr download. Products target
@@ -127,7 +129,8 @@ Twister builds each runnable Zephyr sample, runs it, and checks its output again
 west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
 ```
 
-It ends with a line saying that all executed test configurations passed. Its output and logs are under `twister-out/`. The tag
+Twister runs every runnable Zephyr sample that [Samples](../samples/README.md#classification) lists, and its summary
+line reports how many test configurations passed. Its output and logs are under `twister-out/`. The tag
 `-t sample` leaves out the link-only board images under `samples/`; the [samples page](../samples/README.md#run-every-runnable-sample)
 says why.
 
@@ -190,14 +193,67 @@ CMake options configure the build itself rather than the image's features. On a 
 For example, `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` makes a build stop, instead of warning, when the workspace's Zephyr
 is not the release Crux was verified on.
 
-## Boards
+## Part C. Run on your board
 
-Building for, programming and debugging a physical board is described in the
-[Build and Integration Guide](build.md). This page does not cover it.
+No board? Parts A and B run every sample and test.
+
+The board is a parameter: the same build takes the board's `-b` target, and each board has a guide with its switches,
+probe, connections and recovery. Pick your board:
+
+| Board | `-b` target | Probe | Board guide |
+| --- | --- | --- | --- |
+| NXP MIMXRT1060-EVKB, revision B | `mimxrt1060_evk@B//qspi` | SEGGER J-Link on J2; console on the DAPLink USB serial port | [MIMXRT1060-EVKB](boards/mimxrt1060_evkb.md) |
+
+Which components have evidence on each board is recorded in [Component readiness](component-readiness.md). Set the
+board up as its guide says before you start. Any operation on a board, such as connecting a probe, a reset or a
+download, needs approval for your task.
+
+The steps below use the one board route that has been used: the J-Link GDB Server on a Mac and the build in the Dev
+Container. The Linux and WSL2 route is described on the board page once it has been verified. The commands are those
+of the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section, which gives their options.
+
+### 10. Build a sample for your board
+
+The board route builds and flashes the Time sample of step 7. `samples/hello_crux` is built and run on `native_sim`
+only. In the Dev Container, from `/workspace/crux-pilot`, pass the board's `-b` target:
+
+```sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+```
+
+The script prints the build directory, `build/zephyr/mimxrt1060_evk_B_qspi`, before it builds and the ELF path when it
+finishes.
+
+### 11. Flash it
+
+On the Mac, from the repository checkout (not the Dev Container), start the GDB Server and leave it running:
+
+```sh
+bash scripts/macos/start-jlink-gdbserver.command
+```
+
+Open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal. Then, in VS Code in
+the Dev Container, start the debug configuration **EVKB QSPI: Flash**. It runs the build of step 10, resets the board
+and downloads the image. The debugger then stops at the reset entry (`reset.S`); press Continue (F5) to start the
+image.
+
+### 12. See it run
+
+The console shows the Zephyr boot banner, then:
+
+```text
+CRUX_TIME_READY composition=zephyr
+```
+
+This line is recorded on the board after a download and a reset; the board guide's
+[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section says which records back each step.
+
+When you are done, stop the debugger and stop the GDB Server with Ctrl-C.
 
 ## Next steps
 
 - [Samples](../samples/README.md): what each sample folder is for.
+- [Boards](boards/README.md): every board page.
 - [Choosing an API](choosing-an-api.md): where each kind of product code goes.
 - [Test guide](../tests/README.md): every suite and the checks to run before a pull request.
 - [Documentation map](README.md): every other page, by task.

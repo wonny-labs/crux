@@ -115,42 +115,7 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 ## RT1060-EVKB debugging
 
-**Recorded on macOS only.** The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started](getting-started.md#7-boards-and-debug-probes).
-
-The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
-
-On the approved macOS host, from the repository checkout (not the Dev Container), start the existing server:
-
-~~~sh
-bash scripts/macos/start-jlink-gdbserver.command
-~~~
-
-The launcher uses SWD at 400 kHz and serves GDB on TCP port 2331. It accepts remote connections rather than restricting access to localhost, so use it only on a trusted network. Stop it with Ctrl-C when debugging is finished.
-
-The existing VS Code [debug configurations](../.vscode/launch.json) connect from the Dev Container to `host.docker.internal:2331`:
-
-- **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
-- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
-
-See the [debug build script](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
-
-### Debug builds of other applications
-
-`scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../scripts/debug-optimizations.conf) that selects `-Og`:
-
-~~~sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/storage_sd --debug-optimizations
-~~~
-
-Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/clock_shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
-
-### What the platform provides for build and debug
-
-| Provided by the platform | Owned by the project | Not provided |
-|---|---|---|
-| The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
-
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
+The board procedures for the RT1060-EVKB, including the J-Link GDB Server, the VS Code debug profiles, debug builds of other applications and what the platform provides for build and debug, are on the [MIMXRT1060-EVKB board page](boards/mimxrt1060_evkb.md#flash-and-debug).
 
 ## External Linux application using Crux source
 
