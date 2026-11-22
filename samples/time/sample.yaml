@@ -1,0 +1,20 @@
+sample:
+  name: Crux Time shell
+  description: >-
+    Zephyr shell with the Crux Time commands. It prints its ready line and then waits for
+    commands such as `time get`; Twister stops it after the ready line.
+common:
+  tags: [crux, sample, time]
+  platform_allow:
+    - native_sim/native/64
+    - mimxrt1060_evk@B/mimxrt1062/qspi
+  integration_platforms:
+    - native_sim/native/64
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "CRUX_TIME_READY composition=zephyr"
+tests:
+  crux.sample.time.shell:
+    extra_args: []

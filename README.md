@@ -46,12 +46,15 @@ scripts/bootstrap-zephyr.sh --install-sdk    # pinned west workspace and Zephyr 
 scripts/test-controller.sh                   # native_sim scenarios and the EVKB cross-build
 ```
 
+New to Crux? The [first-hour guide](docs/first-hour.md) continues from here: Zephyr's Hello World and the Crux samples on `native_sim` and the Linux Host, Twister and CTest, and changing a build with Kconfig, Devicetree overlays and CMake options.
+
 CI runs most of the same scripts on pull requests; the test guide says which runs stay local. None of these commands programs or resets a board. Debugging, resets and programming need a separately approved procedure: see [RT1060-EVKB debugging](docs/build.md#rt1060-evkb-debugging). The [test guide](tests/README.md) lists the other suites and the checks to run before a pull request.
 
 ## Where to read next
 
 | You want to | Read |
 | --- | --- |
+| Run your first builds and samples | [Your first hour with Crux](docs/first-hour.md) and [Samples](samples/README.md) |
 | Find any page by task | [Documentation map](docs/README.md) |
 | Understand the layers and ownership | [Architecture overview](docs/architecture.md) and [Choosing an API](docs/choosing-an-api.md) |
 | Build, integrate or consume Crux from another CMake project | [Build and Integration Guide](docs/build.md) |
@@ -65,7 +68,7 @@ CI runs most of the same scripts on pull requests; the test guide says which run
 | Path | Purpose |
 | --- | --- |
 | `components/` | Public interfaces, shared implementations and OS-specific ports |
-| `samples/` | Capability examples and reference controller applications |
+| `samples/` | Capability examples and reference controller applications ([which ones run](samples/README.md)) |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `templates/` | Copy-and-start skeletons for product, hardware and kit repositories |
 | `tests/` | Host, Zephyr, build-policy and target tests |
