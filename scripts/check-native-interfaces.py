@@ -45,8 +45,8 @@ PORTABLE_ROOTS = (
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp",
     # New paths of the samples layout proposal.
-    "samples/time/time_periodic_task/common", "samples/time/utc_clock_shell/include",
-    "samples/time/utc_clock_shell/src/time_command.c",
+    "samples/time/time_periodic_task/common", "samples/time/clock_shell/include",
+    "samples/time/clock_shell/src/time_command.c",
     "tests/configuration/controller_scenario.c",
     "tests/serial_consumer/scenario", "tests/logging_consumer/scenario",
     "tests/messaging_consumer/scenario", "tests/system_consumer/scenario",

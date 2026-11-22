@@ -22,8 +22,8 @@ form for `west build` and `west twister`.
 
 | Folder | Kind | Build and run, or what uses it |
 | --- | --- | --- |
-| `time/utc_clock_shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/utc_clock_shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.utc_clock_shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |
-| `time/utc_clock_shell/host/` | Runnable Linux Host program | `build/linux/debug/samples/time/utc_clock_shell/host/crux-time-host`, commands on stdin. CTest `Sample.UtcClockShellHost`; also `scripts/check-host-sample.sh` |
+| `time/clock_shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.clock_shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |
+| `time/clock_shell/host/` | Runnable Linux Host program | `build/linux/debug/samples/time/clock_shell/host/crux-time-host`, commands on stdin. CTest `Sample.ClockShellHost`; also `scripts/check-host-sample.sh` |
 | `controller/zephyr/`, default `prj.conf` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/controller crux-pilot/samples/controller/zephyr -t run`. Ends with `CONTROLLER_COMPLETE cycles=20`. Also `scripts/test-controller.sh` |
 | `controller/zephyr/`, the `m3*.conf` and overlay configurations | Board-only application | Device, network and integrated board probes, cross-built by `scripts/test-controller-integration.sh` (also reached through its historical name `scripts/test-m3.sh`) and by `scripts/test-m3-rt1170.sh` for the RT1170. See `controller/README.md` |
 | `controller/host/` | Runnable Linux Host program | `build/linux/debug/samples/controller/host/crux-controller-host`. CTest `Controller.HostScenario` (label `sample`) checks it with `scripts/check-controller.py` |

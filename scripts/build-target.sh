@@ -34,11 +34,11 @@ if [[ $# -eq 2 ]]; then
     test_args=(--test-inputs "$2")
 fi
 printf 'Board target: %s\n' "$board"
-printf 'Application:  %s\n' "$repo/samples/time/utc_clock_shell"
+printf 'Application:  %s\n' "$repo/samples/time/clock_shell"
 printf 'Build dir:    %s\n' "$build_dir"
 
 (cd "$workspace" && west build -p always -b "$board" -d "$build_dir" \
-    "$repo/samples/time/utc_clock_shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) \
+    "$repo/samples/time/clock_shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) \
     2>&1 | tee "$evidence_dir/evkb-build.log"
 "$repo/scripts/select-clangd-database.sh" "$build_dir"
 (cd "$workspace" && west build -d "$build_dir" -t rom_report) \

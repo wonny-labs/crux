@@ -49,7 +49,7 @@ keeps running after `main()` returns: stop it with Ctrl+C. `-p always` starts fr
 The same command runs a Crux sample. The Time sample is a Zephyr shell with Crux Time commands:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/utc_clock_shell -t run
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr` and then waits. Its shell is on a pseudo-terminal, as the first output
@@ -76,7 +76,7 @@ others.
 Step 2 also built three Linux Host programs. From `/workspace/crux-pilot`:
 
 ```sh
-build/linux/debug/samples/time/utc_clock_shell/host/crux-time-host
+build/linux/debug/samples/time/clock_shell/host/crux-time-host
 ```
 
 It prints `CRUX_TIME_READY composition=host-simulation` and reads Time commands from stdin; end with Ctrl+D. Its
@@ -104,7 +104,7 @@ CTest runs each Linux Host sample once and checks its output. From `/workspace/c
 ctest --preset host-debug -L sample
 ```
 
-It runs `Sample.UtcClockShellHost`, `Sample.EchoClientHost` and `Controller.HostScenario`. Without `-L sample`, the same
+It runs `Sample.ClockShellHost`, `Sample.EchoClientHost` and `Controller.HostScenario`. Without `-L sample`, the same
 command runs every Host test of the repository.
 
 ## 7. Change a build
@@ -119,14 +119,14 @@ Kconfig options (`CONFIG_...`) select features and values. A build merges them f
 | Source | Where | Use it for |
 | --- | --- | --- |
 | `prj.conf` | The application folder | The application's own settings |
-| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/utc_clock_shell/boards/native_sim.conf` | Settings for one board |
+| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/clock_shell/boards/native_sim.conf` | Settings for one board |
 | Extra files | `-DEXTRA_CONF_FILE=<file>[;<file>...]` | A variant without editing the application, for example a debug profile |
 | One option | `-DCONFIG_<NAME>=<value>` | A quick experiment |
 
 For example, turn off Zephyr's boot banner for one build:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/utc_clock_shell -- -DCONFIG_BOOT_BANNER=n
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -- -DCONFIG_BOOT_BANNER=n
 grep CONFIG_BOOT_BANNER build/time/zephyr/.config
 build/time/zephyr/zephyr.exe -uart_stdinout
 ```
@@ -136,7 +136,7 @@ line. The same setting in a file has the same effect:
 
 ```sh
 printf 'CONFIG_BOOT_BANNER=n\n' > no-banner.conf
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/utc_clock_shell -- -DEXTRA_CONF_FILE=$PWD/no-banner.conf
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -- -DEXTRA_CONF_FILE=$PWD/no-banner.conf
 ```
 
 `build/<dir>/zephyr/.config` is the final, merged result: check it whenever an option seems to have no effect,
