@@ -50,9 +50,9 @@ NOT_COMPILED_RULES = (
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
         r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$"
         # New paths of the samples layout proposal; the old ones above leave after the moves.
-        r"|^samples/boards/nxp/mimxrt1060_evk/(file_on_emmc|file_on_sd_card)/|^tests/board_images/"
+        r"|^samples/boards/nxp/mimxrt1060_evk/(file_on_emmc|file_on_sd_card|web_management)/|^tests/board_images/"
         r"|^tests/(probe_device_health|integrated_smoke)/"
-        r"|^samples/(time/time_periodic_task|networking/echo_client)/src/main\.c$"
+        r"|^samples/networking/echo_client/src/main\.c$"
         r"|^samples/time/clock_shell/src/(main|time_shell)\.c$")),
     ("psa-crypto-composition", re.compile(
         r"(^|/)ports/psa/|^tests/psa_(crypto|ports)/|^tests/tls_certificate/psa/|^tests/ssh/sftp/openssh/")),
@@ -485,10 +485,10 @@ class SelfTest(unittest.TestCase):
                 ("samples/storage_sd_probe/sd_probe.c", "tests/board_images/sd_card_stack_removal_probe/sd_probe.c"),
                 ("samples/storage_reliance_sd/format.c", "tests/board_images/reliance_sd_card_stage_a/format.c"),
                 ("samples/flash_safety_poc/main.c", "tests/board_images/flash_safety_check/main.c"),
-                ("samples/controller/zephyr/m3_main.c", "tests/board_images/evkb_integration_probe/probe_main.c"),
+                ("samples/controller/zephyr/m3_main.c", "tests/board_images/integration_probe/probe_main.c"),
                 ("samples/controller/zephyr/network_probe.c",
-                 "tests/board_images/evkb_integration_probe/network_probe.c"),
-                ("samples/controller/zephyr/main.c", "samples/time/time_periodic_task/src/main.c"),
+                 "tests/board_images/integration_probe/network_probe.c"),
+                ("samples/controller/zephyr/main.c", "tests/time_periodic/zephyr/main.c"),
                 ("samples/networking/zephyr/main.c", "samples/networking/echo_client/src/main.c"),
                 ("samples/time/src/main.c", "samples/time/clock_shell/src/main.c"),
                 ("samples/time/src/time_shell.c", "samples/time/clock_shell/src/time_shell.c"),
@@ -499,8 +499,8 @@ class SelfTest(unittest.TestCase):
                 self.assertEqual(classify_not_compiled(new), zephyr)
         # Host-compiled code keeps no reason at either path.
         for path in ("samples/time/src/time_command.c", "samples/time/clock_shell/src/time_command.c",
-                     "samples/time/clock_shell/host/main.c", "samples/time/time_periodic_task/host/main.c",
-                     "samples/time/time_periodic_task/common/controller.c",
+                     "samples/time/clock_shell/host/main.c", "tests/time_periodic/host/main.c",
+                     "tests/time_periodic/core/controller.c",
                      "samples/networking/echo_client/host/main.c",
                      "samples/networking/echo_client/common/client.c"):
             with self.subTest(path=path):

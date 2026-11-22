@@ -18,7 +18,7 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
-| Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
+| Basic periodic controller scenarios | Python runner through `scripts/test-time-periodic.sh` | Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
 | Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS (the only recorded host), EVKB and J-Link |
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and a controlled peer setup, recorded on macOS |
@@ -53,7 +53,7 @@ The controller Host tests also cover portable scheduling, readiness, freshness,
 recovery and joint owner-health logic. CTest applies a 30-second limit to each
 discovered Time host test.
 
-At the repository root, `BUILD_TESTING` sets the initial default for `CRUX_BUILD_TESTS`. The `CRUX_BUILD_TESTS` option controls Crux's internal tests and GoogleTest/C++ setup. In an existing build directory, set `CRUX_BUILD_TESTS=OFF` explicitly to disable them. For a library-only build, also set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_REFERENCE_CONTROLLER=OFF`. See the [build guide](../docs/build.md#linux-host-build) for the supported configurations.
+At the repository root, `BUILD_TESTING` sets the initial default for `CRUX_BUILD_TESTS`. The `CRUX_BUILD_TESTS` option controls Crux's internal tests and GoogleTest/C++ setup. In an existing build directory, set `CRUX_BUILD_TESTS=OFF` explicitly to disable them. For a library-only build, also set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO=OFF`. See the [build guide](../docs/build.md#linux-host-build) for the supported configurations.
 
 ## Zephyr: `time/zephyr/`
 
@@ -189,8 +189,8 @@ setup; other boards need their reset/transport procedure reviewed explicitly.
 on Linux. `tests/controller` verifies sample-owned Time observations/recovery and monotonic
 phase logic. The maintained boundary-negative and host-runner failure checks are under
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
-status; `scripts/test-controller.sh` validates normal/RTC-absent native_sim system-realtime compositions
-and cross-builds EVKB without hardware access. Its conditions and limits are in `samples/controller/README.md`, listed in the [samples overview](../samples/README.md).
+status; `scripts/test-time-periodic.sh` validates normal/RTC-absent native_sim system-realtime compositions
+and cross-builds EVKB without hardware access. Its conditions and limits are in `tests/time_periodic/README.md`, listed in the [samples overview](../samples/README.md).
 
 Run `scripts/test-controller-integration.sh` in the configured Linux/west
 environment for device, networking and integrated-controller Zephyr scenarios

@@ -151,7 +151,7 @@ For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CP
 
 Thread and Sync are separate component-owned capabilities, frozen for new product code (see [Choosing an API](choosing-an-api.md)). `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
-Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposal-not-adopted), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposal-not-adopted) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
+Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples are under `samples/`, the periodic scenario and the EVKB probe images (the earlier reference controller) under `tests/`, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposal-not-adopted), beside `samples/`. The folder does not exist yet, and the earlier `samples/controller` (its code is now `tests/time_periodic` and `tests/board_images/integration_probe`) has no move into it scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposal-not-adopted) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
 ### Repository layout
 
@@ -242,7 +242,7 @@ Choices for the owner:
 
 #### Applications (proposal, not adopted)
 
-**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of `samples/controller` into `applications/io_controller` is not scheduled**, for the reasons in [the status of the move](#status-of-the-move).
+**Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of the earlier `samples/controller` into `applications/io_controller` is not scheduled** (its code is now under `tests/`), for the reasons in [the status of the move](#status-of-the-move).
 
 An application is a maintained, integrated image of Crux. A sample shows one capability, one framework or one scenario and makes none of the promises below.
 
@@ -266,12 +266,12 @@ The two applications decided so far:
 
 | Name | Purpose | Today |
 | --- | --- | --- |
-| `io_controller` | The basic integrated application: periodic work, I/O, networking, diagnostics and health supervision | `samples/controller`, unchanged |
+| `io_controller` | The basic integrated application: periodic work, I/O, networking, diagnostics and health supervision | the former `samples/controller` (now `tests/time_periodic` and `tests/board_images/integration_probe`) |
 | `managed_controller` | The same, plus secure remote management over HTTPS, SSH and SFTP | Not started as an application: it is the work of milestones M10 to M12. Its parts are the management components in the [capability inventory](#current-capability-integration), and the [integrated image](ssh-integrated-image.md) is a `native_sim` image built from `tests/native/management_ssh`, not this application |
 
-**Names.** A name says what the application is for. It follows the rule for samples (rule 2): lowercase `snake_case`, and never `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. Its internal layout is not decided here: `samples/controller` has `core/`, `host/` and `zephyr/` today, and this proposal does not change that.
+**Names.** A name says what the application is for. It follows the rule for samples (rule 2): lowercase `snake_case`, and never `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. Its internal layout is not decided here: the earlier `samples/controller` had `core/`, `host/` and `zephyr/`, and this proposal does not change that.
 
-**Boot and update are configurations.** Boot (milestone M8, "Boot platform foundation and verified boot") and update (milestone M9, "Secure firmware update and recovery") are configurations of these two applications, selected as the configurations of `samples/controller` are today. They are not applications of their own, so they do not use up the limit.
+**Boot and update are configurations.** Boot (milestone M8, "Boot platform foundation and verified boot") and update (milestone M9, "Secure firmware update and recovery") are configurations of these two applications, selected as the probe configurations of `tests/board_images/integration_probe` are today. They are not applications of their own, so they do not use up the limit.
 
 ```mermaid
 flowchart TB
@@ -309,9 +309,9 @@ The folder and the names are decided. The move is not, and nothing is moved by t
 | # | Why the move waits | What it needs |
 | --- | --- | --- |
 | 1 | It waits for the first board run of the S2 image (see the [board image profiles](board-image-profiles.md)) | That run |
-| 2 | Eight files under `scripts/` and `.github/workflows/host.yml` name `samples/controller`, and all of them are protected paths | The owner's explicit approval of those changes. Among them, `scripts/check-native-interfaces.py` already treats `applications` as a portable root, so the Host and Zephyr compositions of a moved application need a deliberate classification, as `samples/controller/host` and `samples/controller/zephyr` have today |
+| 2 | Scripts under `scripts/` and `.github/workflows/host.yml` name the paths of the earlier `samples/controller` (now `tests/time_periodic`, `tests/boot_fixture` and `tests/board_images/integration_probe`), and all of them are protected paths | The owner's explicit approval of those changes. Among them, `scripts/check-native-interfaces.py` already treats `applications` as a portable root, so the Host and Zephyr compositions of a moved application need a deliberate classification, as `tests/time_periodic/host` and `tests/time_periodic/zephyr` have today |
 | 3 | Under `docs/evidence/`, 99 files cite `samples/controller`, as of this revision | They stay unchanged, as retained evidence |
-| 4 | `samples/controller` is the source of the accepted normal board image (the restore image): `scripts/test-controller-integration.sh` builds it from `samples/controller/zephyr`, and the [stage 1 evidence](evidence/networking-physical-stage1/README.md) records it as the normal image for entry and recovery | Proposed: until the move it stays where it is, and its contents are frozen except for fixes. The freeze is part of this proposal, not an owner decision |
+| 4 | `tests/board_images/integration_probe` is the source of the accepted normal board image (the restore image; it was `samples/controller`): `scripts/test-controller-integration.sh` builds it from `tests/board_images/integration_probe`, and the [stage 1 evidence](evidence/networking-physical-stage1/README.md) records it as the normal image for entry and recovery | Proposed: until a move into `applications/` it stays where it is, and its contents are frozen except for fixes. The freeze is part of this proposal, not an owner decision |
 
 ### Current capability integration
 
@@ -448,7 +448,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 - [Native-free consumer policy](native-interface-policy.md)
 - [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
 - [Test organisation and commands](../tests/README.md)
-- Reference controller and supported scenarios: `samples/controller/README.md`, listed in the [samples overview](../samples/README.md)
+- Periodic scenario and EVKB probe images (the former reference controller): [`tests/time_periodic/README.md`](../tests/time_periodic/README.md) and [`tests/board_images/integration_probe/README.md`](../tests/board_images/integration_probe/README.md)
 
 ## Private execution context
 

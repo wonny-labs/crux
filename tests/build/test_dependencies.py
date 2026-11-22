@@ -14,7 +14,7 @@ class DependencyTest(unittest.TestCase):
         for source in probes:
             with self.subTest(source=source):
                 with tempfile.NamedTemporaryFile(mode="w", suffix=".c", prefix="boundary_probe_",
-                                                 dir=REPO / "samples/controller/core") as probe:
+                                                 dir=REPO / "tests/time_periodic/core") as probe:
                     probe.write(source)
                     probe.flush()
                     result = subprocess.run([str(REPO / "scripts/check-dependencies.sh")],

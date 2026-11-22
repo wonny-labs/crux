@@ -3,7 +3,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_portable_networking LANGUAGES C)
 # Reuse the M3-qualified opt-in correction without altering upstream sources.
 if(CONFIG_SOC_MIMXRT1062)
-    include(../../controller/zephyr/mdio_completion.cmake)
+    include(../../../tests/board_images/integration_probe/mdio_completion.cmake)
 endif()
 target_sources(app PRIVATE src/main.c common/client.c)
 target_include_directories(app PRIVATE common)

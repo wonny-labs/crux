@@ -261,10 +261,10 @@ Reproduce the two relevant cross-builds inside the documented Linux environment:
 
 ```sh
 repo="$PWD"
-common="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-native-output.conf;$repo/samples/controller/zephyr/m3-normal.conf"
-overlay="$repo/samples/controller/zephyr/m3-network.overlay"
+common="$repo/tests/board_images/integration_probe/device_health_probe.conf;$repo/tests/board_images/integration_probe/integrated.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf;$repo/tests/board_images/integration_probe/native_output.conf;$repo/tests/board_images/integration_probe/without_test_commands.conf"
+overlay="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay"
 west build -b 'mimxrt1060_evk@B//qspi' \
-  -d build/storage-assessment/reference-normal samples/controller/zephyr -- \
+  -d build/storage-assessment/reference-normal tests/board_images/integration_probe -- \
   -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$common" -DDTC_OVERLAY_FILE="$overlay"
 cat > build/storage-assessment/flash-compile.conf <<'CONF'
 CONFIG_FLASH=y
@@ -274,7 +274,7 @@ CONFIG_FLASH_LOG_LEVEL_OFF=y
 CONFIG_MEMC_LOG_LEVEL_OFF=y
 CONF
 west build -b 'mimxrt1060_evk@B//qspi' \
-  -d build/storage-assessment/flash-driver samples/controller/zephyr -- \
+  -d build/storage-assessment/flash-driver tests/board_images/integration_probe -- \
   -DZEPHYR_EXTRA_MODULES="$repo" \
   -DEXTRA_CONF_FILE="$common;$repo/build/storage-assessment/flash-compile.conf" \
   -DDTC_OVERLAY_FILE="$overlay"

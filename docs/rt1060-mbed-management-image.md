@@ -23,7 +23,7 @@ Not in the image: SSH, SFTP, the serial console and command line (composed in no
 
 ## Where it lives, and why
 
-`samples/management_rt1060_mbed/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is an evaluation image, not a product base. It does show the composition style: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
+`samples/boards/nxp/mimxrt1060_evk/web_management/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is an evaluation image, not a product base. It does show the composition style: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
 
 ## Build
 
@@ -37,7 +37,7 @@ west update
 The default image, with no account:
 
 ```bash
-west build -p always -b 'mimxrt1060_evk@B//qspi' crux-pilot/samples/management_rt1060_mbed
+west build -p always -b 'mimxrt1060_evk@B//qspi' crux-pilot/samples/boards/nxp/mimxrt1060_evk/web_management
 ```
 
 The same with the test first account ([below](#the-first-account)):
@@ -45,7 +45,7 @@ The same with the test first account ([below](#the-first-account)):
 ```bash
 umask 077; head -c 24 /dev/urandom | base64 | tr -d '\n' > ~/crux-mbed-password   # outside every git work tree
 CRUX_MBED_MGMT_PASSWORD_FILE=~/crux-mbed-password west build -p always -b 'mimxrt1060_evk@B//qspi' \
-    crux-pilot/samples/management_rt1060_mbed -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
+    crux-pilot/samples/boards/nxp/mimxrt1060_evk/web_management -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
 ```
 
 `scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`.
@@ -108,7 +108,7 @@ The image is written for **RT1060-EVKB Rev B** (`mimxrt1060_evk@B//qspi`) and re
 | Flash part and boot | QSPI NOR, XIP from `0x60000000`, the boot header of the board files | Board (the flash part, its size and the boot-mode switches) | The board's flash configuration and boot data |
 | RAM | All RAM of this configuration is the 32 MB SDRAM (`zephyr,sram = &sdram0`): the RAM disk, the Mbed TLS heap, the stacks and the network buffers sit there, and every size is chosen for that | Board | A board with on-chip RAM only must re-size all of them: 512 KiB for the RAM disk alone is half of the 1 MB of on-chip RAM of an RT1062 |
 | Console and logging | `target.overlay`: Crux Logging and `printk` on LPUART1 at 115,200 baud. LPUART3 is left free for the Crux serial console of a later phase | Board (which pins and which UART the board brings out) | `target.overlay`: the UART node and its speed |
-| Ethernet | `samples/controller/zephyr/m3-network.overlay` (the ENET MAC with a fixed local MAC address, the PHY monitor by polling because the PHY interrupt line is dropped, and the EVKB's LED removed because its GPIO is the PHY reset), `CONFIG_ETH_NXP_ENET_RX_BUFFERS` and the buffer counts of `prj.conf` | Board (the PHY part, its reset and interrupt lines, the MAC address) | The overlay for the product's PHY, MAC address and reset pin. The MAC address in that file is a fixed local one: give each unit its own |
+| Ethernet | `samples/boards/nxp/mimxrt1060_evk/common/network.overlay` (the ENET MAC with a fixed local MAC address, the PHY monitor by polling because the PHY interrupt line is dropped, and the EVKB's LED removed because its GPIO is the PHY reset), `CONFIG_ETH_NXP_ENET_RX_BUFFERS` and the buffer counts of `prj.conf` | Board (the PHY part, its reset and interrupt lines, the MAC address) | The overlay for the product's PHY, MAC address and reset pin. The MAC address in that file is a fixed local one: give each unit its own |
 | Static address | `CONFIG_CRUX_MBED_MGMT_IPV4_ADDRESS` and `_NETMASK` | Image setting | Both, for the product's network |
 | Storage | A RAM disk (`ram_disk.overlay`), nothing persists. The SD card and eMMC are not used and the card driver is off | Board | A product that needs accounts and keys to survive a reset needs a non-volatile File provider (microSD or eMMC compositions exist in the repository and are separate, not composed here), and a decision about confidentiality of the store |
 | Watchdog and reset | The `crux-watchdog0` alias to `wdog0` in `target.overlay`, used by Crux System and the reboot route | SoC peripheral, board alias | The alias, if the board uses another watchdog |

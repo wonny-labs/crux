@@ -45,7 +45,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/check-boot-config.py"
 FIXTURES = REPO / "tests/build/fixtures/boot-config"
-IMAGE = "zephyr"  # basename of samples/controller/zephyr, the application of scripts/test-boot-composition.sh
+IMAGE = "zephyr"  # basename of tests/boot_fixture/zephyr, the application of scripts/test-boot-composition.sh
 
 CHECK = runpy.run_path(str(SCRIPT)) if SCRIPT.is_file() else {}
 

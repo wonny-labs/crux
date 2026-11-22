@@ -15,18 +15,15 @@ import runpy
 
 # Public interfaces and shared implementation are portable by default, including
 # future runtime components. Providers belong outside these roots. Current
-# samples/controller/{host,zephyr} are legacy native compositions/qualification
-# fixtures pending migration, not portable consumers. Future application/runtime
+# tests/time_periodic/{host,zephyr} and tests/board_images/integration_probe are legacy
+# native compositions/qualification fixtures, not portable consumers. Future application/runtime
 # consumers have no such exemption: classify a new provider deliberately.
 # The samples layout proposal (docs/plans/samples-layout-proposal.md) moves portable
-# sample code. Each path below exists in the tree, except
-# samples/time/time_periodic_task/common: a name from an earlier version of the
-# proposal, kept unchanged here. The proposal now plans samples/time/periodic_task/common
-# (slim option, its section 6, still open); its PR 5 sets the real path.
+# sample code. Each path below exists in the tree.
 PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
-    "samples/controller/core", "samples/controller/include",
+    "tests/time_periodic/core", "tests/time_periodic/include",
     "tests/configuration_consumer/consumer.c", "tests/configuration_consumer/consumer.cpp",
 
     "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
@@ -44,7 +41,7 @@ PORTABLE_ROOTS = (
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp",
     # Paths of the samples layout proposal.
-    "samples/time/time_periodic_task/common", "samples/time/clock_shell/include",
+    "samples/time/clock_shell/include",
     "samples/time/clock_shell/src/time_command.c",
     "tests/configuration/controller_scenario.c",
     "tests/serial_consumer/scenario", "tests/logging_consumer/scenario",

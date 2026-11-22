@@ -40,7 +40,7 @@ key="$mcuboot/root-ec-p256.pem"
 imgtool=("$python" "$mcuboot/scripts/imgtool.py")
 compare=("$python" "$repo/tests/target/compare_boot_builds.py")
 default_build="$repo/build/zephyr/boot-composition"
-image="$(basename "$repo/samples/controller/zephyr")"
+image="$(basename "$repo/tests/boot_fixture/zephyr")"
 
 fail() {
     printf 'boot reproducibility check failed: %s\n' "$1" >&2

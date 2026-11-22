@@ -21,7 +21,7 @@ runtime consumers must join these roots or explicitly extend the inventory and
 tests before acceptance. Moving a consumer into a provider directory does not
 change its role or make a native dependency permissible.
 
-Existing `samples/controller/zephyr` and `samples/controller/host` contain execution,
+Existing `tests/time_periodic/zephyr`, `tests/board_images/integration_probe` and `tests/time_periodic/host` contain execution,
 diagnostic and qualification composition code. They remain native fixtures for the
 accepted controller scenarios, not evidence that the entire reference application
 already satisfies the future portable consumer boundary. Native access there must
