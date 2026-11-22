@@ -8,10 +8,10 @@ so does an entry with no route, so the list changes with the code and shows up i
 
     scripts/check-web-routes.py [--reviewed FILE] [SOURCE ...]
 
-With no source it reads every tracked source outside tests/ that uses the macro, and the project
-folders of PROJECT_ROOTS under tests/, which cannot see a generated source: for those, name the list at build, with crux_web_routes(... REVIEWED file). A sample
-under samples/ that keeps its own reviewed-routes.txt beside its sources, as a product would (Issue #220),
-is checked against that list in place of the default one, by the same comparison, and that list must be
+With no source it reads every tracked source that uses the macro outside tests/, and in the project
+folders of PROJECT_ROOTS under tests/. That scan cannot see a generated source: for those, name the list
+at build, with crux_web_routes(... REVIEWED file). A project under samples/ or another PROJECT_ROOTS
+folder that keeps its own reviewed-routes.txt beside its sources, as a product would (Issue #220), is checked against that list in place of the default one, by the same comparison, and that list must be
 named after REVIEWED in a tracked CMake file, so that a list no build uses exempts nothing. The list's
 `public GET @assets` line is left to the build, which sees the packaged folder's generated source. A line of
 the reviewed list reads `public POST /api/v1/session`, and # starts a comment.
