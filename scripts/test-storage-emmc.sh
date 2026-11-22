@@ -96,7 +96,7 @@ powercut_dir="$repo/build/zephyr/emmc-powercut"
     -DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=n)
 python3 "$repo/tests/native/emmc_powercut/test_replay_model.py" -v 2>&1 |
     tee "$powercut_dir/test_replay_model.log"
-grep -Eq '^Ran 17 tests in ' "$powercut_dir/test_replay_model.log"
+grep -Eq '^Ran 19 tests in ' "$powercut_dir/test_replay_model.log"
 # 64 samples took about 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
 # runner.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
@@ -272,6 +272,43 @@ for allowed in -DCONFIG_CRUX_MMC_CACHE_FLUSH=y -DCRUX_EMMC_FLUSH_CONTROL=ON; do
     }
 done
 printf 'Reliance Edge MMC guard: refused without the correction, allowed with it or the control\n'
+
+# The same guard for every File composition on an MMC disk, here FatFs: a File sync is the provider's
+# flush, which does not reach the medium past a turned-on eMMC cache without the correction. The
+# fat-nofix replay image with the FatFs simulator File provider added (and the RAM disk of
+# file_fatfs, only for that provider's dependency) must fail naming the option, and configure with
+# the correction or the fixture-only control. The fat-nofix image itself, without File, still
+# configures. A Reliance Edge image is refused by the adapter's guard above.
+file_guard_dir="$repo/build/zephyr/file-mmc-guard"
+file_guard_log="$file_guard_dir.log"
+file_guard_args=(-DZEPHYR_MODULES="$fatfs" -DEXTRA_CONF_FILE=fatfs.conf
+    -DCONFIG_CRUX_FILE_FATFS_SIMULATOR=y -DCONFIG_DISK_DRIVER_RAM=y
+    -DEXTRA_DTC_OVERLAY_FILE="$repo/tests/native/file_fatfs/app.overlay")
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$file_guard_dir" \
+        "$repo/tests/native/emmc_powercut" -- "${file_guard_args[@]}") >"$file_guard_log" 2>&1; then
+    printf 'A FatFs File composition on an MMC disk configured without CONFIG_CRUX_MMC_CACHE_FLUSH\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$file_guard_log")"
+[[ "$folded" == *'A Crux File composition on an MMC disk requires CONFIG_CRUX_MMC_CACHE_FLUSH=y'* ]] || {
+    printf 'The File MMC guard did not fail for the stated reason; see %s\n' "$file_guard_log" >&2
+    exit 1
+}
+for allowed in -DCONFIG_CRUX_MMC_CACHE_FLUSH=y -DCRUX_EMMC_FLUSH_CONTROL=ON; do
+    (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$file_guard_dir" \
+        "$repo/tests/native/emmc_powercut" -- "${file_guard_args[@]}" "$allowed") \
+        >"$file_guard_log" 2>&1 || {
+        printf 'The File MMC guard refused %s; see %s\n' "$allowed" "$file_guard_log" >&2
+        exit 1
+    }
+    grep -q '^CONFIG_CRUX_FILE_FATFS_SIMULATOR=y$' "$file_guard_dir/zephyr/.config" &&
+        grep -q '^CONFIG_DISK_DRIVER_MMC=y$' "$file_guard_dir/zephyr/.config" || {
+        printf 'The File MMC guard case with %s lost the FatFs File provider or the MMC disk\n' \
+            "$allowed" >&2
+        exit 1
+    }
+done
+printf 'File MMC guard (FatFs): refused without the correction, allowed with it or the control\n'
 
 # A tree that is not there is a configuration error that names the west group.
 missing_dir="$repo/build/zephyr/reliance-missing"
@@ -581,9 +618,83 @@ print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held o
       f'{leftovers} cases with a temporary left behind, all three controls failed as required')
 PY
 
-# The Settings File selection exists on Reliance Edge only. Without the file system, Kconfig drops
-# the selection and warns, naming the dependency, and the build is refused because the assignment of
-# the suite is not honoured. A selection that did not depend on Reliance Edge would configure.
+# Power-cut replay of W8 and W8C (W8-control): a file replaced through the Crux File provider. Both
+# write a temporary through File; W8 puts it in place with the VFS rename, W8C with File's remove and
+# rename. On red-fix-file the invariants are asserted for W8 on both profiles, and W8C must lose the
+# target at a cached lost cut inside every generation's replace (the window control), with no other
+# violation and only inside that generation's unlink-to-rename span. The flush, early acknowledgement and damaged image controls must fail. On fat-fix-file
+# both workloads are observations. The run has its own JSON, so the runs above do not move.
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix-file" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;file.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-nofix-file" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;file.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=n -DCRUX_EMMC_FLUSH_CONTROL=ON)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/fat-fix-file" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
+    "-DEXTRA_CONF_FILE=fatfs.conf;fatfs-file.conf" -DEXTRA_DTC_OVERLAY_FILE=fatfs-file.overlay \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+# 64 samples took 52 to 95 s (Reliance Edge) and 20 to 29 s (FatFs) in an emulated amd64 container.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/red-fix-file/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/red-nofix-file/zephyr/zephyr.exe" \
+    --fs reliance --workload W8 --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/fat-fix-file/zephyr/zephyr.exe" \
+    --fs fatfs --workload W8 --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The counts are exact for seed 1 and 64 samples. They depend on the traces, so on the pinned Zephyr,
+# Reliance Edge and FatFs, and on the algorithms of Python's random module.
+python3 - "$powercut_dir/replay/reliance-w8.json" "$powercut_dir/replay/fatfs-w8.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+red = json.loads(Path(sys.argv[1]).read_text())
+if red.get('workload') != 'W8' or sorted(red['observations']) != ['W8', 'W8C']:
+    raise RuntimeError(f'not a W8 report: {sorted(red)}')
+for workload in ('W8', 'W8C'):
+    for profile, expected in models.items():
+        groups = red['observations'][workload][profile]
+        if set(groups) != expected or any(
+                group['cases'] == 0 or
+                group['passed'] + (group.get('window', 0) if workload == 'W8C' else 0) !=
+                group['cases'] for group in groups.values()):
+            raise RuntimeError(f'{workload} {profile}: missing or failing cases')
+        trace = red['traces'][workload][profile]
+        if trace['metaroot_positions'] == 0 or (profile == 'cached' and trace['commits'] == 0):
+            raise RuntimeError(f'{workload} {profile}: no metaroot write was recognised')
+controls = {control['name']: control['failed_as_required'] for control in red['controls']}
+if controls != {'flush': True, 'early acknowledgement': True, 'window': True,
+                'damaged image': True}:
+    raise RuntimeError(f'controls: {controls}')
+window = next(control for control in red['controls'] if control['name'] == 'window')
+if window['generations_with_missing_target'] != list(range(1, 9)):
+    raise RuntimeError(f'window control: {window["generations_with_missing_target"]}')
+if (red['counts']['cases'], red['window']['cases']) != (3546, 496) or red['failures']:
+    raise RuntimeError(f'counts {red["counts"]}, window {red["window"]["cases"]}, '
+                       f'failures {red["failures"]}')
+fat = json.loads(Path(sys.argv[2]).read_text())
+for workload in ('W8', 'W8C'):
+    for profile, expected in models.items():
+        groups = fat['observations'][workload][profile]
+        if set(groups) != expected or any(group['cases'] == 0 for group in groups.values()):
+            raise RuntimeError(f'fatfs {workload} {profile}: missing observations')
+if ({c['name']: c['failed_as_required'] for c in fat['controls']} != {'damaged image': True} or
+        fat['counts']['cases'] != 897 or fat['failures']):
+    raise RuntimeError(f'fatfs W8: counts {fat["counts"]}, failures {fat["failures"]}')
+print(f'replay reliance W8: {red["counts"]["cases"]} cases, invariants held for W8 on red-fix-file, '
+      f'W8C lost the target in every generation ({red["window"]["cases"]} cases), all four controls '
+      f'failed as required; replay fatfs W8: {fat["counts"]["cases"]} cases, '
+      f'{fat["window"]["cases"]} W8C cases with the target missing, recorded')
+PY
+
+# CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE exists on Reliance Edge only. Without the file system, Kconfig
+# drops the selection and warns, naming the dependency, and the build is refused because the assignment
+# of the suite is not honoured. A selection that did not depend on Reliance Edge would configure. The
+# selection for other file systems is CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS, which
+# scripts/test-storage-simulators.sh runs on LittleFS.
 selection_dir="$repo/build/zephyr/settings-selection"
 selection_log="$selection_dir.log"
 if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$selection_dir" \
@@ -599,6 +710,73 @@ folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
     exit 1
 }
 printf 'Settings File selection: dropped without Reliance Edge, naming the dependency\n'
+
+# Link only: an RT1060-EVKB Rev B image with Configuration over the Settings File selection that does
+# not depend on Reliance Edge (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS), on LittleFS over the
+# MMC disk of the link overlay, and a consumer that saves a parameter, so that crux_config_save and
+# the provider's write path are linked together. The configuration and the symbols must show neither
+# Reliance Edge nor FatFs. The EVKB has no eMMC: nothing is programmed, reset or run, and the image is
+# not kept. It needs the Zephyr SDK, as scripts/test-file-emmc-compile.sh does.
+settings_link="$repo/build/zephyr/settings-link-rt1060"
+settings_board='mimxrt1060_evk@B/mimxrt1062/qspi'
+(cd "$workspace" && ZEPHYR_TOOLCHAIN_VARIANT=zephyr west twister -p "$settings_board" \
+    -T "$repo/tests/zephyr/configuration_settings_link" --build-only -O "$settings_link" \
+    --inline-logs)
+python3 - "$settings_link" "$settings_board" <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+output, board = Path(sys.argv[1]), sys.argv[2]
+name = 'crux.configuration.settings_link_rt1060'
+suites = json.loads((output / 'twister.json').read_text())['testsuites']
+if (len(suites) != 1 or suites[0]['name'].rsplit('/', 1)[-1] != name or
+        suites[0]['platform'] != board or suites[0].get('status') != 'not run' or
+        suites[0].get('runnable')):
+    raise RuntimeError(f'the RT1060 Settings File link check did not build: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+configs = list(output.rglob('zephyr/.config'))
+if len(configs) != 1:
+    raise RuntimeError(f'expected one build configuration, found {len(configs)}')
+build = configs[0].parent.parent
+lines = configs[0].read_text().splitlines()
+for line in ('CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS=y',
+             'CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER=y', 'CONFIG_FS_LITTLEFS_BLK_DEV=y',
+             'CONFIG_DISK_DRIVER_MMC=y', 'CONFIG_CRUX_MMC_CACHE_FLUSH=y', 'CONFIG_SETTINGS_FILE=y',
+             'CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"'):
+    if line not in lines:
+        raise RuntimeError(f'{line} is missing from {configs[0]}')
+for symbol in ('CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE', 'CONFIG_CRUX_FS_RELIANCE_EDGE',
+               'CONFIG_FAT_FILESYSTEM_ELM'):
+    if any(line.startswith(symbol + '=') for line in lines):
+        raise RuntimeError(f'{symbol} is set in {configs[0]}')
+nm = next(line.split('=', 1)[1] for line in (build / 'CMakeCache.txt').read_text().splitlines()
+          if line.startswith('CMAKE_NM:'))
+elf = build / 'zephyr/zephyr.elf'
+present = {line.split()[-1] for line in subprocess.run(
+    [nm, str(elf)], check=True, capture_output=True, text=True).stdout.splitlines()
+    if len(line.split()) >= 3}
+# crux_config_record_write is the provider's write path; the no-provider port is not compiled, so a
+# symbol of that name can only be the provider's.
+for symbol in ('main', 'crux_config_save', 'crux_config_record_write', 'crux_config_zephyr_init',
+               'settings_backend_init', 'littlefs_mount', 'mmc_ioctl'):
+    if symbol not in present:
+        raise RuntimeError(f'{symbol} is not linked into {elf}')
+for symbol in ('f_mount', 'red_mount2'):
+    if symbol in present:
+        raise RuntimeError(f'{symbol} is linked into {elf}')
+files = {str(Path(entry['directory'], entry['file']).resolve())
+         for entry in json.loads((build / 'compile_commands.json').read_text())}
+if any(f.endswith('configuration_no_provider.c') for f in files):
+    raise RuntimeError('the no-provider port is compiled into the RT1060 Settings File image')
+staged = {source for source in ('settings_file.c', 'settings_line.c', 'settings_store.c')
+          if str((build / 'settings-file-candidate' / source).resolve()) in files}
+if staged != {'settings_file.c', 'settings_line.c', 'settings_store.c'}:
+    raise RuntimeError(f'staged copies {sorted(staged)}')
+print(f'{name} {board}: crux_config_save linked with the Settings File provider on LittleFS, '
+      'no FatFs, no Reliance Edge')
+PY
 
 # The Stage A images of samples/storage_reliance_sd, rehearsed on the eMMC simulator. This exercises
 # the application logic of the images, the File provider and Reliance Edge on a model. It does not

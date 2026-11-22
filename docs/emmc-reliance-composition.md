@@ -75,8 +75,9 @@ the physical gate is approved for the current task.
 - **The flush option.** `CONFIG_CRUX_MMC_CACHE_FLUSH` replaces `subsys/sd/mmc.c` in the SD library with a copy
   generated from `patches/zephyr/mmc-cache-flush.patch`, so that `DISK_IOCTL_CTRL_SYNC` sends `FLUSH_CACHE` when the
   stack has turned the eMMC cache on. The Zephyr checkout is never edited, and a source whose hash differs fails the
-  configuration. The adapter's CMake refuses Reliance Edge on an MMC disk without it, and the
-  fixture-only `CRUX_EMMC_FLUSH_CONTROL` that bypasses the guard is honoured on `native_sim` only. **Any use of an MMC
+  configuration. The adapter's CMake refuses Reliance Edge on an MMC disk without it, and the module's CMake
+  refuses every other Crux File composition (FatFs too) in an image with an MMC disk without it. The
+  fixture-only `CRUX_EMMC_FLUSH_CONTROL` that bypasses both guards is honoured on `native_sim` only. **Any use of an MMC
   disk needs this option, including by code that is not Crux.** Without it a successful sync can leave data in the
   card's cache.
 - **FatFs on an MMC disk is not a Crux File selection.** `CONFIG_CRUX_FILE_FATFS_RT1060` requires the SDMMC disk, and
@@ -100,6 +101,10 @@ the physical gate is approved for the current task.
   [Configuration notes in the test guide](../tests/README.md): no checksum or resynchronisation, and a torn tail can lose
   the latest save. The Kconfig dependencies only warn when unmet, so the sample's link check requires the symbol in
   `.config`.
+  `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS` is the same provider with the same staged backend on the file
+  system that the composition mounts, with no Reliance Edge dependency. It refuses FatFs, and on an MMC disk it
+  requires the flush correction. It is proven on LittleFS over a block device on `native_sim` and link-checked for
+  the RT1060 ([test guide](../tests/README.md)). This page's sample keeps the Reliance Edge selection.
 - **The link-only overlay.** `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay` removes the
   card-detect GPIO and the `sdmmc` child of `usdhc1` and adds a four-bit `zephyr,mmc-disk` named `MMC`. It exists to
   link only, and it does not describe any board. Zephyr applies it to every build of this sample for this board, so an

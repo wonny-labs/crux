@@ -153,6 +153,20 @@ Thread and Sync are separate component-owned capabilities, frozen for new produc
 
 Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples, and the reference controller with them, are under `samples/` today, and no `applications/` folder exists yet. The owner decided on 9 November 2026 that the maintained integrated applications get their own top-level folder, [`applications/`](#applications-proposal-not-adopted), beside `samples/`. The folder does not exist yet, and `samples/controller` would move into it. That move is not scheduled. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposal-not-adopted) awaits the owner's decision, except that the owner decided the folder and the first two names of the applications on 9 November 2026.
 
+### Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `components/` | Public interfaces, shared implementations and OS-specific ports |
+| `samples/` | Capability examples and reference controller applications ([which ones run](../samples/README.md)) |
+| `zephyr/` | Out-of-tree Zephyr module integration |
+| `templates/` | Copy-and-start skeletons for product, hardware and kit repositories |
+| `tests/` | Host, Zephyr, build-policy and target tests |
+| `web/` | Management API specification and browser examples ([web guide](../web/README.md)) |
+| `scripts/`, `tools/` | Setup, build, analysis and test commands; board test tooling outside the runtime build |
+| `.devcontainer/` | Development environment |
+| `docs/` | Guides, contracts and decision records |
+
 ### Layout and naming of samples (proposal, not adopted)
 
 **Status: proposal, not adopted, for the owner's decision**, except for the folder and the first two names of the [applications](#applications-proposal-not-adopted), which the owner decided on 9 November 2026. It is a structure decision, so no rule here is adopted yet, and no existing sample was moved
@@ -208,7 +222,7 @@ Nothing is moved by this proposal. A rule number refers to the table above.
 | `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
 | `web/preact` | No README of its own. Its commands and flows are in the [web guide](../web/README.md). | 3 |
 | `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
-| `time` | No README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`, the shared `src/time_command.c` and `include/` are outside `core/`, and `src/time_shell.c` includes a Zephyr header outside `zephyr/`. | 3, 4, 5 |
+| `time` | Has a README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`, the shared `src/time_command.c` and `include/` are outside `core/`, and `src/time_shell.c` includes a Zephyr header outside `zephyr/`. | 3, 4, 5 |
 | `logging`, `serial` | No README, and no composition folder: `controller.c` and `controller.h` are scenario sources that `tests/logging_consumer` and `tests/serial_consumer` build | 3, 4 |
 | `messaging` | Has a README with no Host, `native_sim` or physical evidence, and the same shape as the two above: `controller.c` is built by `tests/messaging_consumer`. The name is historical: the scenario uses Time and Thread, and Crux Queue was removed | 3, 4 |
 | `storage_emmc`, `storage_sd`, `storage_sd_probe` | No README. A Zephyr application sits in the root with no `zephyr/` folder, so its Zephyr headers are outside `zephyr/`. The names belong to one storage family but are not grouped. | 1, 3, 4, 5 |
@@ -434,7 +448,7 @@ The [capability inventory](#current-capability-integration) links to component-s
 - [Native-free consumer policy](native-interface-policy.md)
 - [ADR-0001: application boundary and public API stability](decisions/0001-application-boundary-and-api-stability.md) and [composition interface rules](composition-interfaces.md)
 - [Test organisation and commands](../tests/README.md)
-- [Reference controller and supported scenarios](../samples/controller/README.md)
+- Reference controller and supported scenarios: `samples/controller/README.md`, listed in the [samples overview](../samples/README.md)
 
 ## Private execution context
 

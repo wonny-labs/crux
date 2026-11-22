@@ -3,7 +3,7 @@
 # save instead of the image failing to link. The module's CMake adds this directory only under
 # CONFIG_CRUX_CONFIGURATION_CORE, which CONFIG_CRUX_CONFIG_SERVICE and CONFIG_CRUX_MGMT_STATUS select.
 #
-# The Settings File selection (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE, ports/zephyr/CMakeLists.txt) compiles
+# A Settings File selection (CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER, ports/zephyr/CMakeLists.txt) compiles
 # configuration.c and configuration_text.c itself, beside its own port. With that selection on, this directory
 # builds nothing, so that no symbol is defined twice and no no-provider port competes with the real one.
 #
@@ -27,7 +27,7 @@ endfunction()
 if(NOT CONFIG_CRUX_CONFIGURATION_CORE)
   message(FATAL_ERROR "This directory is the Configuration core selection of the module: set CONFIG_CRUX_CONFIGURATION_CORE")
 endif()
-if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
   return()
 endif()
 

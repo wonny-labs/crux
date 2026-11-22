@@ -4,9 +4,11 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
-- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the first commands.
-- [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications, provider selection and debugging.
-- [RT1060-EVKB with J-Link, usbipd and west](board-jlink-usbipd.md): the board route with `west flash` and `west debug` in the optional board Dev Container, and its first check on a Windows PC.
+- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options, then a sample built and flashed on your board (Part C).
+- [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
+- [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the setup commands.
+- [Boards](boards/README.md): one page per board with its target, switches and jumpers, probe and connection, flash and debug, recovery and limits.
+- [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications and provider selection.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
 
 ## Build a product on Crux
@@ -26,6 +28,7 @@ This page finds the right page for what you want to do. Start at the [repository
 - [Writing a product driver](writing-a-product-driver.md): module layout, binding, driver, emulator and `native_sim` tests, and the hardware scenario that stays gated.
 - [Zephyr and driver code in a product repository](coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository) and the [driver review checklist](driver-review-checklist.md). A [contribution guide template](../templates/product/CONTRIBUTING.md) is part of the product template.
 - [Board image profiles](board-image-profiles.md): the registered images that the board test tooling may program and restore.
+- [Boards](boards/README.md): adding a board page once a board runs.
 
 ## Use a platform service
 
@@ -79,8 +82,22 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 
 1. [CONTRIBUTING.md](../CONTRIBUTING.md): code ownership, public interfaces, Git and pull request conventions, review requirements.
 2. [Composition interface rules](composition-interfaces.md), the [native-free consumer boundary](native-interface-policy.md), [coding guidelines](coding-guidelines.md) and [upstream reuse](upstream-reuse.md).
+   For documentation pages, the [documentation guidelines](documentation-guidelines.md) set one type per page, the level of detail and where history and status go.
 3. The capability contract of the component you change (see [Use a platform service](#use-a-platform-service)).
 4. [AGENTS.md](../AGENTS.md) if an AI agent works on the change.
+
+### Keep the README an entry point
+
+The [repository README](../README.md) lets a newcomer decide in a few minutes what Crux is, whether it fits, and how to start. It holds a short description and audience, capabilities in plain words, a quick start that works as written, links to read next, one or two lines of status, contributing and the licence. Put everything else on the page that owns it:
+
+| Do not put in the README | Put it in |
+| --- | --- |
+| Change history, removals and migration notes | The component's contract page, or the history pages |
+| Per-component lifecycle (frozen, to be removed, Experimental) and stability tiers | [Component readiness](component-readiness.md) |
+| Component and provider lists | The [capability inventory](architecture.md#current-capability-integration) and the contract pages |
+| Environment caveats and evidence limits | [Getting started](getting-started.md#8-supported-environments) and [Component readiness](component-readiness.md) |
+
+`tests/build/test_readme_scope.py` fails when the README contains the usual markers of the first two rows: change history, migration notes and lifecycle words. The other rows are checked in review.
 
 ## Decisions
 

@@ -48,7 +48,12 @@ NOT_COMPILED_RULES = (
         r"|networking_physical|networking_physical_native|gpio_physical|psa_entropy)/"
         r"|^tests/external_application/main\.c$|^tests/execution/src/native\.c$"
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
-        r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$")),
+        r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$"
+        # New paths of the samples layout proposal; the old ones above leave after the moves.
+        r"|^samples/boards/nxp/mimxrt1060_evk/(file_on_emmc|file_on_sd_card)/|^tests/board_images/"
+        r"|^tests/(probe_device_health|integrated_smoke)/"
+        r"|^samples/(time/time_periodic_task|networking/echo_client)/src/main\.c$"
+        r"|^samples/time/clock_shell/src/(main|time_shell)\.c$")),
     ("psa-crypto-composition", re.compile(
         r"(^|/)ports/psa/|^tests/psa_(crypto|ports)/|^tests/tls_certificate/psa/|^tests/ssh/sftp/openssh/")),
     ("boundary-probe-or-consumer-fixture", re.compile(
@@ -467,6 +472,39 @@ class SelfTest(unittest.TestCase):
         self.assertEqual(classify_not_compiled("components/time/ports/zephyr/x.c"), "zephyr-or-native_sim-only")
         self.assertEqual(classify_not_compiled("tests/web_consumer/rejected/a.c"), "boundary-probe-or-consumer-fixture")
         self.assertEqual(classify_not_compiled("components/new/src/new.c"), "unclassified")
+
+    def test_classify_old_and_new_sample_paths(self) -> None:
+        # The samples layout proposal moves board images and Zephyr compositions. Until the moves
+        # land, the old path and the new path of each one classify the same way.
+        zephyr = "zephyr-or-native_sim-only"
+        for old, new in (
+                ("samples/storage_emmc/main.c", "samples/boards/nxp/mimxrt1060_evk/file_on_emmc/main.c"),
+                ("samples/storage_sd/sd_storage.c", "samples/boards/nxp/mimxrt1060_evk/file_on_sd_card/sd_storage.c"),
+                ("samples/storage_sd_interrupt/main.c", "tests/board_images/sd_card_power_cut_append/main.c"),
+                ("samples/storage_sd_replace/main.c", "tests/board_images/sd_card_power_cut_replace/main.c"),
+                ("samples/storage_sd_probe/sd_probe.c", "tests/board_images/sd_card_stack_removal_probe/sd_probe.c"),
+                ("samples/storage_reliance_sd/format.c", "tests/board_images/reliance_sd_card_stage_a/format.c"),
+                ("samples/flash_safety_poc/main.c", "tests/board_images/flash_safety_check/main.c"),
+                ("samples/controller/zephyr/m3_main.c", "tests/board_images/evkb_integration_probe/probe_main.c"),
+                ("samples/controller/zephyr/network_probe.c",
+                 "tests/board_images/evkb_integration_probe/network_probe.c"),
+                ("samples/controller/zephyr/main.c", "samples/time/time_periodic_task/src/main.c"),
+                ("samples/networking/zephyr/main.c", "samples/networking/echo_client/src/main.c"),
+                ("samples/time/src/main.c", "samples/time/clock_shell/src/main.c"),
+                ("samples/time/src/time_shell.c", "samples/time/clock_shell/src/time_shell.c"),
+                ("tests/controller_m3/src/main.c", "tests/probe_device_health/src/main.c"),
+                ("tests/m5_integrated/src/main.c", "tests/integrated_smoke/src/main.c")):
+            with self.subTest(old=old):
+                self.assertEqual(classify_not_compiled(old), zephyr)
+                self.assertEqual(classify_not_compiled(new), zephyr)
+        # Host-compiled code keeps no reason at either path.
+        for path in ("samples/time/src/time_command.c", "samples/time/clock_shell/src/time_command.c",
+                     "samples/time/clock_shell/host/main.c", "samples/time/time_periodic_task/host/main.c",
+                     "samples/time/time_periodic_task/common/controller.c",
+                     "samples/networking/echo_client/host/main.c",
+                     "samples/networking/echo_client/common/client.c"):
+            with self.subTest(path=path):
+                self.assertEqual(classify_not_compiled(path), "unclassified")
 
     def test_invocation_parsing(self) -> None:
         with tempfile.TemporaryDirectory() as root:

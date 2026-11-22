@@ -74,7 +74,7 @@ after setting up the west workspace and SDK:
 scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ```
 
-This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
+This runs the `native_sim` Ztests, builds the clock shell sample (`samples/time/clock_shell`) for simulation and
 cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
 or reset the physical board. The macOS physical suite below records the earlier RTC-backed contract; it has
 not qualified the redesigned system realtime/optional-RTC implementation.
@@ -93,6 +93,10 @@ on a machine without them the run is green and says less. The host CI job instal
 product style cases still skip there, because they need a Zephyr tree (`ZEPHYR_BASE`).
 `tests/build/test_ci_wiring.py` fails if the sanitizer preset stops aborting on undefined behaviour,
 or if a workflow stops running the File service checks, the Zephyr smoke check, those installs or the `CLANG_TIDY` setting.
+
+`tests/build/test_update_crux_pin.py`, `tests/build/test_open_pin_pr.py` and `tests/build/test_crux_pin_bot.py` hold the checks of the Crux pin bot scripts,
+see [Keeping the Crux pin current](../docs/product-composition.md#keeping-the-crux-pin-current). They use throwaway Git
+repositories, a fake `gh` and a local fake Bitbucket API, and need no network. The manifest cases need PyYAML and skip without it.
 
 `tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
 compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
@@ -186,7 +190,7 @@ on Linux. `tests/controller` verifies sample-owned Time observations/recovery an
 phase logic. The maintained boundary-negative and host-runner failure checks are under
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
 status; `scripts/test-controller.sh` validates normal/RTC-absent native_sim system-realtime compositions
-and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
+and cross-builds EVKB without hardware access. Its conditions and limits are in `samples/controller/README.md`, listed in the [samples overview](../samples/README.md).
 
 Run `scripts/test-controller-integration.sh` in the configured Linux/west
 environment for device, networking and integrated-controller Zephyr scenarios
@@ -552,6 +556,34 @@ overwritten metaroots) and three staged states (an intact file, a leftover tempo
 must come out as required. The result is in the
 [settings replay record](../docs/evidence/emmc-reliance/replay-settings/README.md).
 
+`tests/native/configuration_settings_littlefs` runs the same Settings File suite on LittleFS over a block device
+(`FS_LITTLEFS_BLK_DEV`, a 1 MiB RAM disk named `MMC`), against the same real provider, selected by
+`CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS`. That selection links the same provider and stages the same
+corrected backend as `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, with no Reliance Edge dependency. Both select the
+hidden `CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER`, which the build files test. It refuses FatFs at CMake and in
+the provider's source, because a FatFs rename removes the destination first. A Kconfig dependency would only drop
+the selection with a warning. On an MMC disk it requires `CONFIG_CRUX_MMC_CACHE_FLUSH`, as Reliance Edge does.
+`fixture_littlefs.h` makes `/MMC:/files` and `/MMC:/settings` before anything is initialised and mounts without
+formatting. It defines `FIXTURE_FILL_SYNCS_EACH_CHUNK`, because LittleFS allocates a file's blocks only at a sync:
+without it the suite's volume filler leaves its blocks free and the volume never fills. With it, the 25 shared
+cases and one added case (a compaction leaves no `.cmp` file) pass. `scripts/test-storage-simulators.sh` runs it
+with LittleFS as the only workspace module, so the image cannot reach Reliance Edge or FatFs. It requires the
+exact case names, the staged sources, the real provider and none of the FatFs, Reliance Edge or probe symbols. The
+negative control on the unpatched backend fails the same 12 cases as on Reliance Edge, with 14 passing.
+`test_full_volume_never_acknowledges_a_lost_save` passes there for the same reason: LittleFS answers a write that
+finds no free block with `-ENOSPC`. The same script requires that the selection with FatFs in the image fails at
+CMake, naming the reason.
+
+The same script runs W4 on LittleFS over the eMMC simulator (`run_replay.py --fs littlefs --workload W4`, images
+built from `littlefs.conf` and `settings_littlefs.conf`). The invariants are asserted on both profiles, and the
+flush, early acknowledgement and damaged image controls must fail. LittleFS has no metaroot, so only the flushes
+and the marks are mandatory positions. The damaged image overwrites both blocks of the superblock pair (sectors
+0 and 1). For seed 1 and 8 samples it is 493 cases, all passing, 145 of them with a temporary left behind and
+none with the settings file missing. The run also records each superblock block overwritten alone. The volume
+still mounts, but with the newer block gone it falls back to an older root state, in which W4's data is missing.
+That is damage to a block, not a power-cut state. These are simulator results on a model of the medium. They
+show nothing about an eMMC device.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes
@@ -748,6 +780,15 @@ verifier accepts, with `--create-may-be-empty`, a new file that is present and e
 creating it. These cases are counted apart, and checks that must fail show that the same state is
 refused as a lost acknowledged file or at another step. See the
 [Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
+
+W8 and W8C (W8-control, `--workload W8`) replace a file through the Crux File provider, on images built
+with `file.conf` (Reliance Edge, `red-fix-file` and `red-nofix-file`) or `fatfs-file.conf` (FatFs,
+`fat-fix-file`), as a run of their own with their own JSON. Both write each generation of `atomic/w8` to
+`atomic/w8.tmp` through File and sync it. W8 then uses the VFS rename, W8C removes the target and renames with
+File. On `red-fix-file` W8 must keep every invariant with no read error on both profiles, and W8C must lose the
+target at a cached `lost` cut inside every generation's replace and fail nothing else; otherwise the workload
+cannot see that window. The flush, early acknowledgement and damaged image controls run on W8. FatFs results are
+observations. See the [File replace replay record](../docs/evidence/emmc-reliance/replay-file-w8/README.md).
 
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.

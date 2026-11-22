@@ -289,16 +289,66 @@ class ReviewList(unittest.TestCase):
 
     def test_the_example_project_is_checked_against_its_named_list(self):
         module = self.load_check()
-        sample = REPO / "samples/web_project"
+        sample = REPO / "tests/web/project_sample/project"
         listing = module.own_list(sample / "src/greeting_route.c")
         self.assertEqual(listing, sample / "reviewed-routes.txt")
         self.assertTrue(module.named_by_build(listing))
         self.assertEqual(module.sample_errors({listing: [sample / "src/greeting_route.c"]}), [])
         self.assertIsNone(module.own_list(REPO / "components/web/session/web_session_routes.c"))
-        self.assertIsNone(module.own_list(REPO / "samples/time/src/time_command.c"))
+        self.assertIsNone(module.own_list(REPO / "samples/time/clock_shell/src/time_command.c"))
         default, owned = module.default_sources()
         self.assertNotIn(sample / "src/greeting_route.c", default)
         self.assertEqual(owned, {listing: [sample / "src/greeting_route.c"]})
+
+    PROJECT = "tests/web/project_sample/project"
+
+    def test_the_example_project_keeps_its_list_at_its_new_path(self):
+        # The samples layout proposal moves samples/web_project into tests/web/project_sample/project.
+        # Until it moves, both places hold an example project with its own list.
+        module = self.load_check()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / self.PROJECT
+            source = project / "src/greeting_route.c"
+            source.parent.mkdir(parents=True)
+            source.write_text('#include <crux/web.h>\nCRUX_WEB_ROUTE(greeting, "/api/v1/greeting", '
+                              'CRUX_WEB_GET, CRUX_WEB_PUBLIC, h, NULL);\n', encoding="utf-8")
+            (project / "reviewed-routes.txt").write_text("public GET /api/v1/greeting\n", encoding="utf-8")
+            # The check matches the repository-relative path of the list after REVIEWED.
+            (root / "tests/web/project_sample/CMakeLists.txt").write_text(
+                "crux_web_routes(app SOURCES src/greeting_route.c REVIEWED ${CMAKE_CURRENT_LIST_DIR}"
+                "/../../../tests/web/project_sample/project/reviewed-routes.txt)\n", encoding="utf-8")
+            listing = module.own_list(source, root)
+            self.assertEqual(listing, project / "reviewed-routes.txt")
+            self.assertEqual(module.sample_errors({listing: [source]}, root), [])
+            # A list elsewhere under tests/ is no project list.
+            other = root / "tests/web/other/src/r.c"
+            other.parent.mkdir(parents=True)
+            other.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            (root / "tests/web/other/reviewed-routes.txt").write_text("", encoding="utf-8")
+            self.assertIsNone(module.own_list(other, root))
+
+    def test_the_default_scan_reads_the_example_project_at_either_path(self):
+        module = self.load_check()
+        route = ('#include <crux/web.h>\nCRUX_WEB_ROUTE(r, "/api/v1/r", CRUX_WEB_GET, '
+                 'CRUX_WEB_PUBLIC, h, NULL);\n')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for folder in ("samples/web_project", self.PROJECT):
+                (root / folder / "src").mkdir(parents=True)
+                (root / folder / "src/route.c").write_text(route, encoding="utf-8")
+                (root / folder / "reviewed-routes.txt").write_text("public GET /api/v1/r\n", encoding="utf-8")
+            # Other test sources stay outside the scan, list or not.
+            (root / "tests/web/other").mkdir(parents=True)
+            (root / "tests/web/other/fixture.c").write_text(route, encoding="utf-8")
+            (root / "tests/web/project_sample/project_sample.c").write_text(route, encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+            found, owned = module.default_sources(root)
+            self.assertEqual(found, [])
+            self.assertEqual(owned, {
+                root / "samples/web_project/reviewed-routes.txt": [root / "samples/web_project/src/route.c"],
+                root / self.PROJECT / "reviewed-routes.txt": [root / self.PROJECT / "src/route.c"],
+            })
 
     def test_repository_list_holds(self):
         result = subprocess.run([sys.executable, str(CHECK)], stdout=subprocess.PIPE,

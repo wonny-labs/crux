@@ -25,14 +25,14 @@ Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Do
 Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
 ~~~text
-/workspaces/crux/
+/workspace/
   crux-pilot/    # This Git repository
   .west/         # Created by west init
   zephyr/        # Pinned upstream checkout
   modules/       # Selected Zephyr dependencies
 ~~~
 
-Run the commands below from `/workspaces/crux/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspaces/crux` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
+Run the commands below from `/workspace/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspace` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
 
@@ -115,44 +115,7 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 ## RT1060-EVKB debugging
 
-**Standard route: `west` with the J-Link runner, not run yet.** Zephyr's `west flash`, `west debug` and `west attach` with the J-Link runner (`-r jlink`) are the standard board route, for people and for agents or automation, under the conditions of [ADR-0007](decisions/0007-west-flash-and-debug-for-people-and-automation.md): each physical operation needs explicit authorisation for the current task, nothing in CI flashes a board, and the device-control tool under `tools/` is unchanged. The probe is attached to Linux (to WSL2 with usbipd-win on Windows) and the J-Link software runs in the optional board Dev Container, [`.devcontainer/jlink/devcontainer.json`](../.devcontainer/jlink/devcontainer.json); the default container is unchanged. The [board guide](board-jlink-usbipd.md) has the set-up, a read-only `compare-sections` check before any write, the flash and debug commands, and a first check for a Windows PC. No step of that route has run on hardware or on Windows.
-
-**Fallback: the host GDB Server route, recorded on macOS only.** The rest of this section describes it. The only debug and physical-test host that has been used is macOS. `scripts/macos/start-jlink-gdbserver.command` and `scripts/test-target.sh` exit on any other system, and no Linux or Windows route has been run. The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`; whether that command works on Linux is not verified. On native Linux the container also needs `--add-host=host.docker.internal:host-gateway` for the VS Code profiles below, which is untried too. See [Getting started](getting-started.md#7-boards-and-debug-probes).
-
-The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
-
-On the approved macOS host, from the repository checkout (not the Dev Container), start the existing server:
-
-~~~sh
-bash scripts/macos/start-jlink-gdbserver.command
-~~~
-
-The launcher uses SWD at 400 kHz and serves GDB on TCP port 2331. It accepts remote connections rather than restricting access to localhost, so use it only on a trusted network. Stop it with Ctrl-C when debugging is finished.
-
-The existing VS Code [debug configurations](../.vscode/launch.json) connect from the Dev Container to `host.docker.internal:2331`:
-
-- **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
-- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
-
-See the [debug build script](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
-
-### Debug builds of other applications
-
-`scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../scripts/debug-optimizations.conf) that selects `-Og`:
-
-~~~sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/storage_sd --debug-optimizations
-~~~
-
-Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
-
-### What the platform provides for build and debug
-
-| Provided by the platform | Owned by the project | Not provided |
-|---|---|---|
-| The build and debug scripts above for the RT1060-EVKB QSPI target. The documented use of Zephyr's `west flash`, `west debug` and `west attach` with the J-Link runner, and the optional board Dev Container that runs them ([board guide](board-jlink-usbipd.md), not run yet). The J-Link GDB Server launcher and the VS Code profiles for that target, as the fallback. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A Crux wrapper script over `west flash` or `west debug` ([ADR-0007](decisions/0007-west-flash-and-debug-for-people-and-automation.md), W6). Unattended programming, including any flashing from CI. A J-Link script that initialises SEMC. |
-
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The default Dev Container has none, so with it the split between the host GDB Server and the container GDB stays. The board Dev Container installs the J-Link software, so the runner, the GDB Server and GDB all run in that container.
+The board procedures for the RT1060-EVKB, including the J-Link GDB Server, the VS Code debug profiles, debug builds of other applications and what the platform provides for build and debug, are on the [MIMXRT1060-EVKB board page](boards/mimxrt1060_evkb.md#flash-and-debug).
 
 ## External Linux application using Crux source
 
@@ -312,7 +275,7 @@ PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m py
 
 > **Warning: `EXTRA_ZEPHYR_MODULES` is skipped when there is no west workspace.** With only `ZEPHYR_BASE` set, Zephyr clears `WEST` and processes no modules. The failure is a missing `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, and neither names the cause. Run from a west workspace, whose manifest does not need to list Crux. Without a workspace, `ZEPHYR_MODULES=<crux>` has been shown to configure; that is the only part of it that has been run.
 
-- Do not depend on `ZEPHYR_<NAME>_*` variables for Crux. The module name follows the checkout directory.
+- `zephyr/module.yml` names the module `crux`, so its generated names are `ZEPHYR_CRUX_MODULE_DIR` and `CONFIG_ZEPHYR_CRUX_MODULE` in any checkout folder. See [Module name](product-composition.md#module-name).
 - The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
 - Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
 
