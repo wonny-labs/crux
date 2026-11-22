@@ -175,7 +175,7 @@ What a product sees depends on how the pin went wrong.
 
 Crux does not assert its own version in code, so a product that uses an API or Kconfig symbol its pinned Crux lacks fails in the ordinary way, with an unknown symbol or a missing header, and Crux adds no message. This is **Inference**: it was not run. A version assertion is not planned for now.
 
-To move the pin, change the Crux `revision` in the product manifest to a newer SHA or tag, run `west update`, then `west crux-pins`. With `import: true` the Zephyr and module pins follow. With [hand pins](#pinning-by-hand) they must be moved to the new contract, or declared. [Upgrades and security fixes](#upgrades-and-security-fixes) covers what to review. A [Draft pull request](https://github.com/wonny-labs/crux-pilot/pull/537) proposes a bot that opens one pull request per pin move; it is not merged, so do not rely on it yet.
+To move the pin, change the Crux `revision` in the product manifest to a newer SHA or tag, run `west update`, then `west crux-pins`. With `import: true` the Zephyr and module pins follow. With [hand pins](#pinning-by-hand) they must be moved to the new contract, or declared. [Upgrades and security fixes](#upgrades-and-security-fixes) covers what to review. The [pin bot](#keeping-the-crux-pin-current) opens one pull request per pin move.
 
 ### Zephyr baseline gate
 
