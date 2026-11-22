@@ -8,7 +8,7 @@ import sys
 
 commands, source, output = map(Path, sys.argv[1:])
 entry = next(item for item in json.loads(commands.read_text())
-             if item['file'].endswith('/samples/networking/tcp_udp_echo/common/client.c'))
+             if item['file'].endswith('/samples/networking/echo_client/common/client.c'))
 arguments = entry.get('arguments') or shlex.split(entry['command'])
 compiler = 1 if Path(arguments[0]).name == 'ccache' else 0
 if not arguments[compiler].endswith('gcc'):

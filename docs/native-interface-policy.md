@@ -128,7 +128,7 @@ removed with Crux Queue.
 
 ### Scoped #28 integration
 
-The common checker registers exactly `samples/networking/tcp_udp_echo/common/client.{c,h}`,
+The common checker registers exactly `samples/networking/echo_client/common/client.{c,h}`,
 `tests/networking/runtime_port.{c,h}`, `tests/networking_consumer/consumer.h`
 and `tests/networking_consumer/cpp_probe.cpp` under the named networking profile.
 The existing networking checker supplies its stricter include/operation checks;

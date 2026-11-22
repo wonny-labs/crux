@@ -37,7 +37,7 @@ mv "$pending_inputs" "$test_inputs"
 
 printf '\nBuilding the Zephyr Time Shell sample for native_sim/native/64.\n'
 (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$native_sample_build" \
-    "$repo/samples/time/time_shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+    "$repo/samples/time/utc_clock_shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 "$repo/scripts/select-clangd-database.sh" "$native_sample_build"
 
 printf '\nCross-building the Zephyr Time Shell sample for %s.\n' "$board"

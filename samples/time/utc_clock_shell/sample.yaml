@@ -1,5 +1,5 @@
 sample:
-  name: Crux Time shell
+  name: Crux UTC clock shell
   description: >-
     Zephyr shell with the Crux Time commands. It prints its ready line and then waits for
     commands such as `time get`; Twister stops it after the ready line.
@@ -16,5 +16,5 @@ common:
     regex:
       - "CRUX_TIME_READY composition=zephyr"
 tests:
-  crux.sample.time.time_shell:
+  crux.sample.time.utc_clock_shell:
     extra_args: []

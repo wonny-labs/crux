@@ -295,7 +295,7 @@ class ReviewList(unittest.TestCase):
         self.assertTrue(module.named_by_build(listing))
         self.assertEqual(module.sample_errors({listing: [sample / "src/greeting_route.c"]}), [])
         self.assertIsNone(module.own_list(REPO / "components/web/session/web_session_routes.c"))
-        self.assertIsNone(module.own_list(REPO / "samples/time/time_shell/src/time_command.c"))
+        self.assertIsNone(module.own_list(REPO / "samples/time/utc_clock_shell/src/time_command.c"))
         default, owned = module.default_sources()
         self.assertNotIn(sample / "src/greeting_route.c", default)
         self.assertEqual(owned, {listing: [sample / "src/greeting_route.c"]})

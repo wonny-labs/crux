@@ -9,12 +9,12 @@ get_filename_component(CRUX_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOL
 
 target_sources(app PRIVATE
     main.c
-    "${CRUX_REPO_ROOT}/samples/time/time_shell/src/time_command.c"
-    "${CRUX_REPO_ROOT}/samples/time/time_shell/src/time_shell.c"
+    "${CRUX_REPO_ROOT}/samples/time/utc_clock_shell/src/time_command.c"
+    "${CRUX_REPO_ROOT}/samples/time/utc_clock_shell/src/time_shell.c"
 )
 target_include_directories(app PRIVATE
     "${CRUX_REPO_ROOT}/components/time/ports/zephyr"
-    "${CRUX_REPO_ROOT}/samples/time/time_shell/include"
+    "${CRUX_REPO_ROOT}/samples/time/utc_clock_shell/include"
     "${CRUX_REPO_ROOT}/tests/time"
 )
 target_link_libraries(app PRIVATE crux::time)

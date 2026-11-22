@@ -38,8 +38,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
-    sources = ['samples/networking/tcp_udp_echo/common/client.c',
-               'samples/networking/tcp_udp_echo/common/client.h',
+    sources = ['samples/networking/echo_client/common/client.c',
+               'samples/networking/echo_client/common/client.h',
                'tests/networking/runtime_port.c', 'tests/networking/runtime_port.h',
                'tests/networking_consumer/consumer.h',
                'tests/networking_consumer/cpp_probe.cpp',

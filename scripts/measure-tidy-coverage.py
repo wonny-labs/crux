@@ -52,8 +52,8 @@ NOT_COMPILED_RULES = (
         # New paths of the samples layout proposal; the old ones above leave after the moves.
         r"|^samples/boards/nxp/mimxrt1060_evk/(file_on_emmc|file_on_sd_card)/|^tests/board_images/"
         r"|^tests/(probe_device_health|integrated_smoke)/"
-        r"|^samples/(time/time_periodic_task|networking/tcp_udp_echo)/src/main\.c$"
-        r"|^samples/time/time_shell/src/(main|time_shell)\.c$")),
+        r"|^samples/(time/time_periodic_task|networking/echo_client)/src/main\.c$"
+        r"|^samples/time/utc_clock_shell/src/(main|time_shell)\.c$")),
     ("psa-crypto-composition", re.compile(
         r"(^|/)ports/psa/|^tests/psa_(crypto|ports)/|^tests/tls_certificate/psa/|^tests/ssh/sftp/openssh/")),
     ("boundary-probe-or-consumer-fixture", re.compile(
@@ -489,20 +489,20 @@ class SelfTest(unittest.TestCase):
                 ("samples/controller/zephyr/network_probe.c",
                  "tests/board_images/evkb_integration_probe/network_probe.c"),
                 ("samples/controller/zephyr/main.c", "samples/time/time_periodic_task/src/main.c"),
-                ("samples/networking/zephyr/main.c", "samples/networking/tcp_udp_echo/src/main.c"),
-                ("samples/time/src/main.c", "samples/time/time_shell/src/main.c"),
-                ("samples/time/src/time_shell.c", "samples/time/time_shell/src/time_shell.c"),
+                ("samples/networking/zephyr/main.c", "samples/networking/echo_client/src/main.c"),
+                ("samples/time/src/main.c", "samples/time/utc_clock_shell/src/main.c"),
+                ("samples/time/src/time_shell.c", "samples/time/utc_clock_shell/src/time_shell.c"),
                 ("tests/controller_m3/src/main.c", "tests/probe_device_health/src/main.c"),
                 ("tests/m5_integrated/src/main.c", "tests/integrated_smoke/src/main.c")):
             with self.subTest(old=old):
                 self.assertEqual(classify_not_compiled(old), zephyr)
                 self.assertEqual(classify_not_compiled(new), zephyr)
         # Host-compiled code keeps no reason at either path.
-        for path in ("samples/time/src/time_command.c", "samples/time/time_shell/src/time_command.c",
-                     "samples/time/time_shell/host/main.c", "samples/time/time_periodic_task/host/main.c",
+        for path in ("samples/time/src/time_command.c", "samples/time/utc_clock_shell/src/time_command.c",
+                     "samples/time/utc_clock_shell/host/main.c", "samples/time/time_periodic_task/host/main.c",
                      "samples/time/time_periodic_task/common/controller.c",
-                     "samples/networking/tcp_udp_echo/host/main.c",
-                     "samples/networking/tcp_udp_echo/common/client.c"):
+                     "samples/networking/echo_client/host/main.c",
+                     "samples/networking/echo_client/common/client.c"):
             with self.subTest(path=path):
                 self.assertEqual(classify_not_compiled(path), "unclassified")
 

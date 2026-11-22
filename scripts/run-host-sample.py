@@ -3,7 +3,7 @@
 
 The sample gets the text of --input on stdin, then end of file. With --echo-peer, a local
 TCP (42420) and UDP (42421) echo peer on 127.0.0.1 runs for the sample's lifetime, which is
-what samples/networking/tcp_udp_echo/host expects by default. The run passes when the sample exits with
+what samples/networking/echo_client/host expects by default. The run passes when the sample exits with
 status 0 within --timeout seconds and every --expect regular expression (multiline) matches
 its combined stdout and stderr.
 """

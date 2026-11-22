@@ -74,7 +74,7 @@ after setting up the west workspace and SDK:
 scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ```
 
-This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
+This runs the `native_sim` Ztests, builds the UTC clock shell sample (`samples/time/utc_clock_shell`) for simulation and
 cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
 or reset the physical board. The macOS physical suite below records the earlier RTC-backed contract; it has
 not qualified the redesigned system realtime/optional-RTC implementation.

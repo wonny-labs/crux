@@ -23,7 +23,7 @@ registered in the final image independently of the portable usage target.
 Sockets owns only its declaration shim and native build definition in
 `components/sockets/ports/zephyr/`; the Linux usage target needs no wrapper.
 
-The reference firmware consumer is `samples/networking/tcp_udp_echo/common/client.c`. A separately
+The reference firmware consumer is `samples/networking/echo_client/common/client.c`. A separately
 written runtime-shaped adapter lives in `tests/networking/runtime_port.c`.
 Neither establishes complete compatibility with a third-party runtime. Test peer
 servers are fixture code outside the supported client API. Native stack startup,

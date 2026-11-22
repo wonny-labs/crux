@@ -148,8 +148,8 @@ class NativeInterfaceTest(unittest.TestCase):
         # paths (above) and the new paths (here) are both portable roots.
         for path in ("samples/time/time_periodic_task/common/controller.c",
                      "samples/time/time_periodic_task/common/controller_health.h",
-                     "samples/time/time_shell/include/time_command.h",
-                     "samples/time/time_shell/src/time_command.c",
+                     "samples/time/utc_clock_shell/include/time_command.h",
+                     "samples/time/utc_clock_shell/src/time_command.c",
                      "tests/configuration/controller_scenario.c",
                      "tests/serial_consumer/scenario/controller.c",
                      "tests/logging_consumer/scenario/controller.c",
@@ -162,12 +162,12 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_new_sample_layout_compositions_remain_native(self):
-        for path in ("samples/time/time_shell/src/main.c", "samples/time/time_shell/src/time_shell.c",
-                     "samples/time/time_shell/host/main.c",
+        for path in ("samples/time/utc_clock_shell/src/main.c", "samples/time/utc_clock_shell/src/time_shell.c",
+                     "samples/time/utc_clock_shell/host/main.c",
                      "samples/time/time_periodic_task/src/main.c",
                      "samples/time/time_periodic_task/host/main.c",
-                     "samples/networking/tcp_udp_echo/src/main.c",
-                     "samples/networking/tcp_udp_echo/host/main.c",
+                     "samples/networking/echo_client/src/main.c",
+                     "samples/networking/echo_client/host/main.c",
                      "tests/board_images/evkb_integration_probe/probe_main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
@@ -175,8 +175,8 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_networking_profile_covers_the_new_client_path(self):
         source = "#include <sys/socket.h>\n#include <poll.h>\nclock_gettime(CLOCK_MONOTONIC, &now);\n"
-        for path in ("samples/networking/tcp_udp_echo/common/client.c",
-                     "samples/networking/tcp_udp_echo/common/client.h"):
+        for path in ("samples/networking/echo_client/common/client.c",
+                     "samples/networking/echo_client/common/client.h"):
             with self.subTest(path=path):
                 result = self.check_source(source, path)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -279,8 +279,8 @@ const char *escaped = "\\\" k_sem_take";
                              "components/sync/include/crux/sync.h",
                              "tests/thread_sync_consumer/consumer.c",
                              "tests/thread_sync_consumer/consumer.cpp",
-                             "samples/networking/tcp_udp_echo/common/client.c",
-                             "samples/networking/tcp_udp_echo/common/client.h",
+                             "samples/networking/echo_client/common/client.c",
+                             "samples/networking/echo_client/common/client.h",
                              "tests/networking_physical/transaction.c",
                              "tests/networking_physical/frame.c", "tests/networking_physical/frame.h",
                              "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
@@ -293,9 +293,9 @@ const char *escaped = "\\\" k_sem_take";
                 shutil.copy2(REPO / relative, destination)
             for relative in ("components/base/include", "components/time/include",
                              "components/time/src", "samples/controller/core",
-                             "samples/controller/include", "samples/time/time_shell/src"):
+                             "samples/controller/include", "samples/time/utc_clock_shell/src"):
                 (root / relative).mkdir(parents=True, exist_ok=True)
-            probe = root / "samples/time/time_shell/src/time_command.c"
+            probe = root / "samples/time/utc_clock_shell/src/time_command.c"
             subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
             for source, expected in (("k_timeout_t timeout;", 1),
                                      ("#include <time.h>\n#include <errno.h>\n", 0)):

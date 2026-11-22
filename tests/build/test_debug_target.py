@@ -29,7 +29,7 @@ class DebugTargetTests(unittest.TestCase):
         (self.workspace / ".west/config").write_text("")
         (self.workspace / "zephyr").mkdir()
         (self.workspace / "zephyr/zephyr-env.sh").write_text("")
-        for application in ("samples/time/time_shell", "samples/storage_sd"):
+        for application in ("samples/time/utc_clock_shell", "samples/storage_sd"):
             (self.repo / application).mkdir(parents=True)
             (self.repo / application / "CMakeLists.txt").write_text("")
         (self.repo / "scripts").mkdir()
@@ -59,7 +59,7 @@ class DebugTargetTests(unittest.TestCase):
         arguments = self.west_arguments()
         self.assertEqual(arguments[arguments.index("-d") + 1],
                          str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi"))
-        self.assertIn(str(self.repo / "samples/time/time_shell"), arguments)
+        self.assertIn(str(self.repo / "samples/time/utc_clock_shell"), arguments)
         self.assertFalse(any("EXTRA_CONF_FILE" in argument for argument in arguments))
 
     def test_application_path_selects_the_application_and_its_own_directory(self):
@@ -69,7 +69,7 @@ class DebugTargetTests(unittest.TestCase):
         self.assertEqual(arguments[arguments.index("-d") + 1],
                          str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd"))
         self.assertIn(str(self.repo / "samples/storage_sd"), arguments)
-        self.assertNotIn(str(self.repo / "samples/time/time_shell"), arguments)
+        self.assertNotIn(str(self.repo / "samples/time/utc_clock_shell"), arguments)
 
     def test_debug_optimizations_adds_the_fragment_and_a_separate_directory(self):
         result = self.run_script("mimxrt1060_evk@B//qspi", "--debug-optimizations")
@@ -80,12 +80,12 @@ class DebugTargetTests(unittest.TestCase):
         self.assertIn(f"-DEXTRA_CONF_FILE={self.repo / 'scripts/debug-optimizations.conf'}", arguments)
 
     def test_application_and_debug_optimizations_combine(self):
-        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/time/time_shell",
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/time/utc_clock_shell",
                                  "--debug-optimizations")
         self.assertEqual(result.returncode, 0, result.stderr)
         arguments = self.west_arguments()
         self.assertEqual(arguments[arguments.index("-d") + 1],
-                         str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_time_time_shell--og"))
+                         str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_time_utc_clock_shell--og"))
 
     def test_an_existing_build_directory_is_not_reconfigured(self):
         directory = self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--og"
@@ -98,7 +98,7 @@ class DebugTargetTests(unittest.TestCase):
         self.assertFalse(any("EXTRA_CONF_FILE" in argument for argument in arguments))
 
     def test_rejects_bad_arguments_without_building(self):
-        for arguments in ((), ("--app", "samples/time/time_shell"), ("board", "--unknown"),
+        for arguments in ((), ("--app", "samples/time/utc_clock_shell"), ("board", "--unknown"),
                           ("board", "--app"), ("board", "--app", "samples/missing")):
             with self.subTest(arguments=arguments):
                 result = self.run_script(*arguments)
