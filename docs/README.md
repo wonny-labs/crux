@@ -4,10 +4,11 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
-- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options.
+- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options, then a sample built and flashed on your board (Part C).
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
 - [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, and the setup commands.
-- [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications, provider selection and debugging.
+- [Boards](boards/README.md): one page per board with its target, switches and jumpers, probe and connection, flash and debug, recovery and limits.
+- [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications and provider selection.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
 
 ## Build a product on Crux
@@ -27,6 +28,7 @@ This page finds the right page for what you want to do. Start at the [repository
 - [Writing a product driver](writing-a-product-driver.md): module layout, binding, driver, emulator and `native_sim` tests, and the hardware scenario that stays gated.
 - [Zephyr and driver code in a product repository](coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository) and the [driver review checklist](driver-review-checklist.md). A [contribution guide template](../templates/product/CONTRIBUTING.md) is part of the product template.
 - [Board image profiles](board-image-profiles.md): the registered images that the board test tooling may program and restore.
+- [Boards](boards/README.md): adding a board page once a board runs.
 
 ## Use a platform service
 
