@@ -171,6 +171,9 @@ safety claim. A hardware tool can keep the same small reading surface (`readline
   consumer workspace proves it matters.
 - The module name follows the checkout directory (`crux-pilot`, `crux-src`) because
   `zephyr/module.yml` sets no `name`. A consumer must not depend on `ZEPHYR_<NAME>_*` variables.
+  Update 2026-11-21: no longer true. `zephyr/module.yml` now sets `name: crux` (PR #534), so the
+  generated names no longer depend on the folder; see
+  [Module name](product-composition.md#module-name).
 
 ## Recommended order
 

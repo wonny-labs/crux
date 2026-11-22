@@ -310,7 +310,7 @@ PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m py
 
 > **Warning: `EXTRA_ZEPHYR_MODULES` is skipped when there is no west workspace.** With only `ZEPHYR_BASE` set, Zephyr clears `WEST` and processes no modules. The failure is a missing `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, and neither names the cause. Run from a west workspace, whose manifest does not need to list Crux. Without a workspace, `ZEPHYR_MODULES=<crux>` has been shown to configure; that is the only part of it that has been run.
 
-- Do not depend on `ZEPHYR_<NAME>_*` variables for Crux. The module name follows the checkout directory.
+- `zephyr/module.yml` names the module `crux`, so its generated names are `ZEPHYR_CRUX_MODULE_DIR` and `CONFIG_ZEPHYR_CRUX_MODULE` in any checkout folder. See [Module name](product-composition.md#module-name).
 - The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
 - Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
 
