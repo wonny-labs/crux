@@ -116,3 +116,8 @@ for tool in JLinkExe JLinkGDBServer; do
         exit 1
     fi
 done
+# The VS Code Cortex-Debug profiles start JLinkGDBServerCLExe. Only warn: west
+# needs just the two tools above.
+if ! command -v JLinkGDBServerCLExe >/dev/null 2>&1; then
+    echo "warning: JLinkGDBServerCLExe is missing; the Cortex-Debug profiles need it" >&2
+fi

@@ -209,6 +209,7 @@ cp "{self.server}/${{url##*/}}" "$out"
 ''')
         self.stub("JLinkExe", "")
         self.stub("JLinkGDBServer", "")
+        self.stub("JLinkGDBServerCLExe", "")
         self.stub("usermod", f'echo "usermod $@" >> "{self.log}"\n')
 
     def tearDown(self):

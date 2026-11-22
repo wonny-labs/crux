@@ -52,7 +52,7 @@ Operator practice from bench sessions, not a repository record: check all four S
    The J-Link's node was `crw-rw-rw-` owned by `root` before the rule applied, and `crw-rw----` with owner `root` and group `plugdev` after a reattach. The container can open either.
 3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`.
 4. VS Code: **Dev Containers: Rebuild and Reopen in Container**, choose **Crux Pilot board, J-Link**.
-5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools.
+5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`, which was not checked in that run.
 6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
 7. Build and flash the Time sample:
 

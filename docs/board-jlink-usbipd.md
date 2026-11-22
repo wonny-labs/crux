@@ -47,10 +47,10 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    cd /workspace/crux-pilot
    lsusb -d 1366:
    id -nG
-   command -v JLinkExe JLinkGDBServer
+   command -v JLinkExe JLinkGDBServer JLinkGDBServerCLExe
    ~~~
 
-   The J-Link is listed, `plugdev` is among the groups, and both tools are found.
+   The J-Link is listed, `plugdev` is among the groups, and all three tools are found (Cortex-Debug starts `JLinkGDBServerCLExe`).
 
 6. **Connection check.** Before any write, set the board up as its [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) says, including its power. Then connect with J-Link Commander alone, which prints what the runner hides:
 
@@ -125,7 +125,7 @@ Options of the J-Link runner:
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
-Neither profile has been run. As reported by the maintainer, Cortex-Debug with J-Link is in use for development on other projects, and a VS Code attach through `west debugserver` at 4000 kHz worked once from this container. Settings you may add to a local copy of a profile, none of them tried here:
+Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from this container. Settings you may add to a local copy of a profile, none of them tried here:
 
 - `svdFile`: the MIMXRT1062 SVD file, for the peripheral register view. No SVD file is in the Zephyr workspace; NXP ships one with its MCUXpresso SDK and device packs under NXP's licence.
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
