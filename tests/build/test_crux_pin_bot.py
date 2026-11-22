@@ -172,6 +172,16 @@ exec "{real}" "$@"
         self.assertEqual(1, len(state["prs"]))
         self.assertEqual({"s3cret"}, set(state["tokens"]))
 
+    def test_open_pin_pr_runs_without_site_packages_and_pth_files(self):
+        # A writable site-packages directory could hold a .pth file that runs code with the token.
+        scripts = self.copy_scripts()
+        seen = self.tmp / "flags.json"
+        (scripts / "open-pin-pr.py").write_text(
+            f"import json, sys\njson.dump([sys.flags.isolated, sys.flags.no_site], open({str(seen)!r}, 'w'))\n")
+        result = self.run_copy(scripts)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual([1, 1], json.loads(seen.read_text()))
+
     def test_a_hook_that_changes_the_git_config_stops_the_push(self):
         elsewhere = self.tmp / "elsewhere.git"
         git("init", "-q", "--bare", str(elsewhere))

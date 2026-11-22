@@ -285,6 +285,18 @@ class GitHubTest(Base):
             self.assertIn("core.fsmonitor=false", call)
             self.assertIn("credential.helper= ", call)
 
+    def test_the_user_and_system_git_configuration_is_ignored(self):
+        # A user setting that redirects the product's URL must not decide where the bot pushes.
+        self.change("bbbb")
+        empty = self.tmp / "empty.git"
+        git("init", "-q", "--bare", str(empty))
+        home = self.tmp / "home"
+        home.mkdir()
+        (home / ".gitconfig").write_text(f'[url "{empty}"]\n\tinsteadOf = {self.origin}\n')
+        result = self.run_script("--host", "github", env=dict(self.env, HOME=str(home), XDG_CONFIG_HOME=str(home)))
+        self.assertEqual(DONE, result.returncode, result.stderr)
+        self.assertEqual("revision: bbbb", self.remote_file(BRANCH))
+
     def test_a_local_pushurl_is_ignored(self):
         self.change("bbbb")
         elsewhere = self.tmp / "elsewhere.git"

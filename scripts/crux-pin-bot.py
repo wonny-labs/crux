@@ -7,10 +7,14 @@ pin moved. Both scripts sit next to this one.
 
 Only open-pin-pr.py gets the token's variable. The updater and the product hook
 run without it and without the --user-env variable. open-pin-pr.py runs from the
-copy read before the hook, and refuses to push if .git/config changed. This
-process and the CI step still hold the token while the hook runs, so a hook that
-builds or runs anything from the new Crux belongs in a job without the token:
-see "Keeping the Crux pin current" in docs/product-composition.md.
+copy read before the hook, and refuses to push if .git/config changed.
+
+This does not keep the token from a build. This process and the CI step still
+hold the token while the hook runs, and the hook, running as the same user, can
+read it from them. Use this command only where the hook runs nothing from the new
+Crux. A job that builds or tests the new Crux uses crux-pin-stage.py in a
+separate stage instead: see "Keeping the token from the build" in
+docs/product-composition.md.
 
 Exit status: 0 the pull request is open and current, the pin is already
 current, or a person's commit on the bot branch kept it from being refreshed
@@ -28,10 +32,12 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 CURRENT, NOTHING, FOREIGN = 3, 3, 4
+ISOLATION = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_ATTR_NOSYSTEM": "1"}
 SAFE_GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "credential.helper="]
 
 
 def git_config_sha256(env):
+    env = dict(env, **ISOLATION)
     """As open-pin-pr.py computes it: .git/config, then config.worktree when there is one."""
     def rev_parse(flag):
         return Path(subprocess.run(["git", *SAFE_GIT, "rev-parse", flag], text=True, capture_output=True,
@@ -88,8 +94,9 @@ def main(argv=None):
             return 0
         if status != 0:
             return 1
-        # -I: no PYTHON* variables, user site or current directory on the path.
-        open_pr = [sys.executable, "-I", "-", "--host", args.host,
+        # -I: no PYTHON* variables, user site or current directory on the path. -S: no site-packages,
+        # so no .pth file in a writable directory runs with the token.
+        open_pr = [sys.executable, "-I", "-S", "-", "--host", args.host,
                    "--message-file", str(message), "--base", args.base, "--branch", args.branch,
                    "--remote", args.remote, "--token-env", args.token_env,
                    "--git-config-sha256", config_sha256]

@@ -48,10 +48,16 @@ def clean_env(extra=None):
     return env
 
 
+# Git reads no system or user configuration, and ssh no user configuration: a build that ran as the same
+# user may have written them, and ~/.ssh/config can run a program.
+ISOLATION = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_ATTR_NOSYSTEM": "1",
+             "GIT_SSH_COMMAND": "ssh -F /dev/null"}
+
+
 def run_git(*args, cwd=None, text=False):
-    # Repository hooks never run, and Git never sees the pin bot's secrets.
+    # Repository hooks never run, Git reads no user or system configuration, and it never sees the secrets.
     return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], cwd=cwd, text=text,
-                          capture_output=True, env=clean_env())
+                          capture_output=True, env=clean_env(ISOLATION))
 
 
 def git(*args, cwd=None):
