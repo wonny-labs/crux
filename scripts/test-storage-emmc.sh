@@ -96,7 +96,7 @@ powercut_dir="$repo/build/zephyr/emmc-powercut"
     -DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=n)
 python3 "$repo/tests/native/emmc_powercut/test_replay_model.py" -v 2>&1 |
     tee "$powercut_dir/test_replay_model.log"
-grep -Eq '^Ran 17 tests in ' "$powercut_dir/test_replay_model.log"
+grep -Eq '^Ran 19 tests in ' "$powercut_dir/test_replay_model.log"
 # 64 samples took about 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
 # runner.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
