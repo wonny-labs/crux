@@ -94,7 +94,7 @@ The [repository README](../README.md) lets a newcomer decide in a few minutes wh
 | Component and provider lists | The [capability inventory](architecture.md#current-capability-integration) and the contract pages |
 | Environment caveats and evidence limits | [Getting started](getting-started.md#8-supported-environments) and [Component readiness](component-readiness.md) |
 
-`tests/build/test_readme_scope.py` fails when the README contains the usual markers of these topics.
+`tests/build/test_readme_scope.py` fails when the README contains the usual markers of the first two rows: change history, migration notes and lifecycle words. The other rows are checked in review.
 
 ## Decisions
 

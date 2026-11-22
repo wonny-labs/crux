@@ -16,7 +16,7 @@
 
 The reader is an engineer who has a Zephyr-supported board, a Crux checkout and no help from the people who wrote Crux. The board is assumed not to be one of the two this repository has worked with.
 
-Crux components are portable C17 behind public contracts. The platform composition, not the component, knows the board ([architecture overview](architecture.md), [component readiness](component-readiness.md)). So a board port has four parts, and only the first is outside Crux:
+Crux components are portable C17 behind public contracts. The platform composition, not the component, knows the board ([architecture overview](architecture.md)). So a board port has four parts, and only the first is outside Crux:
 
 | Part | What it is | Where it lives |
 | --- | --- | --- |

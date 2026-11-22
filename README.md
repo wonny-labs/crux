@@ -8,11 +8,11 @@ Crux is for teams that build Zephyr firmware products: application developers wh
 
 - **A clear rule for where code goes.** OS and hardware facilities, such as threads, queues and buses, use Zephyr directly. Platform services use Crux. Product behaviour is plain C in the product's own domain ([Choosing an API](docs/choosing-an-api.md)).
 - **Platform services with written contracts:** typed time and clocks, file storage, configuration, logging, system health and reset, and network status and sockets.
-- **Secure remote management:** accounts, roles and sessions, security events, HTTPS web management, a command line over serial and SSH, and services for files, configuration, network settings, certificates and reboot.
+- **Secure remote management:** accounts, roles and sessions, security events, HTTPS web management, a command line over serial and SSH, and services for files, configuration, network settings, certificates and reboot. It has not yet run on a board.
 - **Boot and update building blocks:** an MCUboot build composition and an image-state interface.
 - **A product starting point:** a product template, board and driver guides, samples, and tests that run on the Linux Host and on Zephyr `native_sim` without hardware.
 
-The [architecture overview](docs/architecture.md) lists every component, and [Component readiness](docs/component-readiness.md) says how far each one is tested.
+The [architecture overview](docs/architecture.md) describes the public capabilities, and [Component readiness](docs/component-readiness.md) lists every component and how far each one is tested.
 
 ## Quick start
 
@@ -36,6 +36,7 @@ None of these commands programs or resets a board. Next, the [first-hour guide](
 | --- | --- |
 | Run your first builds and samples | [Your first hour with Crux](docs/first-hour.md) and [Samples](samples/README.md) |
 | Find any page by task | [Documentation map](docs/README.md) |
+| Find your way around the repository | [Repository layout](docs/architecture.md#repository-layout) |
 | Understand the layers and ownership | [Architecture overview](docs/architecture.md) and [Choosing an API](docs/choosing-an-api.md) |
 | Build Crux or consume it from another CMake project | [Build and Integration Guide](docs/build.md) |
 | Start, version and release a product | [Product Composition Guide](docs/product-composition.md) and the [product template](templates/product/README.md) |
