@@ -7,7 +7,7 @@ Parts A and B use only the standard Zephyr and CMake tools: `west build`, `west 
 what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
 Part A runs on the Linux Host and gives a first result in minutes, before the long Zephyr download. Products target
-Zephyr, so Part B is the main body of the tutorial. The same first example, `hello_crux`, runs in all three parts:
+Zephyr, so Part B is the main body of the tutorial. The same first example, `hello_crux`, is the first example in all three parts:
 on the Host, on `native_sim` and on the board. Between them come one example per Crux idea: a networking client
 (`networking/echo_client`, Host), a shell (`time/clock_shell`) and provider selection by configuration
 (`file/write_read`). If a step fails for a reason that is not about Crux, [Troubleshooting](#troubleshooting) uses
@@ -159,7 +159,7 @@ west build -p always -b native_sim/native/64 -d build/write_read_fatfs \
 ```
 
 and ends with `CRUX_FILE_WRITE_READ_OK provider=fatfs_ram_disk`. Both providers are experimental and exist for
-software-only checks on `native_sim`; the sample's [README](../samples/file/write_read/README.md) says so. Step 12
+software-only checks on `native_sim`; the sample's [README](../samples/file/write_read/README.md) says so. Step 11
 explains the two options after `--`.
 
 Two more samples are not part of this path. The `networking/echo_client` image is for the board only. Threads and
