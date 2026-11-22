@@ -320,7 +320,7 @@ class Slice2CMakeTest(unittest.TestCase):
 
     def test_the_configuration_core_is_left_to_the_settings_file_selection_when_it_is_on(self):
         text = (REPO / "components/configuration/ports/zephyr/core/CMakeLists.txt").read_text()
-        self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE", text)
+        self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER", text)
 
 
 # Slice 3: network settings, the TLS certificate module, the file service and reboot. Each is a visible

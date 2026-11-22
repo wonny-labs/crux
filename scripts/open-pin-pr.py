@@ -42,12 +42,19 @@ SECRET_ENV = {"CRUX_PIN_TOKEN"}
 
 
 # A build that ran as the same user may have written hooks or settings that run a program.
-# These keep Git from running any: no hooks, no fsmonitor and no credential helper.
+# These keep Git from running any from the repository: no hooks, no fsmonitor and no credential helper.
 SAFE_GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "credential.helper="]
+
+
+# Git reads no system or user configuration, and ssh no user configuration: a build that ran as the same
+# user may have written them, and ~/.ssh/config can run a program.
+ISOLATION = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_ATTR_NOSYSTEM": "1",
+             "GIT_SSH_COMMAND": "ssh -F /dev/null", "GIT_NO_REPLACE_OBJECTS": "1"}
 
 
 def git(*args, check=True):
     env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}  # Git never sees the token.
+    env.update(ISOLATION)
     result = subprocess.run(["git", *SAFE_GIT, *args], text=True, capture_output=True, env=env)
     if check and result.returncode != 0:
         raise PinPrError(f"git {args[0]} failed: {result.stderr.strip()}")
@@ -112,7 +119,9 @@ def changed_paths():
     """Every tracked change against HEAD and every untracked file, as repository paths."""
     tracked = git("diff", "--name-only", "--no-renames", "-z", "HEAD").stdout.split("\0")
     untracked = git("ls-files", "--others", "--exclude-standard", "-z").stdout.split("\0")
-    return sorted({path for path in tracked + untracked if path})
+    # git commit records the whole index, so a file staged and then removed from the tree counts too.
+    staged = git("diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD").stdout.split("\0")
+    return sorted({path for path in tracked + untracked + staged if path})
 
 
 def allowed(path, allow):

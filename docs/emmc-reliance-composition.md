@@ -101,6 +101,10 @@ the physical gate is approved for the current task.
   [Configuration notes in the test guide](../tests/README.md): no checksum or resynchronisation, and a torn tail can lose
   the latest save. The Kconfig dependencies only warn when unmet, so the sample's link check requires the symbol in
   `.config`.
+  `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS` is the same provider with the same staged backend on the file
+  system that the composition mounts, with no Reliance Edge dependency. It refuses FatFs, and on an MMC disk it
+  requires the flush correction. It is proven on LittleFS over a block device on `native_sim` and link-checked for
+  the RT1060 ([test guide](../tests/README.md)). This page's sample keeps the Reliance Edge selection.
 - **The link-only overlay.** `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay` removes the
   card-detect GPIO and the `sdmmc` child of `usdhc1` and adds a four-bit `zephyr,mmc-disk` named `MMC`. It exists to
   link only, and it does not describe any board. Zephyr applies it to every build of this sample for this board, so an

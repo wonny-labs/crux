@@ -8,8 +8,8 @@ systems, and only the Kconfig fragment and the devicetree overlay differ.
 
 | Scenario | Selected by | File provider | Storage |
 | --- | --- | --- | --- |
-| `crux.sample.file.file_write_read.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
-| `crux.sample.file.file_write_read.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
+| `crux.sample.file.write_read.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
+| `crux.sample.file.write_read.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
 
 **Both providers are simulator candidates** (their status is in [component readiness](../../../docs/component-readiness.md)). `zephyr/Kconfig` calls them that too. They exist for software-only
 validation on `native_sim`, and this sample is their first consumer outside the tests. Neither is a product storage
@@ -41,14 +41,14 @@ From the west workspace root (`/workspace` in the Dev Container), where `crux-pi
 Default scenario (simulator provider on LittleFS):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/file_write_read crux-pilot/samples/file/file_write_read -t run
+west build -p always -b native_sim/native/64 -d build/write_read crux-pilot/samples/file/write_read -t run
 ```
 
 FatFs on a RAM disk: the same command with the scenario's Kconfig fragment and overlay:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/file_write_read_fatfs \
-    crux-pilot/samples/file/file_write_read -t run -- \
+west build -p always -b native_sim/native/64 -d build/write_read_fatfs \
+    crux-pilot/samples/file/write_read -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
@@ -56,7 +56,7 @@ The program returns from `main`, but `native_sim` keeps running; stop it with Ct
 scenarios from [`sample.yaml`](sample.yaml) and checks their output:
 
 ```sh
-west twister -T crux-pilot/samples/file/file_write_read -p native_sim/native/64
+west twister -T crux-pilot/samples/file/write_read -p native_sim/native/64
 ```
 
 `scripts/test-hello-crux.sh --zephyr` runs this sample together with `hello_crux`.

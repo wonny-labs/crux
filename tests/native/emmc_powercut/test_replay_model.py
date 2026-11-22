@@ -3,6 +3,7 @@
 """Tests of the power-cut replay model. They need no build: traces are made here."""
 import os
 import struct
+import subprocess
 import sys
 import unittest
 
@@ -213,6 +214,26 @@ class ReplayModelTest(unittest.TestCase):
             build_image(BASELINE, TRACE, 0, 'shuffled', 0)
         with self.assertRaises(ValueError):
             build_image(fill(0) * 4, TRACE, len(TRACE), 'prefix', 0)  # sector 8 is outside
+
+
+class ReplayArguments(unittest.TestCase):
+    """run_replay.py pairs each file system with the workloads it runs, before it starts a process."""
+
+    def run_replay(self, *options):
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'run_replay.py')
+        return subprocess.run([sys.executable, script, '--exe-fix', 'none', '--exe-nofix', 'none',
+                               '--seed', '1', '--samples', '0', '--max-seconds', '1',
+                               '--out', os.devnull, *options], capture_output=True, text=True)
+
+    def test_w4_needs_a_file_system_that_claims_the_invariants(self):
+        result = self.run_replay('--fs', 'fatfs', '--workload', 'W4')
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--workload W4 needs --fs reliance or --fs littlefs', result.stderr)
+
+    def test_littlefs_runs_w4_only(self):
+        result = self.run_replay('--fs', 'littlefs')
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--fs littlefs runs W4 only', result.stderr)
 
 
 if __name__ == '__main__':

@@ -9,11 +9,16 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/util.h>
 
-#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
-/* The target selection: Settings File on Reliance Edge, with the corrected backend that the
- * module stages. It is a target selection and has no simulator restriction. */
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
+/* The target selections: Settings File on Reliance Edge or on another mounted file system, with the
+ * corrected backend that the module stages. They are target selections and have no simulator
+ * restriction. The module's CMake refuses FatFs for CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS;
+ * this repeats it at compile time. The Reliance Edge selection is not affected. */
 #if !defined(CONFIG_SETTINGS_FILE)
 #error "The Settings File selection requires CONFIG_SETTINGS_FILE"
+#endif
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS) && defined(CONFIG_FAT_FILESYSTEM_ELM)
+#error "The Settings File selection refuses FatFs: its rename can leave the settings file missing"
 #endif
 #else
 #if !defined(CRUX_CONFIGURATION_SETTINGS_SIMULATOR) || !CONFIG_BOARD_NATIVE_SIM ||                 \

@@ -3,8 +3,7 @@
 The small example project of [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220). A product adds its
 own page and its own API route beside the management routes, with Crux's public contracts and no native header. It is
 an example, not a template that Crux maintains, and it holds no product-ready interface. No image packages it, so it
-lives beside the Host test that compiles it, `tests/web/project_sample`; it was `samples/web_project/` until the samples
-layout change.
+lives beside the Host test that compiles it, `tests/web/project_sample`.
 
 | Part | File | Uses |
 | --- | --- | --- |

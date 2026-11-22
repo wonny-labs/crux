@@ -6,7 +6,8 @@
  *   W2  writes settings/w2.tmp, syncs, closes and renames it onto settings/w2, then marks
  *   W3  creates, overwrites and removes files and a directory, each change synced and marked
  *   W4  saves through the Settings File backend, which compacts through a temporary and a rename;
- *       only in an image with CONFIG_SETTINGS_FILE, built from reliance.conf and settings.conf
+ *       only in an image with CONFIG_SETTINGS_FILE, built from reliance.conf and settings.conf,
+ *       or from littlefs.conf and settings_littlefs.conf
  *   W8  writes atomic/w8.tmp through the Crux File provider, syncs and closes it, renames it
  *       onto atomic/w8 with the VFS rename and marks: the File data path of a replace
  *   W8C W8-control: the same, but replaces as File allows today, crux_file_remove_at of
@@ -795,7 +796,7 @@ int powercut_stage_w4(const char *damage)
 #else
 static int prepare_w4(void)
 {
-    return -ENOTSUP; /* W4 needs the Settings File options of settings.conf */
+    return -ENOTSUP; /* W4 needs settings.conf or settings_littlefs.conf */
 }
 
 int powercut_stage_w4(const char *damage)

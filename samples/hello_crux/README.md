@@ -83,7 +83,7 @@ CRUX_HELLO_READY composition=host
 
 ## Next steps
 
-- [`samples/file/file_write_read`](../file/file_write_read/README.md) selects a File provider by build
+- [`samples/file/write_read`](../file/write_read/README.md) selects a File provider by build
   configuration alone.
 - [`samples/time/clock_shell`](../time/clock_shell/README.md) sets and reads the clock from shell commands on
   both compositions.
