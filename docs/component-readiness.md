@@ -6,14 +6,14 @@ For the contracts and a prose inventory, see the [capability inventory](architec
 
 ## How to read this
 
-**Evidence levels.** A cell names the highest level that the repository records for the component's current code, then the other levels that exist. A higher level is closer to a board. It does not include the lower ones: none implies another, as [README.md](../README.md#development-and-target-environments) and [AGENTS.md](../AGENTS.md#validation-and-evidence) state.
+**Evidence levels.** A cell names the highest level that the repository records for the component's current code, then the other levels that exist. A higher level is closer to a board. It does not include the lower ones: none implies another, as [Getting started](getting-started.md#8-supported-environments) and [AGENTS.md](../AGENTS.md#validation-and-evidence) state.
 
 - **E1 Host test.** CTest, GoogleTest or Python tests on Linux Host, with fakes or a Host provider. It does not prove Zephyr behaviour, timing or any board.
 - **E2 `native_sim`.** Ztest, Twister or an image on Zephyr `native_sim`, with the host TCP stack and test entropy. It does not prove target peripherals, timing or persistence.
 - **E3 EVKB build.** The selection compiles and links for `mimxrt1060_evk@B//qspi` and nothing runs. It does not prove boot, peripheral behaviour or resource use.
 - **E4 physical board.** A recorded run of identified firmware on an identified board, limited to its documented scenario. It does not prove other boards, cards, wiring or endurance, nor the current code if the run was of earlier code.
 
-The validation limits are in the README ([Host tests, `native_sim` runs and target cross-builds do not prove physical operation](../README.md#development-and-target-environments)) and in [Engineering and validation boundaries](architecture.md#engineering-and-validation-boundaries). A board run that was inconclusive, or that ran code since replaced by a redesign, is named in the cell and is not counted as E4. A completed run of earlier code counts only as its narrow slice. Where a result is a narrow slice, the cell says which slice ([status of a hypothesis or exit criterion](architecture.md#status-of-a-hypothesis-or-exit-criterion)) and links the record that holds the run.
+The validation limits are in [Getting started](getting-started.md#8-supported-environments) (Host tests, `native_sim` runs and target cross-builds do not prove physical operation) and in [Engineering and validation boundaries](architecture.md#engineering-and-validation-boundaries). A board run that was inconclusive, or that ran code since replaced by a redesign, is named in the cell and is not counted as E4. A completed run of earlier code counts only as its narrow slice. Where a result is a narrow slice, the cell says which slice ([status of a hypothesis or exit criterion](architecture.md#status-of-a-hypothesis-or-exit-criterion)) and links the record that holds the run.
 
 **Zephyr composition** means what the repository builds, not what a product could build:
 

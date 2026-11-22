@@ -25,8 +25,9 @@ manifest:
     # The first definition of a name wins, so an entry here beats the import.
     - name: crux-pilot
       remote: crux
-      # No Crux tag exists yet, so this follows main. For a release,
-      # pin a tag or SHA here and freeze the manifest. See the guide in README.md.
+      # A template cannot name the Crux commit that holds it, so it follows main.
+      # Pin a tag or SHA: run crux-pilot/scripts/update-crux-pin.py once, then
+      # let the pin bot move it. See "Keeping the Crux pin current" in the guide.
       revision: main
       import: true
 
