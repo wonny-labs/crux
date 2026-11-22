@@ -120,10 +120,14 @@ Options of the J-Link runner:
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-`west debugserver -r jlink ...` starts only the GDB Server, on port 2331 in the container. The VS Code profiles in [`.vscode/launch.json`](../.vscode/launch.json) belong to the host GDB Server route on the board page and are not set up for this container.
+**VS Code debugging in the board container** (not run on hardware yet). Two profiles in [`.vscode/launch.json`](../.vscode/launch.json) use a GDB Server inside the container on `localhost:2331`, which the task **Board container: start GDB Server** starts with `west debugserver -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400` and leaves running in the background:
+
+- **Board container: Attach** asks for the ELF of the image on the board and connects without reset or download. Connecting may still halt the target.
+- **Board container: Flash** builds the Time sample, resets the board and downloads the image, then stops at the reset entry; Continue (F5) starts it.
+
+The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop the GDB Server task (**Terminal: Terminate Task**) before you use `west flash` or J-Link Commander, which need the probe.
 
 ## Not covered
 
 - Images that run from SDRAM, which need a J-Link script that sets up SDRAM before loading. No such script exists in Crux.
 - Docker Desktop, which handles USB devices differently.
-- VS Code debug profiles for a GDB Server inside the board container.

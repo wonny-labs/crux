@@ -113,6 +113,51 @@ class BoardContainerConfigTest(unittest.TestCase):
         self.assertFalse([name for name in tracked if name.endswith(".deb")])
 
 
+class BoardDebugProfilesTest(unittest.TestCase):
+    """The VS Code profiles for a GDB Server inside the board container."""
+
+    def setUp(self):
+        vscode = REPO / ".vscode"
+        self.launch = {c["name"]: c for c in load(vscode / "launch.json")["configurations"]}
+        self.tasks = {t["label"]: t for t in load(vscode / "tasks.json")["tasks"]}
+
+    def commands(self, configuration, key):
+        return [entry["text"] for entry in configuration.get(key, [])]
+
+    def test_mac_profiles_are_unchanged(self):
+        self.assertEqual(self.launch["EVKB QSPI: Flash"]["miDebuggerServerAddress"], "host.docker.internal:2331")
+        self.assertIn("-target-select remote host.docker.internal:2331",
+                      self.commands(self.launch["EVKB QSPI: Attach"], "customLaunchSetupCommands"))
+
+    def test_gdb_server_task_runs_west_debugserver_in_the_background(self):
+        task = self.tasks["Board container: start GDB Server"]
+        self.assertTrue(task["isBackground"])
+        self.assertEqual(task["command"], "west")
+        self.assertEqual(task["args"], ["debugserver", "-d", "build/zephyr/mimxrt1060_evk_B_qspi",
+                                        "-r", "jlink", "--speed", "400"])
+        background = task["problemMatcher"]["background"]
+        self.assertIn("Waiting for GDB connection", background["endsPattern"])
+
+    def test_attach_connects_to_the_container_server_without_download_or_reset(self):
+        attach = self.launch["Board container: Attach"]
+        self.assertEqual(attach["preLaunchTask"], "Board container: start GDB Server")
+        setup = self.commands(attach, "customLaunchSetupCommands")
+        self.assertIn("-target-select remote localhost:2331", setup)
+        text = json.dumps(attach)
+        self.assertNotIn("target-download", text)
+        self.assertNotIn("monitor reset", text)
+        self.assertNotIn("host.docker.internal", text)
+
+    def test_flash_builds_downloads_and_stops_at_entry(self):
+        flash = self.launch["Board container: Flash"]
+        self.assertEqual(flash["miDebuggerServerAddress"], "localhost:2331")
+        self.assertTrue(flash["stopAtEntry"])
+        self.assertEqual(self.commands(flash, "postRemoteConnectCommands"), ["monitor reset", "-target-download"])
+        task = self.tasks[flash["preLaunchTask"]]
+        self.assertEqual(task["dependsOrder"], "sequence")
+        self.assertEqual(task["dependsOn"], ["Build firmware", "Board container: start GDB Server"])
+
+
 class InstallScriptTest(unittest.TestCase):
     """Runs install-jlink.sh against stub tools; nothing is installed."""
 

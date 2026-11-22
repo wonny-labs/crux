@@ -59,6 +59,66 @@
       "stopAtConnect": true,
       "stopAtEntry": false,
       "externalConsole": false
+    },
+    {
+      "name": "Board container: Flash",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Board container: build and start GDB Server",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "setupCommands": [
+        {
+          "text": "set remotetimeout 60",
+          "description": "Allow time for external QSPI flash programming",
+          "ignoreFailures": false
+        }
+      ],
+      "launchCompleteCommand": "exec-continue",
+      "stopAtEntry": true,
+      "externalConsole": false,
+      "miDebuggerServerAddress": "localhost:2331",
+      "postRemoteConnectCommands": [
+        {
+          "text": "monitor reset",
+          "description": "Reset and halt the target before programming",
+          "ignoreFailures": false
+        },
+        {
+          "text": "-target-download",
+          "description": "Program the QSPI image through the J-Link flash loader",
+          "ignoreFailures": false
+        }
+      ]
+    },
+    {
+      "name": "Board container: Attach",
+      "type": "cppdbg",
+      "request": "launch",
+      "targetArchitecture": "arm",
+      "program": "${input:cruxElf}",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Board container: start GDB Server",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "customLaunchSetupCommands": [
+        {
+          "text": "-file-exec-and-symbols \"${input:cruxElf}\"",
+          "description": "Load symbols for the firmware already on the board",
+          "ignoreFailures": false
+        },
+        {
+          "text": "-target-select remote localhost:2331",
+          "description": "Connect to the GDB Server in this container without downloading",
+          "ignoreFailures": false
+        }
+      ],
+      "launchCompleteCommand": "None",
+      "stopAtConnect": true,
+      "stopAtEntry": false,
+      "externalConsole": false
     }
   ],
   "inputs": [

@@ -53,7 +53,9 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-Not run on this route: the read-only `west attach` check with `compare-sections`, `west debug`, SWD at 4000 kHz, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
+To debug from VS Code in the board container, use **Board container: Attach** (no download) or **Board container: Flash** (builds, downloads and stops at the reset entry); both start `west debugserver` in the container first ([guide](../board-jlink-usbipd.md#the-board-dev-container)). These profiles have not been run on hardware.
+
+Not run on this route: the VS Code board container profiles, the read-only `west attach` check with `compare-sections`, `west debug`, SWD at 4000 kHz, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
 ## Flash and debug
 
