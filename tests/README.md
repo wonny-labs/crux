@@ -552,6 +552,34 @@ overwritten metaroots) and three staged states (an intact file, a leftover tempo
 must come out as required. The result is in the
 [settings replay record](../docs/evidence/emmc-reliance/replay-settings/README.md).
 
+`tests/native/configuration_settings_littlefs` runs the same Settings File suite on LittleFS over a block device
+(`FS_LITTLEFS_BLK_DEV`, a 1 MiB RAM disk named `MMC`), against the same real provider, selected by
+`CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS`. That selection links the same provider and stages the same
+corrected backend as `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, with no Reliance Edge dependency. Both select the
+hidden `CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER`, which the build files test. It refuses FatFs at CMake and in
+the provider's source, because a FatFs rename removes the destination first. A Kconfig dependency would only drop
+the selection with a warning. On an MMC disk it requires `CONFIG_CRUX_MMC_CACHE_FLUSH`, as Reliance Edge does.
+`fixture_littlefs.h` makes `/MMC:/files` and `/MMC:/settings` before anything is initialised and mounts without
+formatting. It defines `FIXTURE_FILL_SYNCS_EACH_CHUNK`, because LittleFS allocates a file's blocks only at a sync:
+without it the suite's volume filler leaves its blocks free and the volume never fills. With it, the 25 shared
+cases and one added case (a compaction leaves no `.cmp` file) pass. `scripts/test-storage-simulators.sh` runs it
+with LittleFS as the only workspace module, so the image cannot reach Reliance Edge or FatFs. It requires the
+exact case names, the staged sources, the real provider and none of the FatFs, Reliance Edge or probe symbols. The
+negative control on the unpatched backend fails the same 12 cases as on Reliance Edge, with 14 passing.
+`test_full_volume_never_acknowledges_a_lost_save` passes there for the same reason: LittleFS answers a write that
+finds no free block with `-ENOSPC`. The same script requires that the selection with FatFs in the image fails at
+CMake, naming the reason.
+
+The same script runs W4 on LittleFS over the eMMC simulator (`run_replay.py --fs littlefs --workload W4`, images
+built from `littlefs.conf` and `settings_littlefs.conf`). The invariants are asserted on both profiles, and the
+flush, early acknowledgement and damaged image controls must fail. LittleFS has no metaroot, so only the flushes
+and the marks are mandatory positions. The damaged image overwrites both blocks of the superblock pair (sectors
+0 and 1). For seed 1 and 8 samples it is 493 cases, all passing, 145 of them with a temporary left behind and
+none with the settings file missing. The run also records each superblock block overwritten alone. The volume
+still mounts, but with the newer block gone it falls back to an older root state, in which W4's data is missing.
+That is damage to a block, not a power-cut state. These are simulator results on a model of the medium. They
+show nothing about an eMMC device.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes

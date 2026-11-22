@@ -600,6 +600,73 @@ folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
 }
 printf 'Settings File selection: dropped without Reliance Edge, naming the dependency\n'
 
+# Link only: an RT1060-EVKB Rev B image with Configuration over the Settings File selection that does
+# not depend on Reliance Edge (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS), on LittleFS over the
+# MMC disk of the link overlay, and a consumer that saves a parameter, so that crux_config_save and
+# the provider's write path are linked together. The configuration and the symbols must show neither
+# Reliance Edge nor FatFs. The EVKB has no eMMC: nothing is programmed, reset or run, and the image is
+# not kept. It needs the Zephyr SDK, as scripts/test-file-emmc-compile.sh does.
+settings_link="$repo/build/zephyr/settings-link-rt1060"
+settings_board='mimxrt1060_evk@B/mimxrt1062/qspi'
+(cd "$workspace" && ZEPHYR_TOOLCHAIN_VARIANT=zephyr west twister -p "$settings_board" \
+    -T "$repo/tests/zephyr/configuration_settings_link" --build-only -O "$settings_link" \
+    --inline-logs)
+python3 - "$settings_link" "$settings_board" <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+output, board = Path(sys.argv[1]), sys.argv[2]
+name = 'crux.configuration.settings_link_rt1060'
+suites = json.loads((output / 'twister.json').read_text())['testsuites']
+if (len(suites) != 1 or suites[0]['name'].rsplit('/', 1)[-1] != name or
+        suites[0]['platform'] != board or suites[0].get('status') != 'not run' or
+        suites[0].get('runnable')):
+    raise RuntimeError(f'the RT1060 Settings File link check did not build: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+configs = list(output.rglob('zephyr/.config'))
+if len(configs) != 1:
+    raise RuntimeError(f'expected one build configuration, found {len(configs)}')
+build = configs[0].parent.parent
+lines = configs[0].read_text().splitlines()
+for line in ('CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS=y',
+             'CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER=y', 'CONFIG_FS_LITTLEFS_BLK_DEV=y',
+             'CONFIG_DISK_DRIVER_MMC=y', 'CONFIG_CRUX_MMC_CACHE_FLUSH=y', 'CONFIG_SETTINGS_FILE=y',
+             'CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"'):
+    if line not in lines:
+        raise RuntimeError(f'{line} is missing from {configs[0]}')
+for symbol in ('CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE', 'CONFIG_CRUX_FS_RELIANCE_EDGE',
+               'CONFIG_FAT_FILESYSTEM_ELM'):
+    if any(line.startswith(symbol + '=') for line in lines):
+        raise RuntimeError(f'{symbol} is set in {configs[0]}')
+nm = next(line.split('=', 1)[1] for line in (build / 'CMakeCache.txt').read_text().splitlines()
+          if line.startswith('CMAKE_NM:'))
+elf = build / 'zephyr/zephyr.elf'
+present = {line.split()[-1] for line in subprocess.run(
+    [nm, str(elf)], check=True, capture_output=True, text=True).stdout.splitlines()
+    if len(line.split()) >= 3}
+# crux_config_record_write is the provider's write path; the no-provider port is not compiled, so a
+# symbol of that name can only be the provider's.
+for symbol in ('main', 'crux_config_save', 'crux_config_record_write', 'crux_config_zephyr_init',
+               'settings_backend_init', 'littlefs_mount', 'mmc_ioctl'):
+    if symbol not in present:
+        raise RuntimeError(f'{symbol} is not linked into {elf}')
+for symbol in ('f_mount', 'red_mount2'):
+    if symbol in present:
+        raise RuntimeError(f'{symbol} is linked into {elf}')
+files = {str(Path(entry['directory'], entry['file']).resolve())
+         for entry in json.loads((build / 'compile_commands.json').read_text())}
+if any(f.endswith('configuration_no_provider.c') for f in files):
+    raise RuntimeError('the no-provider port is compiled into the RT1060 Settings File image')
+staged = {source for source in ('settings_file.c', 'settings_line.c', 'settings_store.c')
+          if str((build / 'settings-file-candidate' / source).resolve()) in files}
+if staged != {'settings_file.c', 'settings_line.c', 'settings_store.c'}:
+    raise RuntimeError(f'staged copies {sorted(staged)}')
+print(f'{name} {board}: crux_config_save linked with the Settings File provider on LittleFS, '
+      'no FatFs, no Reliance Edge')
+PY
+
 # The Stage A images of samples/storage_reliance_sd, rehearsed on the eMMC simulator. This exercises
 # the application logic of the images, the File provider and Reliance Edge on a model. It does not
 # exercise the SD host driver, the SD layer or a real card, and it is not evidence about the EVKB.
