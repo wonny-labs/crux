@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20.0)
-get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 # The rehearsal on native_sim (tests/native/reliance_stage_a) runs these images on the eMMC simulator
 # of tests/support/emmc_sim. Only a native_sim build takes the simulator's binding and source; no
@@ -9,7 +9,7 @@ if(BOARD MATCHES "^native_sim")
   list(APPEND DTS_ROOT "${CRUX_ROOT}/tests/support/emmc_sim")
 endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(crux_storage_reliance_sd C)
+project(crux_sd_card_power_cut_sequence C)
 # An unsatisfied Kconfig dependency only warns, which would build an image without the provider or
 # the disk driver.
 if(NOT CONFIG_CRUX_FILE_RELIANCE_EDGE)
@@ -23,9 +23,9 @@ endif()
 # The sources of the other samples are compiled from their own directories, unchanged. The
 # shim sd_storage.h of this directory comes first in the include path and maps the microSD names that
 # the append and replace sources use onto emmc_storage.h.
-set(EMMC_DIR ${CRUX_ROOT}/samples/storage_emmc)
-set(INTERRUPT_DIR ${CRUX_ROOT}/samples/storage_sd_interrupt)
-set(REPLACE_DIR ${CRUX_ROOT}/samples/storage_sd_replace)
+set(EMMC_DIR ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file)
+set(INTERRUPT_DIR ${CRUX_ROOT}/tests/board_images/sd_card_power_cut_append)
+set(REPLACE_DIR ${CRUX_ROOT}/tests/board_images/sd_card_power_cut_replace)
 if(CONFIG_SAMPLE_RELIANCE_SD_FORMAT)
   # The format image has its own main and mount (format.c) and compiles none of the other sources;
   # only emmc_storage.h is shared, for the disk name and the mount point.

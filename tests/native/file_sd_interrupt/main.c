@@ -1,4 +1,4 @@
-/* Record format and recovery logic of the interrupted-write test (samples/storage_sd_interrupt) on
+/* Record format and recovery logic of the interrupted-write test (tests/board_images/sd_card_power_cut_append) on
  * a RAM disk named like the EVKB card. The previous boot's handle is closed by the test to stand in
  * for a process that no longer exists, so nothing here is power-loss evidence. Tests run in name
  * order: the File provider binds once per process. */

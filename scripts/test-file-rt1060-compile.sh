@@ -39,7 +39,7 @@ PY
 # Both scenarios must build (the mount sequence compiled out, and compiled in). No board is
 # programmed, and the mount-at-boot scenario must not be flashed without physical approval.
 link_output="${CRUX_FILE_RT1060_LINK_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-link}"
-(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd" \
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/boards/nxp/mimxrt1060_evk/sd_card_file" \
     --build-only -O "$link_output" --inline-logs)
 
 python3 - "$link_output/twister.json" "$board" <<'PY'
@@ -48,7 +48,7 @@ import sys
 
 suites = json.load(open(sys.argv[1]))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_sd', 'crux.sample.storage_sd.start']
+expected = ['crux.sample.boards.mimxrt1060_evk.sd_card_file', 'crux.sample.boards.mimxrt1060_evk.sd_card_file.start']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 File link check did not build both scenarios: '
@@ -56,7 +56,7 @@ if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 
 # The mount-at-boot scenario must really enable it, and the base scenario must not.
 from pathlib import Path
 root = Path(sys.argv[1]).parent
-for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd.start', True)]:
+for name, wanted in [('crux.sample.boards.mimxrt1060_evk.sd_card_file', False), ('crux.sample.boards.mimxrt1060_evk.sd_card_file.start', True)]:
     configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
     if len(configs) != 1:
         raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
@@ -69,7 +69,7 @@ PY
 # Link only: the interrupted-write test image. It writes to a card until power is cut, so the scenario
 # that enables it must never be flashed without physical approval.
 interrupt_output="${CRUX_FILE_RT1060_INTERRUPT_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-interrupt}"
-(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_interrupt" \
+(cd "$workspace" && west twister -p "$board" -T "$repo/tests/board_images/sd_card_power_cut_append" \
     --build-only -O "$interrupt_output" --inline-logs)
 
 python3 - "$interrupt_output/twister.json" "$board" <<'PY'
@@ -79,14 +79,14 @@ from pathlib import Path
 
 suites = json.load(open(sys.argv[1]))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_sd_interrupt', 'crux.sample.storage_sd_interrupt.test']
+expected = ['crux.file.sd_card_power_cut_append', 'crux.file.sd_card_power_cut_append.test']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 interrupted-write link check did not build both scenarios: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
 root = Path(sys.argv[1]).parent
-for name, wanted in [('crux.sample.storage_sd_interrupt', False),
-                     ('crux.sample.storage_sd_interrupt.test', True)]:
+for name, wanted in [('crux.file.sd_card_power_cut_append', False),
+                     ('crux.file.sd_card_power_cut_append.test', True)]:
     configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
     if len(configs) != 1:
         raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
@@ -99,7 +99,7 @@ PY
 # Link only: the replace-pattern power-cut image. It writes to a card until power is cut, so the scenario
 # that enables it must never be flashed without physical approval.
 replace_output="${CRUX_FILE_RT1060_REPLACE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-replace}"
-(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_replace" \
+(cd "$workspace" && west twister -p "$board" -T "$repo/tests/board_images/sd_card_power_cut_replace" \
     --build-only -O "$replace_output" --inline-logs)
 
 python3 - "$replace_output/twister.json" "$board" <<'PY'
@@ -109,14 +109,14 @@ from pathlib import Path
 
 suites = json.load(open(sys.argv[1]))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_sd_replace', 'crux.sample.storage_sd_replace.test']
+expected = ['crux.file.sd_card_power_cut_replace', 'crux.file.sd_card_power_cut_replace.test']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 replace-pattern link check did not build both scenarios: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
 root = Path(sys.argv[1]).parent
-for name, wanted in [('crux.sample.storage_sd_replace', False),
-                     ('crux.sample.storage_sd_replace.test', True)]:
+for name, wanted in [('crux.file.sd_card_power_cut_replace', False),
+                     ('crux.file.sd_card_power_cut_replace.test', True)]:
     configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
     if len(configs) != 1:
         raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
@@ -129,7 +129,7 @@ PY
 # Link only: the physical-gate probes (stack use, card removal). Both write to a card, so the scenarios
 # that enable them must never be flashed without physical approval.
 probe_output="${CRUX_FILE_RT1060_PROBE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-probe}"
-(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_probe" \
+(cd "$workspace" && west twister -p "$board" -T "$repo/tests/board_images/sd_card_probe" \
     --build-only -O "$probe_output" --inline-logs)
 
 python3 - "$probe_output/twister.json" "$board" <<'PY'
@@ -139,16 +139,16 @@ from pathlib import Path
 
 suites = json.load(open(sys.argv[1]))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_sd_probe', 'crux.sample.storage_sd_probe.removal',
-            'crux.sample.storage_sd_probe.stack']
+expected = ['crux.file.sd_card_probe', 'crux.file.sd_card_probe.removal',
+            'crux.file.sd_card_probe.stack']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 probe link check did not build all scenarios: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
 root = Path(sys.argv[1]).parent
-wanted = {'crux.sample.storage_sd_probe': 'CONFIG_SAMPLE_SD_PROBE_NONE=y',
-          'crux.sample.storage_sd_probe.stack': 'CONFIG_SAMPLE_SD_STACK_PROBE=y',
-          'crux.sample.storage_sd_probe.removal': 'CONFIG_SAMPLE_SD_REMOVAL_PROBE=y'}
+wanted = {'crux.file.sd_card_probe': 'CONFIG_SAMPLE_SD_PROBE_NONE=y',
+          'crux.file.sd_card_probe.stack': 'CONFIG_SAMPLE_SD_STACK_PROBE=y',
+          'crux.file.sd_card_probe.removal': 'CONFIG_SAMPLE_SD_REMOVAL_PROBE=y'}
 for name, line in wanted.items():
     configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
     if len(configs) != 1:

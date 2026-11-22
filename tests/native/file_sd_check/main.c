@@ -1,4 +1,4 @@
-/* The write/read/restart check of samples/storage_sd on a RAM disk named like the EVKB card. It
+/* The write/read/restart check of samples/boards/nxp/mimxrt1060_evk/sd_card_file on a RAM disk named like the EVKB card. It
  * runs in name order: the File provider binds once per process. The remount reuses the in-process
  * RAM disk, so nothing here is persistence evidence; that needs the physical gate. */
 #include "sd_file_check.h"

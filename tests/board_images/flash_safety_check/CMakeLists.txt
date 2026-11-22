@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(flash_safety_poc LANGUAGES C)
+project(flash_safety_check LANGUAGES C)
 if(NOT CONFIG_BOARD_TARGET STREQUAL "mimxrt1060_evk@B/mimxrt1062/qspi")
     message(FATAL_ERROR "PoC is restricted to the pinned EVKB B QSPI configuration")
 endif()
-get_filename_component(poc_repo "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(poc_repo "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 get_filename_component(poc_workspace "${ZEPHYR_BASE}/.." ABSOLUTE)
 set(poc_generated "${CMAKE_CURRENT_BINARY_DIR}/flash-poc")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Rehearse the Reliance Edge Stage A images (samples/storage_reliance_sd) on native_sim.
+"""Rehearse the Reliance Edge Stage A images (tests/board_images/sd_card_power_cut_sequence) on native_sim.
 
 THE LIMIT OF THIS RUN. The images run here on the eMMC simulator of tests/support/emmc_sim, a model
 of one disk that the unmodified MMC stack drives. The rehearsal exercises the application logic of
@@ -40,8 +40,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
-for directory in ("tests/native/emmc_restart", "samples/storage_sd_interrupt/host",
-                  "samples/storage_sd_replace/host"):
+for directory in ("tests/native/emmc_restart", "tests/board_images/sd_card_power_cut_append/host",
+                  "tests/board_images/sd_card_power_cut_replace/host"):
     sys.path.insert(0, os.path.join(ROOT, directory))
 import interrupt_capture as APPEND  # noqa: E402  (its line parser and judging function)
 import replace_capture as REPLACE  # noqa: E402

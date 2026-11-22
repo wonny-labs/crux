@@ -1,4 +1,4 @@
-/* The workload and the removal state machine of the physical-gate probes (samples/storage_sd_probe)
+/* The workload and the removal state machine of the physical-gate probes (tests/board_images/sd_card_probe)
  * on a RAM disk named like the EVKB card. A removed card is stood in for by an application unmount;
  * real removal is exercised only on the board. Tests run in name order: the File provider binds
  * once. */

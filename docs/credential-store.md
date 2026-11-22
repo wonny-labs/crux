@@ -285,5 +285,5 @@ still uses the test-only protection. The other suites do not run there: a walk n
 
 ### Gaps to close before this is usable on a target
 
-1. `samples/storage_sd` checking `secure-a` and `secure-b` through a build setting, and a Zephyr composition.
+1. `samples/boards/nxp/mimxrt1060_evk/sd_card_file` checking `secure-a` and `secure-b` through a build setting, and a Zephyr composition.
 2. Target runs, under separate approval: cuts during a save on the card, entropy and timing.
