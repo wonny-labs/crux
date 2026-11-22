@@ -20,7 +20,7 @@ if(NOT BOARD STREQUAL "native_sim" AND NOT CONFIG_DISK_DRIVER_SDMMC)
   message(FATAL_ERROR "The microSD disk driver is not selected: this sample runs on the board's "
     "microSD slot, and only native_sim may do without the driver")
 endif()
-# The sources of the other samples are compiled from their own directories, unchanged. The
+# The sources of the other images and of the eMMC sample are compiled from their own directories, unchanged. The
 # shim sd_storage.h of this directory comes first in the include path and maps the microSD names that
 # the append and replace sources use onto emmc_storage.h.
 set(EMMC_DIR ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file)

@@ -491,7 +491,7 @@ remount), with a removed card stood in for by an application unmount. The probe 
 are only linked in CI.
 `tests/native/file_sd_interrupt` runs the record format and recovery logic of the interrupted-write test
 (`tests/board_images/sd_card_power_cut_append`), and the storage gate runs the host script's tests against scripted boards
-(no hardware). The sample's image writes to a card until power is cut and is only linked in CI. The
+(no hardware). The board test image writes to a card until power is cut and is only linked in CI. The
 first power-cut run is recorded in [docs/evidence/microsd-power-cut](../docs/evidence/microsd-power-cut/README.md).
 `tests/native/file_sd_replace` runs the classification logic of the replace-pattern power-cut test
 (`tests/board_images/sd_card_power_cut_replace`: the compaction sequence of the Settings File backend, a temporary file and
