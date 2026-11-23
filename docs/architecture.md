@@ -222,7 +222,7 @@ Nothing is moved by this proposal. A rule number refers to the table above.
 | --- | --- | --- |
 | `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the application `io_controller` that the owner decided on 9 November 2026 (see [Applications](#applications-proposal-not-adopted)), and it stays here until a move that is not scheduled. | |
 | `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
-| `web/preact` | No README of its own. Its commands and flows are in the [web guide](../web/README.md). | 3 |
+| `web/preact` | Follows it: a README, named by its framework | |
 | `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
 | `time` | Has a README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`, the shared `src/time_command.c` and `include/` are outside `core/`, and `src/time_shell.c` includes a Zephyr header outside `zephyr/`. | 3, 4, 5 |
 | `logging`, `serial` | No README, and no composition folder: `controller.c` and `controller.h` are scenario sources that `tests/logging_consumer` and `tests/serial_consumer` build | 3, 4 |

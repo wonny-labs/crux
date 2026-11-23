@@ -4,7 +4,14 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run.** Steps 1 to 6, 8 and 9 were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer: J-Link software V9.96a, the connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found), `west -v flash` of the Time sample at 400 kHz, and the console line on Windows; `west debugserver` at 4000 kHz connected once for a VS Code attach. That run used a separate board Dev Container configuration, which bound `/dev/bus/usb` with a `mounts` entry; what `scripts/bootstrap.sh board-host` and the udevadm handling of `install-jlink.sh` do was carried out by hand, and the probe was attached without `--auto-attach`. Not run there yet: the single Dev Container described here (its `-v` binding of `/dev/bus/usb`, `CRUX_JLINK=auto` and the automatic `scripts/bootstrap.sh`), `scripts/bootstrap.sh board-host` itself, that udevadm handling, `--auto-attach`, the default speed `auto` used below, step 7 (`west attach` and `compare-sections`), `west debug`, the Cortex-Debug profiles, the VS Code flash tasks, and a console inside the container.
+**What has been run**, on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, in the Dev Container:
+
+- Step 1 with `usbipd bind` and `usbipd attach --wsl --busid <BUSID>`, without `--auto-attach`.
+- The connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found) with J-Link software V9.96a.
+- `west build` and `west flash` of the tutorial's route, and `west -v flash` of the Time sample at 400 kHz, with the console line read on Windows.
+- **Board: Debug** (F5): builds and flashes the Time sample, and debugging works. `west debugserver` at 4000 kHz connects.
+
+Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attach` and `compare-sections`), `west debug`, **Board: Attach**, **Board: Attach (external)**, a console inside the container, and the image build's own J-Link download (step 3).
 
 ## What you need
 
@@ -19,12 +26,12 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    ~~~powershell
    usbipd list
    usbipd bind --busid <BUSID>
-   usbipd attach --wsl --busid <BUSID> --auto-attach
+   usbipd attach --wsl --busid <BUSID>
    ~~~
 
-   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. Keep the window of `attach --auto-attach` open: it attaches the probe again when it re-enumerates, for example when J-Link software updates the probe's firmware, and the attachment is otherwise lost. Run it again after WSL2 restarts. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
+   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. The attachment is lost when the probe re-enumerates, for example when J-Link software updates the probe's firmware, and when WSL2 restarts: run `attach` again. `--auto-attach` attaches again by itself while its window stays open. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
 
-2. **WSL2 or Linux shell, in the repository checkout: prepare the Linux side.**
+2. **Only where the container cannot open the probe, such as native Linux without the udev rule: prepare the Linux side.** In a shell on the host, in the repository checkout:
 
    ~~~sh
    scripts/bootstrap.sh board-host
@@ -37,7 +44,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run it again after a reattach. It refuses to run inside the container. It never talks to the probe or the board.
 
-3. **The J-Link package (optional step).** By default you do nothing here: the image build downloads the J-Link version pinned in the [Dockerfile](../.devcontainer/Dockerfile) (`CRUX_JLINK_SEGGER_VERSION`) from SEGGER's download endpoint and installs it only if its SHA-256 matches `CRUX_JLINK_SEGGER_SHA256`. **The download accepts SEGGER's terms of use for you, as clicking the download on SEGGER's page does; if you do not accept them, use one of the overrides below.** If the download fails or the SHA-256 does not match, the build prints a warning, installs nothing and finishes without the J-Link software; a plain rebuild can reuse that cached step, so use **Dev Containers: Rebuild Container Without Cache** to try the download again. This download has not been run in an image build yet. Two overrides, in this order, win over the download:
+3. **The J-Link package (optional step).** By default you do nothing here: the image build downloads the J-Link version pinned in the [Dockerfile](../.devcontainer/Dockerfile) (`CRUX_JLINK_SEGGER_VERSION`) from SEGGER's download endpoint and installs it only if its SHA-256 matches `CRUX_JLINK_SEGGER_SHA256`. **The download accepts SEGGER's terms of use for you, as clicking the download on SEGGER's page does; if you do not accept them, use one of the overrides below.** If the download fails or the SHA-256 does not match, the build prints a warning, installs nothing and finishes without the J-Link software; a plain rebuild can reuse that cached step, so use **Dev Containers: Rebuild Container Without Cache** to try the download again. Two overrides, in this order, win over the download:
    - Put a `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it.
    - If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json); the build downloads it and checks its SHA-256.
 
@@ -130,16 +137,17 @@ Options of the J-Link runner:
 
 | Option | Use |
 | --- | --- |
-| `--speed <kHz>` | SWD speed. The commands above leave it out, so the runner uses its default, `auto`. If the connection fails, retry with 4000, then 400, then 100. Recorded on this board: a flash at 400 kHz (from WSL2 and in the macOS records), a `west debugserver` connection at 4000 kHz, and 100 kHz for a first connection on a new set-up. `auto` has no record yet |
+| `--speed <kHz>` | SWD speed. The commands above leave it out, so the runner uses its default, `auto`. If the connection fails, retry with 4000, then 400, then 100. Used on this board: 400 kHz for a flash, 4000 kHz for `west debugserver`, and 100 kHz for a first connection on a new set-up |
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
+**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these three profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. The first two use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
 - **Board: Debug** builds the Time sample, downloads it, resets the board and stops at `main`.
-- **Board: Attach** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board: Attach** connects to the image already running  without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board: Attach (external)** connects to a J-Link GDB Server that already runs on the host at port 2331, such as the one that `scripts/macos/start-jlink-gdbserver.command` starts on a Mac. It does not build or download, and the ELF must match the image on the board.
 
-Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from that separate board configuration. Settings you may add to a local copy of a profile, none of them tried here:
+Settings you may add to a local copy of a profile, none of them tried here:
 
 - `svdFile`: the MIMXRT1062 SVD file, for the peripheral register view. No SVD file is in the Zephyr workspace; NXP ships one with its MCUXpresso SDK and device packs under NXP's licence.
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
