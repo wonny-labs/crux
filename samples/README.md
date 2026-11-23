@@ -39,11 +39,9 @@ sample; use Zephyr's `samples/basic/threads` and `samples/synchronization`.
 | `networking/echo_client/host/` | Runnable Linux Host program | `build/linux/debug/samples/networking/echo_client/host/crux-networking-host [numeric-ipv4]` exchanges one TCP and one UDP echo with a peer on ports 42420 and 42421 (default `127.0.0.1`). CTest `Sample.EchoClientHost` starts a local echo peer for it |
 | `networking/echo_client/` | Board-only application | The same exchange as an EVKB image, cross-built by `scripts/test-networking.sh`. It needs a board on an isolated network with a peer; Twister id `crux.sample.networking.echo_client` runs it only with the `crux_echo_peer` fixture. See its README |
 | `networking/echo_client/common/` | Building block | The echo client (`client.c`, `client.h`) that both networking programs and the tests `tests/networking`, `tests/networking_zephyr` compile |
-| `flash_safety_poc/` | Board-only application | A compile-only Flash safety proof of concept for the EVKB. `scripts/test-flash-poc.sh` builds and inspects it and never programs it |
 | `boards/nxp/mimxrt1060_evk/web_management/` | Board-only application | The RT1060-EVKB management image on the Mbed TLS profile, built (never flashed) by `scripts/test-management-mbed-rt1060.sh`. See [the image page](../docs/rt1060-mbed-management-image.md) |
-| `storage_emmc/` | Board-only application | eMMC composition, link only on the EVKB (`testcase.yaml`), by `scripts/test-file-emmc-compile.sh`. `scripts/test-storage-emmc.sh` compiles its sources into the `native_sim` tests `tests/native/file_emmc_composition` and `tests/native/configuration_settings_reliance` |
-| `storage_reliance_sd/` | Board-only application | Reliance Edge microSD images, link only on the EVKB, by `scripts/test-file-emmc-compile.sh`. Its `native` scenarios are built for the rehearsal that `scripts/test-storage-emmc.sh` runs, and need the optional `crux-reliance` west group |
-| `storage_sd/`, `storage_sd_interrupt/`, `storage_sd_probe/`, `storage_sd_replace/` | Board-only application | microSD compositions and power-cut tests, link only on the EVKB (`testcase.yaml`), by `scripts/test-file-rt1060-compile.sh`. `scripts/test-storage-simulators.sh` compiles their sources into `native_sim` tests under `tests/native/` |
+| `boards/nxp/mimxrt1060_evk/emmc_file/` | Board-only application | Files on an eMMC through the Crux File API, with Reliance Edge (optional `crux-reliance` west group), built for the EVKB. Link only, because the EVKB has no eMMC: `scripts/test-file-emmc-compile.sh` links its three scenarios (Twister ids `crux.sample.boards.mimxrt1060_evk.emmc_file`, `.start`, `.settings`). `scripts/test-storage-emmc.sh` compiles its sources into the `native_sim` tests `tests/native/file_emmc_composition` and `tests/native/configuration_settings_reliance`. See its README |
+| `boards/nxp/mimxrt1060_evk/sd_card_file/` | Board-only application | Files on the board's microSD card through the Crux File API, with FatFs. Link only: `scripts/test-file-rt1060-compile.sh` links its two scenarios (Twister ids `crux.sample.boards.mimxrt1060_evk.sd_card_file`, `.start`). `scripts/test-storage-simulators.sh` compiles its sources into `native_sim` tests under `tests/native/`, and the microSD board test images under `tests/board_images/` reuse them. See its README |
 | `web/angular/`, `web/preact/` | Web front end | Browser examples of the management API; the [web guide](../web/README.md) describes them. `scripts/test-native-composition.sh` builds them (Angular with `npm run build` in its folder, Preact with `node tools/build.ts` in `web/`) and runs browser tests against a `native_sim` image |
 
 Scenarios that only a test compiles live with that test, not under `samples/`:
@@ -55,6 +53,22 @@ Scenarios that only a test compiles live with that test, not under `samples/`:
 | `tests/messaging_consumer/scenario/` | A bounded controller timing scenario, built and run by `scripts/test-messaging.sh` through `tests/messaging_consumer` |
 | `tests/logging_consumer/scenario/`, `tests/serial_consumer/scenario/` | Compiled by `tests/logging_consumer` and `tests/serial_consumer`, which `scripts/test-logging.sh` and `scripts/test-serial.sh` run; `scripts/check-native-interfaces.py` checks their includes |
 | `tests/web/project_sample/project/` | A project's own page and API route beside the management routes. The Host test `tests/web/project_sample` (CTest `Web.project_sample`, run by `scripts/check-host.sh`) compiles it, and `tests/build/test_project_sample.py` checks it |
+
+### Moved board test images
+
+Probe, power-cut and Flash safety images test a board or a procedure; they teach no single thing, so they are not
+samples. They moved to `tests/board_images/` with the same checks under new Twister ids, and the two board
+compositions moved under `boards/`:
+
+| Old path | New path | Twister ids |
+| --- | --- | --- |
+| `samples/storage_emmc/` | `samples/boards/nxp/mimxrt1060_evk/emmc_file/` | `crux.sample.boards.mimxrt1060_evk.emmc_file` and `.start`, `.settings` |
+| `samples/storage_sd/` | `samples/boards/nxp/mimxrt1060_evk/sd_card_file/` | `crux.sample.boards.mimxrt1060_evk.sd_card_file` and `.start` |
+| `samples/storage_sd_interrupt/` | [`tests/board_images/sd_card_power_cut_append/`](../tests/board_images/sd_card_power_cut_append/README.md) | `crux.file.sd_card_power_cut_append` and `.test` |
+| `samples/storage_sd_replace/` | [`tests/board_images/sd_card_power_cut_replace/`](../tests/board_images/sd_card_power_cut_replace/README.md) | `crux.file.sd_card_power_cut_replace` and `.test` |
+| `samples/storage_sd_probe/` | [`tests/board_images/sd_card_probe/`](../tests/board_images/sd_card_probe/README.md) | `crux.file.sd_card_probe` and `.stack`, `.removal` |
+| `samples/storage_reliance_sd/` | [`tests/board_images/sd_card_power_cut_sequence/`](../tests/board_images/sd_card_power_cut_sequence/README.md) | `crux.file.sd_card_power_cut_sequence` and `.start`, `.append`, `.replace`, `.format`, `.native`, `.native.start`, `.native.append`, `.native.replace`, `.native.format` |
+| `samples/flash_safety_poc/` | [`tests/board_images/flash_safety_check/`](../tests/board_images/flash_safety_check/README.md) | none: `scripts/test-flash-safety-check.sh` builds and inspects it (old name `scripts/test-flash-poc.sh` kept as an alias) and never programs it |
 
 ### Where the reference controller went
 
@@ -75,9 +89,10 @@ west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
 ctest --preset host-debug -L sample
 ```
 
-The `sample` tag selects the entries of the runnable applications. Without it, Twister also selects the link-only
-entries, and the Reliance Edge `native` entries fail in a workspace without the optional `crux-reliance` west group.
-That failure is deliberate: Crux's Reliance Edge build stops when its source is missing rather than skipping.
+The `sample` tag selects the entries of the runnable applications. The board-only samples allow only the EVKB, so
+`-p native_sim/native/64` skips them with or without the tag. `emmc_file` links Reliance Edge: built for the EVKB in a
+workspace without the optional `crux-reliance` west group, it stops on purpose, because Crux's Reliance Edge build
+stops when its source is missing rather than skipping.
 
 ## Adding a runnable sample
 

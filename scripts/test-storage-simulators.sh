@@ -50,7 +50,7 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-sd-check" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
-# The interrupted-write test: record format and recovery logic of samples/storage_sd_interrupt.
+# The interrupted-write test: record format and recovery logic of tests/board_images/sd_card_power_cut_append.
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
     -T "$repo/tests/native/file_sd_interrupt" \
@@ -58,9 +58,9 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
 # Its host script (parsing, pairing, port loss and return) runs against scripted boards, no hardware.
-python3 -m unittest discover -s "$repo/samples/storage_sd_interrupt/host" -p test_interrupt_capture.py -v
+python3 -m unittest discover -s "$repo/tests/board_images/sd_card_power_cut_append/host" -p test_interrupt_capture.py -v
 
-# The replace-pattern power-cut test: classification logic of samples/storage_sd_replace.
+# The replace-pattern power-cut test: classification logic of tests/board_images/sd_card_power_cut_replace.
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
     -T "$repo/tests/native/file_sd_replace" \
@@ -68,7 +68,7 @@ python3 -m unittest discover -s "$repo/samples/storage_sd_interrupt/host" -p tes
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
 # Its host script (parsing, classification, cycle loop) runs against scripted boards, no hardware.
-python3 -m unittest discover -s "$repo/samples/storage_sd_replace/host" -p test_replace_capture.py -v
+python3 -m unittest discover -s "$repo/tests/board_images/sd_card_power_cut_replace/host" -p test_replace_capture.py -v
 
 # The probes for the remaining physical items: the workload and the removal state machine.
 (cd "$workspace" && west twister -j 2 \

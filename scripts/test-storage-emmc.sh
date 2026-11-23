@@ -384,7 +384,7 @@ folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
 }
 printf 'Reliance Edge File selection: dropped together with another File selection\n'
 
-# The eMMC reference composition, samples/storage_emmc, on the eMMC simulator with Reliance Edge and
+# The eMMC reference composition, samples/boards/nxp/mimxrt1060_evk/emmc_file, on the eMMC simulator with Reliance Edge and
 # the cache flush: the microSD composition's cases, a File sync that must send a flush command, and
 # a card that fails its first initialisation. The images link the GPLv2 source and are test images
 # only.
@@ -778,14 +778,14 @@ print(f'{name} {board}: crux_config_save linked with the Settings File provider 
       'no FatFs, no Reliance Edge')
 PY
 
-# The Stage A images of samples/storage_reliance_sd, rehearsed on the eMMC simulator. This exercises
+# The Stage A images of tests/board_images/sd_card_power_cut_sequence, rehearsed on the eMMC simulator. This exercises
 # the application logic of the images, the File provider and Reliance Edge on a model. It does not
 # exercise the SD host driver, the SD layer or a real card, and it is not evidence about the EVKB.
 # The rehearsal and its judging helpers are tests/native/reliance_stage_a.
 python3 "$repo/tests/native/reliance_stage_a/test_rehearsal.py"
 rehearsal_dir="$repo/build/zephyr/reliance-stage-a-native"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/samples/storage_reliance_sd" --build-only -O "$rehearsal_dir" --inline-logs)
+    -T "$repo/tests/board_images/sd_card_power_cut_sequence" --build-only -O "$rehearsal_dir" --inline-logs)
 python3 - "$rehearsal_dir/twister.json" <<'PY'
 import json
 from pathlib import Path
@@ -795,7 +795,7 @@ import sys
 suites = json.loads(Path(sys.argv[1]).read_text())['testsuites']
 built = sorted(suite['name'].rsplit('/', 1)[-1] for suite in suites
                if suite['platform'] == 'native_sim/native/64' and suite.get('status') == 'not run')
-expected = sorted(f'crux.sample.storage_reliance_sd.native{suffix}'
+expected = sorted(f'crux.file.sd_card_power_cut_sequence.native{suffix}'
                   for suffix in ('', '.start', '.append', '.replace', '.format'))
 if built != expected or len(suites) != len(expected):
     raise RuntimeError(f'the Stage A rehearsal images were not all built: {built}')
@@ -803,7 +803,7 @@ print(f'Stage A rehearsal images built for native_sim: {len(built)}')
 PY
 rehearsal_exe() {
     local found
-    found="$(find "$rehearsal_dir" -type f -path "*/crux.sample.storage_reliance_sd.native$1/zephyr/zephyr.exe")"
+    found="$(find "$rehearsal_dir" -type f -path "*/crux.file.sd_card_power_cut_sequence.native$1/zephyr/zephyr.exe")"
     if [[ -z "$found" || "$(wc -l <<<"$found")" -ne 1 ]]; then
         printf 'Expected one Stage A rehearsal image for "%s", found: %s\n' "$1" "$found" >&2
         exit 1

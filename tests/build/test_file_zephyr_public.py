@@ -84,8 +84,12 @@ class PublicHeader(unittest.TestCase):
             self.assertIn(word, text.lower(), word)
 
 
-SAMPLES_ON_THE_PUBLIC_TARGET = ('storage_sd_interrupt', 'storage_sd_replace', 'storage_sd_probe',
-                                'storage_emmc', 'storage_reliance_sd')
+# Board compositions and board test images that only need the binding header (paths from the root).
+SAMPLES_ON_THE_PUBLIC_TARGET = ('tests/board_images/sd_card_power_cut_append',
+                                'tests/board_images/sd_card_power_cut_replace',
+                                'tests/board_images/sd_card_probe',
+                                'samples/boards/nxp/mimxrt1060_evk/emmc_file',
+                                'tests/board_images/sd_card_power_cut_sequence')
 
 
 def builds_compiling(*sources):
@@ -114,7 +118,7 @@ class Consumers(unittest.TestCase):
 
     def test_the_samples_that_only_need_the_binding_header_use_the_public_target(self):
         for name in SAMPLES_ON_THE_PUBLIC_TARGET:
-            directory = ROOT / 'samples' / name
+            directory = ROOT / name
             with self.subTest(sample=name):
                 text = (directory / 'CMakeLists.txt').read_text()
                 self.assertRegex(text, r'target_link_libraries\(app PRIVATE[^)]*crux::file_zephyr')
@@ -123,7 +127,7 @@ class Consumers(unittest.TestCase):
                     self.assertNotIn('file_native.h', source.read_text(), source.name)
 
     def test_the_emmc_composition_includes_the_public_header_in_format_order(self):
-        lines = (ROOT / 'samples/storage_emmc/emmc_storage.c').read_text().splitlines()
+        lines = (ROOT / 'samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_storage.c').read_text().splitlines()
         includes = [line for line in lines if line.startswith('#include')]
         self.assertIn('#include <crux/file_zephyr.h>', includes)
         self.assertNotIn('#include "file_native.h"', includes)

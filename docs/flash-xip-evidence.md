@@ -64,7 +64,7 @@ selected-symbol record; they are not new runtime observations.
 
 Reproduce I with the exact composition/commands in the
 [storage assessment](storage-configuration-assessment.md#non-destructive-verification),
-and P with `scripts/test-flash-poc.sh` as documented in the
+and P with `scripts/test-flash-safety-check.sh` as documented in the
 [PoC verification](flash-safety-poc.md#verification), using the recorded revisions
 and Linux SDK 1.0.1/GNU Arm 14.3.0 environment. Keep the resulting ELF, map,
 configuration and linker together; verify the ELF hash before comparing addresses.

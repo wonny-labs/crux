@@ -74,7 +74,7 @@ today.
 | `native_sim`, replay | `tests/native/emmc_powercut`: an eMMC simulator, four cut models (lost, prefix, reordered, torn), invariants I1 to I5, workloads W1 to W4, negative controls. | Reliance Edge keeps I1 to I5 for append, VFS-rename replace and Settings saves, in a model written by the author of the code. **[O]** W2 and W4 call the VFS rename. No workload replaces a file through File or runs the File service. |
 | Physical, FatFs, microSD | 33 append cuts and 100 replace cuts on one board and one card. | Appends with a sync each held. The replace window is real. |
 | Physical, Reliance Edge | **None.** Stage A (Reliance Edge on microSD) of the [physical gate](../emmc-reliance-physical-gate.md) has images and a run sheet. Stage B (eMMC) has a list of steps, and its images and board values are still to be fixed. Neither has run. | Nothing. |
-| Rig | `scripts/power_cut.py` with `--cut-cmd`, and the Stage A replace image `samples/storage_reliance_sd` with `CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST`. | Ready for a campaign. The replace image calls `fs_rename`, not File. |
+| Rig | `scripts/power_cut.py` with `--cut-cmd`, and the Stage A replace image `tests/board_images/sd_card_power_cut_sequence` with `CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST`. | Ready for a campaign. The replace image calls `fs_rename`, not File. |
 
 ## 2. The gap
 

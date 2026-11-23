@@ -150,8 +150,8 @@ class OneDefinition(unittest.TestCase):
 
 
 class Consumers(unittest.TestCase):
-    PUBLIC_ONLY = ('samples/storage_emmc', 'samples/storage_reliance_sd',
-                   'tests/native/file_emmc_composition', 'tests/native/configuration_settings_reliance')
+    PUBLIC_ONLY = ('samples/boards/nxp/mimxrt1060_evk/emmc_file',
+                   'tests/board_images/sd_card_power_cut_sequence', 'tests/native/file_emmc_composition', 'tests/native/configuration_settings_reliance')
 
     def test_the_compositions_name_the_type_through_the_public_header(self):
         for name in self.PUBLIC_ONLY:
@@ -167,7 +167,8 @@ class Consumers(unittest.TestCase):
                 self.assertIn('crux::file_zephyr', (ROOT / name / 'CMakeLists.txt').read_text())
 
     def test_the_sample_compositions_include_the_public_header_in_format_order(self):
-        for relative in ('samples/storage_emmc/emmc_storage.c', 'samples/storage_reliance_sd/format.c'):
+        for relative in ('samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_storage.c',
+                         'tests/board_images/sd_card_power_cut_sequence/format.c'):
             with self.subTest(source=relative):
                 lines = (ROOT / relative).read_text().splitlines()
                 self.assertIn('#include <crux/file_reliance_edge_zephyr.h>', lines)

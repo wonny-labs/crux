@@ -29,7 +29,7 @@ class DebugTargetTests(unittest.TestCase):
         (self.workspace / ".west/config").write_text("")
         (self.workspace / "zephyr").mkdir()
         (self.workspace / "zephyr/zephyr-env.sh").write_text("")
-        for application in ("samples/time/clock_shell", "samples/storage_sd"):
+        for application in ("samples/time/clock_shell", "samples/boards/nxp/mimxrt1060_evk/sd_card_file"):
             (self.repo / application).mkdir(parents=True)
             (self.repo / application / "CMakeLists.txt").write_text("")
         (self.repo / "scripts").mkdir()
@@ -63,12 +63,14 @@ class DebugTargetTests(unittest.TestCase):
         self.assertFalse(any("EXTRA_CONF_FILE" in argument for argument in arguments))
 
     def test_application_path_selects_the_application_and_its_own_directory(self):
-        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/storage_sd")
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app",
+                                 "samples/boards/nxp/mimxrt1060_evk/sd_card_file")
         self.assertEqual(result.returncode, 0, result.stderr)
         arguments = self.west_arguments()
         self.assertEqual(arguments[arguments.index("-d") + 1],
-                         str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd"))
-        self.assertIn(str(self.repo / "samples/storage_sd"), arguments)
+                         str(self.repo / "build/zephyr"
+                             / "mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file"))
+        self.assertIn(str(self.repo / "samples/boards/nxp/mimxrt1060_evk/sd_card_file"), arguments)
         self.assertNotIn(str(self.repo / "samples/time/clock_shell"), arguments)
 
     def test_debug_optimizations_adds_the_fragment_and_a_separate_directory(self):

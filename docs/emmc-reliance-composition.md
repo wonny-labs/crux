@@ -2,7 +2,7 @@
 
 Issue [#254](https://github.com/wonny-labs/crux-pilot/issues/254), the second part: the RT1060 link, the
 measurements and this record. It follows the structure of the [microSD composition](microsd-composition.md) and
-describes the reference composition in [`samples/storage_emmc`](../samples/storage_emmc) of the
+describes the reference composition in [`samples/boards/nxp/mimxrt1060_evk/emmc_file`](../samples/boards/nxp/mimxrt1060_evk/emmc_file) of the
 [eMMC design](plans/emmc-reliance-design.md). **No result here comes from an eMMC device or from any board.** The
 evidence is host and `native_sim` tests against a test-only simulator, and an arm-zephyr-eabi image that is linked
 and never flashed. The RT1060-EVKB has no eMMC, so the link says what the composition costs and that its pieces
@@ -29,7 +29,7 @@ fit together, and nothing about how it behaves.
 
 ## Composition
 
-Project code in [`samples/storage_emmc`](../samples/storage_emmc), not in `components/file`, with the same shape as
+Project code in [`samples/boards/nxp/mimxrt1060_evk/emmc_file`](../samples/boards/nxp/mimxrt1060_evk/emmc_file), not in `components/file`, with the same shape as
 `sd_storage`:
 
 1. `disk_access_init("MMC")`: failure is `EMMC_STORAGE_NO_MEDIA`.
@@ -105,7 +105,7 @@ the physical gate is approved for the current task.
   system that the composition mounts, with no Reliance Edge dependency. It refuses FatFs, and on an MMC disk it
   requires the flush correction. It is proven on LittleFS over a block device on `native_sim` and link-checked for
   the RT1060 ([test guide](../tests/README.md)). This page's sample keeps the Reliance Edge selection.
-- **The link-only overlay.** `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay` removes the
+- **The link-only overlay.** `samples/boards/nxp/mimxrt1060_evk/emmc_file/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay` removes the
   card-detect GPIO and the `sdmmc` child of `usdhc1` and adds a four-bit `zephyr,mmc-disk` named `MMC`. It exists to
   link only, and it does not describe any board. Zephyr applies it to every build of this sample for this board, so an
   image for the EVKB microSD with the same code needs its own overlay selection and is not built or checked here.
@@ -152,7 +152,7 @@ checks can fail, not that the model matches a device.
 | Its control | the same suite on the unpatched backend (`CRUX_SETTINGS_FILE_CONTROL`) fails exactly 12 cases, passes 16 and skips 1. FatFs fails 13; `test_full_volume_never_acknowledges_a_lost_save` passes here because Reliance Edge reports a full volume as `-ENOSPC`, which the unpatched write handler returns, where FatFs gives a short or zero count that it turns into success |
 | Mutation checks of the selection and `emmc_configuration_start` | settings initialised before the layout check, initialised twice, the ready check skipped, a failed initialisation ignored, the corrections not staged, and an init before the mount each fail the case that names them (the first, third and last also fail later cases that depend on the volume) |
 | W4 of the power-cut replay, `native_sim`, `--workload W4` | 2174 cut cases on both profiles (2232 with the sanity cases, controls and staged states), I1 to I5 held on `red-fix-settings` in every cut case, the active settings file never missing; 864 cuts left a `.cmp` temporary behind, which is not a failure; three controls and three staged states as required. See the [settings replay record](evidence/emmc-reliance/replay-settings/README.md) |
-| `scripts/test-file-emmc-compile.sh` | the three scenarios (`crux.sample.storage_emmc`, `.start` and `.settings`) build and link on `mimxrt1060_evk@B/mimxrt1062/qspi`; the Settings image has the provider, `CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"` and the three staged Settings File sources in its build and none of the pinned ones, and the other two have none of this; the Settings scenario with the fixture-only control fails at CMake; in every image the generated `.config` has `CONFIG_DISK_DRIVER_MMC=y`, `CONFIG_CRUX_MMC_CACHE_FLUSH=y` and `CONFIG_SDHC_BUFFER_ALIGNMENT=32`, and has neither `CONFIG_DISK_DRIVER_SDMMC` nor the formatter; `red_format` and FatFs are not in the image; the build used the generated `mmc.c` with the expected hashes and not `subsys/sd/mmc.c`; the same sample without the flush option fails at CMake, and so does one with the fixture-only control |
+| `scripts/test-file-emmc-compile.sh` | the three scenarios (`crux.sample.boards.mimxrt1060_evk.emmc_file`, `.start` and `.settings`) build and link on `mimxrt1060_evk@B/mimxrt1062/qspi`; the Settings image has the provider, `CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"` and the three staged Settings File sources in its build and none of the pinned ones, and the other two have none of this; the Settings scenario with the fixture-only control fails at CMake; in every image the generated `.config` has `CONFIG_DISK_DRIVER_MMC=y`, `CONFIG_CRUX_MMC_CACHE_FLUSH=y` and `CONFIG_SDHC_BUFFER_ALIGNMENT=32`, and has neither `CONFIG_DISK_DRIVER_SDMMC` nor the formatter; `red_format` and FatFs are not in the image; the build used the generated `mmc.c` with the expected hashes and not `subsys/sd/mmc.c`; the same sample without the flush option fails at CMake, and so does one with the fixture-only control |
 | Symbols | only the two mount-at-boot images (`.start` and `.settings`) call the composition, so only they link `emmc_storage_start`, `disk_access_init` and `crux_file_zephyr_bind`, and only `.settings` links the Settings provider. The base image keeps the file system and the stack through the VFS table, so "never formats" and "never creates directories" are properties of the composition code, and the image check shows only the absence of the formatter |
 | CI | the `storage` shard of `.github/workflows/zephyr.yml` enables the `crux-reliance` group and then runs `CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh` and `scripts/test-file-emmc-compile.sh`. It passed on the head of [PR #332](https://github.com/wonny-labs/crux-pilot/pull/332) (`d9af542`, run 42430864401), so the 32-bit runs and the link check have run in CI for that revision. The workflow's own comment says that no image is uploaded under a named `zephyr.elf` or `zephyr.bin`; this document does not audit the uploaded file list. A CI pass is not a physical result |
 
@@ -206,7 +206,7 @@ scope.
 The procedure, preconditions and stop conditions are a separate document of the eMMC design (issue
 [#256](https://github.com/wonny-labs/crux-pilot/issues/256)). It authorises nothing: every hardware step needs
 explicit approval for the current task.
-The Stage A images (`samples/storage_reliance_sd`) and the commands for each step are in the
+The Stage A images (`tests/board_images/sd_card_power_cut_sequence`) and the commands for each step are in the
 [Stage A run sheet](emmc-reliance-physical-gate.md#stage-a-run-sheet). Its mount-check, append and replace images run this
 composition's mount sequence on the EVKB's microSD slot (disk `SD`). The format image has its own mount and format, and
 the default image calls none.

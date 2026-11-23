@@ -48,7 +48,7 @@ config SAMPLE_RELIANCE_SD_FORMAT
 	  formatted, so use only a card that the test owns. It excludes the other three options. This
 	  WRITES to the card; physical use needs approval for the current task.
 
-# The reused main.c files of samples/storage_sd_interrupt and samples/storage_sd_replace test these
+# The reused main.c files of tests/board_images/sd_card_power_cut_append and tests/board_images/sd_card_power_cut_replace test these
 # names. They follow the two options above and are not set on their own.
 config SAMPLE_SD_INTERRUPT_TEST
 	bool
@@ -60,6 +60,6 @@ config SAMPLE_SD_REPLACE_TEST
 
 # The simulator's options exist for the native_sim rehearsal only: the symbols depend on
 # BOARD_NATIVE_SIM and are inert on the RT1060.
-rsource "../../tests/support/emmc_sim/Kconfig"
+rsource "../../support/emmc_sim/Kconfig"
 
 source "Kconfig.zephyr"

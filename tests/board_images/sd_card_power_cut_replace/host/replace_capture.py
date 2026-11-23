@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pair the last generation the replace-pattern image printed with what the next boot found.
 
-The image (samples/storage_sd_replace) rewrites "cfg" through "cfg.cmp" and fs_rename in a loop and
+The image (tests/board_images/sd_card_power_cut_replace) rewrites "cfg" through "cfg.cmp" and fs_rename in a loop and
 prints, at 115200 baud, BOOT <n>, CLASS run=<n-1> cfg=<none|valid|bad> cfg_gen=<g> cmp=<none|valid|bad>
 cmp_gen=<g> and GEN <g> (after the rename of generation g returned), each with a checksum " *XX".
 
@@ -27,7 +27,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..',
-                                'storage_sd_interrupt', 'host'))
+                                'sd_card_power_cut_append', 'host'))
 from interrupt_capture import Console, checksum  # noqa: E402  (shared console and line checksum)
 
 TOKEN = re.compile(r'(BOOT|CLASS|GEN)\b')

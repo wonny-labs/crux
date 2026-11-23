@@ -1,33 +1,32 @@
-sample:
-  name: Crux Reliance Edge microSD Stage A images (link only)
+# Board test image: Crux Reliance Edge microSD Stage A images (link only). Not a sample (docs/plans/samples-layout-proposal.md, section 5).
 # Each scenario states its own platforms, because scenarios for other platforms share this file.
 tests:
   # The default image mounts and writes nothing: no option is set, so main does nothing.
-  crux.sample.storage_reliance_sd:
+  crux.file.sd_card_power_cut_sequence:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
     tags: [filesystem, crux, link_only]
   # The mount check of Stage A: initialise the disk and mount without formatting.
-  crux.sample.storage_reliance_sd.start:
+  crux.file.sd_card_power_cut_sequence.start:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
     tags: [filesystem, crux, link_only]
     extra_configs:
       - CONFIG_SAMPLE_EMMC_START=y
-  crux.sample.storage_reliance_sd.append:
+  crux.file.sd_card_power_cut_sequence.append:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
     tags: [filesystem, crux, link_only]
     extra_configs:
       - CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
-  crux.sample.storage_reliance_sd.replace:
+  crux.file.sd_card_power_cut_sequence.replace:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
     tags: [filesystem, crux, link_only]
     extra_configs:
       - CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST=y
   # The format image: its own main formats the card once, only if no volume mounts. Link only.
-  crux.sample.storage_reliance_sd.format:
+  crux.file.sd_card_power_cut_sequence.format:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
     tags: [filesystem, crux, link_only]
@@ -37,29 +36,29 @@ tests:
   # simulator, named SD like the EVKB's microSD disk. Build only here; run_rehearsal.py runs them.
   # The model exercises the application logic, the File provider and Reliance Edge, and not the SD
   # host driver, the SD layer or a card.
-  crux.sample.storage_reliance_sd.native:
+  crux.file.sd_card_power_cut_sequence.native:
     build_only: true
     platform_allow: [native_sim/native/64]
     tags: [filesystem, crux, rehearsal]
-  crux.sample.storage_reliance_sd.native.start:
+  crux.file.sd_card_power_cut_sequence.native.start:
     build_only: true
     platform_allow: [native_sim/native/64]
     tags: [filesystem, crux, rehearsal]
     extra_configs:
       - CONFIG_SAMPLE_EMMC_START=y
-  crux.sample.storage_reliance_sd.native.append:
+  crux.file.sd_card_power_cut_sequence.native.append:
     build_only: true
     platform_allow: [native_sim/native/64]
     tags: [filesystem, crux, rehearsal]
     extra_configs:
       - CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
-  crux.sample.storage_reliance_sd.native.replace:
+  crux.file.sd_card_power_cut_sequence.native.replace:
     build_only: true
     platform_allow: [native_sim/native/64]
     tags: [filesystem, crux, rehearsal]
     extra_configs:
       - CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST=y
-  crux.sample.storage_reliance_sd.native.format:
+  crux.file.sd_card_power_cut_sequence.native.format:
     build_only: true
     platform_allow: [native_sim/native/64]
     tags: [filesystem, crux, rehearsal]

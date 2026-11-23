@@ -20,7 +20,7 @@ qualification or product power-loss safety.
 
 ## Composition
 
-Project code in [`samples/storage_sd`](../samples/storage_sd), not in `components/file`:
+Project code in [`samples/boards/nxp/mimxrt1060_evk/sd_card_file`](../samples/boards/nxp/mimxrt1060_evk/sd_card_file), not in `components/file`:
 
 1. `disk_access_init("SD")`: failure is `SD_STORAGE_NO_MEDIA`.
 2. `fs_mount("/SD:")` with `FS_MOUNT_FLAG_NO_FORMAT` and `CONFIG_FS_FATFS_MOUNT_MKFS=n`:
@@ -59,7 +59,7 @@ cross-build that is linked but never flashed.
 | `tests/native/file_sd_composition`, 8 cases, 64-bit `native_sim` | pass (32-bit runs in CI only) |
 | Cases | blank medium fails closed and the medium digest is unchanged; missing directories are not created; one missing directory is not ready; a provisioned medium starts after earlier failures; a second start is rejected without side effects; unmount and remount keep the provider usable, and out-of-order stop and remount are refused; the medium digest itself is shown to see a one-byte change |
 | Mutation check | a start that formats on a failed mount fails the blank-medium case; a start that creates missing directories fails the directory cases |
-| `scripts/test-file-rt1060-compile.sh` | the compile check and both link scenarios (`crux.sample.storage_sd`, `.start`) build on `mimxrt1060_evk@B/mimxrt1062/qspi` |
+| `scripts/test-file-rt1060-compile.sh` | the compile check and both link scenarios (`crux.sample.boards.mimxrt1060_evk.sd_card_file`, `.start`) build on `mimxrt1060_evk@B/mimxrt1062/qspi` |
 | Image symbols | `f_mkfs` is not linked in either image. Only the mount-at-boot image links `sd_storage_start`, `disk_access_init` and `crux_file_zephyr_bind`; the base image links `f_mount` and `f_mkdir` (through the VFS table) but not the provider, so "never creates directories" is a property of the composition code, not of the image |
 
 Observation: Zephyr's FatFs `fs_unmount` does not refuse while a File handle is open (the
@@ -72,7 +72,7 @@ stop and remount out of order return `-EINVAL`, and remounting a mounted volume 
 
 ## Resource measurements (static, from linked images)
 
-Measured on the code of commit `9a03c5d` (`samples/storage_sd`, the File provider and the
+Measured on the code of commit `9a03c5d` (`samples/boards/nxp/mimxrt1060_evk/sd_card_file`, the File provider and the
 configuration unchanged until the alignment change described below). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
 `CONFIG_FS_FATFS_MAX_LFN=127` (stack mode), `CRUX_FILE_POOL_SIZE=4`.
 
@@ -164,7 +164,7 @@ write-temporary, close, rename order and the identical `fs_rename`, not the back
 
 ## Probes for the remaining physical items
 
-`samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
+`tests/board_images/sd_card_probe` holds two default-off images, both writing to the card (physical approval
 needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
 (create, 64 KiB write, sync, read back, rename, stat, list, remove) twice and prints the
 Zephyr thread analyzer report (stack size and unused bytes per thread; the interrupt stack appears as an
@@ -203,7 +203,7 @@ So on this board the SD slot appears to be the only user of uSDHC1, and that is 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
 Owner decision of 3 November 2026: complete the rename at start-up in the one state the replace-pattern test
-found. `sd_settings_recover(path)` in [`samples/storage_sd`](../samples/storage_sd) renames `<path>.cmp` to
+found. `sd_settings_recover(path)` in [`samples/boards/nxp/mimxrt1060_evk/sd_card_file`](../samples/boards/nxp/mimxrt1060_evk/sd_card_file) renames `<path>.cmp` to
 `<path>` when the settings file is missing and the temporary is a non-empty regular file, and does nothing in
 any other state. It is safe because the backend closes the temporary (a synced close) before it starts the
 rename, so a missing settings file next to a `.cmp` means the compaction had finished writing. A stat error is

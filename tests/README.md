@@ -478,7 +478,7 @@ workspace with LittleFS and FatFs and a Host compiler with 32-bit development li
 The Zephyr CI workflow runs this software-only gate; no physical storage is used.
 
 The gate also runs `tests/native/file_sd_composition`, the microSD mount sequence of
-`samples/storage_sd` on a RAM disk named `SD` (never formats, never creates directories,
+`samples/boards/nxp/mimxrt1060_evk/sd_card_file` on a RAM disk named `SD` (never formats, never creates directories,
 fails closed). `scripts/test-file-rt1060-compile.sh` additionally links that sample for the
 RT1060-EVKB Rev B (not flashed). See [the microSD composition](../docs/microsd-composition.md)
 for the decisions, measurements and the unverified hardware items.
@@ -486,21 +486,21 @@ for the decisions, measurements and the unverified hardware items.
 pattern file) on the same RAM disk; its remount is not persistence evidence. The first physical-card
 runs are recorded in [docs/evidence/microsd-physical](../docs/evidence/microsd-physical/README.md).
 `tests/native/file_sd_probe` runs the workload and the removal state machine of the physical-gate probes
-(`samples/storage_sd_probe`: stack use after a FatFs workload, and a card-removal probe that retries a
+(`tests/board_images/sd_card_probe`: stack use after a FatFs workload, and a card-removal probe that retries a
 remount), with a removed card stood in for by an application unmount. The probe images write to a card and
 are only linked in CI.
 `tests/native/file_sd_interrupt` runs the record format and recovery logic of the interrupted-write test
-(`samples/storage_sd_interrupt`), and the storage gate runs the host script's tests against scripted boards
-(no hardware). The sample's image writes to a card until power is cut and is only linked in CI. The
+(`tests/board_images/sd_card_power_cut_append`), and the storage gate runs the host script's tests against scripted boards
+(no hardware). The board test image writes to a card until power is cut and is only linked in CI. The
 first power-cut run is recorded in [docs/evidence/microsd-power-cut](../docs/evidence/microsd-power-cut/README.md).
 `tests/native/file_sd_replace` runs the classification logic of the replace-pattern power-cut test
-(`samples/storage_sd_replace`: the compaction sequence of the Settings File backend, a temporary file and
+(`tests/board_images/sd_card_power_cut_replace`: the compaction sequence of the Settings File backend, a temporary file and
 `fs_rename` over the settings file, repeated until power is cut), and the storage gate runs its host
 script's tests against scripted boards. The image writes to a card until power is cut and is only linked
 in CI. The first run is recorded in [docs/evidence/microsd-replace-cut](../docs/evidence/microsd-replace-cut/README.md).
 
 `tests/native/file_sd_settings_recover` runs the recovery step for the state that test found
-(`samples/storage_sd/sd_settings_recover`: no settings file and a complete `.cmp`, which it renames) on the
+(`samples/boards/nxp/mimxrt1060_evk/sd_card_file/sd_settings_recover`: no settings file and a complete `.cmp`, which it renames) on the
 real, unpatched Settings File backend over a FatFs RAM disk named like the card (13 cases, both `native_sim`
 variants). It creates the states; the real power cut is not exercised on the board, and the step is not yet
 called by any image. Mutation-checked: treating a stat error as a missing file, skipping the empty-temporary
@@ -631,7 +631,7 @@ disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the execu
 These are simulation results on a RAM disk, in one process. They are not persistence evidence and
 not evidence about an eMMC device.
 
-`tests/native/file_emmc_composition` runs the mount sequence of `samples/storage_emmc` (disk init, mount
+`tests/native/file_emmc_composition` runs the mount sequence of `samples/boards/nxp/mimxrt1060_evk/emmc_file` (disk init, mount
 without format, layout check, File root binding) on the eMMC simulator with Reliance Edge and the cache
 flush on, native_sim only. The cases keep the order of `file_sd_composition`, because the provider binds once
 per process: the medium digest sees one changed byte, stop and remount before start are refused, a blank
@@ -645,7 +645,7 @@ the start reports no media. It is a scenario of its own because a disk that an e
 not initialised again. Cases of the other scenario skip themselves, so the executed counts are 9 and 1.
 These are simulation results in one process, not evidence about an eMMC device.
 
-`scripts/test-file-emmc-compile.sh` links `samples/storage_emmc` for `mimxrt1060_evk@B/mimxrt1062/qspi`, with
+`scripts/test-file-emmc-compile.sh` links `samples/boards/nxp/mimxrt1060_evk/emmc_file` for `mimxrt1060_evk@B/mimxrt1062/qspi`, with
 and without the mount at boot and with Configuration on the Settings File backend, and never programs or runs
 anything. A link-only overlay stands in for an eMMC
 that the EVKB does not have. The script reads the generated `.config` of each image (the MMC disk driver and
@@ -663,11 +663,11 @@ copy. It builds no image that is kept or uploaded. The sizes and stack frames ar
 [composition document](../docs/emmc-reliance-composition.md). This is a link, not evidence about an eMMC device or
 a board.
 
-The same script also links `samples/storage_reliance_sd`, the Stage A images of the
+The same script also links `tests/board_images/sd_card_power_cut_sequence`, the Stage A images of the
 [eMMC physical gate](../docs/emmc-reliance-physical-gate.md) that run Reliance Edge on the EVKB's own microSD
 slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), the append and replace
-tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
-`samples/storage_sd_replace`, compiled unchanged behind a shim header, and the format image (`.format`), which has
+tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `tests/board_images/sd_card_power_cut_append` and
+`tests/board_images/sd_card_power_cut_replace`, compiled unchanged behind a shim header, and the format image (`.format`), which has
 its own `main` in `format.c` and, only when no volume mounts on the card, formats it once and creates `/MMC:/files`
 and `/MMC:/settings`. For each of the five scenarios the script requires the microSD disk driver and Reliance Edge
 in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32` and no MMC driver. The formatter is in the `.format` image only:
@@ -679,7 +679,7 @@ No image may load above `0x60600000`, the end of the flash range that the Stage 
 SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
 
 `tests/native/reliance_stage_a` rehearses the same five images on `native_sim`, on the eMMC simulator, with the disk
-named `SD` and the cache flush correction on (the scenarios `crux.sample.storage_reliance_sd.native` and its
+named `SD` and the cache flush correction on (the scenarios `crux.file.sd_card_power_cut_sequence.native` and its
 `.start`, `.append`, `.replace` and `.format` variants, which `scripts/test-storage-emmc.sh` builds and
 `run_rehearsal.py` runs; `test_rehearsal.py` holds the unit tests of its judging helpers, which reuse the line parsers
 and judging functions of the two host scripts). **The limit: the rehearsal exercises the application logic of the
