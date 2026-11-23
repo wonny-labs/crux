@@ -56,7 +56,7 @@ flowchart LR
 | A Crux pin replaced in `acme-manifest` with `crux-override` | `OVERRIDE` with the organisation's reason |
 | A Crux pin replaced in `acme-manifest` without a reason | `MISMATCH`, and the command fails |
 
-It does not compare a product with its organisation manifest. A product that pins `acme-hw` at another revision still sees `PRODUCT` and passes. If the organisation needs that check, it is an organisation tool, for example a comparison of `west manifest --resolve` of the product with the organisation's pins. `tests/build/test_shared_hardware_templates.py` runs each row above through real west on local repositories.
+It does not compare a product with its organisation manifest. A product that pins `acme-hw` at another revision still sees `PRODUCT` and passes. If the organisation needs that check, it is an organisation tool, for example a comparison of `west manifest --resolve` of the product with the organisation's pins.
 
 ## Start the layer
 

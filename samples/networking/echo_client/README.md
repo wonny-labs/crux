@@ -5,8 +5,7 @@
 One echo client, two compositions. The client in [`common/client.c`](common/client.c) uses only the standard socket
 profile of the [Networking contract](../../../docs/networking-contract.md): it sends a 32-byte message over TCP or UDP
 and checks the echo. Each composition prints the Crux Netif status, then exchanges one TCP echo (port 42420) and one
-UDP echo (port 42421) with a peer, and exits with status 0 only when both succeed. This sample was at
-`samples/networking/` (with `zephyr/`, `host/` and `client.*`) before the samples layout change.
+UDP echo (port 42421) with a peer, and exits with status 0 only when both succeed.
 
 | Part | Folder | Runs on |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Development history
 
-Status: **historical.** This folder holds the project's development history: how Crux was built and checked while this repository was its development and architecture-validation Pilot. It keeps milestone and run records, evidence tables with their row identifiers, investigation narratives, superseded proposals and the process text that once sat in the main documents. Nothing here is current guidance, with one exception: the [open questions of the first secure boot bench session](secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) are still open, and the maintained procedure and bench kit link them as such. The documentation link check does not read this folder, nor `docs/plans/`, `docs/evidence/`, `docs/superpowers/plans/`, `docs/baseline.md`, `docs/implementation-status.md` and `docs/m3-validation.md` (see `doc-links.toml`); links from a maintained page into them are still checked.
+Status: **historical.** This folder holds the project's development history: how Crux was built and checked while this repository was its development and architecture-validation Pilot. It keeps milestone and run records, evidence tables with their row identifiers, investigation narratives, superseded proposals and the process text that once sat in the main documents. Nothing here is current guidance, with one exception: the [open questions of the first secure boot bench session](secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) are still open, and the maintained procedure and bench kit link them as such.
 
 For current behaviour start at the [repository README](../../README.md) and the [documentation map](../README.md).
 
@@ -20,6 +20,7 @@ For current behaviour start at the [repository README](../../README.md) and the 
 | [`management-in-a-product-record.md`](management-in-a-product-record.md) | Owner-decision logistics and run notes of the secure management product guide |
 | [`restructure-edited-lines.md`](restructure-edited-lines.md) | The original wording of lines edited in place in the main documents during the restructure |
 | [`tests-readme-before-trim.md`](tests-readme-before-trim.md) | The test guide before it was cut to an index: per-suite case counts, replay methods, mutation controls, dated notes and one-board procedures |
+| [`patches-web-readmes-before-trim.md`](patches-web-readmes-before-trim.md) | Passages removed from the Zephyr patches README and the web READMEs: the MDIO first-failure diary, the wolfSSL derivation and licence narrative, owner-decision dates, and the flow and evidence tables |
 | [`execution-contract-proposal.md`](execution-contract-proposal.md), [`execution-validation.md`](execution-validation.md) | Superseded execution proposal and validation snapshot; current behaviour is in the [Thread and Sync contract](../thread-sync.md) |
 
 ## Historical records elsewhere in `docs/`

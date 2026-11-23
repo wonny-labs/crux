@@ -65,7 +65,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Flash and run to main** to build, download, reset and stop at `main`, or **Board: Attach (no reset)** to look at the image already running (it cannot stop at `main`, which has already run) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Debug** to build, download, reset and stop at `main`, or **Board: Attach** to look at the image already running (it cannot stop at `main`, which has already run) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
 
 Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-only `west attach` check with `compare-sections`, `west debug`, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
@@ -114,7 +114,7 @@ The board test tooling programs and restores only registered images. Each image 
 ## Known limits
 
 - Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
-- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach to a host GDB server**. It does not build or download: the ELF under `build/zephyr/mimxrt1060_evk_B_qspi` must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
+- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach (external)**. It does not build or download: the ELF under `build/zephyr/mimxrt1060_evk_B_qspi` must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).

@@ -81,7 +81,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
    west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
 
-   In VS Code, **Terminal > Run Task > Board: Build and flash (west flash)** runs the build of step 7 and then this command; **Board: Build and flash a sample (west flash)** builds and flashes the sample you pick from a list, `samples/hello_crux` or the Time sample, as [Part C of the tutorial](tutorial.md#13-flash-hello-crux) does. The flash runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
+   In VS Code, **Terminal > Run Task > Board: Build and flash (west flash)** runs the build of step 7 and then this command; **Board: Build and flash a sample (west flash)** builds and flashes the sample you pick from a list, `samples/hello_crux` or the Time sample, as [Part C of the tutorial](tutorial.md#14-flash-hello-crux) does. The flash runs J-Link Commander with the device `MIMXRT1062xxx6A` and the board's QSPI loader from Zephyr's `boards/nxp/mimxrt1060_evk/board.cmake`, loads the image and starts it. Do not give `--erase`, which mass-erases the flash. `west debug` with the same options also **loads the image** before it debugs; use `west attach` to debug an image that is already on the board. If `west` fails with only `JLinkExe exited with status 1`, run it again with `west -v flash ...` (or `west -v attach ...`) to see J-Link's own output.
 
 9. **Console, on Windows.** The container gets the probe's USB device, not the board's serial port. Open the DAPLink's COM port on Windows (Device Manager lists it under Ports) in a serial terminal at 115200 baud, 8-N-1. After a reset the Time sample prints the Zephyr boot banner and then:
 
@@ -136,8 +136,8 @@ Options of the J-Link runner:
 
 **VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
-- **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
-- **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board: Debug** builds the Time sample, downloads it, resets the board and stops at `main`.
+- **Board: Attach** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
 Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from that separate board configuration. Settings you may add to a local copy of a profile, none of them tried here:
 
