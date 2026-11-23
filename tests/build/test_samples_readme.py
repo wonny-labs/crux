@@ -45,6 +45,12 @@ class SamplesReadme(unittest.TestCase):
                           if f not in self.listed and f.split("/")[0] not in self.listed)
         self.assertEqual([], unlisted)
 
+    def test_every_web_example_has_a_readme(self):
+        examples = [p for p in (SAMPLES / "web").iterdir() if p.is_dir()]
+        self.assertTrue(examples)
+        missing = sorted(p.name for p in examples if not (p / "README.md").is_file())
+        self.assertEqual([], missing)
+
 
 if __name__ == "__main__":
     unittest.main()
