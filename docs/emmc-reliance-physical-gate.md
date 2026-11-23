@@ -96,14 +96,14 @@ For each of the Stage A steps above: the image, how it is built, and the command
 
 ### Building
 
-The Stage A images need the optional west group `crux-reliance` (see the [composition](emmc-reliance-composition.md)). From the west workspace root in the Dev Container, one build directory per image:
+The Stage A images need the optional west group `crux-reliance` (see the [composition](emmc-reliance-composition.md)). From the repository root in the Dev Container, one build directory per image:
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B/mimxrt1062/qspi' -d <build-dir> \
-    crux-pilot/tests/board_images/sd_card_power_cut_sequence -- -DCONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
+    tests/board_images/sd_card_power_cut_sequence -- -DCONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
 ```
 
-Replace the option as in the table, and leave out everything after `--` for the default image. The qualifier is the one that the link check uses (`mimxrt1060_evk@B/mimxrt1062/qspi`); the microSD records write the same target as `mimxrt1060_evk@B//qspi`. The restore image is the same command for `crux-pilot/samples/boards/nxp/mimxrt1060_evk/sd_card_file` with no `-D` option. `scripts/test-file-emmc-compile.sh` builds the five scenarios with Twister and sets the same options as `extra_configs`; it is the check, and these builds are separate from it. All of these are **test images, not for distribution**: do not commit, upload or store them, and put the SHA-256 of each `zephyr.elf`, with the source revision and the `.config` lines above, in the log of the run (precondition 6).
+Replace the option as in the table, and leave out everything after `--` for the default image. The qualifier is the one that the link check uses (`mimxrt1060_evk@B/mimxrt1062/qspi`); the microSD records write the same target as `mimxrt1060_evk@B//qspi`. The restore image is the same command for `samples/boards/nxp/mimxrt1060_evk/sd_card_file` with no `-D` option. `scripts/test-file-emmc-compile.sh` builds the five scenarios with Twister and sets the same options as `extra_configs`; it is the check, and these builds are separate from it. All of these are **test images, not for distribution**: do not commit, upload or store them, and put the SHA-256 of each `zephyr.elf`, with the source revision and the `.config` lines above, in the log of the run (precondition 6).
 
 ### Flashing, console and cuts
 

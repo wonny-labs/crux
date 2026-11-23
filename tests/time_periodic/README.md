@@ -60,10 +60,10 @@ retain reports/configuration/artefacts for 14 days.
 
 ### Run on `native_sim`
 
-From the west workspace root (`/workspace` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
+From the repository root (`/workspace/crux-pilot` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time_periodic crux-pilot/tests/time_periodic/zephyr -t run
+west build -p always -b native_sim/native/64 -d build/time_periodic tests/time_periodic/zephyr -t run
 ```
 
 The scenario prints one `cycle=` line per cycle and ends with `CONTROLLER_COMPLETE cycles=20`. The simulated kernel
@@ -71,7 +71,7 @@ keeps running after that line; stop it with Ctrl+C. Twister runs the same scenar
 [`zephyr/testcase.yaml`](zephyr/testcase.yaml) and stops at the completion line:
 
 ```sh
-west twister -T crux-pilot/tests/time_periodic/zephyr -p native_sim/native/64
+west twister -T tests/time_periodic/zephyr -p native_sim/native/64
 ```
 
 The EVKB build (`-b 'mimxrt1060_evk@B//qspi'`) is a cross-build in this repository's checks.

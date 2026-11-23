@@ -98,6 +98,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | `scripts/bootstrap.sh status` or the build log says `J-Link software is not installed` | Place the package or set the URL and checksum (step 3), then **Rebuild Container** |
 | Step 5 shows an empty `/dev/bus/usb` | The container started before the probe was attached; attach it (step 1). The folder is bound, so the probe should appear without a restart, which has not been tried; if it does not, run **Dev Containers: Rebuild Container** |
 | `Cannot activate the 'Cortex-Debug' extension` on the first creation | Choose **Reload Window** once. The volume `crux-vscode-extensions` keeps the extensions, so it should not come back; to reset them, remove the Dev Container (stopping it is not enough), then run `docker volume rm crux-vscode-extensions` |
+| The build log shows `curl: (60) SSL certificate problem: unable to get local issuer certificate` before the J-Link warning | A proxy re-signs HTTPS with your organisation's root CA, which the image does not trust. Add it as [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) says, then run **Dev Containers: Rebuild Container** |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
@@ -133,7 +134,7 @@ Options of the J-Link runner:
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
+**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
@@ -144,7 +145,7 @@ Neither profile has been run. As reported by the maintainer, Cortex-Debug is in 
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
 - `rttConfig`: an RTT console, for an image built with Zephyr's RTT console instead of the UART.
 
-The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
+Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
 
 ## Not covered
 
