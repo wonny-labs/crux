@@ -114,7 +114,7 @@ There is one Dev Container, [`.devcontainer/devcontainer.json`](../.devcontainer
 
 ### CI and automated image builds
 
-CI and every other automated build of the Dev Container image pass `--build-arg CRUX_JLINK=0`, so they never download from SEGGER and accept no terms of use for anyone. They need no J-Link software, because no automated job flashes or debugs a board (ADR-0007, W2). Build the image from the repository root with:
+CI and every other automated build of the Dev Container image pass `--build-arg CRUX_JLINK=0`, so they never download from SEGGER and accept no terms of use for anyone. They need no J-Link software, because no CI workflow flashes, resets or attaches to a board (ADR-0007, W2). An agent that flashes under W0 and W1 does so in the people's Dev Container, built with `auto`. Build the image from the repository root with:
 
 ~~~sh
 docker build --platform linux/amd64 --build-arg CRUX_JLINK=0 -f .devcontainer/Dockerfile -t crux-dev .
