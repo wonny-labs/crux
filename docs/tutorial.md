@@ -25,8 +25,8 @@ It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.s
 
 ### 2. Run Hello Crux on the Linux Host
 
-`samples/hello_crux` is the smallest application that uses Crux. Its Host program is a separate CMake project that
-is its own CMake project:
+`samples/hello_crux` is the smallest application that uses Crux. Its Host program is its own CMake
+project:
 
 ```sh
 cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
