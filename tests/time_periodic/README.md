@@ -31,7 +31,7 @@ must exit successfully. The [execution investigation](../../docs/execution-profi
 ### Build and run without hardware
 
 `scripts/check-host.sh` builds and tests the scenario with the other tests, and `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh`
-adds ASan/UBSan. `CRUX_BUILD_TIME_PERIODIC_SCENARIO` controls the host executable; its default follows
+adds ASan/UBSan. The Host program is `build/linux/debug/samples/controller/host/crux-time-periodic-host`. The scenario needs no RTC and writes none. `CRUX_BUILD_TIME_PERIODIC_SCENARIO` controls the host executable; its default follows
 `CRUX_BUILD_HOST_SAMPLE`. CTest runs it as `TimePeriodic.HostScenario` through
 [`scripts/check-time-periodic.py`](../../scripts/check-time-periodic.py).
 

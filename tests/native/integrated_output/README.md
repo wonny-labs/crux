@@ -11,5 +11,5 @@ lossless handler reject whitespace, ANSI, duplication, truncation and sequence
 corruption; a seventh rejects producer work moved across the explicit fixture
 fault/boot boundary.
 
-The payload values are synthetic and the fixture touches no hardware. It is an output-path and bounded-workload check; the
+Except the logger resource query, the payload values are synthetic, and the fixture touches no hardware. It is an output-path and bounded-workload check; the
 target oracles and limits are in [the controller validation record](../../../docs/m3-validation.md).

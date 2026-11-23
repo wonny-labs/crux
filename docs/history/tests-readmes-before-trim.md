@@ -1,6 +1,6 @@
 # Test READMEs before the verbosity trim
 
-Status: historical. Passages removed from READMEs under `tests/` in the November 2026 verbosity trim, moved word for word from revision 57f9142: authorship notes, test-run narratives, evidence results and local log names, and design commentary that the current READMEs no longer carry. The current READMEs are under [`tests/`](../../tests/). Measured results live in the records they cite.
+Status: historical. Passages without another home, removed from READMEs under `tests/` in the November 2026 verbosity trim, moved word for word from revision 57f9142: authorship notes, test-run narratives, evidence results and local log names, and design commentary that the current READMEs no longer carry. The current READMEs are under [`tests/`](../../tests/). Measured results live in the records they cite.
 
 ## `tests/execution_runtime/README.md`
 
