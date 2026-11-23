@@ -71,7 +71,7 @@ A current-state page states what is true at the revision it is read from. Outsid
 - **Verification trails**: `ran once on`, `has not been run yet`, `not yet verified`, `as reported by`.
 - **Measurements of a run**: durations, sizes and timings from a run. A limit or guarantee that a contract makes is a fact, not a measurement.
 - **Status lines**: only dated pages carry one at the top, such as `Proposal, not adopted`.
-- **Routes that have not been run**: a procedure appears as steps only after it has been run. Until then the issue or a record holds it, and the page's Known limits states the supported routes as a current fact.
+- **Routes that have not been run**: a procedure appears as steps only after it has been run. Until then the issue or a record holds it, and a known-limits note states the supported routes as a current fact.
 
 Write the current rule instead of the change:
 
@@ -96,7 +96,7 @@ Only the Crux board pages describe a board that Crux supports. A product reposit
 
 | Check | What it enforces |
 | --- | --- |
-| [`test_docs_page_types.py`](../tests/build/test_docs_page_types.py) | Current-state pages hold no more change, provenance or status markers than their allowlist entry in the fixture. Lower an entry when you fix a page; never raise one. |
+| [`test_docs_page_types.py`](../tests/build/test_docs_page_types.py) | Current-state pages hold no more change, provenance or status markers than their allowlist entry in the fixture. Lower or remove an entry when you fix a page; never raise one. Raise a false positive in review. |
 | [`test_docs_onboarding.py`](../tests/build/test_docs_onboarding.py) | The structure of section 6 |
 | [`test_readme_scope.py`](../tests/build/test_readme_scope.py) | No history or lifecycle markers in the repository README |
 | `scripts/check_docs.py` | Local links and anchors, as [CONTRIBUTING.md](../CONTRIBUTING.md#documentation) describes |
