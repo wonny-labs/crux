@@ -6,7 +6,7 @@ the [management API specification](../../../web/api/openapi.yaml), and passes th
 [the advanced flows](../../../docs/web-advanced-flows.md) describe the last two. Crux ships no Angular components. A product may copy or adapt
 this example, but Crux does not maintain it as a starting template. The product owns its application UI.
 
-The flows and the evidence state of both examples are in the [web guide](../../../web/README.md#core-and-advanced-flows).
+The flows and the evidence state of both examples are in the [web guide](../../../web/README.md#flows).
 
 | Topic | How it is set here |
 | --- | --- |
