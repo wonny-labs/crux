@@ -143,7 +143,7 @@ Neither profile has been run. As reported by the maintainer, Cortex-Debug is in 
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
 - `rttConfig`: an RTT console, for an image built with Zephyr's RTT console instead of the UART.
 
-The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page and are unchanged. Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
+The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page. Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
 
 ## Not covered
 

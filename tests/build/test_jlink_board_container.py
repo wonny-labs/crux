@@ -245,6 +245,15 @@ class BoardDebugProfilesTest(unittest.TestCase):
         extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
         self.assertIn("marus25.cortex-debug", extensions)
 
+    def test_each_debug_extension_serves_a_profile(self):
+        # Cortex-Debug runs the Board profiles and C/C++ (cppdbg) the Mac EVKB QSPI profiles;
+        # no other debug front-end is installed.
+        extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        types = {profile["type"] for profile in self.launch.values()}
+        self.assertEqual(types, {"cortex-debug", "cppdbg"})
+        self.assertIn("ms-vscode.cpptools", extensions)
+        self.assertNotIn("Arm.vscode-cmsis-debugger", extensions)
+
 
 class InstallScriptTest(unittest.TestCase):
     """Runs install-jlink.sh against stub tools; nothing is installed."""
