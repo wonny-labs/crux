@@ -112,6 +112,16 @@ There is one Dev Container, [`.devcontainer/devcontainer.json`](../.devcontainer
 - It binds the host's `/dev/bus/usb` with `docker run -v` (in `runArgs`) and allows only USB character devices (`--device-cgroup-rule=c 189:* rmw`). It does not use `--privileged`. `-v` creates the folder when it does not exist yet, as on WSL2 before the first `usbipd attach`, where a `mounts` entry would stop the container from starting. A probe attached after the container started, or one that re-enumerates, should appear in the bound folder; that has not been tried. **Security:** this gives every container the host's USB device nodes, for everyone who uses it, with or without a board. The `vscode` user can become root in the container with `sudo`, and root in the container can open any of those USB devices (keyboards, security keys, storage and other devices) whatever the node's permissions, because the cgroup rule allows all USB character devices. On native Linux that means any process in the container can reach every USB device of the PC. Use the container only with code you trust, as with any Dev Container.
 - It adds the Cortex-Debug extension (below).
 
+### CI and automated image builds
+
+CI and every other automated build of the Dev Container image pass `--build-arg CRUX_JLINK=0`, so they never download from SEGGER and accept no terms of use for anyone. They need no J-Link software, because no automated job flashes or debugs a board (ADR-0007, W2). Build the image from the repository root with:
+
+~~~sh
+docker build --platform linux/amd64 --build-arg CRUX_JLINK=0 -f .devcontainer/Dockerfile -t crux-dev .
+~~~
+
+`devcontainer.json` keeps `CRUX_JLINK=auto` for people. A job that builds or starts the image through `devcontainer.json`, for example with the Dev Container CLI, takes that `auto` and downloads; build the image with the command above instead and run the job in it. No GitHub workflow of this repository builds the Dev Container image today.
+
 `CRUX_JLINK_DEB` picks one of several packages in the folder by file name. Build provenance hashes `devcontainer.json` and the Dockerfile; it does not record whether a J-Link package was installed. A package left in `packages/` is copied into every image build.
 
 Options of the J-Link runner:

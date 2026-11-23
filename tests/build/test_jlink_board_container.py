@@ -23,6 +23,8 @@ BOARD = DEVCONTAINER / "jlink"
 INSTALL = BOARD / "install-jlink.sh"
 DOCKERFILE = DEVCONTAINER / "Dockerfile"
 SEGGER_ENDPOINT = "https://www.segger.com/downloads/jlink/"
+CI_IMAGE_BUILD = ("docker build --platform linux/amd64 --build-arg CRUX_JLINK=0 "
+                  "-f .devcontainer/Dockerfile -t crux-dev .")
 BASE_IMAGE = ("mcr.microsoft.com/devcontainers/base:ubuntu-24.04"
               "@sha256:d94c97dd9cacf183d0a6fd12a8e87b526e9e928307674ae9c94139139c0c6eae")
 
@@ -90,6 +92,27 @@ class BoardContainerConfigTest(unittest.TestCase):
         self.assertIn("ARG CRUX_JLINK=auto", text)
         self.assertIn("ARG CRUX_JLINK_URL=", text)
         self.assertNotIn("curl ", lowered)
+
+    def test_ci_and_automated_image_builds_skip_jlink(self):
+        # CI and other automated image builds never download from SEGGER: the documented build
+        # command passes CRUX_JLINK=0, and every docker build line in the current docs does too.
+        guide = (REPO / "docs" / "board-jlink-usbipd.md").read_text()
+        self.assertIn(CI_IMAGE_BUILD, guide)
+        self.assertIn("--build-arg CRUX_JLINK=0", DOCKERFILE.read_text())
+        skipped = ("docs/evidence/", "docs/history/", "docs/plans/", "docs/baseline.md")
+        documented = []
+        for path in sorted(REPO.glob("docs/**/*.md")) + sorted(REPO.glob("*.md")):
+            rel = path.relative_to(REPO).as_posix()
+            if rel.startswith(skipped):
+                continue
+            for line in path.read_text().splitlines():
+                if re.search(r"\bdocker build\b.*\.devcontainer/Dockerfile", line):
+                    documented.append((rel, line.strip()))
+        self.assertTrue(documented)
+        for rel, line in documented:
+            self.assertIn("--build-arg CRUX_JLINK=0", line, rel)
+        # People's Dev Container builds keep auto.
+        self.assertEqual(self.config["build"]["args"]["CRUX_JLINK"], "auto")
 
     def test_segger_version_and_checksum_are_pinned_once_in_the_dockerfile(self):
         # A bump changes these two values and nothing else.

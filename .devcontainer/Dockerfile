@@ -45,6 +45,8 @@ ENV CC=clang-18 \
 # install-jlink.sh). CRUX_JLINK=auto (devcontainer.json) installs it and, when
 # none of the three gives a package, prints a warning and builds the image
 # without it, so Host and native_sim work for everyone; 1 requires it; 0 skips it.
+# CI and other automated image builds pass --build-arg CRUX_JLINK=0, so they
+# never download from SEGGER (docs/board-jlink-usbipd.md).
 # To bump J-Link, change the two CRUX_JLINK_SEGGER_* values together.
 ARG CRUX_JLINK=auto
 ARG CRUX_JLINK_DEB=
