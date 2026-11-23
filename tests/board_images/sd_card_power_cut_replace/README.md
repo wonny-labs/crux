@@ -12,5 +12,3 @@ Do not flash the test image until the physical gate is approved for the current 
   `../sd_card_power_cut_append`. The image of `../sd_card_power_cut_sequence` reuses its sources.
 
 Procedure and results: [microSD physical gate](../../../docs/microsd-physical-gate.md).
-
-Old path: `samples/storage_sd_replace` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).
