@@ -76,6 +76,17 @@ fi
 mkdir -p "{self.workspace}/.west" "{self.workspace}/zephyr" "{sdk}/gnu/arm-zephyr-eabi/bin"
 touch "{self.workspace}/.west/config"
 """)
+        # `west completion bash` is a Zephyr extension command: it works only in the workspace.
+        self.west_cwd = root / "west-cwd"
+        self.stub(self.bin / "west", f"""
+if [ "$1 $2" = "completion bash" ] && [ "${{FAKE_WEST_COMPLETION_STATUS:-0}}" = 0 ]; then
+    pwd > "{self.west_cwd}"
+    echo "complete -W 'build flash' west"
+    exit 0
+fi
+echo 'west: unknown command "completion"; do you need to run this inside a workspace?' >&2
+exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
+""")
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -238,6 +249,61 @@ touch "{self.workspace}/.west/config"
         self.stub(self.bin / "crux-test-jlink-exe", "exit 0\n")
         result = self.run_bootstrap("host")
         self.assertNotIn("J-Link software is not installed", result.stdout)
+
+    def completion(self, base=None):
+        base = Path(base) if base else Path(self.temporary.name) / ".local" / "share" / "bash-completion"
+        return base / "completions" / "west.bash"
+
+    def test_west_completion_written_to_the_user_directory_from_the_workspace(self):
+        result = self.run_bootstrap()
+        self.assertOk(result)
+        self.assertEqual(self.completion().read_text(), "complete -W 'build flash' west\n")
+        self.assertEqual(Path(self.west_cwd.read_text().strip()).resolve(), self.workspace.resolve())
+        self.assertIn(str(self.completion()), result.stdout)
+
+    def test_west_completion_follows_the_bash_completion_user_directory(self):
+        xdg = Path(self.temporary.name) / "xdg"
+        self.assertOk(self.run_bootstrap(XDG_DATA_HOME=str(xdg)))
+        self.assertTrue(self.completion(xdg / "bash-completion").is_file())
+        first, second = Path(self.temporary.name) / "first", Path(self.temporary.name) / "second"
+        self.assertOk(self.run_bootstrap(BASH_COMPLETION_USER_DIR=f"{first}:{second}"))
+        self.assertTrue(self.completion(first).is_file())
+        self.assertFalse(second.exists())
+
+    def test_west_completion_is_rewritten_on_every_run(self):
+        self.assertOk(self.run_bootstrap())
+        self.completion().write_text("stale\n")
+        result = self.run_bootstrap()  # every step is already done
+        self.assertOk(result)
+        self.assertIn("bootstrap: zephyr already done", result.stdout)
+        self.assertEqual(self.completion().read_text(), "complete -W 'build flash' west\n")
+
+    def test_failed_west_completion_only_warns(self):
+        self.assertOk(self.run_bootstrap())
+        before = self.run_bootstrap("status").stdout
+        for arguments in ((), ("--keep-going",)):
+            result = self.run_bootstrap(*arguments, FAKE_WEST_COMPLETION_STATUS="1")
+            self.assertOk(result)
+            self.assertIn("warning:", result.stderr)
+            self.assertIn("west", result.stderr)
+            self.assertNotIn("FAILED", result.stdout + result.stderr)
+            self.assertNotIn("not finished", result.stderr)
+            # The script from the last good run stays, and no partial file is left beside it.
+            self.assertEqual(self.completion().read_text(), "complete -W 'build flash' west\n")
+            self.assertEqual(sorted(p.name for p in self.completion().parent.iterdir()), ["west.bash"])
+        self.assertEqual(self.run_bootstrap("status").stdout, before)
+
+    def test_failed_west_completion_on_the_first_run_writes_nothing(self):
+        result = self.run_bootstrap(FAKE_WEST_COMPLETION_STATUS="1")
+        self.assertOk(result)
+        self.assertIn("bootstrap: zephyr ok", result.stdout)
+        self.assertFalse(self.completion().exists())
+
+    def test_west_completion_only_with_a_ready_workspace(self):
+        self.assertOk(self.run_bootstrap("host"))
+        self.assertFalse(self.west_cwd.exists())
+        self.assertOk(self.run_bootstrap("--keep-going", FAKE_ZEPHYR_STATUS="4"))
+        self.assertFalse(self.west_cwd.exists())
 
     def test_needs_linux(self):
         result = self.run_bootstrap(FAKE_UNAME="Darwin")
