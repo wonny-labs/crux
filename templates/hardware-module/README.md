@@ -4,7 +4,7 @@ A starting point for an organisation's shared hardware module: a Zephyr module t
 
 Read [Shared boards and drivers across products](../../docs/shared-hardware-modules.md) first. It says when a board or driver belongs here rather than in a product repository or in upstream Zephyr. The products import this module through the [organisation manifest](../organisation-manifest/README.md).
 
-**Status: a template, not built.** No CI of Crux builds this directory yet, and nothing here has run on a board or on `native_sim`. Its structure is checked by `tests/build/test_shared_hardware_templates.py`. The board files are placeholders: the image does not boot, because the board carries no flash configuration block and no device configuration data.
+The board files are placeholders: the image does not boot, because the board carries no flash configuration block and no device configuration data.
 
 | Path | Purpose |
 | --- | --- |
@@ -50,4 +50,4 @@ The module keeps its name, `acme-hw`, from `zephyr/module.yml`, so this checkout
 
 ## The example driver
 
-The product driver kit (`docs/writing-a-product-driver.md` and the module skeleton in `templates/product/`) adds an example I2C sensor driver with an emulator and tests. When that kit has been reviewed, its driver either moves here as the first shared driver or is referenced from here, so that the repository holds one copy. Until then, `drivers/CMakeLists.txt` and `drivers/Kconfig` show the wiring as comments, and this template carries no driver code.
+The product driver kit (`docs/writing-a-product-driver.md` and the module skeleton in `templates/product/`) adds an example I2C sensor driver with an emulator and tests. `drivers/CMakeLists.txt` and `drivers/Kconfig` show the wiring as comments, and this template carries no driver code.
