@@ -21,7 +21,7 @@ a product builds its own interface or starts from an example.
 
 ## Flows
 
-Both examples cover the core flows (sign-in and sign-out, session expiry, forced password change, status, simple configuration update) (a configuration update runs on the mock only) and the advanced network settings and reboot flows; see [the advanced flows](../docs/web-advanced-flows.md). The [end-to-end design](../docs/e2e-native-220.md) records what each target (mock, Host, `native_sim`, physical) shows.
+Both examples cover the core flows (sign-in and sign-out, session expiry, forced password change, status, simple configuration update, on the mock only) and the advanced network settings and reboot flows; see [the advanced flows](../docs/web-advanced-flows.md). The [end-to-end design](../docs/e2e-native-220.md) records what each target (mock, Host, `native_sim`, physical) shows.
 
 ## How a product builds its own interface or starts from an example
 
