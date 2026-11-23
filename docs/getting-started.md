@@ -81,7 +81,7 @@ The first set-up downloads from these places. Each one has to be reachable, dire
 | west projects | `github.com` (`zephyrproject-rtos` by default; the `wolfSSL` and `tuxera` projects only when their optional west groups are enabled, see `west.yml`) | `west update` in `scripts/bootstrap-zephyr.sh` |
 | GoogleTest | A source archive from `github.com/google/googletest`, fetched by CMake (`CMakeLists.txt`) | The first Host configure, in the host step of `scripts/bootstrap.sh` (`scripts/bootstrap-host.sh`) |
 | Zephyr SDK | Zephyr SDK release assets on GitHub. `west sdk install` looks the release up through the GitHub REST API | The zephyr step of `scripts/bootstrap.sh` (`scripts/bootstrap-zephyr.sh --install-sdk`) |
-| J-Link software, only for a board | A package you download from SEGGER, or a copy your organisation hosts (`CRUX_JLINK_URL`) | The image build ([board route](board-jlink-usbipd.md#steps), step 3) |
+| J-Link software | `www.segger.com` (the pinned version, downloaded by the image build unless a placed package or `CRUX_JLINK_URL` overrides it, or `CRUX_JLINK=0` skips it) | The image build ([board route](board-jlink-usbipd.md#steps), step 3) |
 
 What the code does about the network:
 
@@ -143,7 +143,7 @@ To run Crux on a board you need the board's debug probe and a USB connection for
 
 **The container can open the host's USB devices.** So that a debug probe works without a second configuration, the Dev Container binds the host's `/dev/bus/usb` and allows USB character devices (`--device-cgroup-rule=c 189:* rmw`); it does not use `--privileged`. The `vscode` user can use `sudo`, so a process in the container can open any USB device of the host, such as a keyboard, a security key or a storage device, whether or not you have a board. Use it with code you trust. If a security policy does not allow this, a configuration without the USB binding and the cgroup rule can be added back next to this one; Host and `native_sim` work need neither.
 
-For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up for the probe; three things are yours, once:
+For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up for the probe and its build installs the J-Link software; two things are yours, once, and a third is optional:
 
 1. In PowerShell on Windows (install [usbipd-win](https://github.com/dorssel/usbipd-win) first; `bind` needs an administrator PowerShell, once per device; keep the `attach` window open):
 
@@ -159,11 +159,11 @@ For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up fo
    scripts/bootstrap.sh board-host
    ~~~
 
-3. Put the J-Link package `JLink_Linux_<version>_x86_64.deb` from SEGGER in `.devcontainer/jlink/packages/` and run **Dev Containers: Rebuild Container**.
+3. Optional: nothing to do for the J-Link software. Every Dev Container build, with or without a board, downloads the J-Link version pinned in the Dockerfile from SEGGER (about 75 MB) and installs it only if its SHA-256 matches. **That download accepts SEGGER's terms of use for you.** To use your own copy instead, put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy your organisation hosts, then run **Dev Containers: Rebuild Container**; the build argument `CRUX_JLINK=0` skips the J-Link software. CI and other automated image builds always pass `--build-arg CRUX_JLINK=0` ([CI and automated image builds](board-jlink-usbipd.md#ci-and-automated-image-builds)).
 
-These three stay manual because nothing inside the container can do them: `usbipd` runs on Windows and `bind` needs an administrator; the udev rule belongs to the Linux system that owns the probe and needs `sudo` there, which the container's automatic set-up cannot ask for; and the SEGGER licence has to be accepted by you, so the package is never downloaded for you. After that, building, flashing and debugging run from VS Code tasks and debug profiles ([J-Link board route](board-jlink-usbipd.md)).
+Steps 1 and 2 stay manual because nothing inside the container can do them: `usbipd` runs on Windows and `bind` needs an administrator; the udev rule belongs to the Linux system that owns the probe and needs `sudo` there, which the container's automatic set-up cannot ask for. After that, building, flashing and debugging run from VS Code tasks and debug profiles ([J-Link board route](board-jlink-usbipd.md)).
 
-On native Linux skip step 1. On a Windows PC with WSL2, the attach (without `--auto-attach`), the Linux-side checks done by hand and a placed package have been run once; `scripts/bootstrap.sh board-host` itself has not. The [J-Link board route](board-jlink-usbipd.md) has the checks, the flash and what to do when a step fails. Without the package, the container works for everything except flashing and debugging, and `scripts/bootstrap.sh status` says how to add it.
+On native Linux skip step 1. On a Windows PC with WSL2, the attach (without `--auto-attach`), the Linux-side checks done by hand and a placed package have been run once; `scripts/bootstrap.sh board-host` itself has not. The [J-Link board route](board-jlink-usbipd.md) has the checks, the flash and what to do when a step fails. The image build's own J-Link download has not been run in an image build yet. If the download fails, the build finishes without the J-Link software and the container works for everything except flashing and debugging; `scripts/bootstrap.sh status` says how to add a package, and **Dev Containers: Rebuild Container Without Cache** tries the download again (a plain rebuild can reuse the cached step).
 
 ## 8. Supported environments
 

@@ -37,17 +37,23 @@ ENV CC=clang-18 \
     CXX=clang++-18
 
 # SEGGER J-Link software for flashing and debugging a board (see ADR-0007 and
-# docs/board-jlink-usbipd.md). The package comes from a file the developer
-# downloaded and placed in .devcontainer/jlink/packages/, or from
-# CRUX_JLINK_URL, a copy that an organisation hosts, checked against
-# CRUX_JLINK_DEB_SHA256. Nothing is downloaded from SEGGER (see
-# install-jlink.sh). CRUX_JLINK=auto (devcontainer.json) installs it when one
-# of the two is given and otherwise prints a warning and builds the image
+# docs/board-jlink-usbipd.md). The package comes from the first of: a file the
+# developer placed in .devcontainer/jlink/packages/; CRUX_JLINK_URL, a copy that
+# an organisation hosts, checked against CRUX_JLINK_DEB_SHA256; the version
+# pinned below, downloaded from SEGGER's download endpoint and checked against
+# the pinned SHA-256. That download accepts SEGGER's terms of use (see
+# install-jlink.sh). CRUX_JLINK=auto (devcontainer.json) installs it and, when
+# none of the three gives a package, prints a warning and builds the image
 # without it, so Host and native_sim work for everyone; 1 requires it; 0 skips it.
+# CI and other automated image builds pass --build-arg CRUX_JLINK=0, so they
+# never download from SEGGER (docs/board-jlink-usbipd.md).
+# To bump J-Link, change the two CRUX_JLINK_SEGGER_* values together.
 ARG CRUX_JLINK=auto
 ARG CRUX_JLINK_DEB=
 ARG CRUX_JLINK_DEB_SHA256=
 ARG CRUX_JLINK_URL=
+ARG CRUX_JLINK_SEGGER_VERSION=V996a
+ARG CRUX_JLINK_SEGGER_SHA256=e23591160efa39e0f9e184031195a594d962853a801a1261b168a02644ab2a0a
 COPY .devcontainer/jlink/ /tmp/crux-jlink/
 RUN if [ "$CRUX_JLINK" != 0 ]; then \
         sh /tmp/crux-jlink/install-jlink.sh /tmp/crux-jlink/packages \

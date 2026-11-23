@@ -9,7 +9,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 ## What you need
 
 - On Windows: WSL2 with Docker Engine inside it (not Docker Desktop) and the clone in the WSL2 file system, as [Getting started](getting-started.md) describes. On native Linux: Docker Engine.
-- The SEGGER J-Link software for Linux, the 64-bit x86 Debian package `JLink_Linux_<version>_x86_64.deb`, downloaded by you from SEGGER after accepting its licence, or the URL and SHA-256 of a copy that your organisation hosts (step 3). The Zephyr runner applies the board's QSPI flash loader only with J-Link software 7.70d or newer.
+- Nothing to download by hand for the J-Link software: the Dev Container build downloads the pinned version of SEGGER's Linux x86_64 Debian package itself (step 3). A package you place or a copy that your organisation hosts overrides it. The Zephyr runner applies the board's QSPI flash loader only with J-Link software 7.70d or newer.
 - The Zephyr workspace, which the Dev Container sets up by itself with `scripts/bootstrap.sh` (it runs `scripts/bootstrap-zephyr.sh`, which installs `pylink-square` for the J-Link runner). `scripts/bootstrap.sh status` shows whether it finished.
 
 ## Steps
@@ -37,9 +37,13 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
    The script stops with advice if the node is neither. A probe that re-enumerates gets a new node, which on WSL2 may not get the rule (`crw-rw-r--` with owner `root`), so run it again after a reattach. It refuses to run inside the container. It never talks to the probe or the board.
 
-3. **The J-Link package.** Put `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it. If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) instead, and the build downloads it and checks its SHA-256. A placed package wins over the URL. Without either, the image is built without the J-Link software and the build log, and `scripts/bootstrap.sh status` in the container, say which file to place where. Nothing is downloaded from SEGGER, and no licence is accepted for you.
+3. **The J-Link package (optional step).** By default you do nothing here: the image build downloads the J-Link version pinned in the [Dockerfile](../.devcontainer/Dockerfile) (`CRUX_JLINK_SEGGER_VERSION`) from SEGGER's download endpoint and installs it only if its SHA-256 matches `CRUX_JLINK_SEGGER_SHA256`. **The download accepts SEGGER's terms of use for you, as clicking the download on SEGGER's page does; if you do not accept them, use one of the overrides below.** If the download fails or the SHA-256 does not match, the build prints a warning, installs nothing and finishes without the J-Link software; a plain rebuild can reuse that cached step, so use **Dev Containers: Rebuild Container Without Cache** to try the download again. This download has not been run in an image build yet. Two overrides, in this order, win over the download:
+   - Put a `JLink_Linux_<version>_x86_64.deb` in [`.devcontainer/jlink/packages/`](../.devcontainer/jlink/packages/README.md); Git ignores it.
+   - If your organisation hosts a copy after accepting the SEGGER licence itself, set the build arguments `CRUX_JLINK_URL` (an `https://` URL) and `CRUX_JLINK_DEB_SHA256` in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json); the build downloads it and checks its SHA-256.
 
-4. **VS Code: open the Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** (**Rebuild Container** if it is already open), so that the image picks up the package. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
+   To move to another J-Link version, change the two `CRUX_JLINK_SEGGER_*` values in the Dockerfile together.
+
+4. **VS Code: open the Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** (**Rebuild Container** if it is already open), so that the image gets the J-Link software. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
 
 5. **In the container: check the probe and the tools.** Run this and every later command in the container from the repository root, the folder VS Code opens (`/workspace/crux-pilot`):
 
@@ -104,9 +108,19 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 
 There is one Dev Container, [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json), and it is ready for a board. Without a probe or a J-Link package it works the same for Host and `native_sim` work. For the board it does three things:
 
-- The build argument `CRUX_JLINK=auto` runs [`install-jlink.sh`](../.devcontainer/jlink/install-jlink.sh), which installs the J-Link package and `usbutils` and adds the `vscode` user to `plugdev` (ID 46 on Debian and Ubuntu) when a package or URL is given (step 3), and otherwise prints a warning and installs nothing. `CRUX_JLINK=1` makes a missing package an error; `0` skips the step. The package's install script calls `udevadm`, which the image does not have, so `install-jlink.sh` provides a no-op `/usr/sbin/udevadm` during the install only and removes it afterwards; the udev rule acts on the Linux side, not in the container.
+- The build argument `CRUX_JLINK=auto` runs [`install-jlink.sh`](../.devcontainer/jlink/install-jlink.sh), which installs the J-Link package and `usbutils` and adds the `vscode` user to `plugdev` (ID 46 on Debian and Ubuntu). The package comes from a placed file, then `CRUX_JLINK_URL`, then the pinned SEGGER download (step 3); when none gives a package that passes its SHA-256 check, it prints a warning and installs nothing. `CRUX_JLINK=1` makes a missing package an error; `0` skips the step, including the download. The package's install script calls `udevadm`, which the image does not have, so `install-jlink.sh` provides a no-op `/usr/sbin/udevadm` during the install only and removes it afterwards; the udev rule acts on the Linux side, not in the container.
 - It binds the host's `/dev/bus/usb` with `docker run -v` (in `runArgs`) and allows only USB character devices (`--device-cgroup-rule=c 189:* rmw`). It does not use `--privileged`. `-v` creates the folder when it does not exist yet, as on WSL2 before the first `usbipd attach`, where a `mounts` entry would stop the container from starting. A probe attached after the container started, or one that re-enumerates, should appear in the bound folder; that has not been tried. **Security:** this gives every container the host's USB device nodes, for everyone who uses it, with or without a board. The `vscode` user can become root in the container with `sudo`, and root in the container can open any of those USB devices (keyboards, security keys, storage and other devices) whatever the node's permissions, because the cgroup rule allows all USB character devices. On native Linux that means any process in the container can reach every USB device of the PC. Use the container only with code you trust, as with any Dev Container.
 - It adds the Cortex-Debug extension (below).
+
+### CI and automated image builds
+
+CI and every other automated build of the Dev Container image pass `--build-arg CRUX_JLINK=0`, so they never download from SEGGER and accept no terms of use for anyone. They need no J-Link software, because no CI workflow flashes, resets or attaches to a board (ADR-0007, W2). An agent that flashes under W0 and W1 does so in the people's Dev Container, built with `auto`. Build the image from the repository root with:
+
+~~~sh
+docker build --platform linux/amd64 --build-arg CRUX_JLINK=0 -f .devcontainer/Dockerfile -t crux-dev .
+~~~
+
+`devcontainer.json` keeps `CRUX_JLINK=auto` for people. A job that builds or starts the image through `devcontainer.json`, for example with the Dev Container CLI, takes that `auto` and downloads; build the image with the command above instead and run the job in it. No GitHub workflow of this repository builds the Dev Container image today.
 
 `CRUX_JLINK_DEB` picks one of several packages in the folder by file name. Build provenance hashes `devcontainer.json` and the Dockerfile; it does not record whether a J-Link package was installed. A package left in `packages/` is copied into every image build.
 

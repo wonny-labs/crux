@@ -267,7 +267,7 @@ board up as its guide says before you start. Any operation on a board, such as c
 download, needs approval for your task.
 
 The board guide has two routes. On Linux, and on Windows with WSL2, the J-Link software runs in the Dev Container (it is
-installed when the J-Link package is provided; see [Getting started](getting-started.md#7-if-you-use-a-board)) and
+downloaded and installed by the image build; see [Getting started](getting-started.md#7-if-you-use-a-board)) and
 `west flash` downloads the image: the steps below follow it. On a Mac, the J-Link GDB Server runs on the Mac and the VS
 Code profile **EVKB QSPI: Flash** downloads only the Time sample, not `hello_crux`. The commands and options are in the
 board guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
