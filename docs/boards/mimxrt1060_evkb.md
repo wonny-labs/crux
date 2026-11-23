@@ -97,7 +97,7 @@ Without either option the build directory is the one that the VS Code profiles a
 |---|---|---|
 | The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
 
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. On Linux and WSL2 the Dev Container has the J-Link software once its package is given (see [Probe and connection](#probe-and-connection)).
+On Linux and WSL2 the Dev Container has the J-Link software once its package is given (see [Probe and connection](#probe-and-connection)).
 
 ## Recovery
 
@@ -114,7 +114,7 @@ The board test tooling programs and restores only registered images. Each image 
 ## Known limits
 
 - Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
-- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach to a host GDB server**.
+- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach to a host GDB server**. It does not build or download: the ELF under `build/zephyr/mimxrt1060_evk_B_qspi` must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).
