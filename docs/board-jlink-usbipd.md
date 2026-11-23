@@ -137,7 +137,7 @@ Options of the J-Link runner:
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
-Cortex-Debug depends on four extensions from the `mcu-debug` publisher (`mcu-debug.debug-tracker-vscode`, `mcu-debug.memory-view`, `mcu-debug.rtos-views`, `mcu-debug.peripheral-viewer`, as listed in its `package.json`), so `devcontainer.json` lists them before it. If VS Code still shows "Cannot activate the 'Cortex-Debug' extension because it depends on ... not loaded" when the container is created for the first time, choose **Reload Window** once; it does not come back in that container. This ordering has not been verified by a container rebuild.
+Cortex-Debug depends on four extensions from the `mcu-debug` publisher (`mcu-debug.debug-tracker-vscode`, `mcu-debug.memory-view`, `mcu-debug.rtos-views`, `mcu-debug.peripheral-viewer`, as listed in its `package.json`), so `devcontainer.json` lists them before it. If VS Code still shows "Cannot activate the 'Cortex-Debug' extension because it depends on ... not loaded" when the container is created for the first time, choose **Reload Window** once; it should not come back in that container. This ordering has not been verified by a container rebuild.
 
 Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from that separate board configuration. Settings you may add to a local copy of a profile, none of them tried here:
 
