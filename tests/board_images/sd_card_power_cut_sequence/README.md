@@ -21,5 +21,3 @@ All board scenarios are link only here. Do not flash them until the physical gat
   and `sd_replace.c` of the two FatFs power-cut images unchanged, behind the shim header `sd_storage.h`.
 
 Procedure: [eMMC and Reliance Edge physical gate](../../../docs/emmc-reliance-physical-gate.md).
-
-Old path: `samples/storage_reliance_sd` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).

@@ -2,10 +2,7 @@
 
 Zephyr images for the RT1060-EVK Rev B that check device input, networking, diagnostics and health together. They
 are test images: nothing here is a sample, and nothing in this repository programs, resets or talks to the board
-(`scripts/test-controller-integration.sh` builds them and runs the `native_sim` checks). They were part of
-`samples/controller`; the periodic scenario that folder also held is now [`tests/time_periodic`](../../time_periodic/README.md).
-The Kconfig symbols still carry the old `CRUX_CONTROLLER_M3` and `CRUX_M3_*` names; renaming them (with the Zephyr
-patch that reads them) is a separate change.
+(`scripts/test-controller-integration.sh` builds them and runs the `native_sim` checks). The periodic scenario is [`tests/time_periodic`](../../time_periodic/README.md).
 
 ## Configurations
 
@@ -38,11 +35,7 @@ watchdog feed. It adds no Crux public interface. The periodic scenario is a sepa
 From the documented Linux workspace, run
 `scripts/test-controller-integration.sh` for the three
 `native_sim` GPIO/health scenarios, native-client socket controls and EVKB
-health probe/normal/network cross-builds. Outputs are
-under `build/zephyr/twister-m3`, `m3-probe-evkb`, `m3-normal-evkb` and
-`m3-network-evkb`; frozen inputs
-are retained at `build/evidence/m3-inputs.json`. This command performs no hardware
-operation. Host checks also exercise the portable readiness/freshness helper.
+health probe/normal/network cross-builds. This command performs no hardware operation. Host checks also exercise the portable readiness/freshness helper.
 
 For a manual build in that environment:
 
@@ -59,11 +52,8 @@ use them only under the independently reviewed physical/recovery plan. Ordinary
 boot does neither. Add `without_test_commands.conf` after `device_health_probe.conf` (semicolon-separated in
 `EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
 
-`M3_WORK` reports input read status and an unset/valid Time status. The standalone
-health probe retains its `M3_PENDING` diagnostic and is not the qualified integrated
-composition. The accepted physical results combine actual SW5, Ethernet and integrated-
-controller evidence. See [the validation record](../../../docs/m3-validation.md)
-for identified firmware, tests, previous failures and support limits.
+The standalone health probe is not the qualified integrated composition. See [the validation record](../../../docs/m3-validation.md)
+for identified firmware, tests and support limits.
 
 ## Network probe
 
@@ -97,38 +87,18 @@ No listener should be exposed to shared networks; payloads contain no credential
 or sensitive data. Remove the validation configuration to remove the Shell/client
 entry point. This is a test boundary, not production protocol/security approval.
 
-`M3_NET_STATE` distinguishes carrier, configured address and service success.
-Restored carrier alone cannot restore service readiness: a complete successful
-explicit round is required. `M3_NET_RESOURCE` reports application ownership and
-native context/pkt/buffer availability. These observations do not establish
-leak-free operation beyond the tested conditions. Qualified network and integrated
-controller results are recorded in [the validation record](../../../docs/m3-validation.md).
+`M3_NET_STATE` distinguishes carrier, configured address and service success; restored carrier alone does not restore
+readiness, a complete explicit round does. `M3_NET_RESOURCE` reports application ownership and native context, packet and
+buffer availability.
 
 ## Integrated controller configuration
 
-The tested integrated scenario combines actual SW5 GPIO observations, serialised
-Time access, bounded IPv4 TCP/UDP exchanges, UART diagnostics, service-readiness
-observations and health supervision of the critical Time/GPIO and network owners.
-The network window, fault injection and watchdog arming are deliberate development
-test operations, not automatic startup behaviour. The normal configuration disables
-test Shell commands and leaves watchdog arming and network traffic off at boot.
-
-`scripts/test-controller-integration.sh` runs the applicable Twister/native
-simulation and build-only
-checks, including the integrated EVKB probe and normal profiles. This script does
-not flash, reset or communicate with hardware. It produces images under
-`build/zephyr/m3-integrated-{probe,normal}-evkb/`. Physical operation requires a
-separately authorised procedure, verified firmware/configuration and the isolated
-network fixture. See [M3 validation and final acceptance](../../../docs/m3-validation.md)
-for the tested composition, required settings, results and restrictions.
-
-The target evidence covers the identified RT1062 EVKB revision B/QSPI, its SW5
-path and isolated Ethernet peer. It does not qualify other GPIO/I2C/SPI/EEPROM
-paths, production networking, worst-case resource/timing behaviour or
-long-duration concurrent-load scenarios. The Linux host continues to exercise the portable
-scenario and shared health logic, not the EVKB-specific device/network composition.
-
-The qualified integrated build explicitly selects the
-[opt-in native MDIO correction](../../../patches/zephyr/README.md). Its pinned-source
-and RT1062 composition limits remain applicable; the ordinary uncorrected network
-probe build is not qualified by the corrected profile's physical results.
+The integrated scenario combines SW5 GPIO observations, serialised Time access, bounded IPv4 TCP/UDP exchanges, UART
+diagnostics, service-readiness observations and health supervision of the Time/GPIO and network owners. The network
+window, fault injection and watchdog arming are deliberate test operations; the normal configuration disables test
+Shell commands and leaves watchdog arming and network traffic off at boot. `scripts/test-controller-integration.sh`
+builds `build/zephyr/m3-integrated-{probe,normal}-evkb/` and does not flash, reset or communicate with hardware.
+Physical operation requires a separately authorised procedure, verified firmware and the isolated network fixture. The
+qualified integrated build selects the [opt-in native MDIO correction](../../../patches/zephyr/README.md); the
+uncorrected network probe build is not qualified by its results. See [the validation record](../../../docs/m3-validation.md)
+for the tested composition, settings, results and limits.

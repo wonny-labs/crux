@@ -12,5 +12,3 @@ the test image until the physical gate is approved for the current task.
   `../sd_card_power_cut_replace` and `../sd_card_power_cut_sequence` reuse its sources.
 
 Procedure and results: [microSD physical gate](../../../docs/microsd-physical-gate.md).
-
-Old path: `samples/storage_sd_interrupt` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).

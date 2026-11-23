@@ -11,5 +11,3 @@ do not flash them until the physical gate is approved for the current task.
 - It compiles `sd_storage.c` and `sd_file_check.c` from `samples/boards/nxp/mimxrt1060_evk/sd_card_file`.
 
 Procedure and results: [microSD physical gate](../../../docs/microsd-physical-gate.md).
-
-Old path: `samples/storage_sd_probe` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).

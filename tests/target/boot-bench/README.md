@@ -5,9 +5,7 @@ hand-off steps of the [secure boot board test procedure](../../../docs/secure-bo
 and 5) and serve the [bench session runbook](../../../docs/secure-boot-bench-session.md), which says in what order
 to use them and which approvals each step needs.
 
-**Status: never run against a board.** The host tests in `tests/build/test_boot_bench_*.py` use synthetic files, dummy
-key bytes and a fake J-Link. They show the tools' own rules, not the behaviour of the real J-Link Commander, a probe or
-a board. No tool here generates, reads, copies or stores a key, and none reads or writes a fuse.
+The host tests in `tests/build/test_boot_bench_*.py` use synthetic files, dummy key bytes and a fake J-Link, so they show the tools' own rules, not the behaviour of the real J-Link Commander, a probe or a board. No tool here generates, reads, copies or stores a key, and none reads or writes a fuse.
 
 | File | Purpose |
 | --- | --- |

@@ -2,7 +2,7 @@
 
 `controller.c` emits one controller state record through the public `crux::logging` contract, with no native
 header. A successful return is not a delivery acknowledgement. It is a building block that only the Logging consumer
-tests compile, so it lives beside them; it was `samples/logging/` until the samples layout change.
+tests compile, so it lives beside them.
 
 | Built by | Run by |
 | --- | --- |

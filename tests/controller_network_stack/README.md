@@ -1,6 +1,6 @@
 # Native socket cleanup regression
 
-Run through `scripts/test-m3.sh` in the Linux development environment, or select
+Run through `scripts/test-controller-integration.sh` in the Linux development environment, or select
 this directory with Twister on `native_sim/native/64`. The fixture executes the
 production native client with real Zephyr sockets and a local loopback peer;
 there are no socket or clock mocks and no host network interface is configured.

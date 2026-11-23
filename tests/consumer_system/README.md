@@ -7,9 +7,7 @@ boundary test of that record: not "does the System module build" (that is `tests
 consumer that cannot see Crux's private files show a start, a feed cycle, a missed feed with its restart, and a
 second boot".
 
-Status: **Experimental** (the symbol it uses is Experimental, ADR-0001 Decision 4). A simulated watchdog is **not
-hardware evidence**: a pass says that a product calls System in the right order and handles the answers in simulated
-kernel time, and says nothing about a board.
+A simulated watchdog is not hardware evidence: a pass says that a product calls System in the right order in simulated kernel time, and nothing about a board.
 
 ## Layout
 
@@ -79,12 +77,9 @@ A product repository can start from this directory:
 | `frozen_symbol_in_prj_conf` | a Thread symbol named in `prj.conf` |
 
 A wrap of a Zephyr symbol such as `sys_reboot` is not refused: ADR-0005 S6 leaves a product's own wraps alone.
-In the Host test, each variant is also run with only the check function it relies on (`header_violations`,
-`link_violations`, `wrap_violations` or `conf_violations`) replaced by one that finds nothing, and the variant is then
-accepted. So each refusal is that function's. The include variant needs a build, so it has no such control on the
-Host; its function is tested on a hand-made compile command, and CI runs the variant. Non-vacuity of the whole
-fixture also rests on the clean-fixture test (the fixture passes every check) and on the message that each variant
-must produce.
+In the Host test, each variant is also run with its check function replaced by one that finds nothing, and is then accepted,
+so each refusal is that function's. The include variant needs a build; its function is tested on a hand-made compile
+command and CI runs the variant.
 
 ## Limits of the checks
 

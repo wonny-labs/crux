@@ -1,10 +1,8 @@
-# Out-of-tree consumer (Issue #169)
+# Out-of-tree consumer
 
-Status: a maintained example of the [consumer test guide](../../docs/build.md#testing-a-consumer-application),
-not a supported interface. `tests/build/test_consumer_poc.py` keeps it working; see the
-[test guide](../README.md#testing-a-consumer-application) for what runs where. The
-[test foundation proposal](../../docs/test-foundation-proposal.md) records the decisions and the
-[recorded runs](../../docs/evidence/test-foundation-poc/README.md) the original evidence.
+A maintained example of the [consumer test guide](../../docs/build.md#testing-a-consumer-application),
+not a supported interface. `tests/build/test_consumer_poc.py` keeps it working; the
+[test guide](../README.md#testing-a-consumer-application) says what runs where.
 
 This directory stands for an application that lives elsewhere, the same way
 `tests/external_application` does: the check and `run_poc.sh` copy it outside the Crux tree before
