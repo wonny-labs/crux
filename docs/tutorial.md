@@ -221,7 +221,7 @@ The steps below use the J-Link software in the Dev Container (Linux and WSL2); o
 
 ### 12. Connect the probe to the Dev Container
 
-The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd bind` once and keep `usbipd attach --wsl` running in PowerShell; on native Linux, run `scripts/bootstrap.sh board-host` once. The commands are in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without the attach, step 13 fails.
+The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, bind the probe once and keep `usbipd attach --wsl --auto-attach` running in PowerShell. Then, on WSL2 or native Linux, run `scripts/bootstrap.sh board-host` in the host shell, not in the container. The commands are in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without them, step 13 fails.
 
 ### 13. Check the J-Link connection
 
@@ -268,7 +268,8 @@ checks board and probe with Zephyr's `blinky`.
 ## Next steps
 
 - [Samples](../samples/README.md): what each sample folder is for.
-- [Boards](boards/README.md): every board page. Its Flash and debug section, for example [MIMXRT1060-EVKB](boards/mimxrt1060_evkb.md#flash-and-debug), describes debugging with `west debug`, `west attach` and the VS Code debug profiles.
+- [Boards](boards/README.md): every board page.
+- [J-Link board route](board-jlink-usbipd.md): debugging on the board with `west debug`, `west attach` and the VS Code debug profiles.
 - [Choosing an API](choosing-an-api.md): where each kind of product code goes.
 - [Test guide](../tests/README.md): every suite and the checks to run before a pull request.
 - [Documentation map](README.md): every other page, by task.
