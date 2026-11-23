@@ -95,7 +95,7 @@ What the code does about the network:
 
 - A proxy allowlist may also need `api.github.com`, `codeload.github.com` and the hosts of the SDK release files.
 - The scripts set no proxy. Behind a proxy, configure Docker's proxy settings for the image build, and pass `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` into the container yourself. No proxy set-up has been run for this guide.
-- If the proxy re-signs TLS, downloads in the image build or in the container fail with `curl: (60) SSL certificate problem: unable to get local issuer certificate` (or a similar certificate error from pip, Git or west), and the image builds without the J-Link software. Put your organisation's root CA file (`.crt`, `.pem` or `.cer`) in `.devcontainer/certs/` on your machine, never in a commit, and run **Dev Containers: Rebuild Container**: the image then trusts it in the build and at run time. [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) explains how to export the CA on Windows, find which CA re-signs a host, and handle a DER file. This has not been run behind a TLS-inspecting proxy yet.
+- If the proxy re-signs TLS, downloads in the image build or in the container fail with `curl: (60) SSL certificate problem: unable to get local issuer certificate` (or a similar certificate error from pip, Git or west), and the image builds without the J-Link software. Put your organisation's root CA, as a PEM file, in `.devcontainer/certs/` on your machine, never in a commit, and rebuild the container. [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) gives the steps.
 
 ## 5. Disk and memory
 

@@ -97,7 +97,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | --- | --- |
 | `scripts/bootstrap.sh status` or the build log says `J-Link software is not installed` | Place the package or set the URL and checksum (step 3), then **Rebuild Container** |
 | Step 5 shows an empty `/dev/bus/usb` | The container started before the probe was attached; attach it (step 1). The folder is bound, so the probe should appear without a restart, which has not been tried; if it does not, run **Dev Containers: Rebuild Container** |
-| The build log shows `curl: (60) SSL certificate problem: unable to get local issuer certificate` before the J-Link warning | A proxy re-signs HTTPS with your organisation's root CA, which the image does not trust. Put that CA file (`.crt`, `.pem` or `.cer`) in `.devcontainer/certs/` on your machine, never in a commit, and run **Dev Containers: Rebuild Container**; see [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) |
+| The build log shows `curl: (60) SSL certificate problem: unable to get local issuer certificate` before the J-Link warning | A proxy re-signs HTTPS with your organisation's root CA, which the image does not trust. Add it as [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) says, then run **Dev Containers: Rebuild Container** |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |

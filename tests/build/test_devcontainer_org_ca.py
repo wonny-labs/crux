@@ -52,11 +52,14 @@ class DockerfileOrderTest(unittest.TestCase):
                 return number
         self.fail(f"no Dockerfile step {what}")
 
-    def test_certs_are_copied_and_installed_by_the_script(self):
-        copy = self.index(lambda s: s.startswith("COPY ") and ".devcontainer/certs/" in s, "copies the certs")
+    def test_certs_are_bind_mounted_and_never_copied_into_a_layer(self):
+        # A BuildKit bind mount exposes the folder to one RUN step only; no file from it is stored in a layer.
         install = self.index(lambda s: s.startswith("RUN ") and "install-org-ca.sh" in s, "runs the script")
-        self.assertLess(copy, install)
-        self.assertIn("/tmp/crux-certs", self.steps[install])
+        self.assertIn("--mount=type=bind,source=.devcontainer/certs,target=/tmp/crux-certs", self.steps[install])
+        self.assertIn("/tmp/crux-certs", self.steps[install].split("install-org-ca.sh", 1)[1])
+        for step in self.steps:
+            if step.startswith(("COPY ", "ADD ")):
+                self.assertNotIn(".devcontainer/certs", step)
 
     def test_install_follows_ca_certificates_and_precedes_every_download(self):
         packages = self.index(lambda s: s.startswith("RUN ") and "apt-get install" in s and "ca-certificates" in s,

@@ -1,66 +1,50 @@
 # Organisation root CA folder
 
-You need this folder only on a network where a proxy inspects TLS: it re-signs every HTTPS connection with your organisation's root CA. The Dev Container image does not trust that CA, so downloads fail with:
+This folder is for networks where a proxy inspects TLS and re-signs every HTTPS connection with your organisation's root CA. The Dev Container image does not trust that CA, so downloads fail with:
 
 ~~~text
 curl: (60) SSL certificate problem: unable to get local issuer certificate
 ~~~
 
-The image build then installs no J-Link software, and pip, `west update`, `west sdk install` and the other downloads of `scripts/bootstrap.sh` can fail the same way.
+The image build then installs no J-Link software, and the downloads of `scripts/bootstrap.sh` (pip, `west update`, `west sdk install`) fail the same way.
 
-To fix it, put your organisation's root CA file here, with the extension `.crt`, `.pem` or `.cer`, then run **Dev Containers: Rebuild Container**. The image build adds it to the system bundle `/etc/ssl/certs/ca-certificates.crt` before any download (see [`install-org-ca.sh`](../install-org-ca.sh)). With no certificate here, the build prints `skipping` and the image is the same as without this step. A CA file that you already use for another Dev Container with this layout can be copied here unchanged.
+## Add the CA
 
-Each developer adds their own file, on their own machine. Never commit a certificate, in this repository or in any copy of it. Git ignores every file in this folder except `.gitkeep` and this README.
+1. Find the CA. On a machine behind the proxy, ask a failing host, such as `github.com`, who issued its certificate:
 
-## Which CA
+   ~~~sh
+   openssl s_client -connect <host>:443 -servername <host> </dev/null | openssl x509 -noout -issuer
+   ~~~
 
-On a machine behind the proxy, ask a server who issued its certificate:
+   If the issuer is your organisation, you need the root CA at the top of that issuer's chain.
+2. Export it as PEM. On Windows: run `certmgr.msc`, open **Trusted Root Certification Authorities** > **Certificates**, right-click the CA, **All Tasks** > **Export...**, and choose **Base-64 encoded X.509 (.CER)**.
+3. Check that the file starts with `-----BEGIN CERTIFICATE-----`. A binary (DER) file, which the **DER encoded binary X.509** export gives, does not; convert it:
 
-~~~sh
-openssl s_client -connect <host>:443 -servername <host> </dev/null | openssl x509 -noout -issuer
-~~~
+   ~~~sh
+   openssl x509 -inform der -in org-root.cer -out org-root.crt
+   ~~~
 
-Replace `<host>` with a host that fails, such as `github.com` or `pypi.org`. If the issuer is your organisation and not a public certificate authority, the proxy re-signs that host, and you need that issuer's root CA. The issuer can be an intermediate CA; export the root at the top of its chain (the **Certification Path** tab in Windows shows the chain).
+4. Copy the file into this folder with the extension `.crt` (from WSL2, for example `cp /mnt/c/Users/<you>/Downloads/org-root.crt .devcontainer/certs/`).
+5. Run **Dev Containers: Rebuild Container**. The build log prints the subject of each CA it installs.
 
-## Getting the CA on Windows
+Each developer adds their own file on their own machine. Never commit a certificate. Git ignores every file in this folder except `.gitkeep` and this README, and the image build reads the folder through a bind mount, so no file from it is stored in an image layer. With no certificate here, the build installs none.
 
-1. Run `certmgr.msc`.
-2. Open **Trusted Root Certification Authorities**, then **Certificates**, and find your organisation's root CA (the issuer from above).
-3. Right-click it, **All Tasks**, **Export...**.
-4. Choose **Base-64 encoded X.509 (.CER)** and save the file.
-5. Rename the file from `.cer` to `.crt` and copy it into this folder (from WSL2, for example `cp /mnt/c/Users/<you>/Downloads/org-root.cer .devcontainer/certs/org-root.crt`). The build also accepts the `.cer` name; `.crt` makes the format plain.
-
-## DER files
-
-The **DER encoded binary X.509** export and many `.cer` files are DER, not PEM. A PEM file starts with the line `-----BEGIN CERTIFICATE-----`. The build converts a DER file with openssl, which the image has. To convert one yourself:
-
-~~~sh
-openssl x509 -inform der -in x.cer -out x.crt
-~~~
-
-One PEM file may hold several certificates, such as a root and an intermediate; each is installed.
-
-## What the build checks
-
-- A `.crt`, `.pem` or `.cer` file that contains a private key, is neither PEM nor DER, or does not parse as a certificate stops the image build with an error naming the file. Nothing is installed until every such file passes.
-- Files with other extensions are skipped with a warning.
-- The build prints the subject of each certificate it installs.
+[`install-org-ca.sh`](../install-org-ca.sh) states which files it accepts and which stop the build, such as a file that holds a private key.
 
 ## What trusts the CA
 
-The image sets these variables to the system bundle, at build time and at run time, so tools that keep their own CA list use it too. They change nothing when no extra CA is installed.
+The image always sets these variables to the system bundle `/etc/ssl/certs/ca-certificates.crt`, at build time and at run time:
 
 | Variable | Used by |
 | --- | --- |
-| `SSL_CERT_FILE` | OpenSSL-based clients, including Python's `ssl` module and `urllib` |
-| `REQUESTS_CA_BUNDLE` | Python `requests`, which `west sdk install` uses to fetch the Zephyr SDK |
-| `PIP_CERT` | `pip`, in the image build and in the virtual environment of `scripts/bootstrap.sh` |
-| `CURL_CA_BUNDLE` | curl, which already reads the system bundle; set for tools that read the variable |
-| `GIT_SSL_CAINFO` | Git, including `west update`; Git already reads the system bundle |
-| `NODE_EXTRA_CA_CERTS` | Node.js, which the VS Code server in the container runs on |
+| `SSL_CERT_FILE` | OpenSSL-based clients, including Python's `ssl` module |
+| `REQUESTS_CA_BUNDLE` | Python `requests`, which `west sdk install` uses |
+| `PIP_CERT` | `pip` |
+| `CURL_CA_BUNDLE` | curl |
+| `GIT_SSL_CAINFO` | Git, including `west update` |
+| `NODE_EXTRA_CA_CERTS` | Node.js, which the VS Code server runs on |
 
-wget reads the system bundle itself. The CMake version that `scripts/bootstrap.sh` installs does not check certificates when it fetches GoogleTest.
+## Known limits
 
-The Docker daemon pulls the base image on your machine, outside the container. If that pull fails with a certificate error, your machine's Docker set-up has to trust the CA; this folder does not change that.
-
-No build behind a TLS-inspecting proxy has been run for this guide yet.
+- Docker pulls the base image on your machine, outside the container. If that pull fails with a certificate error, your machine's Docker set-up has to trust the CA.
+- The image build reads the folder with a BuildKit bind mount. VS Code Dev Containers and Docker Desktop use BuildKit by default; a builder without BuildKit stops at that step.

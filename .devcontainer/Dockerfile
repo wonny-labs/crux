@@ -33,20 +33,20 @@ RUN apt-get update \
 # Your organisation's root CA, for networks where a proxy re-signs HTTPS. Every
 # certificate in a .crt, .pem or .cer file that a developer placed in
 # .devcontainer/certs/ is added to the system bundle before any download below; with
-# none there, nothing changes. Git never carries a certificate (see
-# .devcontainer/certs/README.md). The ENV lines point tools that keep their own CA
-# list at the system bundle, at build time and at run time; they are harmless when no
-# extra CA is installed.
+# none there, no certificate is installed. Git never carries a certificate (see
+# .devcontainer/certs/README.md). The folder is bind-mounted into the one RUN step
+# that reads it (BuildKit), so no file from it is stored in an image layer. The ENV
+# lines point tools that keep their own CA list at the system bundle, at build time
+# and at run time.
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
     CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt \
     PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
     NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-COPY .devcontainer/certs/ /tmp/crux-certs/
-COPY .devcontainer/install-org-ca.sh /tmp/crux-install-org-ca.sh
-RUN sh /tmp/crux-install-org-ca.sh /tmp/crux-certs \
-    && rm -rf /tmp/crux-certs /tmp/crux-install-org-ca.sh
+RUN --mount=type=bind,source=.devcontainer/certs,target=/tmp/crux-certs \
+    --mount=type=bind,source=.devcontainer/install-org-ca.sh,target=/tmp/crux-install-org-ca.sh \
+    sh /tmp/crux-install-org-ca.sh /tmp/crux-certs
 
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
         west==1.4.0 \
