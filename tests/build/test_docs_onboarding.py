@@ -106,6 +106,36 @@ class Tutorial(unittest.TestCase):
         self.assertIn("](boards/mimxrt1060_evkb.md#flash-and-debug)", body)
 
 
+class RunFromRepositoryRoot(unittest.TestCase):
+    """Repository commands run from the repository root, where the VS Code terminal opens."""
+
+    PAGES = (
+        DOCS / "tutorial.md",
+        DOCS / "rt1060-mbed-management-image.md",
+        DOCS / "emmc-reliance-physical-gate.md",
+        ROOT / "samples" / "README.md",
+        ROOT / "samples" / "hello_crux" / "README.md",
+        ROOT / "samples" / "file" / "basic" / "README.md",
+        ROOT / "samples" / "time" / "shell" / "README.md",
+        ROOT / "samples" / "networking" / "echo_client" / "README.md",
+        ROOT / "tests" / "time_periodic" / "README.md",
+    )
+
+    def test_no_command_reaches_the_repository_from_the_workspace_root(self):
+        for page in self.PAGES:
+            text = read(page)
+            for path in ("crux-pilot/samples", "crux-pilot/tests"):
+                self.assertNotIn(path, text, page.relative_to(ROOT))
+            self.assertNotIn("west workspace root", text, page.relative_to(ROOT))
+
+    def test_the_tutorial_names_one_folder(self):
+        text = read(DOCS / "tutorial.md")
+        self.assertIn("All commands in this tutorial run from `/workspace/crux-pilot`, where the VS Code terminal"
+                      " opens.", " ".join(text.split()))
+        self.assertIsNone(re.search(r"from `/workspace`", text))
+        self.assertNotIn("| Folder | What it is | Run from here |", text)
+
+
 class GettingStarted(unittest.TestCase):
     def test_holds_no_board_procedure_and_links_the_board_pages(self):
         text = read(DOCS / "getting-started.md")

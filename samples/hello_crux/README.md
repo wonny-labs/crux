@@ -40,13 +40,13 @@ No board is needed. The EVKB build is a cross-build only: it shows that the same
 
 ## Building and running
 
-From the west workspace root (`/workspace` in the Dev Container), where `crux-pilot` is this repository:
+From the repository root (`/workspace/crux-pilot` in the Dev Container):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run
+west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux -t run
 ```
 
-The Linux Host program, from `crux-pilot`:
+The Linux Host program:
 
 ```sh
 cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
@@ -58,7 +58,7 @@ build/samples/hello_crux_host/hello-crux-host
 the Zephyr application from [`sample.yaml`](sample.yaml):
 
 ```sh
-west twister -T crux-pilot/samples/hello_crux -p native_sim/native/64
+west twister -T samples/hello_crux -p native_sim/native/64
 ```
 
 ## Sample output

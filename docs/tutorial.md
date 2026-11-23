@@ -19,22 +19,13 @@ The Zephyr downloads at the start of Part B are the long part. No durations have
 
 Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
 
-Inside the container there are two folders you work from:
-
-| Folder | What it is | Run from here |
-| --- | --- | --- |
-| `/workspace` | The west workspace: `zephyr/`, `modules/` and this repository side by side | `west build`, `west twister` |
-| `/workspace/crux-pilot` | This repository | `scripts/...`, `cmake --preset`, `ctest --preset` |
-
-`west` finds the workspace from any folder inside it, so a `west build` path and its `-d` folder are relative to the
-folder you run it from. Part B runs `west` from `/workspace`; Part C runs it from `/workspace/crux-pilot`, as the VS
-Code tasks do. A step that names no folder runs in the folder of the step before it.
+All commands in this tutorial run from `/workspace/crux-pilot`, where the VS Code terminal opens.
 
 ## Part A. Linux Host
 
 ### 1. Check that the Host build is ready
 
-The Dev Container builds and tests the Linux Host when it is created ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)). From `/workspace/crux-pilot`:
+The Dev Container builds and tests the Linux Host when it is created ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)):
 
 ```sh
 scripts/bootstrap.sh status
@@ -45,7 +36,7 @@ It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.s
 ### 2. Run Hello Crux on the Linux Host
 
 `samples/hello_crux` is the smallest application that uses Crux. Its Host program is a separate CMake project that
-consumes Crux the way an external application does, so it is built on its own. From `/workspace/crux-pilot`:
+consumes Crux the way an external application does, so it is built on its own:
 
 ```sh
 cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
@@ -61,8 +52,7 @@ because Crux never invents a time of day. [Its README](../samples/hello_crux/REA
 ### 3. Run the networking sample on the Host
 
 `samples/networking/echo_client` exchanges one TCP and one UDP echo with a peer. Its Host program needs an echo peer on
-`127.0.0.1` ports 42420 and 42421; the `run_echo_client` target starts a local peer for it and runs the sample once.
-From `/workspace/crux-pilot`:
+`127.0.0.1` ports 42420 and 42421; the `run_echo_client` target starts a local peer for it and runs the sample once:
 
 ```sh
 cmake --build --preset host-debug --target run_echo_client
@@ -74,7 +64,7 @@ In VS Code, **Terminal > Run Task > Host: run_echo_client** does the same. CTest
 
 ### 4. Run every Host sample with CTest
 
-CTest runs each Host sample of the root build once and checks its output. From `/workspace/crux-pilot`:
+CTest runs each Host sample of the root build once and checks its output:
 
 ```sh
 ctest --preset host-debug -L sample
@@ -86,8 +76,7 @@ repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
 
 ### 5. Change a Host build
 
-CMake options configure the build itself. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options. From
-`/workspace/crux-pilot`:
+CMake options configure the build itself. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options:
 
 ```sh
 cmake -LH build/linux/debug | grep -B1 '^CRUX_'                       # list the options and their help
@@ -104,7 +93,7 @@ matter for products.
 
 ### 6. Check that the Zephyr workspace is ready
 
-The Dev Container also creates the west workspace and installs the Zephyr SDK when it is created. The west checkouts and the SDK are large downloads, the longest part of the set-up. From `/workspace/crux-pilot`, `scripts/bootstrap.sh status` shows `zephyr  ok`; otherwise run the command it prints, `scripts/bootstrap.sh zephyr`.
+The Dev Container also creates the west workspace and installs the Zephyr SDK when it is created. The west checkouts and the SDK are large downloads, the longest part of the set-up. `scripts/bootstrap.sh status` shows `zephyr  ok`; otherwise run the command it prints, `scripts/bootstrap.sh zephyr`.
 
 The set-up turns `/workspace` into a west
 workspace whose manifest is this repository's [`west.yml`](../west.yml), so every `west build` in it finds the Crux
@@ -113,10 +102,10 @@ Zephyr module by itself.
 ### 7. Run Hello Crux
 
 This is the Zephyr form of step 2. It proves that the Crux module, a Kconfig symbol, a public target and a public
-header work together, and that the application keeps to the consumer boundary. From `/workspace`:
+header work together, and that the application keeps to the consumer boundary:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run
+west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux -t run
 ```
 
 You should see, after the boot banner:
@@ -137,7 +126,7 @@ workspace lists Crux as a Zephyr module, `CONFIG_CRUX_TIME=y` in the sample's `p
 The Time sample is a Zephyr shell with Crux Time commands:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -t run
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr` and then waits. Its shell is on a pseudo-terminal, as the first output
@@ -157,7 +146,7 @@ know where the file lives: the Kconfig fragment and the devicetree overlay of th
 default build uses LittleFS on the flash simulator:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/basic crux-pilot/samples/file/basic -t run
+west build -p always -b native_sim/native/64 -d build/basic samples/file/basic -t run
 ```
 
 It ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. The same source, built with another fragment and overlay,
@@ -165,7 +154,7 @@ uses FatFs on a RAM disk:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/basic_fatfs \
-    crux-pilot/samples/file/basic -t run -- \
+    samples/file/basic -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
@@ -174,17 +163,17 @@ software-only checks on `native_sim`; the sample's [README](../samples/file/basi
 explains the two options after `--`.
 
 Two more samples are not part of this path. The `networking/echo_client` image is for the board only. Threads and
-synchronization have no Crux sample: read Zephyr's own `zephyr/samples/basic/threads` and
-`zephyr/samples/synchronization`. [Samples](../samples/README.md) lists every sample folder, which ones run on their
+synchronization have no Crux sample: read Zephyr's own `../zephyr/samples/basic/threads` and
+`../zephyr/samples/synchronization`. [Samples](../samples/README.md) lists every sample folder, which ones run on their
 own, and which scripts use the others.
 
 ### 10. Run every Zephyr sample with Twister
 
 Twister builds each runnable Zephyr sample, runs it, and checks its output against the regular expression in its
-`sample.yaml`. From `/workspace`:
+`sample.yaml`:
 
 ```sh
-west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
+west twister -T samples -p native_sim/native/64 -t sample
 ```
 
 Twister runs every runnable Zephyr sample that [Samples](../samples/README.md#classification) lists, and its summary
@@ -211,7 +200,7 @@ Kconfig options (`CONFIG_...`) select features and values. A build merges them f
 For example, turn off Zephyr's boot banner for one build:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -- -DCONFIG_BOOT_BANNER=n
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell -- -DCONFIG_BOOT_BANNER=n
 grep CONFIG_BOOT_BANNER build/time/zephyr/.config
 build/time/zephyr/zephyr.exe -uart_stdinout
 ```
@@ -220,8 +209,8 @@ The `grep` prints `# CONFIG_BOOT_BANNER is not set`, and the program starts with
 line. The same setting in a file has the same effect:
 
 ```sh
-printf 'CONFIG_BOOT_BANNER=n\n' > no-banner.conf
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -- -DEXTRA_CONF_FILE=$PWD/no-banner.conf
+printf 'CONFIG_BOOT_BANNER=n\n' > build/no-banner.conf
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell -- -DEXTRA_CONF_FILE=$PWD/build/no-banner.conf
 ```
 
 `build/<dir>/zephyr/.config` is the final, merged result: check it whenever an option seems to have no effect,
@@ -237,8 +226,8 @@ Zephyr picks up `app.overlay` or `boards/<board>.overlay` from the application f
 disabled:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell \
-  -- -DEXTRA_DTC_OVERLAY_FILE=$PWD/crux-pilot/tests/time/zephyr/boards/native_sim_no_rtc.overlay
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell \
+  -- -DEXTRA_DTC_OVERLAY_FILE=$PWD/tests/time/zephyr/boards/native_sim_no_rtc.overlay
 grep -A3 'rtc: rtc' build/time/zephyr/zephyr.dts
 ```
 
@@ -275,7 +264,7 @@ board guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connect
 
 ### 12. Check the J-Link connection
 
-In the Dev Container, from `/workspace/crux-pilot`, with the switches and jumpers of the board guide:
+In the Dev Container, with the switches and jumpers of the board guide:
 
 ```sh
 printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
@@ -289,7 +278,7 @@ on the computer the board's USB cable is plugged into (on Windows, the COM port 
 
 The first Crux image on the board is the one from step 7. In VS Code, run
 **Terminal > Run Task > Board: Build and flash a sample (west flash)** and pick `samples/hello_crux`. The task runs
-Zephyr's own `west build` and `west flash` from `/workspace/crux-pilot`; these are the same two commands:
+Zephyr's own `west build` and `west flash`; these are the same two commands:
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux
@@ -318,8 +307,8 @@ sample from VS Code, the board guide names the debug profiles.
 
 | Symptom | Check |
 | --- | --- |
-| `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`, from `/workspace`: `west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
-| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, then flash it, also from `/workspace`, with the J-Link runner as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
+| `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`: `west build -p always -b native_sim/native/64 -d build/hello ../zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
+| The board does nothing after a download | Build Zephyr's `blinky` for the board: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky ../zephyr/samples/basic/blinky`, then flash it with the J-Link runner as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
 
 ## Next steps
 
