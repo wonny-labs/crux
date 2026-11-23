@@ -4,8 +4,7 @@
 
 Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the Crux Time commands (`time get`,
 `time set <UTC>`, `time help`), and the same commands as a Linux Host program that reads them from stdin. The
-[Time contract](../../../docs/time-contract.md) defines what the commands may report. This sample was at
-`samples/time/` before the samples layout change.
+[Time contract](../../../docs/time-contract.md) defines what the commands may report.
 
 | Part | Folder | Runs on |
 | --- | --- | --- |
@@ -49,8 +48,8 @@ west twister -T samples/time/shell -p native_sim/native/64
 ```
 
 The EVKB build (`-b 'mimxrt1060_evk@B//qspi'`) is a cross-build in this repository's checks
-(`scripts/test-zephyr-time.sh`). Programming a board is a separate, approved procedure: see the
-[Build and Integration Guide](../../../docs/build.md).
+(`scripts/test-zephyr-time.sh`). To put a sample on the board, see
+[Part C of the Tutorial](../../../docs/tutorial.md#part-c-run-on-your-board).
 
 ## Sample output
 
