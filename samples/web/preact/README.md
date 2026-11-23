@@ -20,8 +20,8 @@ npm run build          # writes samples/web/preact/dist, and fails over the budg
 npm run test:browser   # builds again, then runs the browser tests against the mock
 ```
 
-`scripts/test-native-composition.sh e2e-mbed` packages the build into a `native_sim` image and runs the same cases over
-HTTPS.
+In the Linux Dev Container, from the repository root, `scripts/test-native-composition.sh e2e-mbed` builds both
+examples, packages them into a `native_sim` image and runs the shared and real-server browser cases over HTTPS.
 
 ## See also
 
