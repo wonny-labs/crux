@@ -92,6 +92,16 @@ TEST_F(TimeCommandTest, RejectsMalformedSyntaxAndDates)
     EXPECT_EQ(crux_time_command_execute(nullptr).status, CRUX_ERR_INVALID_ARGUMENT);
 }
 
+TEST_F(TimeCommandTest, RejectsUnknownSubcommandAndExtraWords)
+{
+    // The Zephyr shell's `time` subcommand handlers pass every word to this parser unchecked.
+    for (const char *line : {"time foo", "time help extra", "time get extra extra"}) {
+        const auto result = crux_time_command_execute(line);
+        EXPECT_EQ(result.status, CRUX_ERR_INVALID_ARGUMENT) << line;
+        EXPECT_EQ(result.kind, CRUX_TIME_COMMAND_LINE) << line;
+    }
+}
+
 TEST_F(TimeCommandTest, MapsOutOfRangeAndIoErrors)
 {
     auto range_result = crux_time_command_execute("time set 1999-12-31T23:59:59");

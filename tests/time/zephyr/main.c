@@ -32,6 +32,15 @@ static void assert_shell_result(const char *command, const char *expected)
     zassert_true(output_size > 0);
     zassert_not_null(strstr(output, expected));
 }
+static const char *shell_output(const char *command, int *status)
+{
+    const struct shell *shell = shell_backend_dummy_get_ptr();
+    size_t output_size = 0;
+    shell_backend_dummy_clear_output(shell);
+    *status = shell_execute_cmd(shell, command);
+    return shell_backend_dummy_get_output(shell, &output_size);
+}
+
 static void *setup(void)
 {
     k_usleep(10);
@@ -244,3 +253,61 @@ ZTEST(crux_time_zephyr, test_rtc_native_faults_preserve_outputs_and_system_valid
     }
 }
 #endif
+
+ZTEST(crux_time_zephyr, test_time_shell_rejects_missing_unknown_and_extra_words)
+{
+    /* The shared parser, not the shell, checks the words, so the replies stay the same. */
+    crux_time_test_reset();
+    zassert_equal(crux_realtime_init(), CRUX_OK);
+    assert_shell_result("time", "ERR INVALID_ARGUMENT");
+    assert_shell_result("time foo", "ERR INVALID_ARGUMENT");
+    assert_shell_result("time set", "ERR INVALID_ARGUMENT");
+    assert_shell_result("time set 2024-01-01T00:00:00 extra", "ERR INVALID_ARGUMENT");
+    assert_shell_result("time get extra", "ERR INVALID_ARGUMENT");
+    assert_shell_result("time help extra", "ERR INVALID_ARGUMENT");
+    crux_realtime_t instant;
+    zassert_equal(crux_realtime_now(&instant), CRUX_ERR_NO_DATA);
+}
+
+ZTEST(crux_time_zephyr, test_time_shell_help_subcommand_prints_shared_help)
+{
+    assert_shell_result("time help", "time set YYYY-MM-DDTHH:MM:SS");
+    assert_shell_result("time help", "Input is UTC.");
+}
+
+ZTEST(crux_time_zephyr, test_time_shell_lists_subcommands_with_help)
+{
+    int status = 0;
+    const char *output = shell_output("time -h", &status);
+    zassert_equal(status, SHELL_CMD_HELP_PRINTED);
+    zassert_not_null(strstr(output, "Print the clock in UTC"));
+    zassert_not_null(strstr(output, "List the Time commands"));
+    zassert_not_null(strstr(output, "Set the clock from UTC"));
+
+    output = shell_output("time set -h", &status);
+    zassert_equal(status, SHELL_CMD_HELP_PRINTED);
+    zassert_not_null(strstr(output, "set YYYY-MM-DDTHH:MM:SS"));
+}
+
+ZTEST(crux_time_zephyr, test_time_shell_tab_completes_subcommand)
+{
+    /* The dummy backend never signals received input, so the shell thread stays idle and this
+     * thread runs the line editor with shell_process(), as a backend's RX event would.
+     */
+    const struct shell *shell = shell_backend_dummy_get_ptr();
+    zassert_true(WAIT_FOR(shell_ready(shell), 1000000, k_msleep(1)));
+    static const char typed[] = "time g\t";
+    static const char completed[] = "time get ";
+    shell_backend_dummy_clear_input(shell);
+    zassert_equal(shell_backend_dummy_push_input(shell, typed, sizeof(typed) - 1), 0);
+    shell_process(shell);
+    zassert_equal(shell->ctx->cmd_buff_len, sizeof(completed) - 1);
+    zassert_mem_equal(shell->ctx->cmd_buff, completed, sizeof(completed) - 1);
+
+    static const char ctrl_c = 0x03;
+    shell_backend_dummy_clear_input(shell);
+    zassert_equal(shell_backend_dummy_push_input(shell, &ctrl_c, 1), 0);
+    shell_process(shell);
+    shell_backend_dummy_clear_input(shell);
+    zassert_equal(shell->ctx->cmd_buff_len, 0);
+}
