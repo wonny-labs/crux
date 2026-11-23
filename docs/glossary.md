@@ -1,6 +1,6 @@
 # Glossary
 
-This page defines the terms and decision codes that the Crux documentation uses. Lifecycle words are defined in [Component readiness](component-readiness.md), and the stability tiers in [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy).
+This page defines the terms and decision codes that the Crux documentation uses. The lifecycle of Thread, Sync and Serial is explained in [Choosing an API](choosing-an-api.md), each component's tier and planned removal in [Component readiness](component-readiness.md), and the stability tiers in [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy).
 
 | Term | Meaning |
 | --- | --- |

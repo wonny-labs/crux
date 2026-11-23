@@ -87,7 +87,7 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 
 ## Decisions
 
-Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md), with the [research notes](research/platform-direction-review.md) behind them. ADR-0001 to ADR-0006 are accepted.
+Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md), with the [research notes](research/platform-direction-review.md) behind them.
 
 Four approved designs live under `superpowers/specs/`; other pages link them by path. They are current contracts: [Time redesign](superpowers/specs/2026-10-25-time-redesign.md), [Logging design](superpowers/specs/2026-10-24-logging-design.md), [Serial design](superpowers/specs/2026-10-24-serial-design.md) and [System health design](superpowers/specs/2026-10-24-system-health-design.md).
 
