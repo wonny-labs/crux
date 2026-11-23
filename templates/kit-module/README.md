@@ -1,8 +1,6 @@
 # Kit module template: integrity check
 
-Two reference files for a Zephyr module that compiles a vendor kit. They implement the kit integrity check and the kit path rule of [Vendor kits across repositories](../../docs/vendor-kits.md). They are a template, not a Crux interface, and a recommended convention that is Experimental. The kit `kit-a`, the variable `KIT_A_PATH` and the prefix `acmeco` are invented.
-
-**Status: tested in CMake script mode and with Python only.** `tests/build/test_vendor_kit_template.py` runs both files on invented kit trees. Neither has run inside a Zephyr build.
+Two reference files for a Zephyr module that compiles a vendor kit. They implement the kit integrity check and the kit path rule of [Vendor kits across repositories](../../docs/vendor-kits.md). They are a template, not a Crux interface. The kit `kit-a`, the variable `KIT_A_PATH` and the prefix `acmeco` are invented.
 
 | File | Purpose |
 | --- | --- |

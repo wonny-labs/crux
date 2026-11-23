@@ -23,7 +23,5 @@ the optional `crux-reliance` west group (Reliance Edge, GPLv2); without it the b
   sequence on an eMMC simulator.
 - The board test image `tests/board_images/sd_card_power_cut_sequence` reuses `emmc_storage.c` on the microSD disk.
 
-No result comes from an eMMC device or from a board. See [eMMC and Reliance Edge composition](../../../../../docs/emmc-reliance-composition.md)
+See [eMMC and Reliance Edge composition](../../../../../docs/emmc-reliance-composition.md)
 and the [physical gate](../../../../../docs/emmc-reliance-physical-gate.md).
-
-Old path: `samples/storage_emmc` (see the mapping in the [samples layout plan](../../../../../docs/plans/samples-layout-proposal.md#mapping)).

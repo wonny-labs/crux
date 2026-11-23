@@ -51,6 +51,7 @@
     "docs/flash-safety-poc.md": "record",
     "docs/flash-xip-evidence.md": "record",
     "docs/getting-started.md": "entry",
+    "docs/glossary.md": "reference",
     "docs/gpio-contract.md": "reference",
     "docs/https-composition.md": "reference",
     "docs/i2c-contract.md": "reference",
@@ -162,11 +163,6 @@
     "web/api/README.md": "reference"
   },
   "allowlist": {
-    "docs/README.md": {
-      "history": 1,
-      "provenance": 2,
-      "status": 24
-    },
     "docs/access-contract.md": {
       "history": 1,
       "provenance": 1,
@@ -428,16 +424,10 @@
     "samples/messaging/README.md": {
       "status": 1
     },
-    "templates/hardware-module/README.md": {
-      "status": 1
-    },
-    "templates/kit-module/README.md": {
-      "status": 1
-    },
     "templates/product/README.md": {
-      "history": 3,
+      "history": 1,
       "provenance": 1,
-      "status": 8
+      "status": 7
     },
     "tests/README.md": {
       "history": 2,

@@ -11,17 +11,12 @@ systems, and only the Kconfig fragment and the devicetree overlay differ.
 | `crux.sample.file.basic.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
 | `crux.sample.file.basic.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
 
-**Both providers are simulator candidates** (their status is in [component readiness](../../../docs/component-readiness.md)). `zephyr/Kconfig` calls them that too. They exist for software-only
-validation on `native_sim`, and this sample is their first consumer outside the tests. Neither is a product storage
-choice, and nothing here says anything about power loss or a real medium.
+Both providers are for software-only checks on `native_sim`. Neither is a product storage choice, and nothing here says anything about power loss or a real medium.
 
 The source is split the way a product splits it:
 
 - **Application**: [`src/basic.c`](src/basic.c) uses only `<crux/file.h>` and links only `crux::file`. It
-  does not know which provider or file system the build selected. `crux_assert_portable_consumer()` in
-  [`CMakeLists.txt`](CMakeLists.txt) fails the configure step if the target's build requirements (include
-  directories, compile options, linked targets) name a native or vendor path, a private Crux directory or a provider
-  or composition target. It does not read the `#include` lines; those stay a review matter.
+  does not know which provider or file system the build selected. [`CMakeLists.txt`](CMakeLists.txt) checks that boundary with `crux_assert_portable_consumer()` (see [`hello_crux`](../../hello_crux/README.md)).
 - **Platform composition**: [`src/storage_littlefs.c`](src/storage_littlefs.c) or
   [`src/storage_fatfs_ram_disk.c`](src/storage_fatfs_ram_disk.c) mounts the file system with Zephyr's API, formats
   the blank simulated medium, creates a `files` directory and binds it as the File root with

@@ -36,10 +36,10 @@ Operator practice from bench sessions, not a repository record: check all four S
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
 | Host | Linux, or Windows with WSL2: the probe, the J-Link software, the build and GDB are all in the Dev Container (below) |
 
-**Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a, using a separate board Dev Container configuration; the image was built with a no-op `/usr/sbin/udevadm` added by hand, which `install-jlink.sh` adds itself. The [J-Link board route](../board-jlink-usbipd.md) guide gives the current path, with the single Dev Container, `scripts/bootstrap.sh board-host`, `usbipd attach --auto-attach` and an organisation-hosted package URL, which have not been run, and explains the failures seen.
+**Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The [J-Link board route](../board-jlink-usbipd.md) guide gives the steps, lists which routes have been run and explains the failures seen.
 
 1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID>`, again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
-2. WSL2 shell, in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
+2. Only where the container cannot open the probe, in a WSL2 or Linux shell in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
 
    ~~~sh
    sudo apt-get update && sudo apt-get install -y usbutils
@@ -50,9 +50,9 @@ Operator practice from bench sessions, not a repository record: check all four S
    ~~~
 
    The J-Link's node was `crw-rw-rw-` owned by `root` before the rule applied, and `crw-rw----` with owner `root` and group `plugdev` after a reattach. The container can open either.
-3. Put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`. The Dev Container build now downloads the pinned version by itself, so the [guide](../board-jlink-usbipd.md#steps) makes this step optional.
-4. VS Code: **Dev Containers: Rebuild and Reopen in Container**. That run used a separate board configuration; the [guide](../board-jlink-usbipd.md#steps) uses the one Dev Container.
-5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`, which was not checked in that run.
+3. Optional: put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`. The Dev Container build downloads the pinned version by itself ([guide](../board-jlink-usbipd.md#steps)).
+4. VS Code: **Dev Containers: Rebuild and Reopen in Container**.
+5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`.
 6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
 7. Build and flash the Time sample:
 
@@ -61,13 +61,11 @@ Operator practice from bench sessions, not a repository record: check all four S
    west -v flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink --speed 400
    ~~~
 
-   The run used `--speed 400`. The [guide](../board-jlink-usbipd.md#steps) leaves the speed out, so the runner uses `auto`, which has not been run yet; if `auto` fails, use 4000, then 400, then 100. `west debugserver` at 4000 kHz connected once.
+   The [guide](../board-jlink-usbipd.md#steps) leaves the speed out, so the runner uses `auto`; if `auto` fails, use 4000, then 400, then 100.
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, use the profiles in [VS Code debug profiles](#vs-code-debug-profiles). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once.
-
-Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-only `west attach` check with `compare-sections`, `west debug`, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Debug** to build, download, reset and stop at `main`, or **Board: Attach** to look at the image already running (it cannot stop at `main`, which has already run). The profiles, the sample prompt and the current build link are in [VS Code debug profiles](#vs-code-debug-profiles) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)).
 
 ## Flash and debug
 
@@ -125,7 +123,7 @@ The board test tooling programs and restores only registered images. Each image 
 
 ## Known limits
 
-- Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
+- The physical test suites have been used from macOS only. Flashing and debugging from the Dev Container on Linux and WSL2 are described in [Probe and connection](#probe-and-connection).
 - Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach (external)**. It does not build or download: the ELF behind the [current build link](#vs-code-debug-profiles) must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).

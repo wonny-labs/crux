@@ -181,7 +181,7 @@ The board is not a variant added with `board: extend:`. A variant keeps the name
 
 ## Static libraries and kernel objects
 
-The [template README](../templates/product/README.md#check-the-whole-product-repository) records that an adapter built as a `STATIC` library failed to link in one product with undefined references to `k_msgq_init` and other kernel message queue functions, while `k_thread` calls in the same file linked, and that the cause was not understood.
+In one product (Zephyr 4.4.2, `native_sim` and an RT1060-EVKB cross-build), an adapter built as a `STATIC` library failed to link with undefined references to `k_msgq_init`, `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. An adapter that makes no kernel-object calls has not shown this failure.
 
 The cause is the order of Zephyr's link line (Zephyr v4.4, top-level `CMakeLists.txt` and `cmake/linker/ld/target.cmake`). Zephyr links its own libraries, `app` included, inside `--whole-archive`, and then the kernel archive outside it. The linker takes from the kernel archive only the members that something linked before it refers to. A plain CMake `STATIC` library that `app` links is a dependency of `app`, so CMake places it after those items, after the kernel archive. A kernel function that only this library calls, such as `k_msgq_init` in a small image, is then never taken from the archive and stays undefined. `k_thread` functions are referenced by the kernel itself, so they are linked anyway.
 

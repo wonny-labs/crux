@@ -4,7 +4,7 @@ This template moved from `samples/product_template` to `templates/product` on 9 
 
 A starting point for a product repository built on Crux. The repository is its own west manifest repository. Crux and Zephyr are projects in its workspace.
 
-No Crux release tag exists yet. The [Product Composition Guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md) (`docs/product-composition.md` in `crux-pilot`) explains the choices.
+The [Product Composition Guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md) (`docs/product-composition.md` in `crux-pilot`) explains the choices.
 
 | File | Purpose |
 | --- | --- |
@@ -35,7 +35,7 @@ west build -b <board> -d product-x/build/app product-x/app
 
 `west crux-pins` compares the workspace with the revisions Crux pins, and fails on a difference with no declared reason. The build warns if the workspace uses another Zephyr release, and stops with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`. The guide lists both checks, how to modify third-party code and how to make a release.
 
-The copied `west.yml` follows Crux `main`. Pin it to a SHA once with `python3 crux-pilot/scripts/update-crux-pin.py --manifest product-x/west.yml`, commit it, and keep it current with the pin bot of [Keeping the Crux pin current](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md#keeping-the-crux-pin-current). Pin a Crux tag or SHA in `west.yml` before you make a release. Then copy `RELEASE.md` and fill it in for that release. It leaves the support period to the product, allows a bundle of hashes only, and links the guide at a pinned Crux revision. The release bundle schema and checker it names are provisional. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux-pilot/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux-pilot`).
+The copied `west.yml` follows Crux `main`. Pin it to a SHA once with `python3 crux-pilot/scripts/update-crux-pin.py --manifest product-x/west.yml`, commit it, and keep it current with the pin bot of [Keeping the Crux pin current](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md#keeping-the-crux-pin-current). For each release, copy `RELEASE.md` and fill it in. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux-pilot/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux-pilot`).
 
 ## Zones and the domain include check
 
@@ -52,11 +52,9 @@ Run the check from the repository root after each change to the domain. It needs
 python3 check_domain_includes.py
 ~~~
 
-It fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`, every `<zephyr/...>` header and the Crux composition interfaces `<crux/NAME_zephyr.h>` and `<crux/NAME_linux.h>` in `domain/`, in either quoted or angle form and in any file. It also fails on a header name with a `.` or `..` component, on a quoted include of a file outside `domain/`, on an include operand that it cannot read, such as a macro, and on a domain directory that holds no file. Three of the four Crux headers are frozen for new product code and `<crux/queue.h>` was removed (a product on an older Crux pin may still include it), the composition interfaces name a provider, and the domain is plain C. `<crux/file_reliance_edge_zephyr.h>`, which names the Reliance Edge file system type for a mount (Experimental), is one of these composition interfaces: include it only in the platform composition, the code that also mounts the file system, and never in `domain/`.
+It fails on the frozen Crux headers, every `<zephyr/...>` header and the composition interfaces `<crux/NAME_zephyr.h>` and `<crux/NAME_linux.h>` in `domain/`, and on includes it cannot read; the script's header comment has the full rules. `<crux/file_reliance_edge_zephyr.h>`, which names the Reliance Edge file system type for a mount, is one of these composition interfaces: include it only in the platform composition, the code that also mounts the file system, and never in `domain/`.
 
-The check is lexical and lists only these names. Other native headers (SoC, CMSIS, vendor HAL, POSIX under `CONFIG_POSIX_API`) are caught only by the Host build of the domain, because they do not exist there, so build the domain on the Linux Host with a fake of `product_port.h` as well. Crux's own test builds the shipped domain that way and runs it against a fake port. A lexical check cannot see an include path that CMake adds, and the template adds none, so review still matters.
-
-Without an option the check does not look at the shell. The freeze (P2 of [ADR-0002](https://github.com/wonny-labs/crux-pilot/blob/main/docs/decisions/0002-platform-direction-zephyr-execution-crux-services.md)) exempts only D10's Build B, which is a separate repository. Do not edit the check to allow another case. A new case is an owner decision.
+The check is lexical and lists only these names. Other native headers (SoC, CMSIS, vendor HAL, POSIX under `CONFIG_POSIX_API`) are caught only by the Host build of the domain, because they do not exist there, so build the domain on the Linux Host with a fake of `product_port.h` as well. A lexical check cannot see an include path that CMake adds, and the template adds none, so review still matters.
 
 ### Check the whole product repository
 
@@ -66,18 +64,18 @@ A product repository, or a copy of this template, checks all its sources with `-
 python3 check_domain_includes.py --product .
 ~~~
 
-It reads every `.c`, `.h`, `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx`, `.inc` and `.S` file under the root, in the same lexical way, and applies two rules:
+It reads every C and C++ source file under the root, in the same lexical way, and applies two rules:
 
-- **Everywhere**, adapters included, it fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`, in quoted or angle form and in every spelling that the domain check reads. An adapter may include `<zephyr/...>` headers, the composition interfaces and the other public Crux headers. An operand that is a macro is not a violation in an adapter, because Zephyr code uses macros, but a header name that opens and does not close is.
-- **In `domain/`** it keeps every rule above: no `<zephyr/...>`, no composition interface, no operand it cannot read, and no quoted include of a file outside the directory. `domain/` is the default and is used only if it exists. Name other plain C directories with `--domain DIR`, once for each, and an option that names a missing directory is an error.
+- **Everywhere**, adapters included, it fails on `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` and `<crux/serial.h>`. An adapter may include `<zephyr/...>` headers, the composition interfaces and the other public Crux headers.
+- **In `domain/`** it keeps every rule above. `domain/` is the default and is used only if it exists. Name other plain C directories with `--domain DIR`, once for each.
 
-Code that already uses a frozen header and has not moved yet is listed once, so that the check can run in CI today and still catches every new use: add `--exclude PATH` for each legacy file or directory, relative to the root. An excluded path must exist and cannot cover a domain directory, and the check prints what it excluded. Remove the entry when the code moves to Zephyr.
+Code that already uses a frozen header and has not moved yet is listed once with `--exclude PATH`, relative to the root, so that the check can run in CI and still catches every new use. Remove the entry when the code moves to Zephyr.
 
 ~~~sh
 python3 check_domain_includes.py --product . --exclude app/src/legacy_threads.c
 ~~~
 
-It never reads `.git`, `.west`, `build` or a symbolic link to a directory, and it exits with status 2, not 0, on a root without a source file. It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for a target that compiles only the product's own sources, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-and-serial).
+It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for a target that compiles only the product's own sources, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-and-serial).
 
 ~~~cmake
 target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
@@ -85,9 +83,9 @@ target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
 
 The warning is silent in the targets that Crux's own CMake creates. A Zephyr image usually adds the sources of Crux services to `app`. Those sources include frozen headers on purpose, so they warn if you define the macro on `app` (and fail under the template's `-Werror`). Put the product's adapters in their own library, or accept the warnings from Crux's sources, and rely on `--product` for `app`.
 
-An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Until the failure below is understood, make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. In one product (crux-controller, Zephyr 4.4.2, `native_sim` and RT1060-EVKB cross-build) an adapter built as a `STATIC` library failed to link with undefined references to `k_msgq_init`, `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. The cause was not reproduced locally. An adapter that makes no kernel-object calls has not shown this failure.
+An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. Built as a plain `STATIC` library it can fail to link; see [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md#static-libraries-and-kernel-objects).
 
-`--domain DIR` resolves a quoted include only relative to the including file and to `DIR`, never through an include path. A layout with `include/` beside `src/`, where `#include "name.h"` is found through an include path, therefore fails, even though the header is inside `DIR`. Either spell the include relative to `DIR` (`"include/name.h"`), or leave that directory out of `--domain`. Leaving it out keeps only the frozen-header rule for it, so `<zephyr/...>` includes there are no longer caught.
+`--domain DIR` resolves a quoted include only relative to the including file and to `DIR`, never through an include path. A layout with `include/` beside `src/`, where `#include "name.h"` is found through an include path, therefore fails, even though the header is inside `DIR`. Either spell the include relative to `DIR` (`"include/name.h"`), or leave that directory out of `--domain`. Leaving it out keeps only the frozen-header rule for it, so `<zephyr/...>` includes there are not caught.
 
 ## Shared-state example
 

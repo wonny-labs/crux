@@ -13,10 +13,7 @@ Lint it with `scripts/check-management-api.sh`, which needs the Node.js version 
 specific to Crux are in [`lint/spectral.yaml`](lint/spectral.yaml), and
 `python3 -m unittest discover -s tests/management_api` checks that the lint rejects broken copies of the file.
 
-The sources are the [web design](../../docs/plans/secure-management-web-design.md) and the
-[access contract proposal](../../docs/plans/access-contract-proposal.md), with the status proposal, the frontend
-design and the gate record as they merge. The access contract replaces the web design's login status codes, and the
-frontend design and the status proposal refine its routes.
+Sources: the [access contract](../../docs/access-contract.md) and the [web contract](../../docs/web-contract.md).
 
 Every JSON body has named examples for a mock server. A mock server sends the `x-crux-set-cookie` lines of an
 example along with it, and those of a response with no body along with that response.
