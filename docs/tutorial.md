@@ -214,12 +214,16 @@ probe, connections and recovery. Pick your board:
 | NXP MIMXRT1060-EVKB, revision B | `mimxrt1060_evk@B//qspi` | SEGGER J-Link on J2; console on the DAPLink USB serial port | [MIMXRT1060-EVKB](boards/mimxrt1060_evkb.md) |
 
 Which components have evidence on each board is recorded in [Component readiness](component-readiness.md). Set the
-board up as its guide says before you start.
+board up as its guide says ([switches and jumpers](boards/mimxrt1060_evkb.md#switches-and-jumpers)) before you start.
 
 The steps below use the J-Link software in the Dev Container (Linux and WSL2); other hosts are in the
 [board guide](boards/mimxrt1060_evkb.md#flash-and-debug).
 
-### 12. Check the J-Link connection
+### 12. Connect the probe to the Dev Container
+
+The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd bind` once and keep `usbipd attach --wsl` running in PowerShell; on native Linux, run `scripts/bootstrap.sh board-host` once. The commands are in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without the attach, step 13 fails.
+
+### 13. Check the J-Link connection
 
 In the Dev Container, with the switches and jumpers of the board guide:
 
@@ -227,11 +231,12 @@ In the Dev Container, with the switches and jumpers of the board guide:
 printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
 ```
 
-It should show a `VTref` of about 3.3 V and `Found Cortex-M7`. If it fails, use the board guide's recovery section
-before you go on. Then open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal
+It should show a `VTref` of about 3.3 V and `Found Cortex-M7`. If it reports `Cannot connect to the probe/programmer` or finds no J-Link, the probe is not attached
+to the container: repeat step 12. For `VTref=0.000V` or another failure, use the board guide's
+[recovery section](boards/mimxrt1060_evkb.md#recovery) before you go on. Then open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal
 on the computer the board's USB cable is plugged into (on Windows, the COM port that Device Manager lists under Ports).
 
-### 13. Flash Hello Crux
+### 14. Flash Hello Crux
 
 The first Crux image on the board is the one from step 7. In VS Code, run
 **Terminal > Run Task > Board: Build and flash a sample (west flash)** and pick `samples/hello_crux`. The task runs
@@ -246,9 +251,9 @@ west flash -d build/hello_crux_evkb -r jlink
 output; the [J-Link board route](board-jlink-usbipd.md#if-a-step-fails) lists the speeds to try and the usual
 failures.
 
-### 14. See the console line
+### 15. See the console line
 
-Once the image is running, the console of step 12 shows the Zephyr boot banner and then the three lines of step 7,
+Once the image is running, the console of step 13 shows the Zephyr boot banner and then the three lines of step 7,
 ending with `CRUX_HELLO_READY composition=zephyr`. If the board does nothing, [Troubleshooting](#troubleshooting)
 checks board and probe with Zephyr's `blinky`.
 
@@ -257,12 +262,13 @@ checks board and probe with Zephyr's `blinky`.
 | Symptom | Check |
 | --- | --- |
 | `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`: `west build -p always -b native_sim/native/64 -d build/hello ../zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
-| The board does nothing after a download | Build Zephyr's `blinky` for the board: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky ../zephyr/samples/basic/blinky`, then flash it with the J-Link runner as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section |
+| `JLinkExe` or `west flash` reports `Cannot connect to the probe/programmer`, or no J-Link is found | The probe is not attached to the Dev Container. Repeat step 12, and on WSL2 keep the `usbipd attach` window open. [If a step fails](board-jlink-usbipd.md#if-a-step-fails) lists the other causes |
+| The board does nothing after a download | Build Zephyr's `blinky` for the board: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky ../zephyr/samples/basic/blinky`, then flash it with the J-Link runner as in step 14: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section |
 
 ## Next steps
 
 - [Samples](../samples/README.md): what each sample folder is for.
-- [Boards](boards/README.md): every board page.
+- [Boards](boards/README.md): every board page. Its Flash and debug section, for example [MIMXRT1060-EVKB](boards/mimxrt1060_evkb.md#flash-and-debug), describes debugging with `west debug`, `west attach` and the VS Code debug profiles.
 - [Choosing an API](choosing-an-api.md): where each kind of product code goes.
 - [Test guide](../tests/README.md): every suite and the checks to run before a pull request.
 - [Documentation map](README.md): every other page, by task.
