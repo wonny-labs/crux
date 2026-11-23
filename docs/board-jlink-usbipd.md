@@ -97,7 +97,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | --- | --- |
 | `scripts/bootstrap.sh status` or the build log says `J-Link software is not installed` | Place the package or set the URL and checksum (step 3), then **Rebuild Container** |
 | Step 5 shows an empty `/dev/bus/usb` | The container started before the probe was attached; attach it (step 1). The folder is bound, so the probe should appear without a restart, which has not been tried; if it does not, run **Dev Containers: Rebuild Container** |
-| `Cannot activate the 'Cortex-Debug' extension` on the first creation | Choose **Reload Window** once. The volume `crux-vscode-extensions` keeps the extensions, so it should not come back; to reset them, delete that volume |
+| `Cannot activate the 'Cortex-Debug' extension` on the first creation | Choose **Reload Window** once. The volume `crux-vscode-extensions` keeps the extensions, so it should not come back; to reset them, remove the Dev Container (stopping it is not enough), then run `docker volume rm crux-vscode-extensions` |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
