@@ -4,12 +4,19 @@ This guide flashes and debugs a board from Linux: the SEGGER J-Link probe is att
 
 Each physical operation needs explicit authorisation for the current task ([AGENTS.md](../AGENTS.md#safety-and-workspace-boundaries)). Attaching, flashing, resetting and starting a debug session are physical operations, and attaching may halt the target. Nothing in CI touches a board, and the [device-control tool](../tools/device_control/README.md) is separate from this route.
 
-**What has been run**, on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, in the Dev Container:
+**What has been run**, on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2:
+
+In the Dev Container:
 
 - Step 1 with `usbipd bind` and `usbipd attach --wsl --busid <BUSID>`, without `--auto-attach`.
+- `west build` and `west flash` of the tutorial's route.
+- **Board: Debug** (F5): builds and flashes the Time sample, and debugging works.
+
+With an earlier, separate board Dev Container configuration:
+
 - The connection check at 100 kHz (`VTref` 3.322 V, Cortex-M7 found) with J-Link software V9.96a.
-- `west build` and `west flash` of the tutorial's route, and `west -v flash` of the Time sample at 400 kHz, with the console line read on Windows.
-- **Board: Debug** (F5): builds and flashes the Time sample, and debugging works. `west debugserver` at 4000 kHz connects.
+- `west -v flash` of the Time sample at 400 kHz, with the console line read on Windows.
+- `west debugserver` at 4000 kHz.
 
 Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attach` and `compare-sections`), `west debug`, **Board: Attach**, **Board: Attach (external)**, a console inside the container, and the image build's own J-Link download (step 3).
 
@@ -110,7 +117,7 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
 | Step 7 or 8 cannot connect | Retry with `--speed 4000`, then `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
-| J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1, with `--auto-attach`) and run step 2 again |
+| J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1) and, where step 2 applies, run it again |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
 ## The Dev Container and the board
