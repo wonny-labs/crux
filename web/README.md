@@ -19,35 +19,9 @@ server and the browser tests. The Preact example takes its one dependency, `prea
 [implementation design](../docs/plans/web-frontend-implementation.md) has the diagrams and decisions, and it says how
 a product builds its own interface or starts from an example.
 
-## Core and Advanced flows
+## Flows
 
-Core and advanced flows are in both examples and in the shared browser cases, with service tests underneath. The advanced flows
-are described in [the advanced flows](../docs/web-advanced-flows.md).
-
-| Flow | Kind | Preact example | Angular example |
-| --- | --- | --- | --- |
-| Sign-in and sign-out | Core | Built | Built |
-| Session expiry | Core | Built | Built |
-| Forced password change | Core | Built | Built |
-| Status | Core | Built | Built |
-| Simple configuration update | Core | Built, on the mock | Built, on the mock |
-| Network settings | Advanced | Built | Built |
-| Reboot | Advanced | Built | Built |
-
-## Evidence
-
-Each state is recorded on its own, and none stands in for another. The flow-by-flow table is in the
-[implementation design](../docs/plans/web-frontend-implementation.md#core-and-advanced-evidence).
-
-| State | What it shows | Today |
-| --- | --- | --- |
-| Mock | The examples and the client against the specification, over plain HTTP on the loopback address | Run in CI |
-| Host | The management services in C and their web routes, through a fake transport | Run in the Host CI job |
-| `native_sim` | Real TLS, sessions and limits with a browser | Both examples packaged and run over HTTPS in Chrome, #220: [end-to-end design](../docs/e2e-native-220.md) |
-| Physical | RT1060-EVKB, with separate approval | Not run |
-
-Host and `native_sim` functional completion is an interim result. Physical evidence stays tracked separately and is not
-waived.
+Both examples cover the core flows (sign-in and sign-out, session expiry, forced password change, status, simple configuration update) and the advanced network settings and reboot flows; see [the advanced flows](../docs/web-advanced-flows.md). The [end-to-end design](../docs/e2e-native-220.md) records what each target (mock, Host, `native_sim`, physical) shows.
 
 ## How a product builds its own interface or starts from an example
 
@@ -80,7 +54,7 @@ and route, kept beside the Host test that builds it.
 ## Set up
 
 Use the Node.js version in `package.json`. It is pinned exactly, and the same version pins the specification lint and
-the Angular example. Lifecycle scripts stay off through `.npmrc`, and esbuild works without its install step.
+the Angular example.
 
 ```sh
 cd web
