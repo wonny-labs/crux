@@ -1,4 +1,4 @@
-#include "write_read.h"
+#include "basic.h"
 
 crux_file_result_t write_text(const char *name, const char *text, size_t length, size_t *written)
 {

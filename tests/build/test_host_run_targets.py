@@ -1,7 +1,7 @@
 """Check that each Linux Host sample has a `run_<sample>` build target, the Host counterpart of
 `west build -t run` on native_sim.
 
-`cmake --build --preset host-debug --target run_clock_shell` builds the program and runs it in the
+`cmake --build --preset host-debug --target run_time_shell` builds the program and runs it in the
 terminal (USES_TERMINAL gives it stdin under Ninja). This reads the CMake files; it does not
 configure or run a build, because the Host composition builds on Linux only.
 """
@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 # target name -> (CMake file, what the target runs)
 TARGETS = {
-    "run_clock_shell": ("samples/time/clock_shell/host/CMakeLists.txt", "crux-time-host"),
+    "run_time_shell": ("samples/time/shell/host/CMakeLists.txt", "crux-time-host"),
     "run_echo_client": ("samples/networking/echo_client/host/CMakeLists.txt",
                         "$<TARGET_FILE:crux-networking-host> --echo-peer"),
     "run_hello_crux": ("samples/hello_crux/host/CMakeLists.txt", "hello-crux-host"),
@@ -44,7 +44,7 @@ class HostRunTargetTest(unittest.TestCase):
     def test_vs_code_tasks_run_the_host_samples(self):
         # Terminal > Run Task in VS Code runs the same build targets without typing a command.
         tasks = {t["label"]: t for t in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
-        for name in ("run_clock_shell", "run_echo_client"):
+        for name in ("run_time_shell", "run_echo_client"):
             with self.subTest(target=name):
                 task = tasks[f"Host: {name}"]
                 self.assertEqual(task["command"], "cmake")

@@ -159,9 +159,9 @@ if((CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TIME_PERIODIC_SCENARIO) AND
 endif()
 
 if(CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TESTS)
-    add_library(crux_time_commands STATIC samples/time/clock_shell/src/time_command.c)
+    add_library(crux_time_commands STATIC samples/time/shell/src/time_command.c)
     target_include_directories(crux_time_commands
-        PUBLIC samples/time/clock_shell/include
+        PUBLIC samples/time/shell/include
         PRIVATE components/time/include
     )
     target_link_libraries(crux_time_commands PUBLIC crux::base)
@@ -169,7 +169,7 @@ if(CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TESTS)
 endif()
 
 if(CRUX_BUILD_HOST_SAMPLE)
-    add_subdirectory(samples/time/clock_shell/host)
+    add_subdirectory(samples/time/shell/host)
     add_subdirectory(samples/networking/echo_client/host)
 endif()
 

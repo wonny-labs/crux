@@ -35,12 +35,12 @@ printf 'Running Crux Time Ztest scenarios on native_sim/native/64.\n'
     -O "$test_output" --inline-logs)
 mv "$pending_inputs" "$test_inputs"
 
-printf '\nBuilding the Zephyr clock shell sample (samples/time/clock_shell) for native_sim/native/64.\n'
+printf '\nBuilding the Zephyr clock shell sample (samples/time/shell) for native_sim/native/64.\n'
 (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$native_sample_build" \
-    "$repo/samples/time/clock_shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+    "$repo/samples/time/shell" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 "$repo/scripts/select-clangd-database.sh" "$native_sample_build"
 
-printf '\nCross-building the Zephyr clock shell sample (samples/time/clock_shell) for %s.\n' "$board"
+printf '\nCross-building the Zephyr clock shell sample (samples/time/shell) for %s.\n' "$board"
 "$repo/scripts/build-target.sh" "$board" "$test_inputs"
 
 # Build only: samples/hello_crux for the same board, in its own build folder. No provenance manifest, no

@@ -16,5 +16,5 @@ common:
     regex:
       - "CRUX_TIME_READY composition=zephyr"
 tests:
-  crux.sample.time.clock_shell:
+  crux.sample.time.shell:
     extra_args: []

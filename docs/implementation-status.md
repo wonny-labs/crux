@@ -81,7 +81,7 @@ M1 exit candidate, not a declaration that unmerged changes are already in `main`
 | M3-07 | pass | The clean-source EVKB QSPI sample build passed with C17 and board-specific RTC init priority 61. Linker allocation is 65,964 B FLASH and 8,448 B RAM. Current ELF SHA-256 is `3b75f71b…68aa84a`. This software verification did not flash; the earlier downloaded image is identified separately under M4-01. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
 | M3-08 | pass | [Current evidence](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17) distinguishes passing native simulation/Shell execution, target compilation and unexecuted physical SNVS tests, and preserves the original manifest failures and their cause. |
 
-The `samples/time` application named in M3-03 is now `samples/time/clock_shell` after the samples layout change;
+The `samples/time` application named in M3-03 is now `samples/time/shell` after the samples layout change;
 the recorded result above is unchanged and refers to the old path at its tested revision.
 
 ## M4 Physical EVK verification

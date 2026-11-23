@@ -5,6 +5,10 @@ protected path, no CTest name and no Twister id. Every change it describes waits
 [section 9](#9-decisions-for-the-owner); the owner approves the concrete rename and delete lists and the protected
 files before any change.
 
+Rename of 2026-11-23: the owner approved `time/shell` for `time/clock_shell` and `file/basic` for
+`file/write_read` (N8, purpose over implementation). The names `clock_shell` and `write_read` below are the
+historical record of this proposal and stay as written; the samples, tests and docs use the new names.
+
 Baseline: `main` at `2d8553e2`. The Zephyr readings below were made in a local checkout at
 `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). `west.yml` pins v4.4.2; the sample rules and Twister options
 quoted should be rechecked at the pin before they are relied on.
