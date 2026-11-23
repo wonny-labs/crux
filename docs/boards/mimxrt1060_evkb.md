@@ -65,7 +65,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Debug** to build, download, reset and stop at `main`, or **Board: Attach** to look at the image already running (it cannot stop at `main`, which has already run) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, use the profiles in [VS Code debug profiles](#vs-code-debug-profiles). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
 
 Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-only `west attach` check with `compare-sections`, `west debug`, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
@@ -81,6 +81,18 @@ scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
 
 See the [debug build script](../../scripts/build-debug-target.sh) and [physical UART test instructions](../../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
 
+### VS Code debug profiles
+
+[`.vscode/launch.json`](../../.vscode/launch.json) has three Cortex-Debug profiles. All three debug `build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf`. After each successful build, `scripts/build-debug-target.sh` points the link `build/zephyr/mimxrt1060_evk_B_qspi--current` at the build directory it has just built, whichever application and options it built, and prints the link's path. A failed build leaves the link as it was. So the profiles always debug the image built last, and one set of profiles serves every sample.
+
+| Profile | What it does |
+| --- | --- |
+| **Board: Debug** | Runs the task **Build firmware (choose sample)**, which asks for the sample directory to debug, relative to the repository. Press Enter to accept `samples/hello_crux`, or type another directory, such as `samples/time/shell`. The task builds that sample with `--app`; the profile then downloads the image through the J-Link GDB Server in the container, resets the board and stops at `main` |
+| **Board: Attach** | Connects through the J-Link GDB Server in the container to the image already running, without build, reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target |
+| **Board: Attach (external)** | Like **Board: Attach**, through a J-Link GDB Server that runs on the host on port 2331 (see [Known limits](#known-limits)) |
+
+The two attach profiles do not build: the image on the board must be the one behind the link. VS Code does not remember the last directory typed into the prompt; it offers `samples/hello_crux` each time. The settings the J-Link profiles share are listed in the [J-Link board route](../board-jlink-usbipd.md#the-dev-container-and-the-board).
+
 ### Debug builds of other applications
 
 `scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../../scripts/debug-optimizations.conf) that selects `-Og`:
@@ -89,7 +101,7 @@ See the [debug build script](../../scripts/build-debug-target.sh) and [physical 
 scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/boards/nxp/mimxrt1060_evk/sd_card_file --debug-optimizations
 ~~~
 
-Without either option the build directory is the one that the VS Code profiles and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. Downloading another application remains a separately authorised physical operation.
+Without either option the build directory is the one that the clean task and the task **Board: Build and flash (west flash)** name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds, and the ELF path and the [current build link](#vs-code-debug-profiles) when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. Downloading another application remains a separately authorised physical operation.
 
 ### What the platform provides for build and debug
 
@@ -114,7 +126,7 @@ The board test tooling programs and restores only registered images. Each image 
 ## Known limits
 
 - Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
-- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach (external)**. It does not build or download: the ELF under `build/zephyr/mimxrt1060_evk_B_qspi` must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
+- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach (external)**. It does not build or download: the ELF behind the [current build link](#vs-code-debug-profiles) must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).

@@ -172,7 +172,8 @@ class BoardContainerConfigTest(unittest.TestCase):
 class BoardDebugProfilesTest(unittest.TestCase):
     """The Cortex-Debug profiles: J-Link in the container, or a GDB server on the host."""
 
-    ELF = "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf"
+    # The link that scripts/build-debug-target.sh points at the build it made last.
+    ELF = "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf"
 
     def setUp(self):
         vscode = REPO / ".vscode"
@@ -213,7 +214,37 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.check_jlink(flash)
         self.assertEqual(flash["request"], "launch")
         self.assertEqual(flash["runToEntryPoint"], "main")
-        self.assertEqual(flash["preLaunchTask"], "Build firmware")
+        self.assertEqual(flash["preLaunchTask"], "Build firmware (choose sample)")
+
+    def test_debug_task_asks_for_the_sample_and_defaults_to_hello_crux(self):
+        task = self.tasks["Build firmware (choose sample)"]
+        self.assertEqual(task["type"], "process")
+        self.assertEqual(task["command"], "${workspaceFolder}/scripts/build-debug-target.sh")
+        self.assertEqual(task["args"], ["mimxrt1060_evk@B//qspi", "--app", "${input:debugApp}"])
+        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
+        inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
+        prompt = inputs["debugApp"]
+        self.assertEqual(prompt["type"], "promptString")
+        self.assertEqual(prompt["description"], "Sample directory to debug")
+        self.assertEqual(prompt["default"], "samples/hello_crux")
+        self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
+        # The Time sample's own task stays: the clean task and the flash task use its directory.
+        self.assertEqual(self.tasks["Build firmware"]["args"], ["mimxrt1060_evk@B//qspi"])
+
+    def test_every_pre_launch_task_exists(self):
+        for name, profile in self.launch.items():
+            if "preLaunchTask" in profile:
+                with self.subTest(profile=name):
+                    self.assertIn(profile["preLaunchTask"], self.tasks)
+
+    def test_docs_name_the_debug_profile_and_the_current_link(self):
+        tutorial = (REPO / "docs" / "tutorial.md").read_text()
+        self.assertIn("Board: Debug", tutorial)
+        self.assertIn("samples/hello_crux", tutorial)
+        board = (REPO / "docs" / "boards" / "mimxrt1060_evkb.md").read_text()
+        self.assertIn("build/zephyr/mimxrt1060_evk_B_qspi--current", board)
+        for profile in self.launch:
+            self.assertIn(profile, board)
 
     def test_attach_profile_neither_resets_nor_downloads(self):
         attach = self.launch["Board: Attach"]

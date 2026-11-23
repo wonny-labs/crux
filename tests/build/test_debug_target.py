@@ -1,4 +1,5 @@
 """Argument handling of scripts/build-debug-target.sh, with a stand-in west."""
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -8,9 +9,10 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 FRAGMENT = REPO / "scripts/debug-optimizations.conf"
 
-# Records its arguments, then makes the ELF that the script expects.
+# Records its arguments, then makes the ELF that the script expects, or fails when told to.
 FAKE_WEST = """#!/bin/sh
 printf '%s\\n' "$@" > "$FAKE_WEST_LOG"
+if [ -n "${FAKE_WEST_FAIL:-}" ]; then exit 37; fi
 while [ $# -gt 0 ]; do
     if [ "$1" = "-d" ]; then mkdir -p "$2/zephyr" && : > "$2/zephyr/zephyr.elf" && : > "$2/compile_commands.json"; fi
     shift
@@ -29,7 +31,8 @@ class DebugTargetTests(unittest.TestCase):
         (self.workspace / ".west/config").write_text("")
         (self.workspace / "zephyr").mkdir()
         (self.workspace / "zephyr/zephyr-env.sh").write_text("")
-        for application in ("samples/time/shell", "samples/boards/nxp/mimxrt1060_evk/sd_card_file"):
+        for application in ("samples/time/shell", "samples/hello_crux",
+                            "samples/boards/nxp/mimxrt1060_evk/sd_card_file"):
             (self.repo / application).mkdir(parents=True)
             (self.repo / application / "CMakeLists.txt").write_text("")
         (self.repo / "scripts").mkdir()
@@ -44,9 +47,10 @@ class DebugTargetTests(unittest.TestCase):
         west.chmod(0o755)
         self.log = root / "west.log"
 
-    def run_script(self, *arguments):
+    def run_script(self, *arguments, **extra_environment):
         environment = dict(os.environ, CRUX_WORKSPACE=str(self.workspace),
-                           PATH=f"{self.bin}:{os.environ['PATH']}", FAKE_WEST_LOG=str(self.log))
+                           PATH=f"{self.bin}:{os.environ['PATH']}", FAKE_WEST_LOG=str(self.log),
+                           **extra_environment)
         return subprocess.run(["bash", str(self.repo / "scripts/build-debug-target.sh"), *arguments],
                               cwd=self.repo, env=environment, capture_output=True, text=True)
 
@@ -106,6 +110,60 @@ class DebugTargetTests(unittest.TestCase):
                 result = self.run_script(*arguments)
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertFalse(self.log.exists())
+
+    def current_link(self):
+        return self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--current"
+
+    def test_each_successful_build_points_the_current_link_at_its_directory(self):
+        # The VS Code profiles debug the ELF behind this link, so they follow the last build.
+        link = self.current_link()
+        result = self.run_script("mimxrt1060_evk@B//qspi")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi")
+        self.assertIn(f"Current build link:   {link}", result.stdout)
+
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi--samples_hello_crux")
+        self.assertTrue((link / "zephyr/zephyr.elf").is_file())
+        self.assertEqual(sorted(path.name for path in link.parent.iterdir()),
+                         ["mimxrt1060_evk_B_qspi", "mimxrt1060_evk_B_qspi--current",
+                          "mimxrt1060_evk_B_qspi--samples_hello_crux"])
+
+    def test_a_failed_build_leaves_the_previous_link(self):
+        link = self.current_link()
+        self.assertEqual(self.run_script("mimxrt1060_evk@B//qspi").returncode, 0)
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux",
+                                 FAKE_WEST_FAIL="1")
+        self.assertEqual(result.returncode, 37, result.stderr)
+        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi")
+        self.assertNotIn("Current build link", result.stdout)
+
+    def test_a_build_without_an_elf_leaves_the_previous_link(self):
+        link = self.current_link()
+        self.assertEqual(self.run_script("mimxrt1060_evk@B//qspi").returncode, 0)
+        # This west makes the compilation database but no ELF.
+        (self.bin / "west").write_text(FAKE_WEST.replace(' && : > "$2/zephyr/zephyr.elf"', ""))
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--debug-optimizations")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi")
+
+    def test_vs_code_profiles_debug_the_elf_behind_the_printed_link(self):
+        result = self.run_script("mimxrt1060_evk@B//qspi")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        printed = next(line.split(":", 1)[1].strip() for line in result.stdout.splitlines()
+                       if line.startswith("Current build link:"))
+        relative = Path(printed).relative_to(self.repo).as_posix()
+        expected = f"${{workspaceFolder}}/{relative}/zephyr/zephyr.elf"
+        configurations = json.loads((REPO / ".vscode/launch.json").read_text())["configurations"]
+        labels = {task["label"] for task in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
+        self.assertEqual(len(configurations), 3)
+        for configuration in configurations:
+            with self.subTest(profile=configuration["name"]):
+                self.assertEqual(configuration["executable"], expected)
+                if "preLaunchTask" in configuration:
+                    self.assertIn(configuration["preLaunchTask"], labels)
 
     def test_fragment_sets_only_the_optimisation_level(self):
         lines = [line for line in FRAGMENT.read_text().splitlines() if line and not line.startswith("#")]

@@ -19,6 +19,25 @@
       }
     },
     {
+      "label": "Build firmware (choose sample)",
+      "type": "process",
+      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
+      "args": [
+        "mimxrt1060_evk@B//qspi",
+        "--app",
+        "${input:debugApp}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
       "label": "Build firmware (application, -Og)",
       "type": "process",
       "command": "${workspaceFolder}/scripts/build-debug-target.sh",
@@ -177,6 +196,12 @@
         "samples/hello_crux",
         "samples/time/shell"
       ],
+      "default": "samples/hello_crux"
+    },
+    {
+      "id": "debugApp",
+      "type": "promptString",
+      "description": "Sample directory to debug",
       "default": "samples/hello_crux"
     },
     {
