@@ -1,129 +1,111 @@
 # Documentation guidelines
 
-These rules decide what goes on each documentation page and how much detail it carries. They apply to every Markdown page under `docs/`, to the `README.md` files of samples, templates, tests, tools and the web folder, and to the repository README. Code comments and public API documentation follow the [coding guidelines](coding-guidelines.md) instead.
+Every documentation change in Crux passes this standard: what goes on each page, where each fact lives and how much detail it carries. It covers the Markdown pages under `docs/` and the `README.md` files of the repository, samples, templates, tests, tools and `web/`. Code comments and public API documentation follow the [coding guidelines](coding-guidelines.md). Links, the link checker and document versions follow [CONTRIBUTING.md](../CONTRIBUTING.md#documentation).
 
-The rules have six parts: one page type per page, current state only, detail by reader, status in one place, a check that stops new drift, and one structure for onboarding and board pages.
+## 1. Review checklist
 
-## 1. One type per page
+Apply these tests in order to each page, section and sentence that a change adds or keeps. Act on the first test that fails.
 
-Every page has exactly one type. The type says who reads the page, what they want from it, and what it must leave to other pages.
+| # | Test | If it fails |
+| --- | --- | --- |
+| 1 | The page type fits the reader's task ([section 2](#2-one-purpose-per-page)). | Move the text to a page of the type that fits. |
+| 2 | The text serves the heading it sits under. | Move it under the heading it serves. |
+| 3 | The fact has no other home ([section 3](#3-one-home-per-fact)). | Keep it in its home and link there. |
+| 4 | The reader of this page would fail or be confused without it ([section 4](#4-only-what-the-reader-needs)). | Cut it. |
+| 5 | It holds no history, status or measurement ([section 5](#5-current-state-only)). | Move it to its home in section 3. |
 
-| Type | The reader wants to | It holds | It leaves out |
-| --- | --- | --- | --- |
-| **Entry** (the repository README, the [documentation map](README.md), [Getting started](getting-started.md)) | Decide in five minutes whether Crux fits, and start | What Crux is and for whom, capabilities in plain words, a set-up path that works as written, links to read next | Internal component names, provider lists, lifecycle and evidence detail, history |
-| **Tutorial** | Learn by doing, from nothing to a working result | Numbered steps, each with the command and the result to expect | Option comparisons, internals, alternatives, history |
-| **How-to guide** | Finish one task they have already chosen | The procedure for that task, its preconditions and the result that shows it worked; links to background | Explanations longer than a sentence, reference tables that another page owns |
-| **Reference** (contract, interface, policy, schema, glossary) | Look up an exact fact | Interfaces, behaviour, errors, limits, configuration options, a minimal example, and migration notes when the contract requires them | How it was decided, test results, open questions, usage walkthroughs, history |
-| **Explanation** (architecture, design rationale, review guides) | Understand why and how the parts fit | Structure, reasons, alternatives and their trade-offs | Step-by-step procedures, option tables that a reference page owns |
-| **Decision** (`docs/decisions/`) | Know what was decided and why | One ADR: context, options, decision, consequences | Procedures; later changes go into a new ADR |
-| **Record** (investigations, qualification and validation records, feasibility reports, review records, research notes in `docs/research/`) | Know what one dated activity found | The question, the method, the results, the date and revision, the limits | Current guidance: a record is never the only home of a current fact |
-| **Plan** (`docs/plans/`, `docs/superpowers/plans/`) | Know what is proposed or scheduled | Proposals, work packages, open choices | Current behaviour |
-| **History** (`docs/history/`) | Know how the project got here | Superseded pages, milestone and run records, change narratives | Anything a current reader needs |
-| **Evidence** (`docs/evidence/`, `docs/baseline.md`) | Check a claim | Logs, manifests and the files that back a record | Prose guidance |
-| **Template** (files that a product copies, such as `templates/product/CONTRIBUTING.md`) | Start a product file | Text the product owns after copying | Crux history and status |
+Never delete a fact that has no other home: move it there.
 
-Entry, tutorial, how-to, reference and explanation pages are **current-state pages**. The other types are dated by nature and may describe the past.
+## 2. One purpose per page
+
+Each page has one type and one purpose. Its title names the subject, and its first paragraph says what the page is for and who reads it.
+
+| Type | The reader wants to | It holds |
+| --- | --- | --- |
+| **Entry**: the repository README, the [documentation map](README.md), [Getting started](getting-started.md) | Decide quickly whether Crux fits, and start | What Crux is and for whom, capabilities in plain words (no component names, Kconfig symbols or decision codes), a set-up path, links to the detail |
+| **Tutorial** | Learn by doing | Numbered steps, each with its command and the result to expect; background is one sentence and a link |
+| **How-to guide** | Finish one task they have chosen | Preconditions, the procedure and the result that shows it worked; background is one sentence and a link |
+| **Reference**: contract, interface, policy, schema, glossary | Look up an exact fact | Every interface, behaviour, error, limit and option, exactly; a minimal example; migration notes when the contract requires them |
+| **Explanation**: architecture, design rationale | Understand why the parts fit | Structure, reasons, alternatives and trade-offs, not procedures or option lists |
+| **Dated**: record (one investigation, run, qualification or review; `docs/research/`), decision (`docs/decisions/`), plan (`docs/plans/`, `docs/superpowers/plans/`), history (`docs/history/`), evidence (`docs/evidence/`, `docs/baseline.md`) | Know what one activity found, decided, proposed or produced | That activity with its date, revision and limits. Never the only home of a current fact |
+| **Template**: a file that a product copies and then owns, such as `templates/product/CONTRIBUTING.md` | Start a product file | Text the product owns after copying |
+
+The first five types are **current-state pages**. Sections 4 and 5 apply to them.
 
 ### Which type is my page?
 
-Answer the questions in order and stop at the first yes. If a later question would also be yes for a large part of the page, the page is mixed: record the split as a finding and move that part to a page of its own type.
+Take the first match. A page in a dated folder has that folder's type. A page whose whole subject is one dated activity is a record. A file a product copies is a template. The three pages named above are entry pages. Otherwise the reader decides: learning by doing makes a tutorial, doing a chosen task a how-to guide, looking facts up a reference, understanding an explanation. If a large part of the page fits another type, the page is mixed: move that part to a page of its own type.
 
-| # | Question | Type |
-| --- | --- | --- |
-| 1 | Is it under `docs/decisions/`, `docs/plans/`, `docs/superpowers/plans/`, `docs/history/` or `docs/evidence/`? | The folder's type |
-| 2 | Is the subject of the page one dated activity (a study, a run, a qualification, a review, the delivery of one issue) rather than a part of the platform? | Record |
-| 3 | Is it a file that a product copies and then owns? | Template |
-| 4 | Is it the repository README, the documentation map or Getting started? | Entry |
-| 5 | Does a newcomer follow it from start to finish to learn, with an expected result for each step? | Tutorial |
-| 6 | Does a reader who has chosen a task follow it to finish that task? | How-to guide |
-| 7 | Does a reader look facts up in it rather than read it through? | Reference |
-| 8 | Otherwise: does it explain structure, reasons or trade-offs? | Explanation |
+Record the type of each page outside the dated folders in [`tests/build/fixtures/docs_page_types.json`](../tests/build/fixtures/docs_page_types.json). A page that is not listed is checked as a reference page.
 
-A contract page whose subject is a component is a reference page even when it also carries test results; question 2 asks about the subject of the whole page, not about one section. The test results are then the mixed-in part that moves.
+## 3. One home per fact
 
-The type of each page outside the typed folders is recorded in [`tests/build/fixtures/docs_page_types.json`](../tests/build/fixtures/docs_page_types.json). Add a new page there with its type; a page that is not listed is checked as a reference page.
+Each fact, table, command and status lives on one page: the page whose type it belongs to. An option belongs to a reference page, a procedure to a how-to guide, a reason to an explanation or an ADR. Other pages link to it. Two exceptions keep pages usable: a tutorial or an entry page may repeat a command that it runs, exactly as its home writes it, with a link for the options; a how-to guide may repeat one configuration line in context.
 
-### Examples
+Some content has a fixed home:
 
-- The [tutorial](tutorial.md) gives one command per step and the line to expect, such as `CONTROLLER_COMPLETE cycles=20`. It does not compare Twister with CTest; the [test guide](../tests/README.md) does that.
-- A contract page that opens with `Status: merged in PR #210 for Issue #177` mixes a record into a reference page. The pull request already holds that provenance, and [Component readiness](component-readiness.md) holds the evidence level. The contract keeps the interface.
-- A section called "Decisions for review" or "What is built, faked and untested" on a contract page is a record or a plan. It belongs in the issue, the pull request, a record page or `docs/plans/`.
-- An architecture page that contains a proposal "not adopted, for the owner's decision" mixes a plan into an explanation. The proposal belongs in `docs/plans/` until it is adopted.
-
-## 2. Current state only
-
-A current-state page describes what is true at the revision it is read from. It does not narrate change. Phrases such as `was removed`, `previously`, `no longer`, `formerly`, `moved from`, `will be frozen`, `renamed from`, a date on which something changed, and `merged in PR #N` are markers of change history or provenance.
-
-Each kind of change text has its own home:
-
-| Change text | Home |
+| Content | Home |
 | --- | --- |
-| What changed in a release, including removals and renames | The release notes, or the CHANGELOG once one exists |
-| What a consumer must do to move from an old interface to a new one | A "Migration notes" section of that interface's contract page, when the contract requires one |
-| Why and when the project changed direction | The ADR that decided it, and [`docs/history/`](history/README.md) for the narrative |
-| Which pull request or issue delivered a page or a feature | The pull request and the issue |
+| A component's stability tier, planned removal, tested environments, evidence level and board testing | [Component readiness](component-readiness.md); [ADR-0001](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) defines the tiers |
+| What changed in a release | The release notes, or the CHANGELOG once one exists |
+| What a consumer changes to move to a new interface | The "Migration notes" section of that interface's contract |
+| Why the project changed direction | The ADR that decided it; the narrative goes to [`docs/history/`](history/README.md) |
+| Which pull request or issue delivered something, and who ran or reported what | The pull request and the issue |
+| The results of a run: measured durations and sizes, logs, what was and was not verified | A record page, the pull request or `docs/evidence/` |
+| Proposals and open choices | `docs/plans/` or the issue |
 
-Move such text to its home; never delete information that has no other home. When a fact is only true for a while, such as "no release tag exists yet", state it once on the page that owns it (here the [Product Composition Guide](product-composition.md#versions)) and link to it.
+A contract page may say in one sentence what a component's status means for the reader's code, such as `new product code does not use this header`, and link the readiness row.
+
+## 4. Only what the reader needs
+
+Each page carries the detail that its type in section 2 names, and no more. Lead with what the reader needs most; prefer a link to a paragraph of background.
+
+Write steps only for a route that has been run. Leave a route that has not been run out of the page. When it is the only route the reader has, put it under one heading that says it has not been run, and keep that notice out of the steps.
+
+A page that adopts or proposes a practice, such as a guideline, a plan or an ADR, links the industry practice it follows and says where it departs from it.
+
+## 5. Current state only
+
+A current-state page states what is true at the revision it is read from. It holds none of the following; section 3 gives each its home.
+
+- **Change narrative**: `was removed`, `previously`, `no longer`, `moved from`, `is now`, `since`, `will be removed`.
+- **Dates and provenance**: the date of a change, `merged in PR #N`, who reported a result.
+- **Verification trails**: `ran once on`, `has not been run yet`, `not yet verified`, `as reported by`.
+- **Measurements of a run**: durations, sizes and timings from a run. A limit or guarantee that a contract makes is a fact, not a measurement.
+- **Status lines**: only dated pages carry one at the top, such as `Proposal, not adopted`.
 
 Write the current rule instead of the change:
 
 | Not this | This |
 | --- | --- |
-| `Crux Queue was removed on 20 November 2026; use k_msgq.` | `Use Zephyr k_msgq for queues.` The removal goes into the messaging contract's migration notes |
-| `This template moved from samples/product_template to templates/product.` | `The product template is templates/product.` |
+| `Crux Queue was removed in November; use k_msgq.` | `Use Zephyr k_msgq for queues.` The removal goes into the messaging contract's migration notes. |
 | `The handle is no longer valid after close.` | `The handle is invalid after close.` |
 
-## 3. Detail by reader and layer
-
-Detail grows from the entry pages to the reference pages:
-
-- **Entry pages** let a newcomer decide in five minutes. They name capabilities in plain words, not components, providers, Kconfig symbols or decision codes, and they link to the pages that hold the detail.
-- **Tutorials and how-to guides** give enough to finish their one task and no more. Background is one sentence and a link.
-- **Reference pages** are complete and exact: every option, every error, every limit. They are the most detailed layer.
-- **Explanation pages** go deep on reasons, not on procedures or option lists.
-
-**Single source.** Each fact, table or command lives on one page; other pages link to it. Two exceptions keep pages usable:
-
-- A tutorial or an entry page may repeat a command that it runs as one of its steps, as long as the command is written exactly as on the page that owns it and the step links that page for options.
-- A how-to guide may repeat one configuration line in context; the table of all options stays on the reference page.
-
-The owner of a fact is the page of the type that the fact belongs to: an option belongs to a reference page, a procedure to a how-to guide, a reason to an explanation or an ADR.
-
-## 4. Status and evidence in one place
-
-The lifecycle and verification status of each component lives only in [Component readiness](component-readiness.md): its tier (`Experimental`, `Unstable` and so on), a freeze or a planned removal, the environments where it is tested, the evidence level it has reached, and whether it has been tested on a board. The stability tiers themselves are defined by [ADR-0001](decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy).
-
-Other current-state pages link to the readiness row instead of restating the status. A contract page may say in one sentence what a status means for the reader's code, such as `new product code does not use this header`, with the link. A record page states the status of what it tested at its date, because that is its result.
-
-A page may carry a document status at its top only when its type is not current-state (for example `Record of the investigation for issue #141, 7 November 2026` or `Proposal, not adopted`). A current-state page is current by being in the tree; it carries no status line.
-
-## 5. The check
-
-[`tests/build/test_docs_page_types.py`](../tests/build/test_docs_page_types.py) scans the current-state pages for three groups of lexical markers:
-
-| Rule | Markers | Waived on |
-| --- | --- | --- |
-| `history` (any case) | `was`, `were`, `has been`, `have been`, `is now` or `are now` followed by `removed`, `renamed`, `replaced`, `dropped` or `deleted`; `moved from`, `renamed from`, `previously`, `no longer`, `formerly`; `will be` followed by `frozen`, `removed` or `deprecated` | On a reference page, any section whose heading contains `migration` (any case), up to the next heading of the same or a higher level |
-| `provenance` (any case) | `merged in PR` or `merged in pull request`, `for review in a Draft PR`, and `on`, `since` or `until` followed by a written date such as `on 9 November 2026` | None |
-| `status` (all case-sensitive) | `Experimental`, `Unstable`, `frozen` (not `frozen manifest`, `frozen lock`, `frozen-style` and similar release terms), `to be removed`, `deprecated`, and `ran`, `run`, `been run` or `executed` followed by `on a`, `on the` or `on any` and `board`, with an optional `real` or `physical` before `board` | [Component readiness](component-readiness.md) |
-
-It skips fenced code blocks, text in code spans, pages of the other types, and the repository README, which [`test_readme_scope.py`](../tests/build/test_readme_scope.py) guards on its own.
-
-The pages that break these rules today are recorded in the fixture's allowlist, with the number of markers per rule, as found by the [documentation audit](plans/documentation-audit-2026-11.md). The test fails when a page has more markers than its allowlist entry, so new drift fails while existing text does not block unrelated work. When you fix a page, lower or remove its entry; never raise one. If a marker is a false positive that cannot be reworded, raise it in review rather than in the allowlist.
-
-The check is lexical and narrow. It does not judge page types, duplication or the level of detail: review does that against sections 1 to 4.
+A fact that holds only for a while, such as `no release tag exists`, is stated once in its home ([Product Composition Guide](product-composition.md#versions)) and linked.
 
 ## 6. Onboarding and board pages
 
-Onboarding follows Zephyr's getting-started structure: one path, in which the board is a parameter (`-b <board>`), the last part builds a sample for the reader's board and flashes it, and `native_sim` is one more target. This structure is the rule for Crux and for the product repositories built on it, such as crux-controller and crux-codesys.
+Onboarding follows the structure of [Zephyr's Getting Started Guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html): one path in which the board is a parameter (`-b <board>`), ending with a build and flash for the reader's board; `native_sim` is one more target. The structure is the rule for Crux and for the product repositories built on it, such as crux-controller and crux-codesys.
 
 | Page | Holds | Leaves out |
 | --- | --- | --- |
-| Getting started ([`getting-started.md`](getting-started.md)) | The environment and a first working build: opening the one Dev Container, what it sets up by itself and how to rerun it. One short "If you use a board" section: the probe, the USB connection, a link to the board pages, and the one-time steps that give the Dev Container a probe, which are the same for every board (on WSL2 the three `usbipd` commands, `scripts/bootstrap.sh board-host` and the probe software package), with a link to the probe's route guide, and a sentence saying which of those steps have been run | Every procedure specific to one board |
-| Tutorial ([`tutorial.md`](tutorial.md)) | One path in three parts: A on the Linux Host, B on `native_sim`, C on your board. Part C opens with "No board? Parts A and B run every sample and test.", then a table of supported boards (board, `-b` target, probe, board guide link, and no status words: it links [Component readiness](component-readiness.md) for status), then build, flash and the console line to expect | Board switches, jumpers, recovery and other board detail; a procedure that has not been run |
-| Board pages (`docs/boards/<board>.md`, indexed by [`docs/boards/README.md`](boards/README.md)) | Everything specific to one board, in fixed sections: Board target, Switches and jumpers, Probe and connection, Flash and debug, Recovery, Board image profiles, Known limits | Anything that is not specific to that board |
+| [Getting started](getting-started.md) | The Dev Container and a first build, then one short "If you use a board" section: the one-time steps that give the container a probe, with links to the board pages and the probe route guide | Any step specific to one board |
+| [Tutorial](tutorial.md) | One path: Part A on the Linux Host, Part B on `native_sim`, Part C on your board. Part C opens with a line for readers without a board, then the table of supported boards with a link to [Component readiness](component-readiness.md) for status, then build, flash and the console line to expect | Switches, jumpers, recovery and other board detail |
+| Board pages: `docs/boards/<board>.md`, indexed by [`docs/boards/README.md`](boards/README.md) | Everything specific to one board, in the sections Board target, Switches and jumpers, Probe and connection, Flash and debug, Recovery, Board image profiles, Known limits | Anything not specific to that board |
 
-- **Board details live in Crux.** Only `docs/boards/<board>.md` in Crux describes a board that Crux supports. A product repository links the Crux board page and keeps only its product-specific board steps, such as its own image, wiring or fixtures.
-- **Adding a board** is one new board page, one row in `docs/boards/README.md` and one row in the tutorial's board table.
-- **Only run procedures.** A board page and Part C describe a route only after it has been run, and they say on which host. A route that has not been run is named in one sentence, not written as steps.
-- [`tests/build/test_docs_onboarding.py`](../tests/build/test_docs_onboarding.py) checks this structure in Crux.
+Only the Crux board pages describe a board that Crux supports. A product repository links them and keeps only its own board steps, such as its image, wiring or fixtures. Adding a board is one board page, one row in the board index and one row in the tutorial's board table.
+
+## Checks
+
+| Check | What it enforces |
+| --- | --- |
+| [`test_docs_page_types.py`](../tests/build/test_docs_page_types.py) | Current-state pages hold no more change, provenance or status markers than their allowlist entry in the fixture. Lower or remove an entry when you fix a page; never raise one. Raise a false positive in review. |
+| [`test_docs_onboarding.py`](../tests/build/test_docs_onboarding.py) | The structure of section 6 |
+| [`test_readme_scope.py`](../tests/build/test_readme_scope.py) | No history or lifecycle markers in the repository README |
+| `scripts/check_docs.py` | Local links and anchors, as [CONTRIBUTING.md](../CONTRIBUTING.md#documentation) describes |
+
+The checks are lexical. Review applies the checklist in section 1 to everything else.
+
+## Sources
+
+[Diátaxis](https://diataxis.fr/) and its [compass](https://diataxis.fr/compass/); Google [timeless documentation](https://developers.google.com/style/timeless-documentation) and [future features](https://developers.google.com/style/future); Microsoft [top 10 tips](https://learn.microsoft.com/en-us/style-guide/top-10-tips-style-voice); Write the Docs [principles](https://www.writethedocs.org/guide/writing/docs-principles/) and [docs as code](https://www.writethedocs.org/guide/docs-as-code/); Kubernetes [content guide](https://kubernetes.io/docs/contribute/style/content-guide/) and [page content types](https://kubernetes.io/docs/contribute/style/page-content-types/); GitLab [documentation style guide](https://docs.gitlab.com/development/documentation/styleguide/); [Zephyr Getting Started](https://docs.zephyrproject.org/latest/develop/getting_started/index.html). Crux departs from GitLab and Kubernetes on one point: version notes stay out of current pages and go to release notes or migration notes.
