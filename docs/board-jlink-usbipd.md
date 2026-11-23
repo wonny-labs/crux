@@ -132,7 +132,7 @@ Options of the J-Link runner:
 | `-i <serial>`, `--dev-id <serial>` | Select a probe by serial number when more than one is attached. `lsusb -v -d 1366:` shows it as `iSerial` |
 | `-O <option>`, `--tool-opt <option>` | Pass an option to the J-Link tools |
 
-**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
+**VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
@@ -143,7 +143,7 @@ Neither profile has been run. As reported by the maintainer, Cortex-Debug is in 
 - `rtos`: a J-Link RTOS plugin for Zephyr thread awareness, if the installed J-Link software has one, together with `CONFIG_DEBUG_THREAD_INFO=y` in the image.
 - `rttConfig`: an RTT console, for an image built with Zephyr's RTT console instead of the UART.
 
-The **EVKB QSPI** profiles connect to `host.docker.internal:2331` for the host GDB Server route on the board page. Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
+Stop a debug session before you use `west flash` or J-Link Commander, which need the probe.
 
 ## Not covered
 

@@ -34,7 +34,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 | --- | --- |
 | Debug probe | An external SEGGER J-Link (a J-Link PLUS is recorded) on the 20-pin J2 header, with J9 and J10 removed. SWD at 400 kHz, device `MIMXRT1062xxx6A`, J-Link software V9.86a. The first connection on a new setup failed at 1000 kHz and was made at 100 kHz after J9 and J10 had been corrected |
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
-| Host | On macOS, a Mac runs the J-Link GDB Server and the Dev Container runs the build and GDB, connecting to the server at `host.docker.internal:2331`. On Linux and WSL2, everything runs in the Dev Container (below) |
+| Host | Linux, or Windows with WSL2: the probe, the J-Link software, the build and GDB are all in the Dev Container (below) |
 
 **Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The steps below were run once on a Windows PC with WSL2 (Ubuntu 22.04) and Docker Engine in WSL2, as reported by the maintainer, with J-Link software V9.96a, using a separate board Dev Container configuration; the image was built with a no-op `/usr/sbin/udevadm` added by hand, which `install-jlink.sh` adds itself. The [J-Link board route](../board-jlink-usbipd.md) guide gives the current path, with the single Dev Container, `scripts/bootstrap.sh board-host`, `usbipd attach --auto-attach` and an organisation-hosted package URL, which have not been run, and explains the failures seen.
 
@@ -71,28 +71,13 @@ Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-onl
 
 ## Flash and debug
 
-The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
+Flashing and debugging use the Dev Container route in [Probe and connection](#probe-and-connection). Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Attaching a debugger may halt the target.
 
-On the approved macOS host, from the repository checkout (not the Dev Container), start the existing server:
-
-~~~sh
-bash scripts/macos/start-jlink-gdbserver.command
-~~~
-
-The script prefers `/usr/local/bin/JLinkGDBServer` and falls back to a `JLinkGDBServerCLExe` under `/Applications/SEGGER`. It starts the server with `-device MIMXRT1062xxx6A -if SWD -speed 400 -endian little -port 2331 -localhostonly 0`: SWD at 400 kHz, GDB on TCP port 2331. It accepts remote connections rather than restricting access to localhost, so use it only on a trusted network. Stop it with Ctrl-C when debugging is finished.
-
-The existing VS Code [debug configurations](../../.vscode/launch.json) connect from the Dev Container to `host.docker.internal:2331`:
-
-- **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
-- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates. Its `stopAtEntry` setting stops the debugger at the reset entry (`reset.S`) after the download; Continue (F5) starts the image.
-
-The profile's build is the same as this command in the Dev Container:
+The debug build of the Time sample:
 
 ~~~sh
 scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
 ~~~
-
-The Time sample prints `CRUX_TIME_READY composition=zephyr` on the console after the Zephyr boot banner. That line was recorded after a download with GDB and a reset with J-Link Commander in the [M4 UART run](../baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17); the recorded run of the Flash profile stopped at `main` and did not read the console ([VS Code debugging record](../baseline.md#fix-and-actual-verification)). The chain of the Flash profile, Continue and the console line has no record of its own.
 
 See the [debug build script](../../scripts/build-debug-target.sh) and [physical UART test instructions](../../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
 
@@ -104,7 +89,7 @@ See the [debug build script](../../scripts/build-debug-target.sh) and [physical 
 scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/boards/nxp/mimxrt1060_evk/sd_card_file --debug-optimizations
 ~~~
 
-Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
+Without either option the build directory is the one that the VS Code profiles and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. Downloading another application remains a separately authorised physical operation.
 
 ### What the platform provides for build and debug
 
@@ -112,7 +97,7 @@ Without either option the build directory is the one that the VS Code profile an
 |---|---|---|
 | The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
 
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. On macOS the probe stays on the Mac, so the split between the Mac-hosted server and the container GDB stays. On Linux and WSL2 the Dev Container has the J-Link software once its package is given (see [Probe and connection](#probe-and-connection)).
+The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. On Linux and WSL2 the Dev Container has the J-Link software once its package is given (see [Probe and connection](#probe-and-connection)).
 
 ## Recovery
 
@@ -129,7 +114,7 @@ The board test tooling programs and restores only registered images. Each image 
 ## Known limits
 
 - Debugging and the physical test suites have been used from macOS only. From Windows with WSL2 one flash and console check of the Time sample is reported ([Probe and connection](#probe-and-connection)).
-- The **EVKB QSPI: Flash** profile downloads only the Time sample. `samples/hello_crux` runs on `native_sim` and is cross-built for this board; no board result is recorded for it.
+- Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach to a host GDB server**.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).
