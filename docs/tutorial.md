@@ -273,7 +273,7 @@ In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Debug**, 
 
 - [Samples](../samples/README.md): what each sample folder is for.
 - [Boards](boards/README.md): every board page.
-- [J-Link board route](board-jlink-usbipd.md): the other ways to debug, `west debug`, `west attach` and the VS Code attach profiles.
+- [J-Link board route](board-jlink-usbipd.md): the other ways to debug, `west debug`, `west attach` and the VS Code profile **Board: Attach**.
 - [Choosing an API](choosing-an-api.md): where each kind of product code goes.
 - [Test guide](../tests/README.md): every suite and the checks to run before a pull request.
 - [Documentation map](README.md): every other page, by task.

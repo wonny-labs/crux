@@ -184,7 +184,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
 
     def test_host_server_profile_attaches_to_an_external_gdb_server(self):
         # Cortex-Debug's "external" server type: the user starts the J-Link GDB Server on the host.
-        host = self.launch["Board: Attach to running GDB server"]
+        host = self.launch["Board: Attach (external)"]
         self.assertEqual(host["type"], "cortex-debug")
         self.assertEqual(host["request"], "attach")
         self.assertEqual(host["servertype"], "external")

@@ -34,7 +34,7 @@
       "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
     },
     {
-      "name": "Board: Attach to running GDB server",
+      "name": "Board: Attach (external)",
       "type": "cortex-debug",
       "request": "attach",
       "servertype": "external",
