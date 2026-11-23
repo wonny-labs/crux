@@ -71,7 +71,7 @@ Each tool has a `tests/build/test_<tool>.py` that runs on throwaway repositories
 
 ### Boot composition: `scripts/test-boot-composition.sh`
 
-This script builds, signs and checks the MCUboot RAM-load composition of [boot composition](../docs/boot-composition.md) for the RT1060-EVK Rev B. It is build only: it programs, boots, debugs and resets nothing, and it signs with MCUboot's published public test key, so its images must never be programmed to a board. It needs the Linux Dev Container and a workspace made by `scripts/bootstrap-zephyr.sh`. CI runs it in the `runtime` shard.
+This script builds, signs and checks the MCUboot RAM-load composition of [boot composition](../docs/boot-composition.md) for the RT1060-EVK Rev B. It is build only: it programs, boots, debugs and resets nothing, and it signs with MCUboot's published public test key, so its images must never be programmed to a board. It needs the Linux Dev Container and a workspace made by `scripts/bootstrap-zephyr.sh`. CI runs it in the `runtime` shard. It calls `tests/target/check_boot_images.sh` on its own build; the approval of that wiring is recorded in the header of the script.
 
 Outside CI it changes your local workspace:
 
