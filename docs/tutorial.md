@@ -216,8 +216,8 @@ probe, connections and recovery. Pick your board:
 Which components have evidence on each board is recorded in [Component readiness](component-readiness.md). Set the
 board up as its guide says ([switches and jumpers](boards/mimxrt1060_evkb.md#switches-and-jumpers)) before you start.
 
-The steps below use the J-Link software in the Dev Container (Linux and WSL2); other hosts are in the
-[board guide](boards/mimxrt1060_evkb.md#flash-and-debug).
+The steps below use the J-Link software in the Dev Container (Linux and WSL2); the route is in the
+[board guide](boards/mimxrt1060_evkb.md#flash-and-debug), and its [known limits](boards/mimxrt1060_evkb.md#known-limits) cover other hosts.
 
 ### 12. Connect the probe to the Dev Container
 
