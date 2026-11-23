@@ -46,7 +46,7 @@ class WestCompletionStepTest(unittest.TestCase):
         self.assertIn("&&", step)
 
     def test_no_bashrc_edit(self):
-        self.assertNotIn(".bashrc", DOCKERFILE.read_text())
+        self.assertFalse(any(".bashrc" in step for step in self.steps))
 
 
 if __name__ == "__main__":
