@@ -42,3 +42,9 @@ printf '\nBuilding the Zephyr clock shell sample (samples/time/clock_shell) for 
 
 printf '\nCross-building the Zephyr clock shell sample (samples/time/clock_shell) for %s.\n' "$board"
 "$repo/scripts/build-target.sh" "$board" "$test_inputs"
+
+# Build only: samples/hello_crux for the same board, in its own build folder. No provenance manifest, no
+# flash, no reset, no hardware command.
+printf '\nCross-building samples/hello_crux for %s.\n' "$board"
+(cd "$workspace" && west build -p always -b "$board" -d "$repo/build/zephyr/hello_crux_$build_key" \
+    "$repo/samples/hello_crux" -- -DZEPHYR_EXTRA_MODULES="$repo")
