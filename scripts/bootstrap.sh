@@ -9,7 +9,8 @@
 #   host    tools, then scripts/bootstrap-host.sh: configure, build and test the Linux Host preset
 #           (CRUX_HOST_PRESET, default host-debug); the first run fetches GoogleTest
 #   zephyr  tools, then scripts/bootstrap-zephyr.sh --install-sdk: the west workspace in the parent
-#           folder, Zephyr's Python requirements and the Zephyr SDK with arm-zephyr-eabi
+#           folder, Zephyr's Python requirements and the Zephyr SDK with arm-zephyr-eabi; then
+#           west's bash Tab completion (see west_completion)
 #   status  print the result of each step's last run and whether the J-Link software is installed;
 #           installs nothing (the Dev Container prints it when VS Code attaches)
 #   board-host  only for a board: prepare the Linux system that the J-Link probe is attached to
@@ -302,6 +303,22 @@ licence there), place it in .devcontainer/jlink/packages/ on the host, then run
 EOF
 }
 
+# west_completion: write west's bash Tab completion, `west completion bash`, to the first
+# bash-completion user directory, which bash-completion (2.2 or later) loads on demand. It runs
+# in the workspace because its zephyr project provides that command. Every run writes it again; a
+# failure only warns and keeps the last script.
+west_completion() {
+    local user_dir=${BASH_COMPLETION_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion}
+    local file=${user_dir%%:*}/completions/west.bash
+    if mkdir -p "${file%/*}" && (cd "$workspace" && west completion bash) >"$file.tmp" \
+        && mv -f "$file.tmp" "$file"; then
+        printf 'west Tab completion: %s\n' "$file"
+    else
+        rm -f "$file.tmp"
+        printf 'warning: could not write the west Tab completion to %s; bootstrap continues\n' "$file" >&2
+    fi
+}
+
 if [ "$mode" = status ]; then
     for name in tools host zephyr; do
         # A finished step counts only while its record still matches, as in a real run.
@@ -342,6 +359,7 @@ for name in $steps; do
     fi
     if run_step "$name"; then
         [ "$name" != tools ] || export PATH="$venv/bin:$PATH"
+        [ "$name" != zephyr ] || west_completion
     else
         [ "$name" != tools ] || tools_ok=0
     fi

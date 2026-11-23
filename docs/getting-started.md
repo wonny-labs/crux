@@ -112,7 +112,7 @@ After the container is created, it runs `scripts/bootstrap.sh` by itself (`postC
 
 1. adds the west workspace folders to Git's `safe.directory` list and installs the pinned CMake, Ninja, clang-format, west and pytest into a Python environment in the cache volume;
 2. configures, builds and tests the Linux Host preset `host-debug` (`scripts/bootstrap-host.sh`), which fetches GoogleTest once;
-3. creates the west workspace in the parent folder, installs Zephyr's Python requirements and the Zephyr SDK with the `arm-zephyr-eabi` toolchain (`scripts/bootstrap-zephyr.sh --install-sdk`).
+3. creates the west workspace in the parent folder, installs Zephyr's Python requirements and the Zephyr SDK with the `arm-zephyr-eabi` toolchain (`scripts/bootstrap-zephyr.sh --install-sdk`), then writes west's bash Tab completion; a failure there only prints a warning.
 
 A step that finished is skipped the next time, so reopening or rebuilding the container is quick; a step whose inputs change (the tool pins, `west.yml`, a deleted build folder, a deleted cache volume) runs again. Each step writes its output to `/opt/crux-cache/bootstrap/<step>.log`.
 
