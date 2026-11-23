@@ -55,11 +55,11 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
         west==1.4.0 \
         pytest==8.3.5
 
-# Tab completion for west (Zephyr's documented `west completion bash`), written to the
-# system bash-completion directory so every user gets it without a ~/.bashrc edit. It
-# runs offline and, chained with &&, stops the build when west fails.
-RUN install -d /usr/share/bash-completion/completions \
-    && west completion bash > /usr/share/bash-completion/completions/west
+# Tab completion for west, in the system bash-completion directory so every user gets it
+# without a ~/.bashrc edit. `west completion bash` is a Zephyr extension command that works
+# only inside a west workspace, which the image build does not have, so the file loads the
+# script from it on the first `west <Tab>` (see west-completion.bash).
+COPY .devcontainer/west-completion.bash /usr/share/bash-completion/completions/west.bash
 
 ENV CC=clang-18 \
     CXX=clang++-18
