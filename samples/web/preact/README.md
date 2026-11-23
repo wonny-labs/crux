@@ -21,7 +21,7 @@ npm run test:browser   # builds again, then runs the browser tests against the m
 ```
 
 In the Linux Dev Container, from the repository root, `scripts/test-native-composition.sh e2e-mbed` builds both
-examples, packages them into a `native_sim` image and runs the shared and real-server browser cases over HTTPS.
+examples, packages each into a `native_sim` image and runs the shared and real-server browser cases over HTTPS.
 
 ## See also
 
