@@ -166,6 +166,26 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertNotIn("--erase", json.dumps(task))
 
+    def test_sample_flash_task_offers_the_board_samples(self):
+        # Part C of the tutorial flashes hello_crux first; this task builds and flashes the sample
+        # picked from a list with the tutorial's own commands.
+        task = self.tasks["Board: Build and flash a sample (west flash)"]
+        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
+        self.assertEqual(task["args"][-1], "${input:boardSample}")
+        script = " ".join(task["args"])
+        self.assertIn("west build -p always -b 'mimxrt1060_evk@B//qspi' -d \"$build\" \"$app\"", script)
+        self.assertIn("west flash -d \"$build\" -r jlink", script)
+        self.assertNotIn("--erase", script)
+        inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
+        pick = inputs["boardSample"]
+        self.assertEqual(pick["type"], "pickString")
+        self.assertEqual(pick["default"], "samples/hello_crux")
+        self.assertEqual(pick["options"], ["samples/hello_crux", "samples/time/clock_shell"])
+        for sample in pick["options"]:
+            self.assertTrue((REPO / sample / "sample.yaml").is_file(), sample)
+        tutorial = (REPO / "docs" / "tutorial.md").read_text()
+        self.assertIn("Board: Build and flash a sample (west flash)", tutorial)
+
     def test_no_cppdbg_board_profiles_or_server_tasks_remain(self):
         self.assertFalse([name for name in self.launch if name.startswith("Board container:")])
         self.assertFalse([label for label in self.tasks if label.startswith("Board container:")])

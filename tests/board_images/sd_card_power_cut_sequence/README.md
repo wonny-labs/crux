@@ -22,4 +22,4 @@ All board scenarios are link only here. Do not flash them until the physical gat
 
 Procedure: [eMMC and Reliance Edge physical gate](../../../docs/emmc-reliance-physical-gate.md).
 
-Old path: `samples/storage_reliance_sd` (see the moved-paths table in [samples/README.md](../../../samples/README.md#moved-board-test-images)).
+Old path: `samples/storage_reliance_sd` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).

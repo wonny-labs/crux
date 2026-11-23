@@ -22,7 +22,7 @@ You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 Gi
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**. The one Dev Container serves work with and without a board.
 3. Wait for the set-up that the container runs by itself, `scripts/bootstrap.sh`: the tools, the Host build and tests, the west workspace and the Zephyr SDK. If a download fails, the container still opens and the terminal names the command that runs the step again; `scripts/bootstrap.sh status` shows each step. [The Dev Container sets itself up](docs/getting-started.md#6-the-dev-container-sets-itself-up) has the details, and section 7 there what a board adds.
 
-None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then Zephyr's Hello World and the Crux samples, shows how to change a build, and ends with a sample on your board.
+None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then on Zephyr's `native_sim`, shows how to change a build, and ends with a sample on your board.
 
 ## Where to read next
 

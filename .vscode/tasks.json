@@ -63,6 +63,25 @@
       }
     },
     {
+      "label": "Host: run_hello_crux",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "set -e; cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR=\"$PWD\"; cmake --build build/samples/hello_crux_host --target run_hello_crux"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
       "label": "Host: run_clock_shell",
       "type": "process",
       "command": "cmake",
@@ -127,9 +146,39 @@
         "panel": "shared",
         "clear": true
       }
+    },
+    {
+      "label": "Board: Build and flash a sample (west flash)",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "set -e; app=$1; build=build/$(basename \"$app\")_evkb; west build -p always -b 'mimxrt1060_evk@B//qspi' -d \"$build\" \"$app\"; west flash -d \"$build\" -r jlink",
+        "_",
+        "${input:boardSample}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
     }
   ],
   "inputs": [
+    {
+      "id": "boardSample",
+      "type": "pickString",
+      "description": "Sample to build for the MIMXRT1060-EVKB and flash with the J-Link runner",
+      "options": [
+        "samples/hello_crux",
+        "samples/time/clock_shell"
+      ],
+      "default": "samples/hello_crux"
+    },
     {
       "id": "cruxApplication",
       "type": "promptString",

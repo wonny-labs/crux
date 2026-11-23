@@ -4,7 +4,7 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
-- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then Zephyr's Hello World, the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options, then a sample built and flashed on your board (Part C).
+- [Tutorial: your first build and sample](tutorial.md): from the Dev Container to the Crux samples on the Linux Host and CTest (Part A), then the Crux samples on `native_sim`, Twister, and changing a build (Part B) with Kconfig, Devicetree overlays and CMake options, then a sample built and flashed on your board (Part C).
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
 - [Getting started](getting-started.md): the Git clone, the folder layout, Windows with WSL2, network and proxy access, disk and memory, the set-up that the one Dev Container runs by itself (`scripts/bootstrap.sh`), and what a board adds.
 - [Boards](boards/README.md): one page per board with its target, switches and jumpers, probe and connection, flash and debug, recovery and limits.

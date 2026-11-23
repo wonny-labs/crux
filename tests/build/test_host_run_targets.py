@@ -51,6 +51,19 @@ class HostRunTargetTest(unittest.TestCase):
                 self.assertEqual(task["args"], ["--build", "--preset", "host-debug", "--target", name])
                 self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
 
+    def test_vs_code_task_runs_hello_crux_as_its_own_project(self):
+        # hello_crux/host is its own CMake project (tutorial step 2): the task configures it with
+        # the tutorial's command line, then builds and runs its run target.
+        tasks = {t["label"]: t for t in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
+        task = tasks["Host: run_hello_crux"]
+        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
+        script = " ".join(task["args"])
+        self.assertIn('cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja '
+                      '-DCRUX_SOURCE_DIR="$PWD"', script)
+        self.assertIn("cmake --build build/samples/hello_crux_host --target run_hello_crux", script)
+        tutorial = (REPO / "docs/tutorial.md").read_text()
+        self.assertIn("Host: run_hello_crux", tutorial)
+
 
 if __name__ == "__main__":
     unittest.main()

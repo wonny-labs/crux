@@ -54,31 +54,30 @@ Scenarios that only a test compiles live with that test, not under `samples/`:
 | `tests/logging_consumer/scenario/`, `tests/serial_consumer/scenario/` | Compiled by `tests/logging_consumer` and `tests/serial_consumer`, which `scripts/test-logging.sh` and `scripts/test-serial.sh` run; `scripts/check-native-interfaces.py` checks their includes |
 | `tests/web/project_sample/project/` | A project's own page and API route beside the management routes. The Host test `tests/web/project_sample` (CTest `Web.project_sample`, run by `scripts/check-host.sh`) compiles it, and `tests/build/test_project_sample.py` checks it |
 
-### Moved board test images
+### Board test images
 
-Probe, power-cut and Flash safety images test a board or a procedure; they teach no single thing, so they are not
-samples. They moved to `tests/board_images/` with the same checks under new Twister ids, and the two board
-compositions moved under `boards/`:
+Probe, power-cut and Flash safety images test a board or a procedure; they teach no single thing, so they live under
+`tests/board_images/`, not under `samples/`:
 
-| Old path | New path | Twister ids |
-| --- | --- | --- |
-| `samples/storage_emmc/` | `samples/boards/nxp/mimxrt1060_evk/emmc_file/` | `crux.sample.boards.mimxrt1060_evk.emmc_file` and `.start`, `.settings` |
-| `samples/storage_sd/` | `samples/boards/nxp/mimxrt1060_evk/sd_card_file/` | `crux.sample.boards.mimxrt1060_evk.sd_card_file` and `.start` |
-| `samples/storage_sd_interrupt/` | [`tests/board_images/sd_card_power_cut_append/`](../tests/board_images/sd_card_power_cut_append/README.md) | `crux.file.sd_card_power_cut_append` and `.test` |
-| `samples/storage_sd_replace/` | [`tests/board_images/sd_card_power_cut_replace/`](../tests/board_images/sd_card_power_cut_replace/README.md) | `crux.file.sd_card_power_cut_replace` and `.test` |
-| `samples/storage_sd_probe/` | [`tests/board_images/sd_card_probe/`](../tests/board_images/sd_card_probe/README.md) | `crux.file.sd_card_probe` and `.stack`, `.removal` |
-| `samples/storage_reliance_sd/` | [`tests/board_images/sd_card_power_cut_sequence/`](../tests/board_images/sd_card_power_cut_sequence/README.md) | `crux.file.sd_card_power_cut_sequence` and `.start`, `.append`, `.replace`, `.format`, `.native`, `.native.start`, `.native.append`, `.native.replace`, `.native.format` |
-| `samples/flash_safety_poc/` | [`tests/board_images/flash_safety_check/`](../tests/board_images/flash_safety_check/README.md) | none: `scripts/test-flash-safety-check.sh` builds and inspects it (old name `scripts/test-flash-poc.sh` kept as an alias) and never programs it |
+| Folder | Twister ids |
+| --- | --- |
+| [`tests/board_images/sd_card_power_cut_append/`](../tests/board_images/sd_card_power_cut_append/README.md) | `crux.file.sd_card_power_cut_append` and `.test` |
+| [`tests/board_images/sd_card_power_cut_replace/`](../tests/board_images/sd_card_power_cut_replace/README.md) | `crux.file.sd_card_power_cut_replace` and `.test` |
+| [`tests/board_images/sd_card_probe/`](../tests/board_images/sd_card_probe/README.md) | `crux.file.sd_card_probe` and `.stack`, `.removal` |
+| [`tests/board_images/sd_card_power_cut_sequence/`](../tests/board_images/sd_card_power_cut_sequence/README.md) | `crux.file.sd_card_power_cut_sequence` and `.start`, `.append`, `.replace`, `.format`, `.native`, `.native.start`, `.native.append`, `.native.replace`, `.native.format` |
+| [`tests/board_images/flash_safety_check/`](../tests/board_images/flash_safety_check/README.md) | none: `scripts/test-flash-safety-check.sh` builds and inspects it and never programs it |
+| [`tests/board_images/integration_probe/`](../tests/board_images/integration_probe/README.md) | The EVKB device, network and integrated images; see its README |
 
-### Where the reference controller went
+The earlier folder names of these images and of the board samples, with their new paths, are listed in the
+[samples layout plan](../docs/plans/samples-layout-proposal.md#mapping).
 
-The reference controller is not a sample, because a sample that mixes a periodic task, board probes and network images
-teaches no single thing. Its checks are kept: the periodic scenario with its Host (ASan/UBSan), `native_sim` and EVKB
-checks is [`tests/time_periodic`](../tests/time_periodic/README.md); the boot fixture is
-[`tests/boot_fixture`](../tests/boot_fixture/README.md); the EVKB device, network and integrated images are
-[`tests/board_images/integration_probe`](../tests/board_images/integration_probe/README.md); the shared EVKB network
-overlay is `boards/nxp/mimxrt1060_evk/common/network.overlay`. For a first periodic task read Zephyr's
-`samples/basic/threads`; threads and synchronization are not Crux samples.
+### Periodic tasks and the controller checks
+
+A periodic task is not a Crux sample: for a first periodic task read Zephyr's `samples/basic/threads`. The periodic
+Time scenario with its Host (ASan/UBSan), `native_sim` and EVKB checks is
+[`tests/time_periodic`](../tests/time_periodic/README.md), the boot fixture is
+[`tests/boot_fixture`](../tests/boot_fixture/README.md), and the shared EVKB network overlay is
+`samples/boards/nxp/mimxrt1060_evk/common/network.overlay`.
 
 ## Run every runnable sample
 

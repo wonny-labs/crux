@@ -26,4 +26,4 @@ image that mounts or writes the card until the physical gate is approved for the
 See [microSD composition](../../../../../docs/microsd-composition.md) and the
 [microSD physical gate](../../../../../docs/microsd-physical-gate.md).
 
-Old path: `samples/storage_sd` (see the moved-paths table in [samples/README.md](../../../../../samples/README.md#moved-board-test-images)).
+Old path: `samples/storage_sd` (see the mapping in the [samples layout plan](../../../../../docs/plans/samples-layout-proposal.md#mapping)).
