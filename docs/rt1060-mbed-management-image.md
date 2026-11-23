@@ -37,7 +37,7 @@ west update
 The default image, with no account:
 
 ```bash
-west build -p always -b 'mimxrt1060_evk@B//qspi' crux-pilot/samples/boards/nxp/mimxrt1060_evk/web_management
+west build -p always -b 'mimxrt1060_evk@B//qspi' samples/boards/nxp/mimxrt1060_evk/web_management
 ```
 
 The same with the test first account ([below](#the-first-account)):
@@ -45,7 +45,7 @@ The same with the test first account ([below](#the-first-account)):
 ```bash
 umask 077; head -c 24 /dev/urandom | base64 | tr -d '\n' > ~/crux-mbed-password   # outside every git work tree
 CRUX_MBED_MGMT_PASSWORD_FILE=~/crux-mbed-password west build -p always -b 'mimxrt1060_evk@B//qspi' \
-    crux-pilot/samples/boards/nxp/mimxrt1060_evk/web_management -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
+    samples/boards/nxp/mimxrt1060_evk/web_management -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
 ```
 
 `scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`.

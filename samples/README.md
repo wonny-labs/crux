@@ -10,9 +10,9 @@ Each folder under `samples/` is one of five kinds. Only the first two run on the
 | **Board-only application** | A Zephyr image for the MIMXRT1060-EVKB. This repository's checks only cross-build or link it; running it needs a board and an approved procedure |
 | **Web front end** | Browser code that a web image packages. It is built with npm and tested in a browser against `native_sim` |
 
-The [Tutorial](../docs/tutorial.md) walks through running them. Commands below run from the west workspace
-root, `/workspace` in the Dev Container, where `crux-pilot` is this repository. The Crux module needs no extra
-argument there, because the workspace's west manifest is this repository. Do not add `-DEXTRA_ZEPHYR_MODULES` pointing
+The [Tutorial](../docs/tutorial.md) walks through running them. Commands below run from the repository root,
+`/workspace/crux-pilot` in the Dev Container. The Crux module needs no extra argument there, because the workspace's
+west manifest is this repository. Do not add `-DEXTRA_ZEPHYR_MODULES` pointing
 at a second Crux checkout, such as a linked Git worktree, in that workspace: both copies are then built, and CMake
 stops on duplicate targets. For a workspace that does not list Crux, the
 [Build and Integration Guide](../docs/build.md#testing-a-consumer-application) gives the `EXTRA_ZEPHYR_MODULES`
@@ -31,10 +31,10 @@ sample; use Zephyr's `samples/basic/threads` and `samples/synchronization`.
 
 | Folder | Kind | Build and run, or what uses it |
 | --- | --- | --- |
-| `hello_crux/` | Runnable Zephyr application | The smallest application that uses Crux. `west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run`. Ready line `CRUX_HELLO_READY composition=zephyr`. Twister id `crux.sample.hello_crux`; `crux.sample.hello_crux.evkb` only builds it for the EVKB (`scripts/test-zephyr-time.sh` does the same cross-build). See its README |
+| `hello_crux/` | Runnable Zephyr application | The smallest application that uses Crux. `west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux -t run`. Ready line `CRUX_HELLO_READY composition=zephyr`. Twister id `crux.sample.hello_crux`; `crux.sample.hello_crux.evkb` only builds it for the EVKB (`scripts/test-zephyr-time.sh` does the same cross-build). See its README |
 | `hello_crux/host/` | Runnable Linux Host program | The same source on the Linux Host, built as its own CMake project that consumes Crux from its source tree. Not part of the root build or of CTest; `scripts/test-hello-crux.sh --host` builds and runs it. See the sample's README |
-| `file/basic/` | Runnable Zephyr application | Writes a file through the Crux File API and reads it back. `west build -p always -b native_sim/native/64 -d build/basic crux-pilot/samples/file/basic -t run`. Ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. Twister ids `crux.sample.file.basic.simulator` and `crux.sample.file.basic.fatfs_ram_disk` (the second selects FatFs on a RAM disk by configuration alone). See its README |
-| `time/shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |
+| `file/basic/` | Runnable Zephyr application | Writes a file through the Crux File API and reads it back. `west build -p always -b native_sim/native/64 -d build/basic samples/file/basic -t run`. Ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. Twister ids `crux.sample.file.basic.simulator` and `crux.sample.file.basic.fatfs_ram_disk` (the second selects FatFs on a RAM disk by configuration alone). See its README |
+| `time/shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time samples/time/shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |
 | `time/shell/host/` | Runnable Linux Host program | `build/linux/debug/samples/time/shell/host/crux-time-host`, commands on stdin. CTest `Sample.TimeShellHost`; also `scripts/check-host-sample.sh` |
 | `networking/echo_client/host/` | Runnable Linux Host program | `build/linux/debug/samples/networking/echo_client/host/crux-networking-host [numeric-ipv4]` exchanges one TCP and one UDP echo with a peer on ports 42420 and 42421 (default `127.0.0.1`). CTest `Sample.EchoClientHost` starts a local echo peer for it |
 | `networking/echo_client/` | Board-only application | The same exchange as an EVKB image, cross-built by `scripts/test-networking.sh`. It needs a board on an isolated network with a peer; Twister id `crux.sample.networking.echo_client` runs it only with the `crux_echo_peer` fixture. See its README |
@@ -83,8 +83,8 @@ Time scenario with its Host (ASan/UBSan), `native_sim` and EVKB checks is
 
 ```sh
 # Zephyr: every runnable Zephyr application on native_sim
-west twister -T crux-pilot/samples -p native_sim/native/64 -t sample
-# Linux Host: all Host programs (run from crux-pilot after scripts/bootstrap-host.sh)
+west twister -T samples -p native_sim/native/64 -t sample
+# Linux Host: all Host programs (after scripts/bootstrap-host.sh)
 ctest --preset host-debug -L sample
 ```
 

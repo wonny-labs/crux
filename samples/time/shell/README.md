@@ -19,10 +19,10 @@ Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the
 
 ## Building and running on `native_sim`
 
-From the west workspace root:
+From the repository root (`/workspace/crux-pilot` in the Dev Container):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -t run
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr`, and the shell then waits on a pseudo-terminal that the first output
@@ -39,7 +39,7 @@ time than the example below. Twister runs this sample from [`sample.yaml`](sampl
 `crux.sample.time.shell`) and stops it after the ready line:
 
 ```sh
-west twister -T crux-pilot/samples/time/shell -p native_sim/native/64
+west twister -T samples/time/shell -p native_sim/native/64
 ```
 
 The EVKB build (`-b 'mimxrt1060_evk@B//qspi'`) is a cross-build in this repository's checks

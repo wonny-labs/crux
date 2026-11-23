@@ -36,19 +36,19 @@ Container after `scripts/bootstrap-zephyr.sh`. No board is needed; both scenario
 
 ## Building and running
 
-From the west workspace root (`/workspace` in the Dev Container), where `crux-pilot` is this repository.
+From the repository root (`/workspace/crux-pilot` in the Dev Container).
 
 Default scenario (simulator provider on LittleFS):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/basic crux-pilot/samples/file/basic -t run
+west build -p always -b native_sim/native/64 -d build/basic samples/file/basic -t run
 ```
 
 FatFs on a RAM disk: the same command with the scenario's Kconfig fragment and overlay:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/basic_fatfs \
-    crux-pilot/samples/file/basic -t run -- \
+    samples/file/basic -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
@@ -56,7 +56,7 @@ The program returns from `main`, but `native_sim` keeps running; stop it with Ct
 scenarios from [`sample.yaml`](sample.yaml) and checks their output:
 
 ```sh
-west twister -T crux-pilot/samples/file/basic -p native_sim/native/64
+west twister -T samples/file/basic -p native_sim/native/64
 ```
 
 `scripts/test-hello-crux.sh --zephyr` runs this sample together with `hello_crux`.
