@@ -19,6 +19,7 @@ For current behaviour start at the [repository README](../../README.md) and the 
 | [`rt1060-bench-freeze-and-capture-record.md`](rt1060-bench-freeze-and-capture-record.md) | The bench freeze and capture design as proposed: facts, options not taken, owner questions, order of work |
 | [`management-in-a-product-record.md`](management-in-a-product-record.md) | Owner-decision logistics and run notes of the secure management product guide |
 | [`restructure-edited-lines.md`](restructure-edited-lines.md) | The original wording of lines edited in place in the main documents during the restructure |
+| [`tests-readme-before-trim.md`](tests-readme-before-trim.md) | The test guide before it was cut to an index: per-suite case counts, replay methods, mutation controls, dated notes and one-board procedures |
 | [`execution-contract-proposal.md`](execution-contract-proposal.md), [`execution-validation.md`](execution-validation.md) | Superseded execution proposal and validation snapshot; current behaviour is in the [Thread and Sync contract](../thread-sync.md) |
 
 ## Historical records elsewhere in `docs/`
