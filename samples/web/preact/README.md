@@ -11,7 +11,7 @@ application UI. The [configuration flow](../../../docs/web-config-flow.md) and
 
 The example has no `package.json` of its own. It takes `preact` and the build, client, mock and browser tests from
 [`web/`](../../../web/README.md), so everything runs from there. Use the Node.js version in `web/package.json`, and
-Chrome from the machine (`CRUX_CHROME` names another Chromium-based browser).
+Chrome from the machine.
 
 ```sh
 cd web
