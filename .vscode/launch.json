@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Board: Flash and run to main",
+      "name": "Board: Debug",
       "type": "cortex-debug",
       "request": "launch",
       "servertype": "jlink",
@@ -19,7 +19,7 @@
       "runToEntryPoint": "main"
     },
     {
-      "name": "Board: Attach (no reset)",
+      "name": "Board: Attach",
       "type": "cortex-debug",
       "request": "attach",
       "servertype": "jlink",
@@ -34,7 +34,7 @@
       "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
     },
     {
-      "name": "Board: Attach to a host GDB server",
+      "name": "Board: Attach (external)",
       "type": "cortex-debug",
       "request": "attach",
       "servertype": "external",
