@@ -1,6 +1,6 @@
 # Test guide before it was cut to an index
 
-Status: historical. This is `tests/README.md` as it stood before the November 2026 verbosity trim, moved word for word. The current guide is [`tests/README.md`](../../tests/README.md). It keeps the per-suite case counts, replay methods, mutation controls, dated notes and one-board procedures that the guide no longer carries. Results here are at the revisions they were recorded; the records under `docs/evidence/` own the measured results.
+Status: historical. This is `tests/README.md` as it stood before the November 2026 verbosity trim, moved word for word from revision 57f9142 (relative links adjusted to this folder). The current guide is [`tests/README.md`](../../tests/README.md). It keeps the per-suite case counts, replay methods, mutation controls, dated notes and one-board procedures that the guide no longer carries. Results here are at the revisions they were recorded; the records under `docs/evidence/` own the measured results.
 
 Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest and were recorded on macOS only (no Linux run has been made); other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 

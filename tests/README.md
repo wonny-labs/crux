@@ -1,6 +1,6 @@
 # Test organisation
 
-This guide maps each area of Crux to the script that runs its tests and the document that states its results. No suite here operates hardware. A Host, `native_sim` or simulator result is not board evidence, and a cross-build shows only that an image links. A physical run is a separate hardware operation through the [device-control tool](../tools/device_control/README.md).
+This guide maps each area of Crux to the script that runs its tests and the document that states its results. Apart from the physical suites under `target/` (`scripts/test-target.sh` and the `capture_m3*.py` runners), which reset a flashed EVKB through J-Link and need a separately authorised hardware run, no suite here operates hardware. A Host, `native_sim` or simulator result is not board evidence, and a cross-build shows only that an image links. Other physical runs go through the [device-control tool](../tools/device_control/README.md).
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ scripts/test-target.sh \
   -v --junitxml=build/evidence/m4/<new-run>.junit.xml
 ```
 
-The evidence directory must be new, so failed evidence is not overwritten. A run retains the raw and timestamped bytes, the transaction results, the firmware and source identity, and the reset output. The retained `reset.jlink` script only resets, starts and disconnects.
+The evidence directory must be new, so failed evidence is not overwritten. A run retains the raw and timestamped bytes, the transaction results, the firmware and source identity, and the reset output. The retained `reset.jlink` script only resets, starts and disconnects, and the final reset leaves the sample running at a fixed test date, not the host clock.
 
 ## Execution and reference controller
 
@@ -175,7 +175,7 @@ The Host debug and sanitizer CTests include `Configuration.Conformance` (with th
 
 | Command | What it runs |
 | --- | --- |
-| `scripts/test-web.sh host` | `Web.*` on the real web and Access cores with a fake transport, the boundary, generator and route review checks, and the Host suites below |
+| `scripts/test-web.sh host` | `Web.*` on the real web and Access cores with a fake transport, the boundary, generator and route review checks, and the `Web.*` Host suites below |
 | `scripts/test-web.sh native` | The adapter on the real Zephyr server on `native_sim`, over plain HTTP on loopback |
 | `scripts/test-web.sh target` | A compile for RT1060 on the TLS profiles; Mbed TLS runs in the PSA workflow, wolfSSL does not |
 | `scripts/test-web.sh https` | The native suite over TLS on the management composition, with `tests/native/web_https`, on each profile: Mbed in the PSA workflow, Wolf locally |
@@ -231,7 +231,7 @@ A remount inside one process and a simulated cut are not persistence or power-lo
 
 ### eMMC simulator on `native_sim`
 
-`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a target. The simulator is a model written from the stack's needs: it has no timing and no wear model, and a process exit is not a power loss. Results show how the stack behaves against that model, not how an eMMC device behaves. `scripts/test-storage-emmc.sh` runs the suites below and requires the executed cases of each scenario; it is not in the Zephyr CI workflow.
+`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a target. The simulator is a model written from the stack's needs: it has no timing and no wear model, and a process exit is not a power loss. Results show how the stack behaves against that model, not how an eMMC device behaves. `scripts/test-storage-emmc.sh` runs the suites below, except where a row names another runner, and requires the executed cases of each scenario; it is not in the Zephyr CI workflow.
 
 | Suite | What it shows | Record |
 | --- | --- | --- |
@@ -239,8 +239,9 @@ A remount inside one process and a simulated cut are not persistence or power-lo
 | `tests/native/emmc_restart` | Separate processes on the host file: data on the medium outlives the process and cached data does not | [Composition](../docs/emmc-reliance-composition.md) |
 | `tests/native/file_reliance` | Reliance Edge behind the Zephyr VFS on a RAM disk `MMC`: the adapter, and the File contract and additions at offset 0 and at an offset volume | [Composition](../docs/emmc-reliance-composition.md) |
 | `tests/native/file_emmc_composition` | The mount sequence of `samples/boards/nxp/mimxrt1060_evk/emmc_file`: unchanged-medium and blank-medium checks, fail-closed start, a sync reaches the persistent image | [Composition](../docs/emmc-reliance-composition.md) |
-| `tests/native/configuration_settings_reliance`, `configuration_settings_littlefs` | The Settings File suite on Reliance Edge and on LittleFS over a block device, with the real provider and a control on the unpatched backend | [Composition](../docs/emmc-reliance-composition.md) |
-| `tests/native/emmc_powercut` | Power-cut replay on FatFs and Reliance Edge for workloads W1 to W4 and W8 (a file replaced through the Crux File provider), at chosen cut points under four models, with controls that must fail | [FatFs](../docs/evidence/emmc-reliance/replay-fatfs/README.md), [Reliance Edge](../docs/evidence/emmc-reliance/replay-reliance/README.md), [Settings](../docs/evidence/emmc-reliance/replay-settings/README.md), [File replace](../docs/evidence/emmc-reliance/replay-file-w8/README.md) |
+| `tests/native/configuration_settings_reliance` | The Settings File suite on Reliance Edge over a RAM disk, with the real provider and a control on the unpatched backend |
+| `tests/native/configuration_settings_littlefs` (run by `scripts/test-storage-simulators.sh`, in CI) | The same suite on LittleFS over a block device, with the real provider and a control on the unpatched backend | [Composition](../docs/emmc-reliance-composition.md) |
+| `tests/native/emmc_powercut` | Power-cut replay on FatFs and Reliance Edge for workloads W1 to W4 and W8 (a file replaced through the Crux File provider), at chosen cut points under four models, with controls that must fail; the LittleFS W4 replay runs from `scripts/test-storage-simulators.sh` | [FatFs](../docs/evidence/emmc-reliance/replay-fatfs/README.md), [Reliance Edge](../docs/evidence/emmc-reliance/replay-reliance/README.md), [Settings](../docs/evidence/emmc-reliance/replay-settings/README.md), [File replace](../docs/evidence/emmc-reliance/replay-file-w8/README.md) |
 | `tests/native/reliance_stage_a` | The five Stage A images of the [eMMC physical gate](../docs/emmc-reliance-physical-gate.md) on the simulator with the disk named `SD`; it exercises application logic, the File provider and Reliance Edge, not the SD host driver or a card | [Physical gate](../docs/emmc-reliance-physical-gate.md) |
 
 `scripts/test-file-emmc-compile.sh` links `samples/boards/nxp/mimxrt1060_evk/emmc_file` and the `tests/board_images/sd_card_power_cut_sequence` images for the RT1060-EVKB, reads each generated `.config`, and checks which drivers, the formatter and the entry points are linked. Configurations without the cache flush, with the fixture-only controls or in the wrong place must fail at CMake. It needs the optional west group `crux-reliance`, builds no image that is kept, and runs nothing; the sizes are in the [link record](../docs/evidence/emmc-reliance/rt1060-link/README.md).
