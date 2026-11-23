@@ -245,6 +245,21 @@ class BoardDebugProfilesTest(unittest.TestCase):
         extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
         self.assertIn("marus25.cortex-debug", extensions)
 
+    def test_cortex_debug_dependencies_come_before_it(self):
+        # Cortex-Debug lists these four as extensionDependencies (checked against its
+        # package.json, v1.12.1). Fetched after it, it activates first and VS Code asks for
+        # a window reload on the first creation of the container.
+        extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        position = extensions.index("marus25.cortex-debug")
+        for dependency in (
+            "mcu-debug.debug-tracker-vscode",
+            "mcu-debug.memory-view",
+            "mcu-debug.rtos-views",
+            "mcu-debug.peripheral-viewer",
+        ):
+            self.assertIn(dependency, extensions)
+            self.assertLess(extensions.index(dependency), position, dependency)
+
 
 class InstallScriptTest(unittest.TestCase):
     """Runs install-jlink.sh against stub tools; nothing is installed."""

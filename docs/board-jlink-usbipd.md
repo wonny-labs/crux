@@ -110,7 +110,7 @@ There is one Dev Container, [`.devcontainer/devcontainer.json`](../.devcontainer
 
 - The build argument `CRUX_JLINK=auto` runs [`install-jlink.sh`](../.devcontainer/jlink/install-jlink.sh), which installs the J-Link package and `usbutils` and adds the `vscode` user to `plugdev` (ID 46 on Debian and Ubuntu). The package comes from a placed file, then `CRUX_JLINK_URL`, then the pinned SEGGER download (step 3); when none gives a package that passes its SHA-256 check, it prints a warning and installs nothing. `CRUX_JLINK=1` makes a missing package an error; `0` skips the step, including the download. The package's install script calls `udevadm`, which the image does not have, so `install-jlink.sh` provides a no-op `/usr/sbin/udevadm` during the install only and removes it afterwards; the udev rule acts on the Linux side, not in the container.
 - It binds the host's `/dev/bus/usb` with `docker run -v` (in `runArgs`) and allows only USB character devices (`--device-cgroup-rule=c 189:* rmw`). It does not use `--privileged`. `-v` creates the folder when it does not exist yet, as on WSL2 before the first `usbipd attach`, where a `mounts` entry would stop the container from starting. A probe attached after the container started, or one that re-enumerates, should appear in the bound folder; that has not been tried. **Security:** this gives every container the host's USB device nodes, for everyone who uses it, with or without a board. The `vscode` user can become root in the container with `sudo`, and root in the container can open any of those USB devices (keyboards, security keys, storage and other devices) whatever the node's permissions, because the cgroup rule allows all USB character devices. On native Linux that means any process in the container can reach every USB device of the PC. Use the container only with code you trust, as with any Dev Container.
-- It adds the Cortex-Debug extension (below).
+- It adds the Cortex-Debug extension and the four extensions it depends on (below).
 
 ### CI and automated image builds
 
@@ -136,6 +136,8 @@ Options of the J-Link runner:
 
 - **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
 - **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+
+Cortex-Debug depends on four extensions from the same publisher (`mcu-debug.debug-tracker-vscode`, `mcu-debug.memory-view`, `mcu-debug.rtos-views`, `mcu-debug.peripheral-viewer`, as listed in its `package.json`), so `devcontainer.json` lists them before it. If VS Code still shows "Cannot activate the 'Cortex-Debug' extension because it depends on ... not loaded" when the container is created for the first time, choose **Reload Window** once; it does not come back in that container. This ordering has not been verified by a container rebuild.
 
 Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from that separate board configuration. Settings you may add to a local copy of a profile, none of them tried here:
 
