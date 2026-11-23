@@ -199,7 +199,8 @@ class BuildCheckWiringTest(unittest.TestCase):
         readme = read(REPO / "tests/README.md")
         self.assertNotIn("pending the owner's approval", readme)
         self.assertIn("check_boot_images.sh", readme)
-        self.assertIn("recorded in the header of the script", readme)
+        self.assertIn("check-boot-config.py", readme)
+        self.assertIn("recorded in the header of each of those two scripts", readme)
 
     def test_no_existing_check_of_the_script_was_dropped(self):
         # The wiring is additive (belt and braces with the inline greps, as the proposal recommends).
