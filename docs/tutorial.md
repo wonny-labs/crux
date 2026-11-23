@@ -101,8 +101,7 @@ Zephyr module by itself.
 
 ### 7. Run Hello Crux
 
-This is the Zephyr form of step 2. It proves that the Crux module, a Kconfig symbol, a public target and a public
-header work together, and that the application keeps to the consumer boundary:
+This is the Zephyr form of step 2:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux -t run
@@ -116,10 +115,7 @@ Crux Time: unset
 CRUX_HELLO_READY composition=zephyr
 ```
 
-Stop it with Ctrl+C. Three things made this build a Crux application, and none names a Crux source file: the west
-workspace lists Crux as a Zephyr module, `CONFIG_CRUX_TIME=y` in the sample's `prj.conf` selects the component, and its
-`CMakeLists.txt` links the public target `crux::time` and the source includes `<crux/time.h>`. The sample's
-[README](../samples/hello_crux/README.md) goes through them.
+Stop it with Ctrl+C. The sample's [README](../samples/hello_crux/README.md) explains how it uses Crux.
 
 ### 8. Run the Time shell
 
