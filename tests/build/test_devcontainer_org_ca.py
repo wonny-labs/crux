@@ -4,8 +4,8 @@ A developer drops the CA, as a PEM .crt file, into .devcontainer/certs/ and rebu
 container. These tests prove that the Dockerfile installs it with
 .devcontainer/install-org-ca.sh after the package install and before every download, that
 Git keeps certificates out of the repository, that the image points run-time tools at the
-system bundle, and that the install script accepts PEM certificates and refuses DER files,
-keys and other content. They run the script with stubbed openssl and update-ca-certificates
+system bundle, and that the install script accepts PEM certificates in .crt, .pem and .cer
+files, converts DER with openssl, and refuses keys and other content. They run the script with stubbed openssl and update-ca-certificates
 commands, and, where openssl is installed, with a throw-away self-signed certificate. They
 use no network and prove nothing about a real TLS-inspecting proxy.
 """
@@ -64,21 +64,21 @@ class DockerfileOrderTest(unittest.TestCase):
         install = self.index(lambda s: s.startswith("RUN ") and "install-org-ca.sh" in s, "runs the script")
         self.assertLess(packages, install)
         self.assertNotIn("pip install", self.steps[packages], "pip must run after the CA is trusted")
+        # The package install itself comes first: it brings ca-certificates and openssl.
         downloads = [n for n, s in enumerate(self.steps)
-                     if s.startswith("RUN ") and re.search(r"pip install|install-jlink\.sh|curl |wget |git clone", s)]
+                     if n != packages and s.startswith("RUN ") and re.search(r"pip install|install-jlink\.sh|curl |wget |git clone", s)]
         self.assertTrue(downloads)
         for number in downloads:
             self.assertLess(install, number, self.steps[number])
 
     def test_run_time_tools_use_the_system_bundle(self):
+        # The same six variables as the organisation's other Dev Containers, set before any download.
         env = self.index(lambda s: s.startswith("ENV ") and "SSL_CERT_FILE" in s, "sets SSL_CERT_FILE")
-        install = self.index(lambda s: s.startswith("RUN ") and "install-org-ca.sh" in s, "runs the script")
         pip = self.index(lambda s: s.startswith("RUN ") and "pip install" in s, "installs Python packages")
-        self.assertLess(install, env)
         self.assertLess(env, pip)
-        for name in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "PIP_CERT", "NODE_EXTRA_CA_CERTS"):
+        for name in ("REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "SSL_CERT_FILE", "GIT_SSL_CAINFO", "PIP_CERT",
+                     "NODE_EXTRA_CA_CERTS"):
             self.assertIn(f"{name}={BUNDLE}", self.steps[env], name)
-        self.assertNotIn("CURL_CA_BUNDLE", DOCKERFILE.read_text())
 
     def test_no_step_turns_certificate_checks_off(self):
         lowered = DOCKERFILE.read_text().lower() + INSTALL.read_text().lower()
@@ -88,22 +88,34 @@ class DockerfileOrderTest(unittest.TestCase):
 
 
 class CertsFolderTest(unittest.TestCase):
-    """Git carries the README and the ignore file, never a certificate."""
+    """Git carries only .gitkeep and the README there, never a certificate.
 
-    def test_folder_holds_only_the_readme_and_the_ignore_file(self):
+    Each developer adds their own CA locally; no certificate is committed anywhere.
+    """
+
+    KEPT = [".devcontainer/certs/.gitkeep", ".devcontainer/certs/README.md"]
+
+    def test_folder_tracks_nothing_besides_gitkeep_and_the_readme(self):
         tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", "--", ".devcontainer/certs"],
                                  check=True, capture_output=True, text=True).stdout.split()
-        self.assertEqual(sorted(tracked), [".devcontainer/certs/.gitignore", ".devcontainer/certs/README.md"])
+        self.assertEqual(sorted(tracked), self.KEPT)
+
+    def test_no_certificate_is_tracked_anywhere(self):
+        tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", "--", ".devcontainer"],
+                                 check=True, capture_output=True, text=True).stdout.split()
+        self.assertEqual([path for path in tracked if re.search(r"\.(crt|cer|pem|der)$", path)], [])
 
     def test_gitignore_keeps_certificates_out(self):
-        lines = [line.strip() for line in (CERTS / ".gitignore").read_text().splitlines()
-                 if line.strip() and not line.startswith("#")]
-        self.assertEqual(lines, ["*", "!.gitignore", "!README.md"])
-        for name in ("org-root.crt", "org-root.cer", "org-root.pem", "org-root.der", "notes.txt"):
+        lines = [line.strip() for line in (REPO / ".gitignore").read_text().splitlines()]
+        start = lines.index(".devcontainer/certs/*")
+        self.assertEqual(lines[start:start + 3], [".devcontainer/certs/*", "!.devcontainer/certs/.gitkeep",
+                                                  "!.devcontainer/certs/README.md"])
+        self.assertFalse((CERTS / ".gitignore").exists())
+        for name in ("org-root.crt", "org-root.cer", "org-root.pem", "org-root.der", "notes.txt", ".gitignore"):
             result = subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", "--no-index",
                                      f".devcontainer/certs/{name}"])
             self.assertEqual(result.returncode, 0, name)
-        for name in ("README.md", ".gitignore"):
+        for name in ("README.md", ".gitkeep"):
             result = subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", "--no-index",
                                      f".devcontainer/certs/{name}"])
             self.assertEqual(result.returncode, 1, name)
@@ -137,8 +149,17 @@ class InstallScriptTest(unittest.TestCase):
             folder.mkdir()
         (self.src / "README.md").write_text("readme\n")
         (self.src / ".gitignore").write_text("*\n")
+        (self.src / ".gitkeep").write_text("")
         # openssl stub: a certificate whose body says BROKEN does not parse.
+        # "-inform der" converts a file whose text starts with DER (a stand-in for DER bytes)
+        # and fails on anything else.
         self.stub("openssl", 'echo "openssl $*" >>"$CALLS"\n'
+                  'case " $* " in *" -inform der "*)\n'
+                  '  while [ $# -gt 0 ]; do case $1 in -in) i=$2;; -out) o=$2;; esac; shift; done\n'
+                  '  grep -q "^DER" "$i" || { echo "unable to load certificate" >&2; exit 1; }\n'
+                  '  printf "%s\\n" "-----BEGIN CERTIFICATE-----" MIIBconverted "-----END CERTIFICATE-----" >"$o"\n'
+                  '  exit 0;;\n'
+                  'esac\n'
                   'for a; do f=$a; done\n'
                   'if grep -q BROKEN "$f"; then echo "unable to load certificate" >&2; exit 1; fi\n'
                   'case " $* " in *" -subject "*) echo "subject=CN = Example Root";; esac\n')
@@ -197,13 +218,30 @@ class InstallScriptTest(unittest.TestCase):
         self.assertEqual(self.installed(), ["crux-org-chain-1.crt", "crux-org-chain-2.crt"])
         self.assertIn("other", (self.dest / "crux-org-chain-2.crt").read_text())
 
-    def test_der_crt_stops_the_build_with_the_conversion_command(self):
-        (self.src / "root.crt").write_bytes(b"\x30\x82\x03\x0a\x30\x82\x01\xf2")
+    def test_der_file_is_converted_with_openssl(self):
+        (self.src / "root.cer").write_text("DER binary stand-in\n")
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.installed(), ["crux-org-root.crt"])
+        self.assertIn("MIIBconverted", (self.dest / "crux-org-root.crt").read_text())
+        self.assertIn("converted from DER", result.stdout)
+
+    def test_der_file_is_skipped_without_openssl(self):
+        (self.src / "root.crt").write_text("DER binary stand-in\n")
+        env = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", CALLS=str(self.log),
+                   CRUX_CA_DEST=str(self.dest), CRUX_CA_OPENSSL="crux-no-such-openssl")
+        result = subprocess.run(["sh", str(INSTALL), str(self.src)], env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.installed(), [])
+        self.assertIn("skipped root.crt", result.stderr)
+        self.assertIn("openssl x509 -inform der", result.stderr)
+
+    def test_neither_pem_nor_der_stops_the_build(self):
+        (self.src / "root.crt").write_bytes(b"\x00\x01 not a certificate")
         result = self.run_install()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("root.crt", result.stderr)
-        self.assertIn("not a PEM certificate", result.stderr)
-        self.assertIn("openssl x509 -inform der", result.stderr)
+        self.assertIn("neither a PEM nor a DER certificate", result.stderr)
         self.assertEqual(self.installed(), [])
         self.assertNotIn("update-ca-certificates", "\n".join(self.calls()))
 
@@ -230,15 +268,29 @@ class InstallScriptTest(unittest.TestCase):
         self.assertEqual(self.installed(), [])
         self.assertNotIn("update-ca-certificates", "\n".join(self.calls()))
 
+    def test_pem_and_cer_extensions_are_installed_as_crt(self):
+        (self.src / "a.pem").write_text(PEM)
+        (self.src / "b.cer").write_text(PEM)
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.installed(), ["crux-org-a.crt", "crux-org-b.crt"])
+
+    def test_same_name_with_two_extensions_keeps_both(self):
+        (self.src / "root.crt").write_text(PEM)
+        (self.src / "root.pem").write_text(PEM.replace("fake", "other"))
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.installed(), ["crux-org-root.crt", "crux-org-root_pem.crt"])
+
     def test_other_file_types_are_skipped_with_a_message(self):
-        (self.src / "root.cer").write_bytes(b"\x30\x82\x03\x0a")
-        (self.src / "root.pem").write_text(PEM)
+        (self.src / "root.der").write_text("DER binary stand-in\n")
+        (self.src / "notes.txt").write_text(PEM)
         result = self.run_install()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.installed(), [])
-        self.assertIn("skipped root.cer", result.stderr)
-        self.assertIn("skipped root.pem", result.stderr)
-        self.assertIn(".crt", result.stderr)
+        self.assertIn("skipped root.der", result.stderr)
+        self.assertIn("skipped notes.txt", result.stderr)
+        self.assertIn(".crt, .pem or .cer", result.stderr)
         self.assertNotIn("update-ca-certificates", "\n".join(self.calls()))
 
 
@@ -272,12 +324,20 @@ class InstallScriptRealOpensslTest(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in self.dest.iterdir()), ["crux-org-root.crt"])
         self.assertIn("Crux Test Root", result.stdout)
 
-    def test_der_is_refused(self):
+    def test_der_is_converted(self):
         subprocess.run(["openssl", "x509", "-in", str(self.tmp / "root.pem"), "-outform", "der",
-                        "-out", str(self.src / "root.crt")], check=True, capture_output=True)
+                        "-out", str(self.src / "root.cer")], check=True, capture_output=True)
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sorted(p.name for p in self.dest.iterdir()), ["crux-org-root.crt"])
+        self.assertIn("-----BEGIN CERTIFICATE-----", (self.dest / "crux-org-root.crt").read_text())
+        self.assertIn("Crux Test Root", result.stdout)
+
+    def test_random_bytes_are_refused(self):
+        (self.src / "root.cer").write_bytes(b"\x00\x01" + bytes(range(2, 64)))
         result = self.run_install()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("not a PEM certificate", result.stderr)
+        self.assertIn("neither a PEM nor a DER certificate", result.stderr)
         self.assertEqual(list(self.dest.iterdir()), [])
 
 
