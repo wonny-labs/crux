@@ -167,7 +167,7 @@ class BoardContainerConfigTest(unittest.TestCase):
 
 
 class BoardDebugProfilesTest(unittest.TestCase):
-    """The Cortex-Debug profiles for the board container and the unchanged Mac profiles."""
+    """The Cortex-Debug profiles: J-Link in the container, or a GDB server on the host."""
 
     ELF = "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf"
 
@@ -179,10 +179,21 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def commands(self, configuration, key):
         return [entry["text"] for entry in configuration.get(key, [])]
 
-    def test_mac_profiles_are_unchanged(self):
-        self.assertEqual(self.launch["EVKB QSPI: Flash"]["miDebuggerServerAddress"], "host.docker.internal:2331")
-        self.assertIn("-target-select remote host.docker.internal:2331",
-                      self.commands(self.launch["EVKB QSPI: Attach"], "customLaunchSetupCommands"))
+    def test_host_server_profile_attaches_to_an_external_gdb_server(self):
+        # Cortex-Debug's "external" server type: the user starts the J-Link GDB Server on the host.
+        host = self.launch["Board: Attach to a host GDB server"]
+        self.assertEqual(host["type"], "cortex-debug")
+        self.assertEqual(host["request"], "attach")
+        self.assertEqual(host["servertype"], "external")
+        self.assertEqual(host["gdbTarget"], "host.docker.internal:2331")
+        self.assertEqual(host["executable"], self.ELF)
+        text = json.dumps(host)
+        for forbidden in ("serverpath", "serverArgs", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
+            self.assertNotIn(forbidden, text)
+
+    def test_no_cppdbg_profile_remains(self):
+        self.assertFalse([name for name in self.launch if name.startswith("EVKB QSPI")])
+        self.assertNotIn("inputs", load(REPO / ".vscode" / "launch.json"))
 
     def check_jlink(self, profile):
         self.assertEqual(profile["type"], "cortex-debug")
@@ -244,6 +255,14 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_the_container_adds_cortex_debug(self):
         extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
         self.assertIn("marus25.cortex-debug", extensions)
+
+    def test_each_debug_extension_serves_a_profile(self):
+        # Cortex-Debug runs every board profile; no other debug front-end is installed.
+        extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        types = {profile["type"] for profile in self.launch.values()}
+        self.assertEqual(types, {"cortex-debug"})
+        self.assertNotIn("ms-vscode.cpptools", extensions)
+        self.assertNotIn("Arm.vscode-cmsis-debugger", extensions)
 
 
 class InstallScriptTest(unittest.TestCase):

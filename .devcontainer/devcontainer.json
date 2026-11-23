@@ -41,10 +41,8 @@
     "vscode": {
       "extensions": [
         "ms-vscode.cmake-tools",
-        "ms-vscode.cpptools",
         "ms-python.python",
         "redhat.vscode-yaml",
-        "Arm.vscode-cmsis-debugger",
         "llvm-vs-code-extensions.vscode-clangd",
         "marus25.cortex-debug"
       ]
