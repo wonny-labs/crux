@@ -429,11 +429,6 @@
       "provenance": 1,
       "status": 7
     },
-    "tests/README.md": {
-      "history": 2,
-      "provenance": 1,
-      "status": 2
-    },
     "tools/device_control/README.md": {
       "history": 1
     }
