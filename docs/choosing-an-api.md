@@ -73,4 +73,4 @@ The product template shows the pattern in `templates/product/app/src/main.c`: on
 - [Component readiness](component-readiness.md)
 - [Thread and Sync contract](thread-sync.md), [serial contract](serial-contract.md) (frozen for new product code), and the [messaging contract](messaging-contract.md) (Queue removed)
 - [GPIO](gpio-contract.md), [I2C](i2c-contract.md) and [SPI](spi-contract.md) contracts (frozen, to be removed)
-- [Glossary](README.md#concepts-glossary), for decision codes such as P1, O4 and D10
+- [Glossary](glossary.md), for decision codes such as P1, O4 and D10
