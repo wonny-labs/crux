@@ -16,18 +16,13 @@ The program makes one public read after initialisation: it prepares Crux Time an
 is ready but unset, because Crux never invents a time of day, so the sample prints `unset`.
 
 The same portable source, [`src/hello_crux.c`](src/hello_crux.c), also builds on the Linux Host composition. The
-[`host/`](host/CMakeLists.txt) program is a separate CMake project that consumes Crux from its source tree, as an
-external Linux application does. There, `crux_assert_portable_consumer()` fails the configure step if the build
-requirements of the portable target (include directories, compile options, linked targets) name a native or vendor
-path, a private Crux directory or a provider or composition target. It checks the build graph only, not the
-source's `#include` lines; those stay a review matter.
+[`host/`](host/CMakeLists.txt) program is a separate CMake project that consumes Crux as an external application does;
+`crux_assert_portable_consumer()` checks its build boundary ([Build and Integration Guide](../../docs/build.md#external-linux-application-using-crux-source)).
 
 | Part | Folder | Runs on |
 | --- | --- | --- |
 | Zephyr application | this folder (`CMakeLists.txt`, `prj.conf`, `src/`, `sample.yaml`) | `native_sim/native/64`; cross-built for the MIMXRT1060-EVKB (`mimxrt1060_evk@B//qspi`) |
 | Linux Host program | [`host/`](host/CMakeLists.txt), its own CMake project | The Linux Host composition |
-
-Crux has no version API, so the sample prints no Crux version.
 
 ## Requirements
 
@@ -36,7 +31,7 @@ Crux has no version API, so the sample prints no Crux version.
 - For the Host program: Linux with CMake 3.28 or later, Ninja and a C compiler. The Host composition is a
   development and test composition and does not build on macOS.
 
-No board is needed. The EVKB build is a cross-build only: it shows that the same source and `prj.conf` link for the board, with Crux Time on Zephyr's system clock and the line on the board's console UART. No board result is recorded for the image (see [component readiness](../../docs/component-readiness.md)), so no console output from it is shown here.
+No board is needed. On the EVKB the same source and `prj.conf` use Crux Time on Zephyr's system clock and print on the board's console UART; [Part C of the Tutorial](../../docs/tutorial.md#part-c-run-on-your-board) flashes it.
 
 ## Building and running
 
