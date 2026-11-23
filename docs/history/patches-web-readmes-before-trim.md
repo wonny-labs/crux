@@ -74,14 +74,9 @@ Apache-2.0 OR GPL-2.0-or-later.
 
 ## `patches/zephyr/README.md`: owner decisions and per-pull-request test notes
 
-driver returns `-EIO` on a failed read, so that path is reachable. With it, Mbed TLS reports the failure and PSA does not initialise. Owner decision of 6 November 2026,
-licensed, and its notices remain. Owner decision D-c of 9 November 2026, row C11 of the RT1060-EVKB bench image:
-state only until Zephyr fixes the two defects upstream; the upstream status was not checked.
-copyright Emna Rekik and Nordic Semiconductor ASA, Apache-2.0 licensed, and its notices remain. Owner decision of
-14 November 2026, option B of [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268).
-connection; their results are recorded in the pull request that adds the patch, and are not device evidence. Two
-decided option, recorded in [Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529). The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too; its declared patch
-list has not been changed here. The upstream Kconfig option is the intended end state and needs its own approval.
+- Mbed TLS entropy: "Owner decision of 6 November 2026, recorded in the qualification record."
+- ISN: "Owner decision D-c of 9 November 2026, row C11 of the RT1060-EVKB bench image."; "the upstream status was not checked."
+- HTTP header deadline: "Owner decision of 14 November 2026, option B of Issue #268."; the results of the `native_sim` suites "are recorded in the pull request that adds the patch"; "its declared patch list has not been changed here"; "The upstream Kconfig option is the intended end state and needs its own approval."
 
 ## `web/README.md`: flows and evidence tables
 
