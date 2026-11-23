@@ -32,6 +32,7 @@ static void assert_shell_result(const char *command, const char *expected)
     zassert_true(output_size > 0);
     zassert_not_null(strstr(output, expected));
 }
+
 static const char *shell_output(const char *command, int *status)
 {
     const struct shell *shell = shell_backend_dummy_get_ptr();

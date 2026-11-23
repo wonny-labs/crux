@@ -27,11 +27,13 @@ west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/ti
 
 It prints `CRUX_TIME_READY composition=zephyr`, and the shell then waits on a pseudo-terminal that the first output
 line names, such as `/dev/pts/3`. Connect a terminal program to it from a second terminal, for example
-`screen /dev/pts/3` as the [`native_sim` board guide](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html)
-shows. The Dev Container image has no `screen`, so install it first with `sudo apt-get install screen`. Tab then
-completes commands and subcommands (`ti` to `time`, `time g` to `time get`), and the Up and Down keys recall earlier
-commands. Stop the program with Ctrl+C in the first terminal. For simple scripted input, start the built program with its UART on stdin
-and stdout instead; Tab and the arrow keys do not reach the shell there:
+`screen /dev/pts/3`, as the
+[`native_sim` board guide](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html) uses. The
+Dev Container image does not install `screen`; add it with `sudo apt-get update && sudo apt-get install -y screen`.
+Tab then completes commands and subcommands (`ti` to `time`, `time g` to `time get`), and the Up and Down keys recall
+earlier commands. Stop the program with Ctrl+C in the first terminal. For simple scripted input, start the built
+program with its UART on stdin and stdout instead. Tab and the arrow keys do not work there, because the terminal
+passes each line to the shell only after Enter:
 
 ```sh
 build/time/zephyr/zephyr.exe -uart_stdinout
