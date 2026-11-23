@@ -75,7 +75,10 @@ class BoardContainerConfigTest(unittest.TestCase):
     def test_keeps_the_workspace_cache_and_limits(self):
         self.assertEqual(self.config["workspaceMount"], "source=${localWorkspaceFolder}/..,target=/workspace,type=bind")
         self.assertEqual(self.config["workspaceFolder"], "/workspace/crux-pilot")
-        self.assertEqual(self.config["mounts"], ["source=crux-host-cache,target=/opt/crux-cache,type=volume"])
+        self.assertEqual(self.config["mounts"], [
+            "source=crux-host-cache,target=/opt/crux-cache,type=volume",
+            "source=crux-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
+        ])
         for argument in ("--platform=linux/amd64", "--memory=4g", "--cpus=2"):
             self.assertIn(argument, self.config["runArgs"])
         self.assertEqual(self.config["remoteUser"], "vscode")
@@ -255,6 +258,31 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_the_container_adds_cortex_debug(self):
         extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
         self.assertIn("marus25.cortex-debug", extensions)
+
+    def test_extensions_volume_is_owned_by_the_remote_user(self):
+        # A new named volume copies owner and mode from the image folder; without the folder it
+        # is root-owned and the vscode user cannot install extensions into it.
+        config = load(DEVCONTAINER / "devcontainer.json")
+        self.assertEqual(config["remoteUser"], "vscode")
+        self.assertIn("source=crux-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
+                      config["mounts"])
+        dockerfile = (DEVCONTAINER / "Dockerfile").read_text()
+        self.assertIn("install -d -o vscode -g vscode /home/vscode/.vscode-server /home/vscode/.vscode-server/extensions", dockerfile)
+
+    def test_cortex_debug_dependencies_come_before_it(self):
+        # Cortex-Debug lists these four as extensionDependencies (checked against its
+        # package.json, v1.12.1). Fetched after it, it activates first and VS Code asks for
+        # a window reload on the first creation of the container.
+        extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
+        position = extensions.index("marus25.cortex-debug")
+        for dependency in (
+            "mcu-debug.debug-tracker-vscode",
+            "mcu-debug.memory-view",
+            "mcu-debug.rtos-views",
+            "mcu-debug.peripheral-viewer",
+        ):
+            self.assertIn(dependency, extensions)
+            self.assertLess(extensions.index(dependency), position, dependency)
 
     def test_each_debug_extension_serves_a_profile(self):
         # Cortex-Debug runs every board profile; no other debug front-end is installed.

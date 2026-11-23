@@ -97,6 +97,7 @@ Each physical operation needs explicit authorisation for the current task ([AGEN
 | --- | --- |
 | `scripts/bootstrap.sh status` or the build log says `J-Link software is not installed` | Place the package or set the URL and checksum (step 3), then **Rebuild Container** |
 | Step 5 shows an empty `/dev/bus/usb` | The container started before the probe was attached; attach it (step 1). The folder is bound, so the probe should appear without a restart, which has not been tried; if it does not, run **Dev Containers: Rebuild Container** |
+| `Cannot activate the 'Cortex-Debug' extension` on the first creation | Choose **Reload Window** once. The volume `crux-vscode-extensions` keeps the extensions, so it should not come back; to reset them, remove the Dev Container (stopping it is not enough), then run `docker volume rm crux-vscode-extensions` |
 | The build log shows `curl: (60) SSL certificate problem: unable to get local issuer certificate` before the J-Link warning | A proxy re-signs HTTPS with your organisation's root CA, which the image does not trust. Add it as [`.devcontainer/certs/README.md`](../.devcontainer/certs/README.md) says, then run **Dev Containers: Rebuild Container** |
 | The build stops at a SHA-256 mismatch | The package is not the pinned one; check the file or the pin |
 | Step 5 lists no J-Link | Attach it again (step 1) and run step 2 again; the bound folder follows a new attach |

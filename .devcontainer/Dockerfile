@@ -28,7 +28,8 @@ RUN apt-get update \
         xz-utils \
     && ln -sf /usr/bin/clangd-18 /usr/local/bin/clangd \
     && rm -rf /var/lib/apt/lists/* \
-    && install -d -o vscode -g vscode /opt/crux-cache
+    && install -d -o vscode -g vscode /opt/crux-cache \
+    && install -d -o vscode -g vscode /home/vscode/.vscode-server /home/vscode/.vscode-server/extensions
 
 # Your organisation's root CA, for networks where a proxy re-signs HTTPS. Every
 # certificate in a .crt, .pem or .cer file that a developer placed in
