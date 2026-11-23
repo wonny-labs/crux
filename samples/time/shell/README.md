@@ -1,4 +1,4 @@
-# Clock shell
+# Time shell
 
 ## Overview
 

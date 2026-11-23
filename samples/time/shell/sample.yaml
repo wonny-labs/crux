@@ -1,5 +1,5 @@
 sample:
-  name: Crux clock shell
+  name: Crux time shell
   description: >-
     Zephyr shell with the Crux Time commands. It prints its ready line and then waits for
     commands such as `time get`; Twister stops it after the ready line.
