@@ -444,15 +444,6 @@
       "provenance": 1,
       "status": 2
     },
-    "tests/consumer_system/README.md": {
-      "status": 2
-    },
-    "tests/messaging_consumer/README.md": {
-      "history": 1
-    },
-    "tests/native/logger_phase/README.md": {
-      "history": 1
-    },
     "tools/device_control/README.md": {
       "history": 1
     }

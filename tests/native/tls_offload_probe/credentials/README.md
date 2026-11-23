@@ -1,6 +1,6 @@
 # Declared test certificate
 
-**Test only. The private key is public, because it is committed here, and it protects nothing.** It lets a `native_sim` TLS test run before the certificate work of [Issue #190](https://github.com/wonny-labs/crux-pilot/issues/190) exists. Whatever uses it names it in its results as the declared test certificate.
+**Test only. The private key is public, because it is committed here, and it protects nothing.** It gives `native_sim` TLS tests a fixed, declared certificate. Whatever uses it names it in its results as the declared test certificate.
 
 | File | What it holds |
 | --- | --- |

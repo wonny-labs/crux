@@ -3,7 +3,7 @@
 `controller.c` runs one bounded binary request and acknowledgement over the public `crux::serial` and `crux::time`
 contracts, with short I/O loops and a nonce that the caller supplies. Queued writes alone never count as completion,
 and it has no retransmission policy. It is a building block that only the Serial consumer tests compile, so it lives
-beside them; it was `samples/serial/` until the samples layout change.
+beside them.
 
 | Built by | Run by |
 | --- | --- |
