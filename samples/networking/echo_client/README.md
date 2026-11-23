@@ -35,8 +35,8 @@ CTest `Sample.EchoClientHost` (`ctest --preset host-debug -L sample`) starts a l
 Zephyr, cross-build only, as `scripts/test-networking.sh` does it (build directory `build/zephyr/networking-evkb`):
 
 ```sh
-west build -b 'mimxrt1060_evk@B//qspi' -d build/zephyr/networking-evkb crux-pilot/samples/networking/echo_client -- \
-    -DDTC_OVERLAY_FILE=$PWD/crux-pilot/samples/boards/nxp/mimxrt1060_evk/common/network.overlay
+west build -b 'mimxrt1060_evk@B//qspi' -d build/zephyr/networking-evkb samples/networking/echo_client -- \
+    -DDTC_OVERLAY_FILE=$PWD/samples/boards/nxp/mimxrt1060_evk/common/network.overlay
 ```
 
 On the EVKB, `CMakeLists.txt` also applies the ENET MDIO completion correction from
