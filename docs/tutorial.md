@@ -221,7 +221,7 @@ The steps below use the J-Link software in the Dev Container (Linux and WSL2); o
 
 ### 12. Connect the probe to the Dev Container
 
-The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd bind --busid <BUSID>` once in an administrator PowerShell, then `usbipd attach --wsl --busid <BUSID>`. On native Linux there is no attach; the Linux-side set-up is in the same place. The procedure is in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without the attach, step 13 fails.
+The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd bind --busid <BUSID>` once in an administrator PowerShell, then `usbipd attach --wsl --busid <BUSID>`. On native Linux there is no attach; the Linux-side set-up is in the same place. The procedure is in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without it, step 13 fails.
 
 ### 13. Check the J-Link connection
 
@@ -259,14 +259,14 @@ checks board and probe with Zephyr's `blinky`.
 
 ### 16. Debug on the board
 
-In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Flash and run to main**. While its pre-launch task builds, VS Code shows "Waiting for preLaunchTask 'Build firmware'". The task runs `scripts/build-debug-target.sh` with its default application, the Time sample, so the profile flashes the Time sample and replaces the Hello Crux image; repeat step 14 to flash Hello Crux again. [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) in the board guide has the details.
+In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Flash and run to main**. While its pre-launch task builds, VS Code shows "Waiting for preLaunchTask 'Build firmware'". The task runs `scripts/build-debug-target.sh` with its default application, the Time sample, so the profile flashes the Time sample and replaces the Hello Crux image; repeat step 14 to flash Hello Crux again. The debugger stops at `main` of the Time sample. [VS Code debugging](board-jlink-usbipd.md#the-dev-container-and-the-board) describes the profiles.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`: `west build -p always -b native_sim/native/64 -d build/hello ../zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
-| `JLinkExe` or `west flash` reports `Cannot connect to the probe/programmer`, or no J-Link is found | The probe is not attached to the Dev Container. Repeat step 12, and on WSL2 keep the `usbipd attach` window open. [If a step fails](board-jlink-usbipd.md#if-a-step-fails) lists the other causes |
+| `JLinkExe` or `west flash` reports `Cannot connect to the probe/programmer`, or no J-Link is found | The probe is not attached to the Dev Container. Repeat step 12; the attach is lost when the probe re-enumerates or WSL2 restarts. [If a step fails](board-jlink-usbipd.md#if-a-step-fails) lists the other causes |
 | The board does nothing after a download | Build Zephyr's `blinky` for the board: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky ../zephyr/samples/basic/blinky`, then flash it with the J-Link runner as in step 14: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section |
 
 ## Next steps
