@@ -104,5 +104,14 @@ if [[ ! -f "$elf" ]]; then
     exit 1
 fi
 
+# The VS Code profiles debug the ELF behind this link, so they follow the last successful
+# build of this board, whichever application it was. Replace it atomically: a failed build
+# never gets here and leaves the previous link.
+current_link="$repo/build/zephyr/$(sanitize "$board")--current"
+current_tmp="$current_link.tmp.$$"
+ln -sfn "$build_key" "$current_tmp"
+mv -Tf "$current_tmp" "$current_link"
+
 printf '\nFirmware ELF ready for a debug profile:\n%s\n' "$elf"
 sha256sum "$elf"
+printf 'Current build link:   %s\n' "$current_link"
