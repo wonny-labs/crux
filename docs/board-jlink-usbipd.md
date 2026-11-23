@@ -144,7 +144,7 @@ Options of the J-Link runner:
 **VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these three profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. The first two use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
 - **Board: Debug** builds the Time sample, downloads it, resets the board and stops at `main`.
-- **Board: Attach** connects to the image already running  without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board: Attach** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 - **Board: Attach (external)** connects to a J-Link GDB Server that already runs on the host at port 2331, such as the one that `scripts/macos/start-jlink-gdbserver.command` starts on a Mac. It does not build or download, and the ELF must match the image on the board.
 
 Settings you may add to a local copy of a profile, none of them tried here:

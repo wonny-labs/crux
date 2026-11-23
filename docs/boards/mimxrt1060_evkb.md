@@ -65,7 +65,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Debug** to build, download, reset and stop at `main`, or **Board: Attach** to look at the image already running (it cannot stop at `main`, which has already run). ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)).
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, pick **Board: Debug** to build, download, reset and stop at `main`, or **Board: Attach** to look at the image already running (it cannot stop at `main`, which has already run) ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)).
 
 ## Flash and debug
 
