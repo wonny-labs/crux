@@ -1,5 +1,5 @@
-#include "storage.h"
 #include "basic.h"
+#include "storage.h"
 
 #include <string.h>
 #include <zephyr/sys/printk.h>
