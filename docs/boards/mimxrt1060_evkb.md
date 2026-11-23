@@ -65,7 +65,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 8. Console on Windows: the DAPLink's COM port at 115200 baud, 8-N-1. The container gets the probe's USB device, not the serial port. After the boot banner the console shows `CRUX_TIME_READY composition=zephyr`, and `time help` answers.
 
-To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, use the profiles in [VS Code debug profiles](#vs-code-debug-profiles). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once; the two Cortex-Debug profiles have not been run.
+To debug from VS Code in the Dev Container, which adds the Cortex-Debug extension, use the profiles in [VS Code debug profiles](#vs-code-debug-profiles). As reported by the maintainer, an attach through `west debugserver` at 4000 kHz worked once.
 
 Not run on this route: the speed `auto`, the Cortex-Debug profiles, the read-only `west attach` check with `compare-sections`, `west debug`, and a console inside the container (it would need the serial device, such as `/dev/ttyACM0`, passed to the container).
 
@@ -83,7 +83,7 @@ See the [debug build script](../../scripts/build-debug-target.sh) and [physical 
 
 ### VS Code debug profiles
 
-[`.vscode/launch.json`](../../.vscode/launch.json) has three Cortex-Debug profiles. All three debug `build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf`. After each successful build, `scripts/build-debug-target.sh` points the link `build/zephyr/mimxrt1060_evk_B_qspi--current` at the build directory it has just built, whichever application and options it built, and prints the link's path. A failed build leaves the link as it was. So the profiles always debug the image built last, and one set of profiles serves every sample.
+[`.vscode/launch.json`](../../.vscode/launch.json) has three Cortex-Debug profiles. All three debug `build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf`. After each successful build, `scripts/build-debug-target.sh` points the link `build/zephyr/mimxrt1060_evk_B_qspi--current` at the build directory it has just built, whichever application and options it built, and prints the link's path. A failed build leaves the link as it was. So the profiles debug the image that `build-debug-target.sh` built last, and one set of profiles serves every sample. Other builds, such as the task of [tutorial step 14](../tutorial.md#14-flash-hello-crux), do not move the link.
 
 | Profile | What it does |
 | --- | --- |
