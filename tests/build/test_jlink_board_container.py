@@ -47,7 +47,8 @@ class BoardContainerConfigTest(unittest.TestCase):
         self.assertEqual(configs, [".devcontainer/devcontainer.json"])
 
     def test_jlink_is_installed_when_a_package_is_given(self):
-        # auto: install a placed package or CRUX_JLINK_URL; with neither, warn and build anyway.
+        # auto: a placed package, then CRUX_JLINK_URL, then the SEGGER version pinned in the
+        # Dockerfile; when none gives a package, warn and build anyway.
         # A copy of the repository may set an internal URL; this repository keeps it empty.
         self.assertEqual(self.config["build"]["args"],
                          {"CRUX_JLINK": "auto", "CRUX_JLINK_DEB": "", "CRUX_JLINK_DEB_SHA256": "",
