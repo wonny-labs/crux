@@ -11,7 +11,7 @@
 # A file that holds a private key, is neither PEM nor DER or does not parse as a
 # certificate stops the build, and nothing is installed. Files with other extensions
 # are skipped with a message; README.md and .gitkeep are skipped silently. With no
-# certificate the script changes nothing, so the image is the same as without it.
+# certificate the script installs nothing.
 # See .devcontainer/certs/README.md.
 #
 # Usage: install-org-ca.sh <certificate folder>

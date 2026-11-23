@@ -35,7 +35,8 @@ RUN apt-get update \
 # .devcontainer/certs/ is added to the system bundle before any download below; with
 # none there, no certificate is installed. Git never carries a certificate (see
 # .devcontainer/certs/README.md). The folder is bind-mounted into the one RUN step
-# that reads it (BuildKit), so no file from it is stored in an image layer. The ENV
+# that reads it (BuildKit): the image stores the installed CA certificates and no
+# other file from the folder. The ENV
 # lines point tools that keep their own CA list at the system bundle, at build time
 # and at run time.
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
