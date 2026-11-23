@@ -1,5 +1,5 @@
-#ifndef FILE_WRITE_READ_H
-#define FILE_WRITE_READ_H
+#ifndef FILE_BASIC_H
+#define FILE_BASIC_H
 
 /*
  * The application part of the sample. It uses only the public File API (<crux/file.h>) and does

@@ -27,7 +27,7 @@ else
     esac
 fi
 
-sample="$build_dir/samples/time/clock_shell/host/crux-time-host"
+sample="$build_dir/samples/time/shell/host/crux-time-host"
 if [[ ! -x "$sample" ]]; then
     printf 'Host sample is missing or not executable: %s\n' "$sample" >&2
     exit 2

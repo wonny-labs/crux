@@ -136,7 +136,7 @@
     "patches/zephyr/README.md": "reference",
     "samples/README.md": "how-to",
     "samples/messaging/README.md": "how-to",
-    "samples/time/clock_shell/README.md": "how-to",
+    "samples/time/shell/README.md": "how-to",
     "samples/web/angular/README.md": "how-to",
     "samples/web_project/README.md": "how-to",
     "templates/hardware-module/README.md": "how-to",

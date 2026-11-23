@@ -180,7 +180,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         pick = inputs["boardSample"]
         self.assertEqual(pick["type"], "pickString")
         self.assertEqual(pick["default"], "samples/hello_crux")
-        self.assertEqual(pick["options"], ["samples/hello_crux", "samples/time/clock_shell"])
+        self.assertEqual(pick["options"], ["samples/hello_crux", "samples/time/shell"])
         for sample in pick["options"]:
             self.assertTrue((REPO / sample / "sample.yaml").is_file(), sample)
         tutorial = (REPO / "docs" / "tutorial.md").read_text()

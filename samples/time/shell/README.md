@@ -1,4 +1,4 @@
-# Clock shell
+# Time shell
 
 ## Overview
 
@@ -22,7 +22,7 @@ Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the
 From the west workspace root:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr`, and the shell then waits on a pseudo-terminal that the first output
@@ -36,10 +36,10 @@ build/time/zephyr/zephyr.exe -uart_stdinout
 `native_sim` keeps a simulated clock, so `time get` advances with simulated uptime after `time set`, not with the
 Host's wall clock. This sample does not slow the simulation to real time, so the second `time get` can show a later
 time than the example below. Twister runs this sample from [`sample.yaml`](sample.yaml) (id
-`crux.sample.time.clock_shell`) and stops it after the ready line:
+`crux.sample.time.shell`) and stops it after the ready line:
 
 ```sh
-west twister -T crux-pilot/samples/time/clock_shell -p native_sim/native/64
+west twister -T crux-pilot/samples/time/shell -p native_sim/native/64
 ```
 
 The EVKB build (`-b 'mimxrt1060_evk@B//qspi'`) is a cross-build in this repository's checks
@@ -59,13 +59,13 @@ uart:~$ time get
 
 ## Linux Host
 
-The Host build produces `build/linux/debug/samples/time/clock_shell/host/crux-time-host`. Run it, type commands, and
+The Host build produces `build/linux/debug/samples/time/shell/host/crux-time-host`. Run it, type commands, and
 end with Ctrl+D:
 
 ```sh
-build/linux/debug/samples/time/clock_shell/host/crux-time-host
+build/linux/debug/samples/time/shell/host/crux-time-host
 ```
 
 The Host program uses a controlled clock that does not advance on its own. `ctest --preset host-debug -L sample` runs
-it once with a fixed command sequence and checks the output (CTest `Sample.ClockShellHost`);
+it once with a fixed command sequence and checks the output (CTest `Sample.TimeShellHost`);
 `scripts/check-host-sample.sh` runs a longer sequence.

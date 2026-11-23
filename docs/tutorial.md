@@ -9,8 +9,8 @@ Apart from a check of the set-up, Parts A and B use only the standard Zephyr and
 Part A runs on the Linux Host and gives a first result in minutes, before the long Zephyr download. Products target
 Zephyr, so Part B is the main body of the tutorial. The same first example, `hello_crux`, is the first example in all three parts:
 on the Host, on `native_sim` and on the board. Between them come one example per Crux idea: a networking client
-(`networking/echo_client`, Host), a shell (`time/clock_shell`) and provider selection by configuration
-(`file/write_read`). If a step fails for a reason that is not about Crux, [Troubleshooting](#troubleshooting) uses
+(`networking/echo_client`, Host), a shell (`time/shell`) and provider selection by configuration
+(`file/basic`). If a step fails for a reason that is not about Crux, [Troubleshooting](#troubleshooting) uses
 Zephyr's own `hello_world` and `blinky` to check the Zephyr install and the board.
 
 The Zephyr downloads at the start of Part B are the long part. No durations have been measured yet.
@@ -80,7 +80,7 @@ CTest runs each Host sample of the root build once and checks its output. From `
 ctest --preset host-debug -L sample
 ```
 
-It runs `Sample.ClockShellHost`, the Time shell on the Host (`cmake --build --preset host-debug --target run_clock_shell` runs it in your terminal), and `Sample.EchoClientHost`. (`hello_crux` is its own CMake
+It runs `Sample.TimeShellHost`, the Time shell on the Host (`cmake --build --preset host-debug --target run_time_shell` runs it in your terminal), and `Sample.EchoClientHost`. (`hello_crux` is its own CMake
 project, so step 2 builds it, and CTest does not.) Without `-L sample`, the same command runs every Host test of the
 repository, including the periodic Time scenario `TimePeriodic.HostScenario`.
 
@@ -137,7 +137,7 @@ workspace lists Crux as a Zephyr module, `CONFIG_CRUX_TIME=y` in the sample's `p
 The Time sample is a Zephyr shell with Crux Time commands:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr` and then waits. Its shell is on a pseudo-terminal, as the first output
@@ -152,25 +152,25 @@ Type `time get` (`ERR NOT_SET`), then `time set 2026-10-16T14:30:00` (`OK`), the
 
 ### 9. Select a provider by configuration
 
-`samples/file/write_read` writes a file through the Crux File API and reads it back. The application source does not
+`samples/file/basic` writes a file through the Crux File API and reads it back. The application source does not
 know where the file lives: the Kconfig fragment and the devicetree overlay of the build choose the File provider. The
 default build uses LittleFS on the flash simulator:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/write_read crux-pilot/samples/file/write_read -t run
+west build -p always -b native_sim/native/64 -d build/basic crux-pilot/samples/file/basic -t run
 ```
 
 It ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. The same source, built with another fragment and overlay,
 uses FatFs on a RAM disk:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/write_read_fatfs \
-    crux-pilot/samples/file/write_read -t run -- \
+west build -p always -b native_sim/native/64 -d build/basic_fatfs \
+    crux-pilot/samples/file/basic -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
 and ends with `CRUX_FILE_WRITE_READ_OK provider=fatfs_ram_disk`. Both providers are experimental and exist for
-software-only checks on `native_sim`; the sample's [README](../samples/file/write_read/README.md) says so. Step 11
+software-only checks on `native_sim`; the sample's [README](../samples/file/basic/README.md) says so. Step 11
 explains the two options after `--`.
 
 Two more samples are not part of this path. The `networking/echo_client` image is for the board only. Threads and
@@ -204,14 +204,14 @@ Kconfig options (`CONFIG_...`) select features and values. A build merges them f
 | Source | Where | Use it for |
 | --- | --- | --- |
 | `prj.conf` | The application folder | The application's own settings |
-| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/clock_shell/boards/native_sim.conf` | Settings for one board |
+| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/shell/boards/native_sim.conf` | Settings for one board |
 | Extra files | `-DEXTRA_CONF_FILE=<file>[;<file>...]` | A variant without editing the application, for example a debug profile |
 | One option | `-DCONFIG_<NAME>=<value>` | A quick experiment |
 
 For example, turn off Zephyr's boot banner for one build:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -- -DCONFIG_BOOT_BANNER=n
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -- -DCONFIG_BOOT_BANNER=n
 grep CONFIG_BOOT_BANNER build/time/zephyr/.config
 build/time/zephyr/zephyr.exe -uart_stdinout
 ```
@@ -221,7 +221,7 @@ line. The same setting in a file has the same effect:
 
 ```sh
 printf 'CONFIG_BOOT_BANNER=n\n' > no-banner.conf
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -- -DEXTRA_CONF_FILE=$PWD/no-banner.conf
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell -- -DEXTRA_CONF_FILE=$PWD/no-banner.conf
 ```
 
 `build/<dir>/zephyr/.config` is the final, merged result: check it whenever an option seems to have no effect,
@@ -237,7 +237,7 @@ Zephyr picks up `app.overlay` or `boards/<board>.overlay` from the application f
 disabled:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell \
+west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/shell \
   -- -DEXTRA_DTC_OVERLAY_FILE=$PWD/crux-pilot/tests/time/zephyr/boards/native_sim_no_rtc.overlay
 grep -A3 'rtc: rtc' build/time/zephyr/zephyr.dts
 ```
@@ -308,7 +308,7 @@ ending with `CRUX_HELLO_READY composition=zephyr`. If the board does nothing, [T
 checks board and probe with Zephyr's `blinky`.
 
 **No board result is recorded for `hello_crux` yet.** The image with a recorded board result is the Time sample: pick
-`samples/time/clock_shell` in the same task, and the console shows `CRUX_TIME_READY composition=zephyr` and a shell
+`samples/time/shell` in the same task, and the console shows `CRUX_TIME_READY composition=zephyr` and a shell
 prompt where `time help` answers. The board guide's
 [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) section records that result, from the
 commands it shows (a download at 400 kHz); the task itself has no board record yet. To debug the Time

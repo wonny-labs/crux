@@ -8,8 +8,8 @@ systems, and only the Kconfig fragment and the devicetree overlay differ.
 
 | Scenario | Selected by | File provider | Storage |
 | --- | --- | --- | --- |
-| `crux.sample.file.write_read.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
-| `crux.sample.file.write_read.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
+| `crux.sample.file.basic.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
+| `crux.sample.file.basic.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
 
 **Both providers are simulator candidates** (their status is in [component readiness](../../../docs/component-readiness.md)). `zephyr/Kconfig` calls them that too. They exist for software-only
 validation on `native_sim`, and this sample is their first consumer outside the tests. Neither is a product storage
@@ -17,7 +17,7 @@ choice, and nothing here says anything about power loss or a real medium.
 
 The source is split the way a product splits it:
 
-- **Application**: [`src/write_read.c`](src/write_read.c) uses only `<crux/file.h>` and links only `crux::file`. It
+- **Application**: [`src/basic.c`](src/basic.c) uses only `<crux/file.h>` and links only `crux::file`. It
   does not know which provider or file system the build selected. `crux_assert_portable_consumer()` in
   [`CMakeLists.txt`](CMakeLists.txt) fails the configure step if the target's build requirements (include
   directories, compile options, linked targets) name a native or vendor path, a private Crux directory or a provider
@@ -41,14 +41,14 @@ From the west workspace root (`/workspace` in the Dev Container), where `crux-pi
 Default scenario (simulator provider on LittleFS):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/write_read crux-pilot/samples/file/write_read -t run
+west build -p always -b native_sim/native/64 -d build/basic crux-pilot/samples/file/basic -t run
 ```
 
 FatFs on a RAM disk: the same command with the scenario's Kconfig fragment and overlay:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/write_read_fatfs \
-    crux-pilot/samples/file/write_read -t run -- \
+west build -p always -b native_sim/native/64 -d build/basic_fatfs \
+    crux-pilot/samples/file/basic -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
@@ -56,7 +56,7 @@ The program returns from `main`, but `native_sim` keeps running; stop it with Ct
 scenarios from [`sample.yaml`](sample.yaml) and checks their output:
 
 ```sh
-west twister -T crux-pilot/samples/file/write_read -p native_sim/native/64
+west twister -T crux-pilot/samples/file/basic -p native_sim/native/64
 ```
 
 `scripts/test-hello-crux.sh --zephyr` runs this sample together with `hello_crux`.

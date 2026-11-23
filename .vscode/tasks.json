@@ -82,7 +82,7 @@
       }
     },
     {
-      "label": "Host: run_clock_shell",
+      "label": "Host: run_time_shell",
       "type": "process",
       "command": "cmake",
       "args": [
@@ -90,7 +90,7 @@
         "--preset",
         "host-debug",
         "--target",
-        "run_clock_shell"
+        "run_time_shell"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -175,7 +175,7 @@
       "description": "Sample to build for the MIMXRT1060-EVKB and flash with the J-Link runner",
       "options": [
         "samples/hello_crux",
-        "samples/time/clock_shell"
+        "samples/time/shell"
       ],
       "default": "samples/hello_crux"
     },
@@ -183,7 +183,7 @@
       "id": "cruxApplication",
       "type": "promptString",
       "description": "Application directory, relative to the repository",
-      "default": "samples/time/clock_shell"
+      "default": "samples/time/shell"
     }
   ]
 }

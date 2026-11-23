@@ -1,5 +1,5 @@
-#ifndef FILE_WRITE_READ_STORAGE_H
-#define FILE_WRITE_READ_STORAGE_H
+#ifndef FILE_BASIC_STORAGE_H
+#define FILE_BASIC_STORAGE_H
 
 /*
  * The platform composition of the sample: it mounts a file system and binds it as the default
