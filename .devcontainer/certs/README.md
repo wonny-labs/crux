@@ -24,7 +24,7 @@ The image build then installs no J-Link software, and the downloads of `scripts/
    openssl x509 -inform der -in org-root.cer -out org-root.crt
    ~~~
 
-4. Copy the file into this folder with the extension `.crt` (from WSL2, for example `cp /mnt/c/Users/<you>/Downloads/org-root.cer .devcontainer/certs/org-root.crt`).
+4. Copy the PEM file, the export from step 2 or the `.crt` file from step 3, into this folder with the extension `.crt` (from WSL2, for example `cp /mnt/c/Users/<you>/Downloads/org-root.cer .devcontainer/certs/org-root.crt`).
 5. Run **Dev Containers: Rebuild Container**. The build log prints the subject of each CA it installs.
 
 Each developer adds their own file on their own machine. Never commit a certificate. Git ignores every file in this folder except `.gitkeep` and this README, and the image build reads the folder through a bind mount: the image stores the installed CA certificates and no other file from the folder. With no certificate here, the build installs none.
