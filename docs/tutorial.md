@@ -259,7 +259,7 @@ checks board and probe with Zephyr's `blinky`.
 
 ### 16. Debug on the board
 
-In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Flash and run to main**. While its pre-launch task builds, VS Code shows "Waiting for preLaunchTask 'Build firmware'". The task runs `scripts/build-debug-target.sh` with its default application, the Time sample, so the profile flashes the Time sample and replaces the Hello Crux image; repeat step 14 to flash Hello Crux again. The debugger stops at `main` of the Time sample. [VS Code debugging](board-jlink-usbipd.md#the-dev-container-and-the-board) describes the profiles.
+In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Debug**, which flashes the board. While its pre-launch task builds, VS Code shows "Waiting for preLaunchTask 'Build firmware'". The task runs `scripts/build-debug-target.sh` with its default application, the Time sample, so the profile flashes the Time sample and replaces the Hello Crux image; repeat step 14 to flash Hello Crux again. The debugger stops at `main` of the Time sample. [VS Code debugging](board-jlink-usbipd.md#the-dev-container-and-the-board) describes the profiles.
 
 ## Troubleshooting
 

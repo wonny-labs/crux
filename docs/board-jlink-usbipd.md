@@ -136,8 +136,8 @@ Options of the J-Link runner:
 
 **VS Code debugging.** The Dev Container adds the [Cortex-Debug](https://github.com/Marus/cortex-debug) extension (`marus25.cortex-debug`), which starts the J-Link GDB Server itself. Pick one of these two profiles in [`.vscode/launch.json`](../.vscode/launch.json); nothing needs editing. Both use the device `MIMXRT1062xxx6A`, SWD, the speed `auto` (`serverArgs`) and the Time sample's ELF under `build/zephyr/mimxrt1060_evk_B_qspi`:
 
-- **Board: Flash and run to main** builds the Time sample, downloads it, resets the board and stops at `main`.
-- **Board: Attach (no reset)** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
+- **Board: Debug** builds the Time sample, downloads it, resets the board and stops at `main`.
+- **Board: Attach** connects to the image already running, without reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target.
 
 Neither profile has been run. As reported by the maintainer, Cortex-Debug is in use for development, also before Crux, and a VS Code attach through `west debugserver` at 4000 kHz worked once from that separate board configuration. Settings you may add to a local copy of a profile, none of them tried here:
 
