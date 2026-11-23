@@ -18,11 +18,20 @@ stops on duplicate targets. For a workspace that does not list Crux, the
 [Build and Integration Guide](../docs/build.md#testing-a-consumer-application) gives the `EXTRA_ZEPHYR_MODULES`
 form for `west build` and `west twister`.
 
+## Where to start
+
+Run them in this order: `hello_crux/` (does a Crux consumer build? on the Host, then on `native_sim`, then on the
+board), `networking/echo_client/` (its Host program, which CTest runs against a local peer), `time/clock_shell/` (a
+shell on Crux Time) and `file/write_read/` (a provider chosen by configuration). The [Tutorial](../docs/tutorial.md)
+runs them in this order on each platform. If a step fails for a reason that is not about Crux, the tutorial's troubleshooting section checks
+Zephyr itself with its own `hello_world` and the board with Zephyr's `blinky`. Threads and synchronization have no Crux
+sample; use Zephyr's `samples/basic/threads` and `samples/synchronization`.
+
 ## Classification
 
 | Folder | Kind | Build and run, or what uses it |
 | --- | --- | --- |
-| `hello_crux/` | Runnable Zephyr application | The smallest application that uses Crux. `west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run`. Ready line `CRUX_HELLO_READY composition=zephyr`. Twister id `crux.sample.hello_crux`. See its README |
+| `hello_crux/` | Runnable Zephyr application | The smallest application that uses Crux. `west build -p always -b native_sim/native/64 -d build/hello_crux crux-pilot/samples/hello_crux -t run`. Ready line `CRUX_HELLO_READY composition=zephyr`. Twister id `crux.sample.hello_crux`; `crux.sample.hello_crux.evkb` only builds it for the EVKB (`scripts/test-zephyr-time.sh` does the same cross-build). See its README |
 | `hello_crux/host/` | Runnable Linux Host program | The same source on the Linux Host, built as its own CMake project that consumes Crux from its source tree. Not part of the root build or of CTest; `scripts/test-hello-crux.sh --host` builds and runs it. See the sample's README |
 | `file/write_read/` | Runnable Zephyr application | Writes a file through the Crux File API and reads it back. `west build -p always -b native_sim/native/64 -d build/write_read crux-pilot/samples/file/write_read -t run`. Ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. Twister ids `crux.sample.file.write_read.simulator` and `crux.sample.file.write_read.fatfs_ram_disk` (the second selects FatFs on a RAM disk by configuration alone). See its README |
 | `time/clock_shell/` | Runnable Zephyr application | `west build -p always -b native_sim/native/64 -d build/time crux-pilot/samples/time/clock_shell -t run`. Ready line `CRUX_TIME_READY composition=zephyr`, then a shell. Twister id `crux.sample.time.clock_shell`. Cross-built for the EVKB by `scripts/test-zephyr-time.sh`. See its README |

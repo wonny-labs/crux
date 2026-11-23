@@ -24,7 +24,7 @@ source's `#include` lines; those stay a review matter.
 
 | Part | Folder | Runs on |
 | --- | --- | --- |
-| Zephyr application | this folder (`CMakeLists.txt`, `prj.conf`, `src/`, `sample.yaml`) | `native_sim/native/64` |
+| Zephyr application | this folder (`CMakeLists.txt`, `prj.conf`, `src/`, `sample.yaml`) | `native_sim/native/64`; cross-built for the MIMXRT1060-EVKB (`mimxrt1060_evk@B//qspi`) |
 | Linux Host program | [`host/`](host/CMakeLists.txt), its own CMake project | The Linux Host composition |
 
 Crux has no version API, so the sample prints no Crux version.
@@ -36,7 +36,7 @@ Crux has no version API, so the sample prints no Crux version.
 - For the Host program: Linux with CMake 3.28 or later, Ninja and a C compiler. The Host composition is a
   development and test composition and does not build on macOS.
 
-No board is needed.
+No board is needed. The EVKB build is a cross-build only: it shows that the same source and `prj.conf` link for the board, with Crux Time on Zephyr's system clock and the line on the board's console UART. No board result is recorded for the image (see [component readiness](../../docs/component-readiness.md)), so no console output from it is shown here.
 
 ## Building and running
 
