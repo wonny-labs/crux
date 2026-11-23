@@ -428,16 +428,10 @@
     "samples/messaging/README.md": {
       "status": 1
     },
-    "templates/hardware-module/README.md": {
-      "status": 1
-    },
-    "templates/kit-module/README.md": {
-      "status": 1
-    },
     "templates/product/README.md": {
-      "history": 3,
+      "history": 1,
       "provenance": 1,
-      "status": 8
+      "status": 7
     },
     "tests/README.md": {
       "history": 2,
