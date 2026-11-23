@@ -28,7 +28,7 @@ Inside the container there are two folders you work from:
 
 `west` finds the workspace from any folder inside it, so a `west build` path and its `-d` folder are relative to the
 folder you run it from. Part B runs `west` from `/workspace`; Part C runs it from `/workspace/crux-pilot`, as the VS
-Code tasks do. Each step names its folder.
+Code tasks do. A step that names no folder runs in the folder of the step before it.
 
 ## Part A. Linux Host
 
@@ -319,7 +319,7 @@ sample from VS Code, the board guide names the debug profiles.
 | Symptom | Check |
 | --- | --- |
 | `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`, from `/workspace`: `west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
-| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, then flash it from the same folder as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
+| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, then flash it, also from `/workspace`, with the J-Link runner as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
 
 ## Next steps
 
