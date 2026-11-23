@@ -22,7 +22,8 @@
   "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspace,type=bind",
   "workspaceFolder": "/workspace/crux-pilot",
   "mounts": [
-    "source=crux-host-cache,target=/opt/crux-cache,type=volume"
+    "source=crux-host-cache,target=/opt/crux-cache,type=volume",
+    "source=crux-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"
   ],
   "containerEnv": {
     "CRUX_WORKSPACE": "/workspace",

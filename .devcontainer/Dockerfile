@@ -29,6 +29,7 @@ RUN apt-get update \
     && ln -sf /usr/bin/clangd-18 /usr/local/bin/clangd \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -o vscode -g vscode /opt/crux-cache \
+    && install -d -o vscode -g vscode /home/vscode/.vscode-server /home/vscode/.vscode-server/extensions \
     && python3 -m pip install --break-system-packages --no-cache-dir \
         west==1.4.0 \
         pytest==8.3.5
