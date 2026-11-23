@@ -8,7 +8,7 @@ Crux is for teams that build Zephyr firmware products: application developers wh
 
 - **A clear rule for where code goes.** OS and hardware facilities, such as threads, queues and buses, use Zephyr directly. Platform services use Crux. Product behaviour is plain C in the product's own domain ([Choosing an API](docs/choosing-an-api.md)).
 - **Platform services with written contracts:** typed time and clocks, file storage, configuration, logging, system health and reset, and network status and sockets.
-- **Secure remote management:** accounts, roles and sessions, security events, HTTPS web management, a command line over serial and SSH, and services for files, configuration, network settings, certificates and reboot. It has not yet run on a board.
+- **Secure remote management:** accounts, roles and sessions, security events, HTTPS web management, a command line over serial and SSH, and services for files, configuration, network settings, certificates and reboot.
 - **Boot and update building blocks:** an MCUboot build composition and an image-state interface.
 - **A product starting point:** a product template, board and driver guides, samples, and tests that run on the Linux Host and on Zephyr `native_sim` without hardware.
 
@@ -18,11 +18,11 @@ The [architecture overview](docs/architecture.md) describes the public capabilit
 
 You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk. [Getting started](docs/getting-started.md) covers native Linux and Windows with WSL2.
 
-1. Create a parent folder and clone the repository into it, as [Getting started](docs/getting-started.md#2-folder-layout) describes. You create the folder. The Dev Container only mounts it at `/workspace`, and its set-up creates `.west/`, `zephyr/` and `modules/` inside it. [Getting started](docs/getting-started.md) also covers WSL2 and proxies.
+1. Create a parent folder and clone the repository into it ([folder layout](docs/getting-started.md#2-folder-layout)).
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**. The one Dev Container serves work with and without a board.
-3. Wait for the set-up that the container runs by itself, `scripts/bootstrap.sh`: the tools, the Host build and tests, the west workspace and the Zephyr SDK. If a download fails, the container still opens and the terminal names the command that runs the step again; `scripts/bootstrap.sh status` shows each step. [The Dev Container sets itself up](docs/getting-started.md#6-the-dev-container-sets-itself-up) has the details, and section 7 there what a board adds.
+3. Wait for the automatic set-up, `scripts/bootstrap.sh`; `scripts/bootstrap.sh status` shows each step ([details](docs/getting-started.md#6-the-dev-container-sets-itself-up)).
 
-None of these commands programs or resets a board. Next, the [Tutorial](docs/tutorial.md) runs the Crux samples on the Linux Host, then on Zephyr's `native_sim`, shows how to change a build, and ends with a sample on your board.
+Next: the [Tutorial](docs/tutorial.md).
 
 ## Where to read next
 
