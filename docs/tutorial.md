@@ -3,8 +3,8 @@
 This tutorial takes you from a working Dev Container to running Crux samples, changing a build, and running a sample on
 your board. It is one path: Part A runs on the Linux Host, Part B on Zephyr's `native_sim`, and Part C on a board. Parts
 A and B need no board.
-Parts A and B use only the standard Zephyr and CMake tools: `west build`, `west twister`, `cmake` and `ctest`. Each step says
-what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
+Apart from a check of the set-up, Parts A and B use only the standard Zephyr and CMake tools: `west build`,
+`west twister`, `cmake` and `ctest`; VS Code tasks run some of them for you. Each step says what you should see. The [Build and Integration Guide](build.md) explains everything in more depth.
 
 Part A runs on the Linux Host and gives a first result in minutes, before the long Zephyr download. Products target
 Zephyr, so Part B is the main body of the tutorial. The same first example, `hello_crux`, is the first example in all three parts:
@@ -25,6 +25,10 @@ Inside the container there are two folders you work from:
 | --- | --- | --- |
 | `/workspace` | The west workspace: `zephyr/`, `modules/` and this repository side by side | `west build`, `west twister` |
 | `/workspace/crux-pilot` | This repository | `scripts/...`, `cmake --preset`, `ctest --preset` |
+
+`west` finds the workspace from any folder inside it, so a `west build` path and its `-d` folder are relative to the
+folder you run it from. Part B runs `west` from `/workspace`; Part C runs it from `/workspace/crux-pilot`, as the VS
+Code tasks do. A step that names no folder runs in the folder of the step before it.
 
 ## Part A. Linux Host
 
@@ -48,7 +52,8 @@ cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRU
 cmake --build build/samples/hello_crux_host --target run_hello_crux
 ```
 
-The `run_hello_crux` target builds the program and runs it in your terminal.
+The `run_hello_crux` target builds the program and runs it in your terminal. In VS Code, **Terminal > Run Task >
+Host: run_hello_crux** runs both commands.
 
 It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. The clock is unset
 because Crux never invents a time of day. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
@@ -262,10 +267,10 @@ board up as its guide says before you start. Any operation on a board, such as c
 download, needs approval for your task.
 
 The board guide has two routes. On Linux, and on Windows with WSL2, the J-Link software runs in the Dev Container (it is
-installed when the J-Link package is provided; see [getting-started](getting-started.md#7-if-you-use-a-board)) and
+installed when the J-Link package is provided; see [Getting started](getting-started.md#7-if-you-use-a-board)) and
 `west flash` downloads the image: the steps below follow it. On a Mac, the J-Link GDB Server runs on the Mac and the VS
-Code profile **EVKB QSPI: Flash** downloads the Time sample only (step 14). The commands and options are in the board
-guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
+Code profile **EVKB QSPI: Flash** downloads only the Time sample, not `hello_crux`. The commands and options are in the
+board guide's [Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) and
 [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) sections.
 
 ### 12. Check the J-Link connection
@@ -276,16 +281,15 @@ In the Dev Container, from `/workspace/crux-pilot`, with the switches and jumper
 printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1
 ```
 
-It should show a `VTref` of about 3.3 V and `Found Cortex-M7`. Open the board's console, the DAPLink serial port, at
-115200 baud, 8-N-1, in a serial terminal. If the check fails, use the board guide's recovery section before you go on.
-If the board then does nothing in step 14, [Troubleshooting](#troubleshooting) checks board and probe with Zephyr's
-`blinky`. On a Mac, start the GDB Server instead, from the repository checkout and not the Dev Container
-(`bash scripts/macos/start-jlink-gdbserver.command`), and leave it running.
+It should show a `VTref` of about 3.3 V and `Found Cortex-M7`. If it fails, use the board guide's recovery section
+before you go on. Then open the board's console, the DAPLink serial port, at 115200 baud, 8-N-1, in a serial terminal
+on the computer the board's USB cable is plugged into (on Windows, the COM port that Device Manager lists under Ports).
 
 ### 13. Flash Hello Crux
 
-The first Crux image on the board is the one from step 7. Build it for the board and download it with Zephyr's own
-`west flash`, from `/workspace/crux-pilot`:
+The first Crux image on the board is the one from step 7. In VS Code, run
+**Terminal > Run Task > Board: Build and flash a sample (west flash)** and pick `samples/hello_crux`. The task runs
+Zephyr's own `west build` and `west flash` from `/workspace/crux-pilot`; these are the same two commands:
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux
@@ -294,31 +298,28 @@ west flash -d build/hello_crux_evkb -r jlink
 
 `-r jlink` selects the J-Link runner, because Zephyr's default runner for this board is a different one. The speed is
 left at the runner's default. If the download fails, run `west -v flash -d build/hello_crux_evkb -r jlink` for more
-output; the board guide's [Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section gives the place the
-command runs and the speeds to try. The CI cross-build of this image, `scripts/test-zephyr-time.sh`, produces the same image.
-
-**No board result is recorded for this image yet.** The repository's **EVKB QSPI: Flash** profile builds and downloads
-the Time sample only, so use the commands above for `hello_crux`. They need the J-Link software in the Dev Container,
-which is installed when the J-Link package is provided.
+output; the [J-Link board route](board-jlink-usbipd.md#if-a-step-fails) lists the speeds to try and the usual
+failures. The CI cross-build in `scripts/test-zephyr-time.sh` builds the same application for this board.
 
 ### 14. See the console line
 
-Once the image is running, the console shows the Zephyr boot banner and then the three lines of step 7, ending with
-`CRUX_HELLO_READY composition=zephyr`. The Time sample, `samples/time/clock_shell`, is the image that the **EVKB QSPI: Flash** profile
-builds and downloads (`scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'` is its build). On the Linux and WSL2 route, the VS Code
-task **Board: Build and flash (west flash)** builds that Time sample and flashes it with `west flash -r jlink`. It is the one image with
-a recorded board result: a download, a reset and the console line `CRUX_TIME_READY composition=zephyr`, as the board
-guide's
-[Flash and debug](boards/mimxrt1060_evkb.md#flash-and-debug) section records.
+Once the image is running, the console of step 12 shows the Zephyr boot banner and then the three lines of step 7,
+ending with `CRUX_HELLO_READY composition=zephyr`. If the board does nothing, [Troubleshooting](#troubleshooting)
+checks board and probe with Zephyr's `blinky`.
 
-When you are done, stop the debugger and stop the GDB Server with Ctrl-C.
+**No board result is recorded for `hello_crux` yet.** The image with a recorded board result is the Time sample: pick
+`samples/time/clock_shell` in the same task, and the console shows `CRUX_TIME_READY composition=zephyr` and a shell
+prompt where `time help` answers. The board guide's
+[Probe and connection](boards/mimxrt1060_evkb.md#probe-and-connection) section records that result, from the
+commands it shows (a download at 400 kHz); the task itself has no board record yet. To debug the Time
+sample from VS Code, the board guide names the debug profiles.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | `hello_crux` fails at configure or build on `native_sim` | Build Zephyr's own `hello_world`, from `/workspace`: `west build -p always -b native_sim/native/64 -d build/hello zephyr/samples/hello_world -t run`. You should see `Hello World! native_sim/native/64`. If this fails too, the Zephyr install is the problem (rerun the Zephyr bootstrap of step 6); if only `hello_crux` fails, the problem is in the Crux module or its configuration |
-| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, and download it the way Zephyr's page for the board describes. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
+| The board does nothing after a download | Build Zephyr's `blinky` for the board, from `/workspace`: `west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/blinky zephyr/samples/basic/blinky`, then flash it, also from `/workspace`, with the J-Link runner as in step 13: `west flash -d build/blinky -r jlink`. The user LED should blink. If it does, the board and probe work and the problem is in the image; if not, use the board guide's recovery section. This repository records no run of `blinky` on the board |
 
 ## Next steps
 

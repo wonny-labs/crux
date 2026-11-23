@@ -13,4 +13,4 @@ Do not flash the test image until the physical gate is approved for the current 
 
 Procedure and results: [microSD physical gate](../../../docs/microsd-physical-gate.md).
 
-Old path: `samples/storage_sd_replace` (see the moved-paths table in [samples/README.md](../../../samples/README.md#moved-board-test-images)).
+Old path: `samples/storage_sd_replace` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).

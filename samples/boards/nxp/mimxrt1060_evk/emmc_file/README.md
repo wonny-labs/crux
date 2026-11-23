@@ -26,4 +26,4 @@ the optional `crux-reliance` west group (Reliance Edge, GPLv2); without it the b
 No result comes from an eMMC device or from a board. See [eMMC and Reliance Edge composition](../../../../../docs/emmc-reliance-composition.md)
 and the [physical gate](../../../../../docs/emmc-reliance-physical-gate.md).
 
-Old path: `samples/storage_emmc` (see the moved-paths table in [samples/README.md](../../../../../samples/README.md#moved-board-test-images)).
+Old path: `samples/storage_emmc` (see the mapping in the [samples layout plan](../../../../../docs/plans/samples-layout-proposal.md#mapping)).

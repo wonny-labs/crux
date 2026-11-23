@@ -12,4 +12,4 @@ Background and recorded results: [Flash safety proof of concept](../../../docs/f
 script names that still say `poc` (`flash_poc.h`, `scripts/prepare-flash-poc.py`, `scripts/verify-flash-poc.py`)
 are unchanged in this move.
 
-Old path: `samples/flash_safety_poc` (see the moved-paths table in [samples/README.md](../../../samples/README.md#moved-board-test-images)).
+Old path: `samples/flash_safety_poc` (see the mapping in the [samples layout plan](../../../docs/plans/samples-layout-proposal.md#mapping)).
