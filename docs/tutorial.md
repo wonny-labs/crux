@@ -33,8 +33,7 @@ cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRU
 cmake --build build/samples/hello_crux_host --target run_hello_crux
 ```
 
-The `run_hello_crux` target builds the program and runs it in your terminal. In VS Code, **Terminal > Run Task >
-Host: run_hello_crux** runs both commands.
+The `run_hello_crux` target builds the program and runs it in your terminal.
 
 It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
 
@@ -46,8 +45,6 @@ and runs it once:
 ```sh
 cmake --build --preset host-debug --target run_echo_client
 ```
-
-In VS Code, **Terminal > Run Task > Host: run_echo_client** does the same.
 
 ### 4. Run every Host sample with CTest
 
@@ -238,9 +235,8 @@ on the computer the board's USB cable is plugged into (on Windows, the COM port 
 
 ### 14. Flash Hello Crux
 
-The first Crux image on the board is the one from step 7. In VS Code, run
-**Terminal > Run Task > Board: Build and flash a sample (west flash)** and pick `samples/hello_crux`. The task runs
-Zephyr's own `west build` and `west flash`; these are the same two commands:
+The first Crux image on the board is the one from step 7. Zephyr's own `west build` and `west flash` build and flash
+it:
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux

@@ -40,29 +40,10 @@ class HostRunTargetTest(unittest.TestCase):
         self.assertIn("scripts/run-host-sample.py", body)
         self.assertIn("DEPENDS crux-networking-host", body)
 
-
-    def test_vs_code_tasks_run_the_host_samples(self):
-        # Terminal > Run Task in VS Code runs the same build targets without typing a command.
-        tasks = {t["label"]: t for t in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
-        for name in ("run_time_shell", "run_echo_client"):
-            with self.subTest(target=name):
-                task = tasks[f"Host: {name}"]
-                self.assertEqual(task["command"], "cmake")
-                self.assertEqual(task["args"], ["--build", "--preset", "host-debug", "--target", name])
-                self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
-
-    def test_vs_code_task_runs_hello_crux_as_its_own_project(self):
-        # hello_crux/host is its own CMake project (tutorial step 2): the task configures it with
-        # the tutorial's command line, then builds and runs its run target.
-        tasks = {t["label"]: t for t in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
-        task = tasks["Host: run_hello_crux"]
-        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
-        script = " ".join(task["args"])
-        self.assertIn('cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja '
-                      '-DCRUX_SOURCE_DIR="$PWD"', script)
-        self.assertIn("cmake --build build/samples/hello_crux_host --target run_hello_crux", script)
-        tutorial = (REPO / "docs/tutorial.md").read_text()
-        self.assertIn("Host: run_hello_crux", tutorial)
+    def test_vs_code_has_no_host_tasks(self):
+        # CMake Tools builds, runs and debugs the host-debug targets (docs/build.md#vs-code).
+        tasks = json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]
+        self.assertFalse([t["label"] for t in tasks if t["label"].startswith("Host")])
 
 
 if __name__ == "__main__":

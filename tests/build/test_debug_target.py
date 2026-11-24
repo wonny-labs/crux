@@ -156,7 +156,8 @@ class DebugTargetTests(unittest.TestCase):
                        if line.startswith("Current build link:"))
         relative = Path(printed).relative_to(self.repo).as_posix()
         expected = f"${{workspaceFolder}}/{relative}/zephyr/zephyr.elf"
-        configurations = json.loads((REPO / ".vscode/launch.json").read_text())["configurations"]
+        configurations = [c for c in json.loads((REPO / ".vscode/launch.json").read_text())["configurations"]
+                          if c["type"] == "cortex-debug"]
         labels = {task["label"] for task in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
         self.assertEqual(len(configurations), 3)
         for configuration in configurations:

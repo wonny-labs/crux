@@ -195,7 +195,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         for forbidden in ("serverpath", "serverArgs", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
             self.assertNotIn(forbidden, text)
 
-    def test_no_cppdbg_profile_remains(self):
+    def test_no_evkb_qspi_profile_remains(self):
         self.assertFalse([name for name in self.launch if name.startswith("EVKB QSPI")])
         self.assertNotIn("inputs", load(REPO / ".vscode" / "launch.json"))
 
@@ -214,22 +214,21 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.check_jlink(flash)
         self.assertEqual(flash["request"], "launch")
         self.assertEqual(flash["runToEntryPoint"], "main")
-        self.assertEqual(flash["preLaunchTask"], "Build firmware (choose sample)")
+        self.assertEqual(flash["preLaunchTask"], "Board: Build")
 
-    def test_debug_task_asks_for_the_sample_and_defaults_to_hello_crux(self):
-        task = self.tasks["Build firmware (choose sample)"]
+    def test_board_build_asks_for_the_sample_and_defaults_to_hello_crux(self):
+        task = self.tasks["Board: Build"]
         self.assertEqual(task["type"], "process")
         self.assertEqual(task["command"], "${workspaceFolder}/scripts/build-debug-target.sh")
-        self.assertEqual(task["args"], ["mimxrt1060_evk@B//qspi", "--app", "${input:debugApp}"])
+        self.assertEqual(task["args"], ["mimxrt1060_evk@B//qspi", "--app", "${input:sample}"])
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
+        self.assertEqual(task["group"], "build")
         inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
-        prompt = inputs["debugApp"]
+        prompt = inputs["sample"]
         self.assertEqual(prompt["type"], "promptString")
-        self.assertEqual(prompt["description"], "Sample directory to debug")
+        self.assertEqual(prompt["description"], "Sample directory, relative to the repository")
         self.assertEqual(prompt["default"], "samples/hello_crux")
         self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
-        # The Time sample's own task stays: the clean task and the flash task use its directory.
-        self.assertEqual(self.tasks["Build firmware"]["args"], ["mimxrt1060_evk@B//qspi"])
 
     def test_every_pre_launch_task_exists(self):
         for name, profile in self.launch.items():
@@ -244,7 +243,8 @@ class BoardDebugProfilesTest(unittest.TestCase):
         board = (REPO / "docs" / "boards" / "mimxrt1060_evkb.md").read_text()
         self.assertIn("build/zephyr/mimxrt1060_evk_B_qspi--current", board)
         for profile in self.launch:
-            self.assertIn(profile, board)
+            if profile.startswith("Board:"):
+                self.assertIn(profile, board)
 
     def test_attach_profile_neither_resets_nor_downloads(self):
         attach = self.launch["Board: Attach"]
@@ -254,33 +254,16 @@ class BoardDebugProfilesTest(unittest.TestCase):
         for forbidden in ("runToEntryPoint", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
             self.assertNotIn(forbidden, text)
 
-    def test_flash_task_builds_then_flashes_with_the_jlink_runner(self):
-        task = self.tasks["Board: Build and flash (west flash)"]
+    def test_flash_task_flashes_the_last_board_build_with_the_jlink_runner(self):
+        # The task flashes the build behind the link that the debug profiles use, so Board: Build
+        # then Board: Flash puts on the board the image that Board: Attach expects.
+        task = self.tasks["Board: Flash"]
         self.assertEqual(task["command"], "west")
-        self.assertEqual(task["args"], ["flash", "-d", "build/zephyr/mimxrt1060_evk_B_qspi", "-r", "jlink"])
-        self.assertEqual(task["dependsOn"], "Build firmware")
+        current = self.ELF.removeprefix("${workspaceFolder}/").removesuffix("/zephyr/zephyr.elf")
+        self.assertEqual(task["args"], ["flash", "-d", current, "-r", "jlink"])
+        self.assertNotIn("dependsOn", task)
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertNotIn("--erase", json.dumps(task))
-
-    def test_sample_flash_task_offers_the_board_samples(self):
-        # Part C of the tutorial flashes hello_crux first; this task builds and flashes the sample
-        # picked from a list with the tutorial's own commands.
-        task = self.tasks["Board: Build and flash a sample (west flash)"]
-        self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
-        self.assertEqual(task["args"][-1], "${input:boardSample}")
-        script = " ".join(task["args"])
-        self.assertIn("west build -p always -b 'mimxrt1060_evk@B//qspi' -d \"$build\" \"$app\"", script)
-        self.assertIn("west flash -d \"$build\" -r jlink", script)
-        self.assertNotIn("--erase", script)
-        inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
-        pick = inputs["boardSample"]
-        self.assertEqual(pick["type"], "pickString")
-        self.assertEqual(pick["default"], "samples/hello_crux")
-        self.assertEqual(pick["options"], ["samples/hello_crux", "samples/time/shell"])
-        for sample in pick["options"]:
-            self.assertTrue((REPO / sample / "sample.yaml").is_file(), sample)
-        tutorial = (REPO / "docs" / "tutorial.md").read_text()
-        self.assertIn("Board: Build and flash a sample (west flash)", tutorial)
 
     def test_no_cppdbg_board_profiles_or_server_tasks_remain(self):
         self.assertFalse([name for name in self.launch if name.startswith("Board container:")])
@@ -316,11 +299,14 @@ class BoardDebugProfilesTest(unittest.TestCase):
             self.assertLess(extensions.index(dependency), position, dependency)
 
     def test_each_debug_extension_serves_a_profile(self):
-        # Cortex-Debug runs every board profile; no other debug front-end is installed.
+        # Cortex-Debug runs every board profile and the C/C++ extension (cppdbg) the native_sim
+        # profile; no other debug front-end is installed.
         extensions = load(DEVCONTAINER / "devcontainer.json")["customizations"]["vscode"]["extensions"]
-        types = {profile["type"] for profile in self.launch.values()}
-        self.assertEqual(types, {"cortex-debug"})
-        self.assertNotIn("ms-vscode.cpptools", extensions)
+        types = {name: profile["type"] for name, profile in self.launch.items()}
+        self.assertEqual({t for n, t in types.items() if n.startswith("Board:")}, {"cortex-debug"})
+        self.assertEqual({t for n, t in types.items() if not n.startswith("Board:")}, {"cppdbg"})
+        self.assertIn("marus25.cortex-debug", extensions)
+        self.assertIn("ms-vscode.cpptools", extensions)
         self.assertNotIn("Arm.vscode-cmsis-debugger", extensions)
 
 

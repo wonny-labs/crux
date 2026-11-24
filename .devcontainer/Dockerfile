@@ -14,6 +14,7 @@ RUN apt-get update \
         ccache \
         device-tree-compiler \
         file \
+        gdb \
         gperf \
         git \
         libmagic1 \
