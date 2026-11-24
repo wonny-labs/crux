@@ -124,16 +124,18 @@ VS Code in the Dev Container is the supported editor. clangd is the language ser
 | Task | What it does |
 | --- | --- |
 | **Board: Build** | `scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app <sample>`, which points the [current build link](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) `build/zephyr/mimxrt1060_evk_B_qspi--current` at that build. For `-Og`, run the script with `--debug-optimizations` ([debug builds](boards/mimxrt1060_evkb.md#debug-builds-of-other-applications)) |
-| **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
+| **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)). It first runs the probe check below |
 | **Board: Clean** | Deletes `build/zephyr/mimxrt1060_evk_B_qspi` and `build/zephyr/mimxrt1060_evk_B_qspi--*`, the current build link included |
 | **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample>`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
-| **native_sim: Run** | `west build -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe -uart_stdinout`. With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. The program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
+| **native_sim: Run** | `west build -p never -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe`, with `-uart_stdinout` when `zephyr.exe -h` lists it (samples with a console or shell). With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. With `-uart_stdinout` the program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
 | **native_sim: Clean** | Deletes `build/native_sim` |
+
+**Board: Flash**, **Board: Debug** and **Board: Attach** first run the hidden task **Board: Check probe**. When no J-Link (USB vendor ID `1366`) is visible in the container, it stops with `No J-Link probe found` and the `usbipd attach` command.
 
 | Profile | What it does |
 | --- | --- |
 | **Board: Debug**, **Board: Attach**, **Board: Attach (external)** | Cortex-Debug with a J-Link ([VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles)) |
-| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe -uart_stdinout` under gdb with the C/C++ extension. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
+| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe` under gdb with the C/C++ extension and stops at the sample's `main`. [`.vscode/native_sim_debug.py`](../.vscode/native_sim_debug.py) passes `-uart_stdinout` as **native_sim: Run** does and sets that breakpoint. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
 
 ## RT1060-EVKB debugging
 
@@ -222,6 +224,8 @@ Portable source targets use public headers (for example, `<crux/time.h>`), link 
 The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#quick-start).
 
 ## Capability and provider selection
+
+Each selection is a CMake cache variable; `cmake -LH <build-dir>` lists the selected values, such as `CRUX_TIME_PROVIDER`.
 
 | Capability or group | Linux source-tree composition rule |
 | --- | --- |

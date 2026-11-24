@@ -15,7 +15,7 @@
         "auto"
       ],
       "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
-      "preLaunchTask": "Board: Build",
+      "preLaunchTask": "Board: Check probe and build",
       "runToEntryPoint": "main"
     },
     {
@@ -31,7 +31,8 @@
         "-speed",
         "auto"
       ],
-      "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
+      "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "preLaunchTask": "Board: Check probe"
     },
     {
       "name": "Board: Attach (external)",
@@ -49,9 +50,6 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
-      "args": [
-        "-uart_stdinout"
-      ],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
       "externalConsole": false,
@@ -62,6 +60,11 @@
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
+        },
+        {
+          "description": "Pass -uart_stdinout if the program accepts it; stop at the application main",
+          "text": "source ${workspaceFolder}/.vscode/native_sim_debug.py",
+          "ignoreFailures": false
         }
       ],
       "preLaunchTask": "native_sim: Build"

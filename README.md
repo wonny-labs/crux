@@ -29,7 +29,6 @@ Next: the [Tutorial](docs/tutorial.md).
 | You want to | Read |
 | --- | --- |
 | Run your first builds and samples | [Tutorial: your first build and sample](docs/tutorial.md) and [Samples](samples/README.md) |
-| Find any page by task | [Documentation map](docs/README.md) |
 | Find your way around the repository | [Repository layout](docs/architecture.md#repository-layout) |
 | Understand the layers and ownership | [Architecture overview](docs/architecture.md) and [Choosing an API](docs/choosing-an-api.md) |
 | Build Crux or consume it from another CMake project | [Build and Integration Guide](docs/build.md) |
@@ -37,6 +36,7 @@ Next: the [Tutorial](docs/tutorial.md).
 | Add a board or a driver | [Porting to a new board](docs/porting-to-a-new-board.md) and [Writing a product driver](docs/writing-a-product-driver.md) |
 | Add remote management or secure boot | [Secure management in a product](docs/management-in-a-product.md) and the [boot overview](docs/boot-overview.md) |
 | Run the tests before a pull request | [Test guide](tests/README.md) |
+| Find any other page by task | [Documentation map](docs/README.md) |
 
 ## Status and limits
 

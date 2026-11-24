@@ -8,7 +8,6 @@ set_property(CACHE CRUX_TIME_PROVIDER PROPERTY STRINGS memory linux)
 if(NOT CRUX_TIME_PROVIDER MATCHES "^(memory|linux)$")
     message(FATAL_ERROR "Select CRUX_TIME_PROVIDER=memory or linux explicitly; other providers are unsupported")
 endif()
-message(STATUS "Crux Time realtime provider: ${CRUX_TIME_PROVIDER}")
 find_package(Threads REQUIRED)
 
 include(sources.cmake)

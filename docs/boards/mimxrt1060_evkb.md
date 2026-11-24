@@ -38,7 +38,7 @@ Operator practice from bench sessions, not a repository record: check all four S
 
 **Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The [J-Link board route](../board-jlink-usbipd.md) guide gives the steps, lists which routes have been run and explains the failures seen.
 
-1. PowerShell on Windows: `usbipd list`, then `usbipd bind --busid <BUSID>` (administrator, once per device), then `usbipd attach --wsl --busid <BUSID>`, again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
+1. PowerShell on Windows: attach the probe to WSL2 as [Getting started, section 7](../getting-started.md#7-if-you-use-a-board) says (`usbipd bind` only when `usbipd list` shows `Not shared`, then `usbipd attach --wsl --busid <BUSID>`), again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
 2. Only where the container cannot open the probe, in a WSL2 or Linux shell in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
 
    ~~~sh

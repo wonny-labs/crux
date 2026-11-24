@@ -35,6 +35,7 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "dependsOn": "Board: Check probe",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -91,7 +92,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "if [ ! -f build/native_sim/CMakeCache.txt ]; then echo 'Run native_sim: Build first.' >&2; exit 1; fi; west build -d build/native_sim && exec build/native_sim/zephyr/zephyr.exe -uart_stdinout"
+        "if [ ! -f build/native_sim/CMakeCache.txt ]; then echo 'Run native_sim: Build first.' >&2; exit 1; fi; west build -p never -d build/native_sim || exit; exe=build/native_sim/zephyr/zephyr.exe; if \"$exe\" -h 2>&1 | grep -q -- -uart_stdinout; then exec \"$exe\" -uart_stdinout; fi; exec \"$exe\""
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -123,6 +124,34 @@
         "panel": "shared",
         "clear": true
       }
+    },
+    {
+      "label": "Board: Check probe",
+      "hide": true,
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "grep -qsx 1366 /sys/bus/usb/devices/*/idVendor || { echo 'No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> (Getting started, section 7).' >&2; exit 1; }"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Board: Check probe and build",
+      "hide": true,
+      "dependsOn": [
+        "Board: Check probe",
+        "Board: Build"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     }
   ],
   "inputs": [
