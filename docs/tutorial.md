@@ -221,7 +221,7 @@ The steps below use the J-Link software in the Dev Container (Linux and WSL2); t
 
 ### 12. Connect the probe to the Dev Container
 
-The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd bind --busid <BUSID>` once in an administrator PowerShell, then `usbipd attach --wsl --busid <BUSID>`. On native Linux there is no attach; the Linux-side set-up is in the same place. The procedure is in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without it, step 13 fails.
+The J-Link software runs in the Dev Container, so the probe must reach it first. On Windows with WSL2, run `usbipd list` in PowerShell to find the probe's `BUSID` (the J-Link has vendor ID `1366`), run `usbipd bind --busid <BUSID>` once in an administrator PowerShell only if its STATE is `Not shared`, then `usbipd attach --wsl --busid <BUSID>`. On native Linux there is no attach; the Linux-side set-up is in the same place. The procedure is in [Getting started, section 7](getting-started.md#7-if-you-use-a-board). Without it, step 13 fails.
 
 ### 13. Check the J-Link connection
 

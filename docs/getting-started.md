@@ -152,6 +152,8 @@ For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up fo
    usbipd attach --wsl --busid <BUSID>
    ~~~
 
+   `usbipd list` shows each device's `BUSID` and `STATE`; the J-Link has vendor ID `1366`. Run `bind` only when the STATE is `Not shared` (it persists across reboots); skip it when `Shared`; with `Attached` there is nothing to do. `attach` needs no administrator after the bind ([Microsoft Learn](https://learn.microsoft.com/en-us/windows/wsl/connect-usb)).
+
 2. Only where the container cannot open the probe, for example on native Linux without the udev rule: in a shell on the host, in the repository checkout (not in the container), run `scripts/bootstrap.sh board-host`. It installs `usbutils` and the udev rule and checks the probe's device node.
 
    ~~~sh

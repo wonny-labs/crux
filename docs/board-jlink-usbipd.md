@@ -36,7 +36,7 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
    usbipd attach --wsl --busid <BUSID>
    ~~~
 
-   `usbipd list` shows the J-Link with vendor ID `1366`. `bind` needs an administrator PowerShell, once per device. The attachment is lost when the probe re-enumerates, for example when J-Link software updates the probe's firmware, and when WSL2 restarts: run `attach` again. `--auto-attach` attaches again by itself while its window stays open. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
+   `usbipd list` shows the J-Link with vendor ID `1366`; run `bind` (administrator PowerShell, once per device) only when its STATE is `Not shared`, and skip it when `Shared` ([Getting started](getting-started.md#7-if-you-use-a-board) explains the states). The attachment is lost when the probe re-enumerates, for example when J-Link software updates the probe's firmware, and when WSL2 restarts: run `attach` again. `--auto-attach` attaches again by itself while its window stays open. `/dev/bus/usb` does not exist in WSL2 until a USB device is attached. While the probe is attached, Windows tools cannot see it; `usbipd detach --busid <BUSID>` gives it back. On native Linux skip this step.
 
 2. **Only where the container cannot open the probe, such as native Linux without the udev rule: prepare the Linux side.** In a shell on the host, in the repository checkout:
 
