@@ -36,7 +36,11 @@ Operator practice from bench sessions, not a repository record: check all four S
 | Console | The serial port of the on-board DAPLink (OpenSDA) interface, 115200 baud, 8-N-1. On macOS it appears as `/dev/cu.usbmodem<N>`, and the number can change after a reconnection. Its connector is J1 in the NXP manual and in later records, and J41 in the Zephyr guide and in early records, a claim the [baseline](../baseline.md#hardware-and-range-assessment) withdraws: find the USB connector that enumerates as DAPLink on your board |
 | Host | Linux, or Windows with WSL2: the probe, the J-Link software, the build and GDB are all in the Dev Container (below) |
 
-**Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`. If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)). The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container. The [J-Link board route](../board-jlink-usbipd.md) guide gives the steps, lists which routes have been run and explains the failures seen.
+**Linux and Windows with WSL2.** The Dev Container can open every USB device of the host, so that it can reach the probe: it binds `/dev/bus/usb`, allows USB character devices and gives `vscode` `sudo`, without `--privileged`.
+If a security policy does not allow this, a configuration without that binding can be added back for work without a board ([guide](../board-jlink-usbipd.md#the-dev-container-and-the-board)).
+
+The probe is attached to Linux, to WSL2 through usbipd-win on Windows, and the J-Link software runs in the Dev Container.
+The [J-Link board route](../board-jlink-usbipd.md) guide gives the steps, lists which routes have been run and explains the failures seen.
 
 1. PowerShell on Windows: attach the probe to WSL2 as [Getting started, section 7](../getting-started.md#7-if-you-use-a-board) says (`usbipd bind` only when `usbipd list` shows `Not shared`, then `usbipd attach --wsl --busid <BUSID>`), again whenever the probe re-enumerates and loses the attachment. `/dev/bus/usb` exists in WSL2 only after the attach.
 2. Only where the container cannot open the probe, in a WSL2 or Linux shell in the repository checkout: install `usbutils` and the udev rule, then check the probe and its node:
@@ -81,7 +85,13 @@ See the [debug build script](../../scripts/build-debug-target.sh) and [physical 
 
 ### VS Code debug profiles
 
-[`.vscode/launch.json`](../../.vscode/launch.json) has three Cortex-Debug profiles. All three debug `build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf`. After each successful build, `scripts/build-debug-target.sh` points the link `build/zephyr/mimxrt1060_evk_B_qspi--current` at the build directory it has just built, whichever application and options it built, and prints the link's path. A failed build leaves the link as it was. So the profiles debug the image that `build-debug-target.sh` built last, and one set of profiles serves every sample. Other builds, such as the `west build` of [tutorial step 14](../tutorial.md#14-flash-hello-crux), do not move the link.
+[`.vscode/launch.json`](../../.vscode/launch.json) has three Cortex-Debug profiles.
+All three debug `build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf`.
+
+After each successful build, `scripts/build-debug-target.sh` points the link `build/zephyr/mimxrt1060_evk_B_qspi--current` at the build directory it has just built, whichever application and options it built, and prints the link's path.
+A failed build leaves the link as it was.
+So the profiles debug the image that `build-debug-target.sh` built last, and one set of profiles serves every sample.
+Other builds, such as the `west build` of [tutorial step 14](../tutorial.md#14-flash-hello-crux), do not move the link.
 
 | Profile | What it does |
 | --- | --- |
@@ -99,7 +109,19 @@ The two attach profiles do not build: the image on the board must be the one beh
 scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/boards/nxp/mimxrt1060_evk/sd_card_file --debug-optimizations
 ~~~
 
-Without either option the build directory is `build/zephyr/<board>`, here `build/zephyr/mimxrt1060_evk_B_qspi`. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds, and the ELF path and the [current build link](#vs-code-debug-profiles) when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. Downloading another application remains a separately authorised physical operation.
+Without either option the build directory is `build/zephyr/<board>`, here `build/zephyr/mimxrt1060_evk_B_qspi`.
+With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`.
+The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`.
+A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in.
+The script prints the build directory before it builds, and the ELF path and the [current build link](#vs-code-debug-profiles) when it finishes.
+
+A debug build records no provenance.
+A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured.
+The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`.
+The physical Time suite reads no configuration, so it does not make this check.
+
+`--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts.
+Downloading another application remains a separately authorised physical operation.
 
 ### What the platform provides for build and debug
 

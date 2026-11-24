@@ -62,6 +62,19 @@ Each page carries the detail that its type in section 2 names, and no more. Lead
 
 The reader of a guideline, a plan or an ADR needs the practice behind it: link the industry practice the page follows and say where it departs.
 
+### Paragraphs and line breaks
+
+Break text so that each block carries one idea, as the [Google developer documentation style guide](https://developers.google.com/style/paragraph-structure) and the [Microsoft Writing Style Guide](https://learn.microsoft.com/en-us/style-guide/scannable-content/) recommend.
+
+- A paragraph covers one idea and stays short, about five sentences at most.
+- Three or more parallel items become a list, and steps are numbered.
+- Comparisons go in a table.
+- A long paragraph of options or limits is split by topic.
+
+Markdown ignores single newlines, so source line breaks do not change what readers see.
+New or edited text puts one sentence on each line ([semantic line breaks](https://sembr.org/)), so that a diff shows which sentence changed.
+Do not reflow text that a change does not otherwise touch.
+
 ## 5. Current state only
 
 A current-state page states what is true at the revision it is read from. Outside the Migration notes section of a reference page, it holds none of the following; section 3 gives each its home.
@@ -105,4 +118,4 @@ The checks match text and structure only. Review applies the checklist in sectio
 
 ## Sources
 
-[Diátaxis](https://diataxis.fr/) and its [compass](https://diataxis.fr/compass/); Google [timeless documentation](https://developers.google.com/style/timeless-documentation) and [future features](https://developers.google.com/style/future); Microsoft [top 10 tips](https://learn.microsoft.com/en-us/style-guide/top-10-tips-style-voice); Write the Docs [principles](https://www.writethedocs.org/guide/writing/docs-principles/) and [docs as code](https://www.writethedocs.org/guide/docs-as-code/); Kubernetes [content guide](https://kubernetes.io/docs/contribute/style/content-guide/) and [page content types](https://kubernetes.io/docs/contribute/style/page-content-types/); GitLab [documentation style guide](https://docs.gitlab.com/development/documentation/styleguide/); [Zephyr Getting Started](https://docs.zephyrproject.org/latest/develop/getting_started/index.html). Crux departs from GitLab and Kubernetes on two points: version notes and per-page feature status stay out of current pages and go to release notes, migration notes and Component readiness.
+[Diátaxis](https://diataxis.fr/) and its [compass](https://diataxis.fr/compass/); Google [timeless documentation](https://developers.google.com/style/timeless-documentation) and [future features](https://developers.google.com/style/future); Google [paragraph structure](https://developers.google.com/style/paragraph-structure); Microsoft [top 10 tips](https://learn.microsoft.com/en-us/style-guide/top-10-tips-style-voice) and [scannable content](https://learn.microsoft.com/en-us/style-guide/scannable-content/); [semantic line breaks](https://sembr.org/); Write the Docs [principles](https://www.writethedocs.org/guide/writing/docs-principles/) and [docs as code](https://www.writethedocs.org/guide/docs-as-code/); Kubernetes [content guide](https://kubernetes.io/docs/contribute/style/content-guide/) and [page content types](https://kubernetes.io/docs/contribute/style/page-content-types/); GitLab [documentation style guide](https://docs.gitlab.com/development/documentation/styleguide/); [Zephyr Getting Started](https://docs.zephyrproject.org/latest/develop/getting_started/index.html). Crux departs from GitLab and Kubernetes on two points: version notes and per-page feature status stay out of current pages and go to release notes, migration notes and Component readiness.

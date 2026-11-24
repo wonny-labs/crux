@@ -18,9 +18,23 @@ Linux Host is a development and test composition, **not** a qualified production
 
 **First set-up:** read [Getting started](getting-started.md) first. It covers the Git clone, the folder layout and the folder name the scripts require, Windows with WSL2, line endings, network and proxy access, and disk and memory.
 
-Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory. After it is created it runs `scripts/bootstrap.sh`, which installs those tools into a Python environment in the cache volume, builds and tests the Host preset and sets up the west workspace and the Zephyr SDK, skipping what is already done ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)). The same container serves a board: it can reach a USB debug probe and installs the J-Link software when its package is given ([J-Link board route](board-jlink-usbipd.md)).
+Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension.
+Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools.
+The container is configured for 2 CPUs and 4 GiB of memory.
 
-**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time estimate. For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
+After it is created it runs `scripts/bootstrap.sh`, which installs those tools into a Python environment in the cache volume, builds and tests the Host preset and sets up the west workspace and the Zephyr SDK, skipping what is already done ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)).
+
+The same container serves a board: it can reach a USB debug probe and installs the J-Link software when its package is given ([J-Link board route](board-jlink-usbipd.md)).
+
+**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`).
+On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow.
+Running the full Host and Zephyr suites that way is impractical.
+
+CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`).
+Use a local run for the narrow checks of the code you changed.
+
+This guide gives no time estimate.
+For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
 
 Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
@@ -36,7 +50,13 @@ Run the commands below from `/workspace/crux-pilot` inside the container unless 
 
 ## Linux Host build
 
-**What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
+**What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)).
+The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners.
+`scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer.
+In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest.
+
+The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`.
+This is not Embedded Linux support.
 
 The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. The initial build, dependency acquisition and Host CTest run are the host step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created; by hand:
 
@@ -65,7 +85,12 @@ ctest --preset host-debug
 
 The root build enables Crux's development components and samples by default. `CRUX_BUILD_TESTS` initially follows the root project's `BUILD_TESTING` setting. Disabling internal tests also avoids the Crux GoogleTest/C++ test setup. The test and sample options are independent, so set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO=OFF` as well when the corresponding development targets are not wanted. Component-specific options are described below.
 
-For the complete quality checks and component-specific runners, use the [test guide](../tests/README.md). `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` validate formatting, configured analysis and dependency boundaries. Analysis uses the configured compiler database and can report existing upstream or suppressed diagnostics, so a successful run does not imply zero warnings. The list of sources that clang-tidy analyses is moving from hand-written paths to a list generated from the compile databases (`scripts/tidy-sources.py`); [static-analysis coverage](static-analysis-coverage.md) gives the measurement, the stages and their status.
+For the complete quality checks and component-specific runners, use the [test guide](../tests/README.md).
+`scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` validate formatting, configured analysis and dependency boundaries.
+
+Analysis uses the configured compiler database and can report existing upstream or suppressed diagnostics, so a successful run does not imply zero warnings.
+
+The list of sources that clang-tidy analyses is moving from hand-written paths to a list generated from the compile databases (`scripts/tidy-sources.py`); [static-analysis coverage](static-analysis-coverage.md) gives the measurement, the stages and their status.
 
 ## Zephyr build and module integration
 
@@ -106,7 +131,13 @@ export ZEPHYR_BASE="$workspace/zephyr"
     "$repo/tests/time_periodic/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
 ~~~
 
-**Applications with MCUboot (build only).** The sysbuild route of `scripts/test-boot-composition.sh` passes Crux with the older spelling, `-DZEPHYR_EXTRA_MODULES=<crux>`. MCUboot itself is not added as a module: it is the plain west project `mcuboot` in the optional group `crux-boot`, which the script enables with `west config manifest.group-filter` and fetches with `west update mcuboot`. Do not pass MCUboot through the module flags. The signing step needs packages that the Zephyr requirements do not list; the script installs them with `python3 -m pip install -r <workspace>/bootloader/mcuboot/scripts/requirements.txt` after the fetch. Run it by hand the same way if you build outside the script. The [boot composition](boot-composition.md) page gives the argument set and its status.
+**Applications with MCUboot (build only).** The sysbuild route of `scripts/test-boot-composition.sh` passes Crux with the older spelling, `-DZEPHYR_EXTRA_MODULES=<crux>`.
+MCUboot itself is not added as a module: it is the plain west project `mcuboot` in the optional group `crux-boot`, which the script enables with `west config manifest.group-filter` and fetches with `west update mcuboot`.
+Do not pass MCUboot through the module flags.
+
+The signing step needs packages that the Zephyr requirements do not list; the script installs them with `python3 -m pip install -r <workspace>/bootloader/mcuboot/scripts/requirements.txt` after the fetch.
+Run it by hand the same way if you build outside the script.
+The [boot composition](boot-composition.md) page gives the argument set and its status.
 
 Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and hardware-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
@@ -117,7 +148,11 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.
 
-**Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**). Select one in the status bar: **Build** builds it, the **Testing** view runs its CTest tests, and **Debug** starts the selected target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)). The build targets `run_time_shell` and `run_echo_client` run a Host sample. `samples/hello_crux/host` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
+**Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
+Select one in the status bar: **Build** builds it, the **Testing** view runs its CTest tests, and **Debug** starts the selected target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+
+The build targets `run_time_shell` and `run_echo_client` run a Host sample.
+`samples/hello_crux/host` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
 
 **native_sim and the board.** CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux`.
 
@@ -311,13 +346,25 @@ The proposal's [current state](test-foundation-proposal.md#current-state) lists 
 
 The table above says hardware has no supported entry point. This section says what exists and what each source says, so that nothing is read into it. No hardware was operated for it, and nothing here qualifies a physical board.
 
-**What CI can do: a fixture-gated scenario that is built and not run.** A Twister scenario whose `testcase.yaml` sets `harness_config: fixture: <name>` runs only when Twister is told that the fixture exists, with `--fixture` or a hardware map. Without it Twister builds the scenario and does not run it (read in `testsuite_runnable` of Zephyr v4.4.0 `testinstance.py` and in the [fixtures section](https://docs.zephyrproject.org/latest/develop/test/twister.html#fixtures) of the Twister guide; not run here). A product with a part wired to its board writes its wired-part scenario this way. CI then builds it on every change, so it cannot rot, and the image it builds is what an operator would load. Keep the pass or fail oracle in the application's console output, so that it does not depend on the route that runs it. Do not give CI the fixture name or a hardware map.
+**What CI can do: a fixture-gated scenario that is built and not run.** A Twister scenario whose `testcase.yaml` sets `harness_config: fixture: <name>` runs only when Twister is told that the fixture exists, with `--fixture` or a hardware map.
+Without it Twister builds the scenario and does not run it (read in `testsuite_runnable` of Zephyr v4.4.0 `testinstance.py` and in the [fixtures section](https://docs.zephyrproject.org/latest/develop/test/twister.html#fixtures) of the Twister guide; not run here).
+
+A product with a part wired to its board writes its wired-part scenario this way.
+CI then builds it on every change, so it cannot rot, and the image it builds is what an operator would load.
+
+Keep the pass or fail oracle in the application's console output, so that it does not depend on the route that runs it.
+Do not give CI the fixture name or a hardware map.
 
 **The run is a hardware operation, and it is not a Twister run.** The sources say:
 
 - **This guide:** hardware has "No supported entry point" (table above).
 - **Decision 5** of the [accepted test-foundation decisions](test-foundation-proposal.md#decisions) routes hardware through a small Crux tool, the [device-control tool](../tools/device_control/README.md), and not through the Twister harness's `hardware` device type, because gating, evidence and locking would all sit outside the harness anyway.
-- **Flashing:** the harness's `--device-type=hardware` flashes on every launch ([findings](test-foundation-proposal.md#pytest-twister-harness-findings)). The [device-control rule](test-foundation-proposal.md#device-control-contract) is the opposite: flashing is an explicit step, never performed by a fixture or on launch, and refused without `--allow-flash=<approval reference>`. Twister's own `--device-testing` also loads the image, with `west flash` or a custom flash command, to run a scenario. This guide therefore does not offer `--device-testing`, a hardware map or `--device-type=hardware` as a route, and Twister gives no safe way to run a scenario on a board. Allowing it would revisit Decision 5, with its own gate design.
+- **Flashing:** the harness's `--device-type=hardware` flashes on every launch ([findings](test-foundation-proposal.md#pytest-twister-harness-findings)).
+  The [device-control rule](test-foundation-proposal.md#device-control-contract) is the opposite: flashing is an explicit step, never performed by a fixture or on launch, and refused without `--allow-flash=<approval reference>`.
+  Twister's own `--device-testing` also loads the image, with `west flash` or a custom flash command, to run a scenario.
+
+  This guide therefore does not offer `--device-testing`, a hardware map or `--device-type=hardware` as a route, and Twister gives no safe way to run a scenario on a board.
+  Allowing it would revisit Decision 5, with its own gate design.
 - **Approval:** the device-control tool's step 5, its use from the first real consumer, is not started in this repository and needs its own approval ([recommended order](test-foundation-proposal.md#recommended-order)). Until then the tool has run against fake transports and scripted tools, with locking across real processes, and real pyserial on one disposable pseudo-terminal; never on a real serial port, probe, reset or flash ([current state](test-foundation-proposal.md#current-state)).
 
 **What exists today** serves Crux's own images and is not a consumer interface: the physical runner `tests/target`, which never flashes and runs against an image that is already loaded ([test guide](../tests/README.md#physical-uart-target)), and the program and restore driver with its safety gates and registered image profiles ([image profiles](board-image-profiles.md)). A new image needs its own profile, which is a reviewed change.
