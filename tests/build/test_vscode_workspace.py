@@ -442,19 +442,18 @@ class ContainerTest(unittest.TestCase):
 class ClangdTest(unittest.TestCase):
     """Zephyr sources use the native_sim database, the others build/clangd (https://clangd.llvm.org/config)."""
 
-    ZEPHYR = ["samples/hello_crux/src/main.c", "samples/time/shell/src/time_shell.c",
-              "samples/boards/nxp/mimxrt1060_evk/emmc_file/main.c",
-              "components/time/ports/zephyr/time_zephyr.c", "tests/zephyr/web_compile/src/main.c",
-              "tests/time/zephyr/main.c", "tests/i2c_zephyr/src/main.c",
-              "tests/gpio/zephyr_failure/pin_range/main.c", "tests/system/zephyr/native_sim_watchdog/src/main.c",
-              "zephyr/psa_threading/threading_alt.c"]
-    OTHER = ["components/time/src/time.c", "components/time/include/crux/time.h",
-             "components/time/ports/linux/time_linux.c", "tests/time/time_test.c",
-             "samples/time/shell/host/main.c", "samples/hello_crux/host/main.c",
-             "tests/time/busy_wait/zephyr_port_test.c", "tests/time/busy_wait/zephyr_shim/zephyr/kernel.h",
-             "tests/zephyr/management_rt1060_compile/host/shim/zephyr/kernel.h",
-             "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c",
-             "tests/zephyr/management_rt1060_compile/report/report.c"]
+    # Files that the Host build compiles although they sit in a Zephyr-looking folder
+    # (root CMakeLists.txt, tests/{gpio,i2c,spi,networking,bench_first_account,time/busy_wait}).
+    HOST_BUILT = ["samples/time/shell/src/time_command.c", "samples/time/shell/host/main.c",
+                  "samples/hello_crux/host/main.c", "samples/networking/echo_client/common/client.c",
+                  "components/gpio/ports/zephyr/gpio_status.c", "components/i2c/ports/zephyr/i2c_status.c",
+                  "components/spi/ports/zephyr/spi_status.c", "components/time/ports/zephyr/busy_wait_zephyr.c",
+                  "tests/time/busy_wait/zephyr_shim/zephyr/kernel.h",
+                  "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c"]
+    OTHER = ["components/time/src/busy_wait.c", "components/time/ports/linux/time_clock_linux.c",
+             "tests/time/busy_wait/zephyr_port_test.c", "tests/gpio/status_test.c"]
+    WEST_ONLY = ["components/time/ports/zephyr/time_clock_zephyr.c", "zephyr/psa_threading/crux_tf_psa_threading.c",
+                 "tests/zephyr/management_rt1060_compile/report/bench_report_core.c"]
 
     def setUp(self):
         self.fragments = list(yaml.safe_load_all((REPO / ".clangd").read_text()))
@@ -483,12 +482,31 @@ class ClangdTest(unittest.TestCase):
             found.add(fragment["CompileFlags"]["CompilationDatabase"])
         return found
 
-    def test_each_path_gets_exactly_one_database(self):
-        # The fragments do not overlap, so the result does not depend on their order.
-        for path in self.ZEPHYR:
+    def west_app_sources(self):
+        # A folder with prj.conf is a west application root; the root CMakeLists.txt adds none of them.
+        # Its host/ subfolders are Host builds.
+        sources = set()
+        for conf in list(REPO.glob("samples/**/prj.conf")) + list(REPO.glob("tests/**/prj.conf")):
+            for source in conf.parent.rglob("*.c"):
+                path = source.relative_to(REPO)
+                if "host" not in path.parts:
+                    sources.add(path.as_posix())
+        return sorted(sources - set(self.HOST_BUILT))
+
+    def test_listed_files_exist(self):
+        for path in self.HOST_BUILT + self.OTHER + self.WEST_ONLY:
+            with self.subTest(path=path):
+                self.assertTrue((REPO / path).is_file())
+
+    def test_west_application_sources_use_the_native_sim_database(self):
+        sources = self.west_app_sources()
+        self.assertGreater(len(sources), 100)
+        for path in sources + self.WEST_ONLY:
             with self.subTest(path=path):
                 self.assertEqual(self.databases(path), {NATIVE_SIM_DATABASE})
-        for path in self.OTHER:
+
+    def test_host_built_sources_use_build_clangd(self):
+        for path in self.HOST_BUILT + self.OTHER:
             with self.subTest(path=path):
                 self.assertEqual(self.databases(path), {DEFAULT_DATABASE})
 

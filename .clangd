@@ -1,17 +1,32 @@
 # clangd configuration: https://clangd.llvm.org/config
-# Sources that only west builds for Zephyr use the compilation database of the native_sim: Build task.
-# The others use build/clangd. Every fragment that applies to a path names the same database,
-# so the order of the fragments does not matter.
+# Sources that only west builds use the compilation database of the native_sim: Build task.
+# The other sources, including Zephyr files that the Host tests also compile, use build/clangd.
+# Every fragment that applies to a path names the same database, so their order does not matter.
 If:
   PathMatch:
     - samples/.*
     - components/[^/]+/ports/zephyr/.*
     - tests/(.*/)?[^/]*zephyr[^/]*/.*
     - zephyr/.*
+    - tests/native/.*
+    - tests/board_images/.*
+    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/(gpio|i2c|spi)/evkb/.*
+    - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
+    - tests/consumer_system/app/.*
+    - tests/execution/.*
+    - tests/product_template_link/.*
+    - tests/psa_entropy/wolf/.*
+    - tests/ssh/cli/(compile|openssh)/.*
+    - tests/ssh/sftp/native_sim/.*
   PathExclude:
     - (.*/)?host/.*
     - (.*/)?zephyr_shim/.*
-    - tests/zephyr/management_rt1060_compile/(first_account|report)/.*
+    - tests/zephyr/management_rt1060_compile/first_account/.*
+    - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
+    - components/time/ports/zephyr/busy_wait_zephyr\.c
+    - samples/time/shell/src/time_command\.c
+    - samples/networking/echo_client/common/.*
 CompileFlags:
   CompilationDatabase: build/native_sim
 ---
@@ -21,6 +36,17 @@ If:
     - components/[^/]+/ports/zephyr/.*
     - tests/(.*/)?[^/]*zephyr[^/]*/.*
     - zephyr/.*
+    - tests/native/.*
+    - tests/board_images/.*
+    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/(gpio|i2c|spi)/evkb/.*
+    - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
+    - tests/consumer_system/app/.*
+    - tests/execution/.*
+    - tests/product_template_link/.*
+    - tests/psa_entropy/wolf/.*
+    - tests/ssh/cli/(compile|openssh)/.*
+    - tests/ssh/sftp/native_sim/.*
 CompileFlags:
   CompilationDatabase: build/clangd
 ---
@@ -28,6 +54,10 @@ If:
   PathMatch:
     - (.*/)?host/.*
     - (.*/)?zephyr_shim/.*
-    - tests/zephyr/management_rt1060_compile/(first_account|report)/.*
+    - tests/zephyr/management_rt1060_compile/first_account/.*
+    - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
+    - components/time/ports/zephyr/busy_wait_zephyr\.c
+    - samples/time/shell/src/time_command\.c
+    - samples/networking/echo_client/common/.*
 CompileFlags:
   CompilationDatabase: build/clangd

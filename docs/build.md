@@ -146,7 +146,9 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 ## VS Code
 
 VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.
-[`.clangd`](../.clangd) gives the sources that only west builds (samples, `ports/zephyr` and the Zephyr tests) the database `build/native_sim/compile_commands.json`, which **native_sim: Build** writes; the other sources use `build/clangd`.
+
+[`.clangd`](../.clangd) gives the sources that only west builds the database `build/native_sim/compile_commands.json`, which **native_sim: Build** writes.
+The other sources, including Zephyr files that the Host tests also compile, use `build/clangd`.
 
 **Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
 **Build** builds the selected preset, the **Testing** view runs its CTest tests, and **Debug** starts the debug target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
