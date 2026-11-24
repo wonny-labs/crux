@@ -449,10 +449,11 @@ class ClangdTest(unittest.TestCase):
                   "components/gpio/ports/zephyr/gpio_status.c", "components/i2c/ports/zephyr/i2c_status.c",
                   "components/spi/ports/zephyr/spi_status.c", "components/time/ports/zephyr/busy_wait_zephyr.c",
                   "tests/time/busy_wait/zephyr_shim/zephyr/kernel.h",
-                  "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c"]
+                  "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c",
+                  "tests/execution/src/posix.c"]
     OTHER = ["components/time/src/busy_wait.c", "components/time/ports/linux/time_clock_linux.c",
              "tests/time/busy_wait/zephyr_port_test.c", "tests/gpio/status_test.c"]
-    WEST_ONLY = ["components/time/ports/zephyr/time_clock_zephyr.c", "zephyr/psa_threading/crux_tf_psa_threading.c",
+    WEST_ONLY = ["components/time/ports/zephyr/time_clock_zephyr.c", "tests/execution/src/native.c", "zephyr/psa_threading/crux_tf_psa_threading.c",
                  "tests/zephyr/management_rt1060_compile/report/bench_report_core.c"]
 
     def setUp(self):
@@ -483,7 +484,8 @@ class ClangdTest(unittest.TestCase):
         return found
 
     def west_app_sources(self):
-        # A folder with prj.conf is a west application root; the root CMakeLists.txt adds none of them.
+        # A folder with prj.conf is a west application root; the Host build compiles none of its
+        # files except the HOST_BUILT ones.
         # Its host/ subfolders are Host builds.
         sources = set()
         for conf in list(REPO.glob("samples/**/prj.conf")) + list(REPO.glob("tests/**/prj.conf")):

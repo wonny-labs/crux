@@ -27,6 +27,7 @@ If:
     - components/time/ports/zephyr/busy_wait_zephyr\.c
     - samples/time/shell/src/time_command\.c
     - samples/networking/echo_client/common/.*
+    - tests/execution/src/posix\.c
 CompileFlags:
   CompilationDatabase: build/native_sim
 ---
@@ -59,5 +60,6 @@ If:
     - components/time/ports/zephyr/busy_wait_zephyr\.c
     - samples/time/shell/src/time_command\.c
     - samples/networking/echo_client/common/.*
+    - tests/execution/src/posix\.c
 CompileFlags:
   CompilationDatabase: build/clangd
