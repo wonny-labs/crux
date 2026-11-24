@@ -127,7 +127,7 @@ VS Code in the Dev Container is the supported editor. clangd is the language ser
 | **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
 | **Board: Clean** | Deletes `build/zephyr/mimxrt1060_evk_B_qspi` and `build/zephyr/mimxrt1060_evk_B_qspi--*`, the current build link included |
 | **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample>`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
-| **native_sim: Run** | `build/native_sim/zephyr/zephyr.exe -uart_stdinout`: the program's UART is on the task terminal, which takes its input |
+| **native_sim: Run** | `west build -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe -uart_stdinout`. With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. The program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
 | **native_sim: Clean** | Deletes `build/native_sim` |
 
 | Profile | What it does |

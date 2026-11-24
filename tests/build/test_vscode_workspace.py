@@ -2,10 +2,12 @@
 next to clangd, gdb in the Dev Container and the build guide that names them.
 
 CMake Tools builds, tests and debugs the Linux Host presets, so no task does. The tasks build,
-run, flash and clean native_sim and the board. The tests read the JSON files and run the two clean
-tasks in a temporary folder; they do not start VS Code, build an image or touch a board.
+run, flash and clean native_sim and the board. The tests read the JSON files, run the two clean
+tasks in a temporary folder and run native_sim: Run with a stub west and program; they do not
+start VS Code, build an image or touch a board.
 """
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -61,13 +63,63 @@ class TasksTest(unittest.TestCase):
         self.assertEqual(task["args"], ["build", "-p", "auto", "-b", "native_sim/native/64",
                                         "-d", "build/native_sim", "${input:sample}"])
 
-    def test_native_sim_run_puts_the_shell_on_the_task_terminal(self):
+    def test_native_sim_run_uses_the_build_folder_of_native_sim_build(self):
         task = self.tasks["native_sim: Run"]
-        self.assertEqual(task["command"], NATIVE_SIM_EXE)
-        self.assertEqual(task["args"], ["-uart_stdinout"])
+        self.assertNotIn("${input:", json.dumps(task))
         build = self.tasks["native_sim: Build"]["args"]
         folder = build[build.index("-d") + 1]
         self.assertEqual(NATIVE_SIM_EXE, f"${{workspaceFolder}}/{folder}/zephyr/zephyr.exe")
+        self.assertIn(folder, " ".join(task["args"]))
+
+    def run_native_sim_run(self, root, west_exit=0):
+        # Stub west and zephyr.exe that log their arguments, then run the task as VS Code would.
+        stubs = root / "stubs"
+        stubs.mkdir()
+        log = root / "calls.log"
+        west = stubs / "west"
+        west.write_text(f'#!/bin/sh\necho "west $*" >> "{log}"\nexit {west_exit}\n')
+        west.chmod(0o755)
+        exe = root / "build/native_sim/zephyr/zephyr.exe"
+        exe.parent.mkdir(parents=True, exist_ok=True)
+        exe.write_text(f'#!/bin/sh\necho "zephyr.exe $*" >> "{log}"\n')
+        exe.chmod(0o755)
+        task = self.tasks["native_sim: Run"]
+        arguments = [a.replace("${workspaceFolder}", str(root)) for a in task["args"]]
+        command = task["command"].replace("${workspaceFolder}", str(root))
+        env = dict(os.environ, PATH=f"{stubs}:{os.environ['PATH']}")
+        result = subprocess.run([command, *arguments], cwd=root, capture_output=True, text=True, env=env)
+        calls = log.read_text().splitlines() if log.exists() else []
+        return result, calls
+
+    def test_native_sim_run_rebuilds_the_configured_sample_then_runs_it(self):
+        # west build with only -d reuses the build folder and takes the source directory from its CMake
+        # cache (Zephyr scripts/west_commands/build.py, _find_source_dir; docs: west build, "If west build
+        # finds an existing build directory, the application is incrementally re-compiled there").
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "build/native_sim").mkdir(parents=True)
+            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux\n")
+            result, calls = self.run_native_sim_run(root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["west build -d build/native_sim", "zephyr.exe -uart_stdinout"])
+
+    def test_native_sim_run_does_not_start_the_program_when_the_build_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "build/native_sim").mkdir(parents=True)
+            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux\n")
+            result, calls = self.run_native_sim_run(root, west_exit=1)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(calls, ["west build -d build/native_sim"])
+
+    def test_native_sim_run_without_a_configured_build_asks_for_native_sim_build(self):
+        # Without a CMake cache, west build would take the current directory as the source directory.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result, calls = self.run_native_sim_run(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Run native_sim: Build first.", result.stdout + result.stderr)
+            self.assertEqual(calls, [])
 
     def run_clean(self, label, root):
         task = self.tasks[label]

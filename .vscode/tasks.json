@@ -88,14 +88,15 @@
     {
       "label": "native_sim: Run",
       "type": "process",
-      "command": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
+      "command": "bash",
       "args": [
-        "-uart_stdinout"
+        "-c",
+        "if [ ! -f build/native_sim/CMakeCache.txt ]; then echo 'Run native_sim: Build first.' >&2; exit 1; fi; west build -d build/native_sim && exec build/native_sim/zephyr/zephyr.exe -uart_stdinout"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "problemMatcher": [],
+      "problemMatcher": "$gcc",
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
