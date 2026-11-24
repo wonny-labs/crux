@@ -245,7 +245,12 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
         result = self.run_bootstrap("host")
         self.assertOk(result)
         self.assertIn("J-Link software is not installed", result.stdout)
+        # Behind a TLS-inspecting proxy the image's own download fails, so the notice names
+        # the organisation CA first and the placed package second.
+        self.assertIn(".devcontainer/certs/", result.stdout)
         self.assertIn(".devcontainer/jlink/packages/", result.stdout)
+        self.assertLess(result.stdout.index(".devcontainer/certs/"),
+                        result.stdout.index(".devcontainer/jlink/packages/"))
         self.stub(self.bin / "crux-test-jlink-exe", "exit 0\n")
         result = self.run_bootstrap("host")
         self.assertNotIn("J-Link software is not installed", result.stdout)
