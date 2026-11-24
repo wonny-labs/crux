@@ -297,9 +297,11 @@ jlink_notice() {
     fi
     cat <<'EOF'
 J-Link software is not installed in this container. Host and native_sim work without it; flashing
-and debugging a board need it. Download JLink_Linux_<version>_x86_64.deb from SEGGER (accept its
-licence there), place it in .devcontainer/jlink/packages/ on the host, then run
-"Dev Containers: Rebuild Container". See docs/board-jlink-usbipd.md.
+and debugging a board need it. The image downloads it at build time. Behind a proxy that
+re-signs TLS, put your organisation's root CA in .devcontainer/certs/ (see its README.md) and
+run "Dev Containers: Rebuild Container". Otherwise download JLink_Linux_<version>_x86_64.deb from
+SEGGER (accept its licence there), place it in .devcontainer/jlink/packages/ on the host, then
+rebuild. See docs/board-jlink-usbipd.md.
 EOF
 }
 

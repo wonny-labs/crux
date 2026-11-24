@@ -214,7 +214,8 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.check_jlink(flash)
         self.assertEqual(flash["request"], "launch")
         self.assertEqual(flash["runToEntryPoint"], "main")
-        self.assertEqual(flash["preLaunchTask"], "Board: Build")
+        # A hidden task checks that a J-Link is attached, then runs Board: Build.
+        self.assertEqual(flash["preLaunchTask"], "Board: Check probe and build")
 
     def test_board_build_asks_for_the_sample_and_defaults_to_hello_crux(self):
         task = self.tasks["Board: Build"]
@@ -251,8 +252,10 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.check_jlink(attach)
         self.assertEqual(attach["request"], "attach")
         text = json.dumps(attach)
-        for forbidden in ("runToEntryPoint", "preLaunchTask", "monitor reset", "overrideAttachCommands"):
+        for forbidden in ("runToEntryPoint", "monitor reset", "overrideAttachCommands"):
             self.assertNotIn(forbidden, text)
+        # Its only pre-launch step checks that a J-Link is attached; it builds nothing.
+        self.assertEqual(attach["preLaunchTask"], "Board: Check probe")
 
     def test_flash_task_flashes_the_last_board_build_with_the_jlink_runner(self):
         # The task flashes the build behind the link that the debug profiles use, so Board: Build
@@ -261,7 +264,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertEqual(task["command"], "west")
         current = self.ELF.removeprefix("${workspaceFolder}/").removesuffix("/zephyr/zephyr.elf")
         self.assertEqual(task["args"], ["flash", "-d", current, "-r", "jlink"])
-        self.assertNotIn("dependsOn", task)
+        self.assertEqual(task["dependsOn"], "Board: Check probe")
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertNotIn("--erase", json.dumps(task))
 

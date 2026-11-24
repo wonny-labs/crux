@@ -4,9 +4,9 @@ This page finds the right page for what you want to do. Start at the [repository
 
 ## Set up and build
 
+- [Getting started](getting-started.md): the clone, folder layout, Windows with WSL2, proxies, and the Dev Container set-up.
 - [Tutorial: your first build and sample](tutorial.md): from the Dev Container to samples on the Host, on `native_sim` and on your board.
 - [Samples](../samples/README.md): every sample folder, whether it runs on its own, and how to run it.
-- [Getting started](getting-started.md): the clone, folder layout, Windows with WSL2, proxies, and the Dev Container set-up.
 - [Boards](boards/README.md): one page per board with its target, switches and jumpers, probe and connection, flash and debug, recovery and limits.
 - [J-Link board route on Linux and WSL2](board-jlink-usbipd.md): attach the probe, `scripts/bootstrap.sh board-host`, the J-Link package, then `west flash` and `west debug` from the Dev Container.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications and provider selection.

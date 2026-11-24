@@ -50,9 +50,10 @@ fi
 
 zephyr="$workspace/zephyr"
 sanitize() { printf '%s' "$1" | sed -E 's/[^A-Za-z0-9_.-]+/_/g'; }
-# With neither option the build directory is the one that the VS Code profile and the
-# clean task name. --app and --debug-optimizations each add a part to the name, so a
-# reused directory never carries a stale choice.
+# With neither option the build directory is build/zephyr/<board>. --app and
+# --debug-optimizations each add a part to the name, so a reused directory never carries a
+# stale choice. The VS Code profiles do not name this directory: they debug the
+# <board>--current link that is updated after every successful build (see below).
 build_key="$(sanitize "$board")"
 if [[ "$custom_app" -eq 1 ]]; then
     repo_real="$(cd "$repo" && pwd -P)"
