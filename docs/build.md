@@ -165,7 +165,8 @@ The build targets `run_time_shell` and `run_echo_client` run a Host sample.
 | **native_sim: Run** | `west build -p never -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe`, with `-uart_stdinout` when `zephyr.exe -h` lists it (samples with a console or shell). With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. With `-uart_stdinout` the program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
 | **native_sim: Clean** | Deletes `build/native_sim` |
 
-**Board: Flash**, **Board: Debug** and **Board: Attach** first run the hidden task **Board: Check probe**. When no J-Link (USB vendor ID `1366`) is visible in the container, it stops with `No J-Link probe found` and the `usbipd attach` command.
+**Board: Flash**, **Board: Debug** and **Board: Attach** first run the hidden task **Board: Check probe**.
+When no J-Link (USB vendor ID `1366`) is visible in the container, it stops with `No J-Link probe found` and the `usbipd attach` command.
 
 | Profile | What it does |
 | --- | --- |

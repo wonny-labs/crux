@@ -61,8 +61,7 @@ Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reope
 
 ## 3. Windows with WSL2
 
-- Check that the distribution runs WSL 2: `wsl -l -v` in PowerShell shows `VERSION` `2`.
-  WSL 1 has no USB passthrough, and Docker's WSL integration needs WSL 2 ([Comparing WSL versions](https://learn.microsoft.com/en-us/windows/wsl/compare-versions)).
+- Check with `wsl -l -v` in PowerShell that the distribution shows `VERSION` `2`, because WSL 1 has no USB passthrough and Docker's WSL integration needs WSL 2 ([Comparing WSL versions](https://learn.microsoft.com/en-us/windows/wsl/compare-versions), [Connect USB devices](https://learn.microsoft.com/en-us/windows/wsl/connect-usb)).
 - Use Docker Engine inside the WSL2 distribution; the board route needs it. Docker Desktop with the WSL2 backend may also work without a board; the Dev Container's `/dev/bus/usb` binding has not been tried with it on Windows.
 - Clone inside the WSL2 file system, for example under `~/crux-workspace`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
 - Set `git config --global core.autocrlf false` in WSL2 before cloning. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
@@ -170,7 +169,8 @@ For a SEGGER J-Link on Windows with WSL2, the Dev Container is already set up fo
 3. Optional: nothing to do for the J-Link software.
    Every Dev Container build, with or without a board, downloads the J-Link version pinned in the Dockerfile from SEGGER (about 75 MB) and installs it only if its SHA-256 matches.
 
-   **That download accepts SEGGER's terms of use for you.** To use your own copy instead, put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy your organisation hosts, then run **Dev Containers: Rebuild Container**; the build argument `CRUX_JLINK=0` skips the J-Link software.
+   **That download accepts SEGGER's terms of use for you.**
+   To use your own copy instead, put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`, or set `CRUX_JLINK_URL` and `CRUX_JLINK_DEB_SHA256` to a copy your organisation hosts, then run **Dev Containers: Rebuild Container**; the build argument `CRUX_JLINK=0` skips the J-Link software.
    CI and other automated image builds always pass `--build-arg CRUX_JLINK=0` ([CI and automated image builds](board-jlink-usbipd.md#ci-and-automated-image-builds)).
 
 The attach and the host set-up stay manual because nothing inside the container can do them: `usbipd` runs on Windows and `bind` needs an administrator; the udev rule belongs to the Linux system that owns the probe and needs `sudo` there, which the container's automatic set-up cannot ask for. After that, building, flashing and debugging run from VS Code tasks and debug profiles ([J-Link board route](board-jlink-usbipd.md)).

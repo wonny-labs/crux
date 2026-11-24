@@ -237,7 +237,6 @@ int main(void) {
 ''', ['components/time/src/busy_wait.c', 'components/time/src/busy_wait_disabled.c'])
 
 
-
 class ProviderVisibility(unittest.TestCase):
     def test_selected_provider_is_read_from_the_cmake_cache_not_a_status_line(self):
         # CMake prints no per-component status line; the cache holds the selection.
@@ -248,6 +247,7 @@ class ProviderVisibility(unittest.TestCase):
         section = section[:section.index("\n|")]
         self.assertIn("cmake -LH", section)
         self.assertIn("CRUX_TIME_PROVIDER", section)
+
 
 if __name__ == "__main__":
     unittest.main()
