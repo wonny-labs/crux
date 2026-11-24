@@ -143,7 +143,6 @@ Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/projec
 
 Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
-
 ## VS Code
 
 VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.

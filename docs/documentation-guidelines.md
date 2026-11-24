@@ -75,6 +75,14 @@ Markdown ignores single newlines, so source line breaks do not change what reade
 New or edited text puts one sentence on each line ([semantic line breaks](https://sembr.org/)), so that a diff shows which sentence changed.
 Do not reflow text that a change does not otherwise touch.
 
+In [CommonMark](https://spec.commonmark.org/0.31.2/#paragraphs), a blank line ends a paragraph and consecutive lines join into one, so the renderer sets the visible gap:
+
+- Put one blank line between paragraphs and around every heading, list, table and fenced code block.
+- Never put two blank lines in a row.
+- Do not use `<br>` or other HTML for spacing.
+
+These match the markdownlint rules MD012, MD022, MD031, MD032 and MD058 ([markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint), optional in VS Code).
+
 ## 5. Current state only
 
 A current-state page states what is true at the revision it is read from. Outside the Migration notes section of a reference page, it holds none of the following; section 3 gives each its home.
