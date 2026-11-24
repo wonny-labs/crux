@@ -52,6 +52,7 @@
       "program": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
+      "unknownBreakpointHandling": "stop",
       "externalConsole": false,
       "MIMode": "gdb",
       "miDebuggerPath": "/usr/bin/gdb",

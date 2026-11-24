@@ -118,6 +118,7 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
 | Step 6 shows `VTref=0.000V` | The target has no power: check the board's supply on the [board page](boards/mimxrt1060_evkb.md#switches-and-jumpers) |
 | Step 7 or 8 cannot connect | Retry with `--speed 4000`, then `--speed 400`, then `--speed 100`; if step 6 fails too, check the jumpers on the [board page](boards/mimxrt1060_evkb.md#recovery) |
 | J-Link reports `Cannot connect to the probe/programmer` | The probe is not attached to WSL2 or its node is not writable: attach it again (step 1) and, where step 2 applies, run it again |
+| After the probe is attached again, `lsusb -d 1366:` lists the J-Link twice, or J-Link still reports `Cannot connect to the probe/programmer` | WSL2 keeps the old device. In PowerShell run `usbipd detach --busid <BUSID>`, `wsl --shutdown` and `usbipd attach --wsl --busid <BUSID>`, then reopen the folder in the container |
 | `west` reports only `JLinkExe exited with status 1` | Run step 6, then rerun `west` with `-v` to see J-Link's output |
 
 ## The Dev Container and the board

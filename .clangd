@@ -1,2 +1,33 @@
+# clangd configuration: https://clangd.llvm.org/config
+# Sources that only west builds for Zephyr use the compilation database of the native_sim: Build task.
+# The others use build/clangd. Every fragment that applies to a path names the same database,
+# so the order of the fragments does not matter.
+If:
+  PathMatch:
+    - samples/.*
+    - components/[^/]+/ports/zephyr/.*
+    - tests/(.*/)?[^/]*zephyr[^/]*/.*
+    - zephyr/.*
+  PathExclude:
+    - (.*/)?host/.*
+    - (.*/)?zephyr_shim/.*
+    - tests/zephyr/management_rt1060_compile/(first_account|report)/.*
+CompileFlags:
+  CompilationDatabase: build/native_sim
+---
+If:
+  PathExclude:
+    - samples/.*
+    - components/[^/]+/ports/zephyr/.*
+    - tests/(.*/)?[^/]*zephyr[^/]*/.*
+    - zephyr/.*
+CompileFlags:
+  CompilationDatabase: build/clangd
+---
+If:
+  PathMatch:
+    - (.*/)?host/.*
+    - (.*/)?zephyr_shim/.*
+    - tests/zephyr/management_rt1060_compile/(first_account|report)/.*
 CompileFlags:
   CompilationDatabase: build/clangd

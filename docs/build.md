@@ -146,9 +146,12 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 ## VS Code
 
 VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.
+[`.clangd`](../.clangd) gives the sources that only west builds (samples, `ports/zephyr` and the Zephyr tests) the database `build/native_sim/compile_commands.json`, which **native_sim: Build** writes; the other sources use `build/clangd`.
 
 **Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
-Select one in the status bar: **Build** builds it, the **Testing** view runs its CTest tests, and **Debug** starts the selected target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+**Build** builds the selected preset, the **Testing** view runs its CTest tests, and **Debug** starts the debug target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+Choose the target with the Command Palette command **CMake: Set Debug Target**.
+Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.
 
 The build targets `run_time_shell` and `run_echo_client` run a Host sample.
 `samples/hello_crux/host` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
@@ -158,19 +161,25 @@ The build targets `run_time_shell` and `run_echo_client` run a Host sample.
 | Task | What it does |
 | --- | --- |
 | **Board: Build** | `scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app <sample>`, which points the [current build link](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) `build/zephyr/mimxrt1060_evk_B_qspi--current` at that build. For `-Og`, run the script with `--debug-optimizations` ([debug builds](boards/mimxrt1060_evkb.md#debug-builds-of-other-applications)) |
-| **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)). It first runs the probe check below |
+| **Board: Flash** | Runs the probe check below, then `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink` in the same process: flashes the build behind the current build link. Without a probe it stops before `west flash`. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
 | **Board: Clean** | Deletes `build/zephyr/mimxrt1060_evk_B_qspi` and `build/zephyr/mimxrt1060_evk_B_qspi--*`, the current build link included |
-| **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample>`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
+| **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample> -- -DCONFIG_NO_OPTIMIZATIONS=y`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
 | **native_sim: Run** | `west build -p never -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe`, with `-uart_stdinout` when `zephyr.exe -h` lists it (samples with a console or shell). With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. With `-uart_stdinout` the program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
 | **native_sim: Clean** | Deletes `build/native_sim` |
 
-**Board: Flash**, **Board: Debug** and **Board: Attach** first run the hidden task **Board: Check probe**.
-When no J-Link (USB vendor ID `1366`) is visible in the container, it stops with `No J-Link probe found` and the `usbipd attach` command.
+**Board: Flash** runs the probe check in its own command; **Board: Debug** and **Board: Attach** run it first as the hidden task **Board: Check probe**.
+When no J-Link (USB vendor ID `1366`) is visible in the container, the check stops with `No J-Link probe found` and the `usbipd attach` command.
+
+| Build | Optimization |
+| --- | --- |
+| Linux Host presets `host-debug` and `host-sanitize` | None (`-O0`), CMake's `Debug` build type |
+| **native_sim: Build** | None (`-O0`): `CONFIG_NO_OPTIMIZATIONS`, as [Zephyr's native_sim page](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html) recommends for debugging |
+| **Board: Build**, flashed by **Board: Flash** | Size (`-Os`), Zephyr's default |
 
 | Profile | What it does |
 | --- | --- |
 | **Board: Debug**, **Board: Attach**, **Board: Attach (external)** | Cortex-Debug with a J-Link ([VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles)) |
-| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe` under gdb with the C/C++ extension and stops at the sample's `main`. [`.vscode/native_sim_debug.py`](../.vscode/native_sim_debug.py) passes `-uart_stdinout` as **native_sim: Run** does and sets that breakpoint. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
+| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe` under gdb with the C/C++ extension and stops at the sample's `main`. [`.vscode/native_sim_debug.py`](../.vscode/native_sim_debug.py) passes `-uart_stdinout` as **native_sim: Run** does and sets that breakpoint; `"unknownBreakpointHandling": "stop"` reports it as a plain stop. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
 
 ## RT1060-EVKB debugging
 
