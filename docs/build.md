@@ -113,6 +113,28 @@ Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/projec
 Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
 
+## VS Code
+
+VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.
+
+**Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**). Select one in the status bar: **Build** builds it, the **Testing** view runs its CTest tests, and **Debug** starts the selected target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)). The build targets `run_time_shell` and `run_echo_client` run a Host sample. `samples/hello_crux/host` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
+
+**native_sim and the board.** CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux`.
+
+| Task | What it does |
+| --- | --- |
+| **Board: Build** | `scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app <sample>`, which points the [current build link](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) `build/zephyr/mimxrt1060_evk_B_qspi--current` at that build. For `-Og`, run the script with `--debug-optimizations` ([debug builds](boards/mimxrt1060_evkb.md#debug-builds-of-other-applications)) |
+| **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
+| **Board: Clean** | Deletes `build/zephyr/mimxrt1060_evk_B_qspi` and `build/zephyr/mimxrt1060_evk_B_qspi--*`, the current build link included |
+| **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample>`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
+| **native_sim: Run** | `build/native_sim/zephyr/zephyr.exe -uart_stdinout`: the program's UART is on the task terminal, so its shell takes input there |
+| **native_sim: Clean** | Deletes `build/native_sim` |
+
+| Profile | What it does |
+| --- | --- |
+| **Board: Debug**, **Board: Attach**, **Board: Attach (external)** | Cortex-Debug with a J-Link ([VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles)) |
+| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe -uart_stdinout` under gdb with the C/C++ extension. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), where its shell takes input |
+
 ## RT1060-EVKB debugging
 
 The board procedures for the RT1060-EVKB, including the J-Link GDB Server, the VS Code debug profiles, debug builds of other applications and what the platform provides for build and debug, are on the [MIMXRT1060-EVKB board page](boards/mimxrt1060_evkb.md#flash-and-debug).

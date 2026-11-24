@@ -15,7 +15,7 @@
         "auto"
       ],
       "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
-      "preLaunchTask": "Build firmware (choose sample)",
+      "preLaunchTask": "Board: Build",
       "runToEntryPoint": "main"
     },
     {
@@ -43,6 +43,28 @@
       "executable": "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf",
       "device": "MIMXRT1062xxx6A",
       "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
+    },
+    {
+      "name": "native_sim: Debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
+      "args": [
+        "-uart_stdinout"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "native_sim: Build"
     }
   ]
 }

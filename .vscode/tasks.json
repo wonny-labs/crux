@@ -2,34 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build firmware",
-      "type": "process",
-      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
-      "args": [
-        "mimxrt1060_evk@B//qspi"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      }
-    },
-    {
-      "label": "Build firmware (choose sample)",
+      "label": "Board: Build",
       "type": "process",
       "command": "${workspaceFolder}/scripts/build-debug-target.sh",
       "args": [
         "mimxrt1060_evk@B//qspi",
         "--app",
-        "${input:debugApp}"
+        "${input:sample}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "group": "build",
       "problemMatcher": "$gcc",
       "presentation": {
         "reveal": "always",
@@ -38,124 +22,16 @@
       }
     },
     {
-      "label": "Build firmware (application, -Og)",
-      "type": "process",
-      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
-      "args": [
-        "mimxrt1060_evk@B//qspi",
-        "--app",
-        "${input:cruxApplication}",
-        "--debug-optimizations"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      }
-    },
-    {
-      "label": "Clean firmware",
-      "type": "process",
-      "command": "bash",
-      "args": [
-        "-c",
-        "rm -f \"$1/provenance.json\" && cmake --build \"$1\" --target clean",
-        "_",
-        "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "group": {
-        "kind": "clean",
-        "isDefault": true
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      }
-    },
-    {
-      "label": "Host: run_hello_crux",
-      "type": "process",
-      "command": "bash",
-      "args": [
-        "-c",
-        "set -e; cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR=\"$PWD\"; cmake --build build/samples/hello_crux_host --target run_hello_crux"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": true,
-        "clear": true
-      }
-    },
-    {
-      "label": "Host: run_time_shell",
-      "type": "process",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "--preset",
-        "host-debug",
-        "--target",
-        "run_time_shell"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": true,
-        "clear": true
-      }
-    },
-    {
-      "label": "Host: run_echo_client",
-      "type": "process",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "--preset",
-        "host-debug",
-        "--target",
-        "run_echo_client"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "focus": true,
-        "clear": true
-      }
-    },
-    {
-      "label": "Board: Build and flash (west flash)",
+      "label": "Board: Flash",
       "type": "process",
       "command": "west",
       "args": [
         "flash",
         "-d",
-        "build/zephyr/mimxrt1060_evk_B_qspi",
+        "build/zephyr/mimxrt1060_evk_B_qspi--current",
         "-r",
         "jlink"
       ],
-      "dependsOn": "Build firmware",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -167,18 +43,79 @@
       }
     },
     {
-      "label": "Board: Build and flash a sample (west flash)",
+      "label": "Board: Clean",
       "type": "process",
       "command": "bash",
       "args": [
         "-c",
-        "set -e; app=$1; build=build/$(basename \"$app\")_evkb; west build -p always -b 'mimxrt1060_evk@B//qspi' -d \"$build\" \"$app\"; west flash -d \"$build\" -r jlink",
-        "_",
-        "${input:boardSample}"
+        "rm -rf -- build/zephyr/mimxrt1060_evk_B_qspi build/zephyr/mimxrt1060_evk_B_qspi--*"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "group": "clean",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Build",
+      "type": "process",
+      "command": "west",
+      "args": [
+        "build",
+        "-p",
+        "auto",
+        "-b",
+        "native_sim/native/64",
+        "-d",
+        "build/native_sim",
+        "${input:sample}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Run",
+      "type": "process",
+      "command": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
+      "args": [
+        "-uart_stdinout"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Clean",
+      "type": "process",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "--",
+        "build/native_sim"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "clean",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -189,26 +126,10 @@
   ],
   "inputs": [
     {
-      "id": "boardSample",
-      "type": "pickString",
-      "description": "Sample to build for the MIMXRT1060-EVKB and flash with the J-Link runner",
-      "options": [
-        "samples/hello_crux",
-        "samples/time/shell"
-      ],
-      "default": "samples/hello_crux"
-    },
-    {
-      "id": "debugApp",
+      "id": "sample",
       "type": "promptString",
-      "description": "Sample directory to debug",
+      "description": "Sample directory, relative to the repository",
       "default": "samples/hello_crux"
-    },
-    {
-      "id": "cruxApplication",
-      "type": "promptString",
-      "description": "Application directory, relative to the repository",
-      "default": "samples/time/shell"
     }
   ]
 }

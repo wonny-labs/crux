@@ -102,20 +102,16 @@ class ProvenanceTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 37, result.stderr)
                 self.assertFalse(manifest.exists())
 
-    def test_failed_clean_invalidates_old_manifest(self):
-        output = self.root / "build"
-        output.mkdir()
+    def test_board_clean_removes_the_manifest_with_the_build(self):
+        output = self.root / "build/zephyr/mimxrt1060_evk_B_qspi"
+        output.mkdir(parents=True)
         manifest = output / "provenance.json"
         manifest.write_text('{"stale": true}\n')
-        cmake = self.root / "cmake"
-        cmake.write_text("#!/bin/sh\nexit 37\n")
-        cmake.chmod(0o755)
         task = next(task for task in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]
-                    if task["label"] == "Clean firmware")
-        arguments = [*task["args"][:-1], str(output)]
-        result = subprocess.run([task["command"], *arguments], capture_output=True,
-                                env=dict(os.environ, PATH=f"{self.root}:{os.environ['PATH']}"))
-        self.assertEqual(result.returncode, 37)
+                    if task["label"] == "Board: Clean")
+        arguments = [argument.replace("${workspaceFolder}", str(self.root)) for argument in task["args"]]
+        result = subprocess.run([task["command"], *arguments], cwd=self.root, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(manifest.exists())
 
 

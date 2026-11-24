@@ -8,7 +8,7 @@
   "configurePresets": [
     {
       "name": "host-debug",
-      "displayName": "Linux host debug (C17/C++17)",
+      "displayName": "Host Debug",
       "description": "Linux host build for the Dev Container and Linux CI.",
       "condition": {
         "type": "equals",
@@ -25,7 +25,7 @@
     },
     {
       "name": "host-sanitize",
-      "displayName": "Linux host debug with ASan/UBSan (C17/C++17)",
+      "displayName": "Host Debug (ASan, UBSan)",
       "description": "Linux host build with address and undefined-behaviour sanitizers.",
       "inherits": "host-debug",
       "binaryDir": "${sourceDir}/build/linux/sanitize",
