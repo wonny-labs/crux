@@ -127,13 +127,13 @@ VS Code in the Dev Container is the supported editor. clangd is the language ser
 | **Board: Flash** | `west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink`: flashes the build behind the current build link. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
 | **Board: Clean** | Deletes `build/zephyr/mimxrt1060_evk_B_qspi` and `build/zephyr/mimxrt1060_evk_B_qspi--*`, the current build link included |
 | **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample>`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
-| **native_sim: Run** | `build/native_sim/zephyr/zephyr.exe -uart_stdinout`: the program's UART is on the task terminal, so its shell takes input there |
+| **native_sim: Run** | `build/native_sim/zephyr/zephyr.exe -uart_stdinout`: the program's UART is on the task terminal, which takes its input |
 | **native_sim: Clean** | Deletes `build/native_sim` |
 
 | Profile | What it does |
 | --- | --- |
 | **Board: Debug**, **Board: Attach**, **Board: Attach (external)** | Cortex-Debug with a J-Link ([VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles)) |
-| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe -uart_stdinout` under gdb with the C/C++ extension. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), where its shell takes input |
+| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe -uart_stdinout` under gdb with the C/C++ extension. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
 
 ## RT1060-EVKB debugging
 

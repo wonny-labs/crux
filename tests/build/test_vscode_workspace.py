@@ -174,7 +174,8 @@ class DocsTest(unittest.TestCase):
 
     def test_no_current_page_names_a_deleted_task(self):
         pages = [p for p in REPO.rglob("*.md")
-                 if not any(part in {"build", ".git", "node_modules"} for part in p.relative_to(REPO).parts)
+                 if p.relative_to(REPO).parts[0] not in {"build", ".git"}
+                 and "node_modules" not in p.relative_to(REPO).parts
                  and not p.relative_to(REPO).as_posix().startswith(DATED)]
         self.assertTrue(pages)
         for page in pages:

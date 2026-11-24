@@ -89,7 +89,7 @@ See the [debug build script](../../scripts/build-debug-target.sh) and [physical 
 | **Board: Attach** | Connects through the J-Link GDB Server in the container to the image already running, without build, reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target |
 | **Board: Attach (external)** | Like **Board: Attach**, through a J-Link GDB Server that runs on the host on port 2331 (see [Known limits](#known-limits)) |
 
-The two attach profiles do not build: the image on the board must be the one behind the link. The task **Board: Flash** flashes that image, and **Board: Clean** deletes these builds and the link ([VS Code tasks](../build.md#vs-code)). VS Code does not remember the last directory typed into the prompt; it offers `samples/hello_crux` each time. The settings the J-Link profiles share are listed in the [J-Link board route](../board-jlink-usbipd.md#the-dev-container-and-the-board).
+The two attach profiles do not build: the image on the board must be the one behind the link. The task **Board: Flash** flashes that image, and **Board: Clean** deletes `build/zephyr/mimxrt1060_evk_B_qspi`, the debug builds beside it and the link ([VS Code tasks](../build.md#vs-code)). VS Code does not remember the last directory typed into the prompt; it offers `samples/hello_crux` each time. The settings the J-Link profiles share are listed in the [J-Link board route](../board-jlink-usbipd.md#the-dev-container-and-the-board).
 
 ### Debug builds of other applications
 

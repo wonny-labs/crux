@@ -226,6 +226,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
         prompt = inputs["sample"]
         self.assertEqual(prompt["type"], "promptString")
+        self.assertEqual(prompt["description"], "Sample directory, relative to the repository")
         self.assertEqual(prompt["default"], "samples/hello_crux")
         self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
 
