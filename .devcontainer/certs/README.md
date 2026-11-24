@@ -6,7 +6,7 @@ This folder is for networks where a proxy inspects TLS and re-signs every HTTPS 
 curl: (60) SSL certificate problem: unable to get local issuer certificate
 ~~~
 
-The image build then installs no J-Link software, and the downloads of `scripts/bootstrap.sh` (pip, `west update`, `west sdk install`) fail the same way.
+Downloads in the image build or the container fail with a certificate error, for example this one, or the same from pip, Git or west (including the downloads of `scripts/bootstrap.sh`: pip, `west update`, `west sdk install`).
 
 ## Add the CA
 
