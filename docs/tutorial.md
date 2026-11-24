@@ -7,7 +7,7 @@ A and B need no board. Each step gives the command and what you should see; the
 
 ## Prerequisites and the Dev Container
 
-Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code and choose **Dev Containers: Reopen in Container**.
+Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code. If your network's proxy re-signs TLS, add your organisation's root CA first ([network and proxy prerequisites](getting-started.md#4-network-and-proxy-prerequisites)); without it the image still builds, but the J-Link tools are skipped and downloads fail. Then choose **Dev Containers: Reopen in Container**.
 
 All commands in this tutorial run from `/workspace/crux-pilot`, where the VS Code terminal opens.
 
