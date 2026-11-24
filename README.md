@@ -20,7 +20,7 @@ You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 Gi
 
 1. Create a parent folder and clone the repository into it ([folder layout](docs/getting-started.md#2-folder-layout)).
 2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**. The one Dev Container serves work with and without a board.
-3. Wait for the automatic set-up to finish; you do not run it. It builds and tests the Linux Host preset and installs the Zephyr workspace and SDK; the terminal prints `bootstrap: <step> ok` for each step, or the command that reruns a failed one ([details](docs/getting-started.md#6-the-dev-container-sets-itself-up)).
+3. Wait for the automatic set-up to finish; you do not run it. It builds and tests the Linux Host preset and installs the Zephyr workspace and SDK; the terminal prints `bootstrap: <step> ok` (`already done` on a rerun) for each step, or `FAILED` and the command that reruns it ([details](docs/getting-started.md#6-the-dev-container-sets-itself-up)).
 
 Next: the [Tutorial](docs/tutorial.md).
 
