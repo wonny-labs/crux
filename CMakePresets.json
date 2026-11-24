@@ -39,6 +39,7 @@
   "buildPresets": [
     {
       "name": "host-debug",
+      "displayName": "Host Debug",
       "configurePreset": "host-debug",
       "condition": {
         "type": "equals",
@@ -48,6 +49,7 @@
     },
     {
       "name": "host-sanitize",
+      "displayName": "Host Debug (ASan, UBSan)",
       "configurePreset": "host-sanitize",
       "condition": {
         "type": "equals",
@@ -59,6 +61,7 @@
   "testPresets": [
     {
       "name": "host-debug",
+      "displayName": "Host Debug",
       "configurePreset": "host-debug",
       "condition": {
         "type": "equals",
@@ -69,6 +72,7 @@
     },
     {
       "name": "host-sanitize",
+      "displayName": "Host Debug (ASan, UBSan)",
       "configurePreset": "host-sanitize",
       "condition": {
         "type": "equals",
