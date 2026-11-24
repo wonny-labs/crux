@@ -7,7 +7,7 @@ A and B need no board. Each step gives the command and what you should see; the
 
 ## Prerequisites and the Dev Container
 
-Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code. If your network's proxy re-signs TLS, put your organisation's root CA as a PEM `.crt` file in `.devcontainer/certs/` (inside that folder) before you continue; [network and proxy prerequisites](getting-started.md#4-network-and-proxy-prerequisites) and the [folder README](../.devcontainer/certs/README.md) explain how to find and export it. Then choose **Dev Containers: Reopen in Container**.
+Complete the prerequisites and the clone in [Getting started](getting-started.md), then open the repository folder in VS Code. If your network's proxy re-signs TLS, put your organisation's root CA as a PEM `.crt` file in `.devcontainer/certs/` (in the repository folder you opened) before you continue; [network and proxy prerequisites](getting-started.md#4-network-and-proxy-prerequisites) and the [folder README](../.devcontainer/certs/README.md) explain how to find and export it. Then choose **Dev Containers: Reopen in Container**.
 
 All commands in this tutorial run from `/workspace/crux-pilot`, where the VS Code terminal opens.
 
