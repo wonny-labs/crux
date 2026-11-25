@@ -45,8 +45,7 @@ about another level, and nothing here qualifies a physical board.
 
 ## Test doubles
 
-- **Crux ships no mock per API and no public fake.** [The messaging contract](messaging-contract.md)
-  keeps private fakes out of the public API, and `CONTRIBUTING.md` keeps test controls out of
+- **Crux ships no mock per API and no public fake.** `CONTRIBUTING.md` keeps test controls out of
   public headers. This proposal does not change either.
 - **An application writes doubles at its own port boundary**, around what it needs, not around
   Crux's surface. The PoC's scripted clock is about a dozen lines and its unit test links no Crux target.

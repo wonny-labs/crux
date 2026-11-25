@@ -33,6 +33,21 @@ RUN apt-get update \
     && install -d -o vscode -g vscode /opt/crux-cache \
     && install -d -o vscode -g vscode /home/vscode/.vscode-server /home/vscode/.vscode-server/extensions
 
+# clangd user config: Zephyr headers sit outside the repository, where .clangd does not apply.
+# It removes the GCC options that Zephyr adds to native_sim builds; keep the list equal to the
+# unconditional fragment of .clangd (tests/build/test_vscode_workspace.py checks it).
+RUN install -d /home/vscode/.config/clangd \
+    && printf '%s\n' \
+        'CompileFlags:' \
+        '  Remove:' \
+        '    - -fno-reorder-functions' \
+        '    - -fno-defer-pop' \
+        '    - --param=min-pagesize=0' \
+        '    - -fno-freestanding' \
+        '    - -fno-printf-return-value' \
+        > /home/vscode/.config/clangd/config.yaml \
+    && chown -R vscode:vscode /home/vscode/.config
+
 # Your organisation's root CA, for networks where a proxy re-signs HTTPS. Every
 # certificate in a .crt, .pem or .cer file that a developer placed in
 # .devcontainer/certs/ is added to the system bundle before any download below; with

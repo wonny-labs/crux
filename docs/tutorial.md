@@ -29,13 +29,13 @@ It shows `host    ok`. Otherwise run the command it prints, `scripts/bootstrap.s
 project:
 
 ```sh
-cmake -S samples/hello_crux/host -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
+cmake -S samples/hello_crux/linux -B build/samples/hello_crux_host -G Ninja -DCRUX_SOURCE_DIR="$PWD"
 cmake --build build/samples/hello_crux_host --target run_hello_crux
 ```
 
 The `run_hello_crux` target builds the program and runs it in your terminal.
 
-It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
+It prints `Hello from Crux 0.1.0-dev on host` (the version of your checkout) and `CRUX_HELLO_READY composition=host`. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
 
 ### 3. Run the networking sample on the Host
 
@@ -82,14 +82,13 @@ The Dev Container also creates the west workspace and installs the Zephyr SDK wh
 This is the Zephyr form of step 2:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux -t run
+west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux/zephyr -t run
 ```
 
 You should see, after the boot banner:
 
 ```text
-Hello from Crux on zephyr
-Crux Time: unset
+Hello from Crux 0.1.0-dev on zephyr
 CRUX_HELLO_READY composition=zephyr
 ```
 
@@ -100,7 +99,7 @@ Stop it with Ctrl+C. The sample's [README](../samples/hello_crux/README.md) expl
 The Time sample is a Zephyr shell with Crux Time commands:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time samples/time/shell -t run
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr` and then waits. Its shell is on a pseudo-terminal, as the first output
@@ -120,7 +119,7 @@ know where the file lives: the Kconfig fragment and the devicetree overlay of th
 default build uses LittleFS on the flash simulator:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/basic samples/file/basic -t run
+west build -p always -b native_sim/native/64 -d build/basic samples/file/basic/zephyr -t run
 ```
 
 It ends with `CRUX_FILE_WRITE_READ_OK provider=simulator`. The same source, built with another fragment and overlay,
@@ -128,7 +127,7 @@ uses FatFs on a RAM disk:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/basic_fatfs \
-    samples/file/basic -t run -- \
+    samples/file/basic/zephyr -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
@@ -158,14 +157,14 @@ Kconfig options (`CONFIG_...`) select features and values. A build merges them f
 | Source | Where | Use it for |
 | --- | --- | --- |
 | `prj.conf` | The application folder | The application's own settings |
-| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/shell/boards/native_sim.conf` | Settings for one board |
+| Board file | `boards/<board>.conf` in the application folder, for example `samples/time/shell/zephyr/boards/native_sim.conf` | Settings for one board |
 | Extra files | `-DEXTRA_CONF_FILE=<file>[;<file>...]` | A variant without editing the application, for example a debug profile |
 | One option | `-DCONFIG_<NAME>=<value>` | A quick experiment |
 
 For example, turn off Zephyr's boot banner for one build:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time samples/time/shell -- -DCONFIG_BOOT_BANNER=n
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr -- -DCONFIG_BOOT_BANNER=n
 grep CONFIG_BOOT_BANNER build/time/zephyr/.config
 build/time/zephyr/zephyr.exe -uart_stdinout
 ```
@@ -175,7 +174,7 @@ line. The same setting in a file has the same effect:
 
 ```sh
 printf 'CONFIG_BOOT_BANNER=n\n' > build/no-banner.conf
-west build -p always -b native_sim/native/64 -d build/time samples/time/shell -- -DEXTRA_CONF_FILE=$PWD/build/no-banner.conf
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr -- -DEXTRA_CONF_FILE=$PWD/build/no-banner.conf
 ```
 
 `build/<dir>/zephyr/.config` is the final, merged result: check it whenever an option seems to have no effect,
@@ -191,7 +190,7 @@ Zephyr picks up `app.overlay` or `boards/<board>.overlay` from the application f
 disabled:
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time samples/time/shell \
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr \
   -- -DEXTRA_DTC_OVERLAY_FILE=$PWD/tests/time/zephyr/boards/native_sim_no_rtc.overlay
 grep -A3 'rtc: rtc' build/time/zephyr/zephyr.dts
 ```
@@ -239,7 +238,7 @@ The first Crux image on the board is the one from step 7. Zephyr's own `west bui
 it:
 
 ```sh
-west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux
+west build -p always -b 'mimxrt1060_evk@B//qspi' -d build/hello_crux_evkb samples/hello_crux/zephyr
 west flash -d build/hello_crux_evkb -r jlink
 ```
 
@@ -249,13 +248,13 @@ failures.
 
 ### 15. See the console line
 
-Once the image is running, the console of step 13 shows the Zephyr boot banner and then the three lines of step 7,
+Once the image is running, the console of step 13 shows the Zephyr boot banner and then the two lines of step 7,
 ending with `CRUX_HELLO_READY composition=zephyr`. If the board does nothing, [Troubleshooting](#troubleshooting)
 checks board and probe with Zephyr's `blinky`.
 
 ### 16. Debug on the board
 
-In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Debug**. VS Code asks for the sample directory to debug: press Enter to accept `samples/hello_crux`, or type another sample directory, such as `samples/time/shell`. The profile builds that sample with `scripts/build-debug-target.sh`, flashes it to the board in place of the image of step 14, and stops at `main`. [VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) describes the profiles and the build they debug.
+In VS Code, press F5 (**Run and Debug**) and pick the profile **Board: Debug**. VS Code asks for the sample directory to debug: press Enter to accept `samples/hello_crux/zephyr`, or type another sample directory, such as `samples/time/shell/zephyr`. The profile builds that sample with `scripts/build-debug-target.sh`, flashes it to the board in place of the image of step 14, and stops at `main`. [VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) describes the profiles and the build they debug.
 
 ## Troubleshooting
 

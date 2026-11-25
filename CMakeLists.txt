@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(crux LANGUAGES C)
+# <crux/version.h> is the one place the release version is kept (ADR-0008). CMake versions have
+# no pre-release part, so on main PROJECT_VERSION names the next release without "-dev".
+foreach(_crux_version_part IN ITEMS MAJOR MINOR PATCH)
+    file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/components/base/include/crux/version.h" _crux_version_line
+        REGEX "^#define CRUX_VERSION_${_crux_version_part} [0-9]+$")
+    if(NOT _crux_version_line MATCHES " ([0-9]+)$")
+        message(FATAL_ERROR "components/base/include/crux/version.h defines no CRUX_VERSION_${_crux_version_part}")
+    endif()
+    set(_crux_version_${_crux_version_part} "${CMAKE_MATCH_1}")
+endforeach()
+
+project(crux VERSION ${_crux_version_MAJOR}.${_crux_version_MINOR}.${_crux_version_PATCH} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -159,9 +170,9 @@ if((CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TIME_PERIODIC_SCENARIO) AND
 endif()
 
 if(CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TESTS)
-    add_library(crux_time_commands STATIC samples/time/shell/src/time_command.c)
+    add_library(crux_time_commands STATIC samples/time/shell/common/time_command.c)
     target_include_directories(crux_time_commands
-        PUBLIC samples/time/shell/include
+        PUBLIC samples/time/shell/common
         PRIVATE components/time/include
     )
     target_link_libraries(crux_time_commands PUBLIC crux::base)
@@ -169,8 +180,8 @@ if(CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TESTS)
 endif()
 
 if(CRUX_BUILD_HOST_SAMPLE)
-    add_subdirectory(samples/time/shell/host)
-    add_subdirectory(samples/networking/echo_client/host)
+    add_subdirectory(samples/time/shell/linux)
+    add_subdirectory(samples/networking/echo_client/linux)
 endif()
 
 if(CRUX_BUILD_TIME_PERIODIC_SCENARIO OR CRUX_BUILD_TESTS)

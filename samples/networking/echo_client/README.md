@@ -9,8 +9,8 @@ UDP echo (port 42421) with a peer, and exits with status 0 only when both succee
 
 | Part | Folder | Runs on |
 | --- | --- | --- |
-| Zephyr application | this folder (`CMakeLists.txt`, `prj.conf`, `src/`, `sample.yaml`) | `mimxrt1060_evk@B//qspi` only, on an isolated network with a peer at `192.168.77.1`; the board takes `192.168.77.2/24` |
-| Linux Host program | [`host/`](host/main.c), built by the repository's root `CMakeLists.txt` | The Linux Host build; peer `127.0.0.1` by default, or a numeric IPv4 address as its argument |
+| Zephyr application | [`zephyr/`](zephyr/CMakeLists.txt) | `mimxrt1060_evk@B//qspi` only, on an isolated network with a peer at `192.168.77.1`; the board takes `192.168.77.2/24` |
+| Linux Host program | [`linux/`](linux/main.c), built by the repository's root `CMakeLists.txt` | The Linux Host build; peer `127.0.0.1` by default, or a numeric IPv4 address as its argument |
 | Echo client | [`common/`](common/client.h) | Compiled by both parts and by the tests `tests/networking` and `tests/networking_zephyr` |
 
 ## Requirements
@@ -25,7 +25,7 @@ UDP echo (port 42421) with a peer, and exits with status 0 only when both succee
 Linux Host, with an echo peer listening on ports 42420 and 42421:
 
 ```sh
-build/linux/debug/samples/networking/echo_client/host/crux-networking-host [numeric-ipv4]
+build/linux/debug/samples/networking/echo_client/linux/crux-networking-host [numeric-ipv4]
 ```
 
 CTest `Sample.EchoClientHost` (`ctest --preset host-debug -L sample`) starts a local echo peer on `127.0.0.1` through
@@ -34,13 +34,13 @@ CTest `Sample.EchoClientHost` (`ctest --preset host-debug -L sample`) starts a l
 Zephyr, cross-build only, as `scripts/test-networking.sh` does it (build directory `build/zephyr/networking-evkb`):
 
 ```sh
-west build -b 'mimxrt1060_evk@B//qspi' -d build/zephyr/networking-evkb samples/networking/echo_client -- \
+west build -b 'mimxrt1060_evk@B//qspi' -d build/zephyr/networking-evkb samples/networking/echo_client/zephyr -- \
     -DDTC_OVERLAY_FILE=$PWD/samples/boards/nxp/mimxrt1060_evk/common/network.overlay
 ```
 
 On the EVKB, `CMakeLists.txt` also applies the ENET MDIO completion correction from
 `tests/board_images/integration_probe/mdio_completion.cmake` without changing the Zephyr checkout. Twister id
-`crux.sample.networking.echo_client` in [`sample.yaml`](sample.yaml) runs the image only when the
+`crux.sample.networking.echo_client` in [`zephyr/sample.yaml`](zephyr/sample.yaml) runs the image only when the
 `crux_echo_peer` fixture is supplied; otherwise Twister only builds it.
 
 ## Sample output

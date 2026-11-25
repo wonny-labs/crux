@@ -167,82 +167,11 @@ Tests remain under top-level `tests/`, grouped by capability or validation purpo
 | `.devcontainer/` | Development environment |
 | `docs/` | Guides, contracts and decision records |
 
-### Layout and naming of samples (proposal, not adopted)
+### Layout of samples
 
-For the folders under `samples/` today, read [Samples](../samples/README.md). The tables in this section name the folders as they were when the proposal was written.
+[Samples](../samples/README.md#files-inside-a-sample) holds the rule for the files inside a sample and the classification of each sample folder.
 
-**Status: proposal, not adopted, for the owner's decision**, except for the folder and the first two names of the [applications](#applications-proposal-not-adopted), which the owner decided on 9 November 2026. It is a structure decision, so no rule here is adopted yet, and no existing sample was moved
-for it. It is the third step of the owner's review of 8 November 2026 (Refs #243). Once adopted, new samples follow it, and the
-samples that do not are listed below for the owner to move, or to leave, one by one.
-
-A sample is a small composition that shows one capability, one framework or one scenario through Crux's public contracts. It is
-not part of the platform API, and Crux does not maintain it as a product template. The product template, formerly `product_template`, is `templates/product`, outside `samples/` since 9 November 2026, and the rows below that name `product_template` describe the state before the move. A maintained integrated image is not a sample but an [application](#applications-proposal-not-adopted).
-
-| # | Rule | Why |
-| --- | --- | --- |
-| 1 | A sample is one folder, `samples/<name>`. When a family has two or more samples, they sit under one folder for the family, `samples/<family>/<name>`. | One place to find a sample, and the web samples already do it |
-| 2 | `<name>` is lowercase `snake_case` and says what the sample is about: a capability (`networking`), a framework (`preact`, `angular`) or a purpose (`product_template`). It never carries `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. | A word about how finished or how big a sample is goes stale and forces a rename. It belongs in the README, which changes without one. |
-| 3 | Each sample has a `README.md` that says what it shows, how to build and run it, and which evidence it has: Host, `native_sim` and physical results, each on its own, and what it does not show. | A reader cannot tell a sample's limits from its sources |
-| 4 | The compositions sit in folders of their own: `host/` for the Linux development composition, and `zephyr/` for a Zephyr application with its `CMakeLists.txt`, `prj.conf`, `Kconfig`, `boards/` and overlays. The sample's root holds neither composition's build files. | A Host change cannot reach a Zephyr build, and a board choice stays in one folder |
-| 5 | Scenario code that both compositions share sits in `core/` and includes only public Crux headers, the C standard library and a standard-API profile that this document qualifies, such as the sockets profile. A Zephyr, board or vendor header appears only under `zephyr/`. A sample may keep other folders that tests or scripts build or check, such as `include/`, and the rules govern its compositions. | The portable part stays portable, as the engineering approach requires, and the documented POSIX subset is allowed there |
-| 6 | Tests stay under `tests/`. A Twister `testcase.yaml` is the one test file beside a Zephyr application, because Twister looks for it there. | One place for tests, as the layout above already says |
-| 7 | A framework sample of the web is one folder per framework under `samples/web/`, built by that framework's own tools or by the shared `web/tools/build.ts`. What the web samples share, the specification, the client, the mock server and the browser tests, stays in `web/`. A sample with C sources that a C build names stays outside `samples/web/`. | No C build may name `samples/web` or the web tools. `web/tools/c-boundary.ts` counts that as a use of Node.js, and only the specification file `web/api/openapi.yaml` is allowed. |
-| 8 | A sample's helper is not Crux public API | Already the rule above |
-
-```mermaid
-flowchart TB
-    root["samples/&lt;name&gt;/"]
-    readme["README.md<br/>what it shows, how to run it, which evidence"]
-    core["core/<br/>shared scenario code, public headers only"]
-    host["host/<br/>Linux development composition<br/>CMakeLists.txt, main"]
-    zephyr["zephyr/<br/>Zephyr application<br/>CMakeLists.txt, prj.conf, Kconfig, boards/, testcase.yaml"]
-    tests["tests/&lt;capability or purpose&gt;/<br/>tests, outside the sample"]
-    root --> readme
-    root --> core
-    root --> host
-    root --> zephyr
-    host --> core
-    zephyr --> core
-    tests -. exercise .-> root
-```
-
-How a name is chosen:
-
-| The sample is about | The name is | Example |
-| --- | --- | --- |
-| A framework | The framework, in a family folder when it is one of several of a kind | `samples/web/preact`, `samples/web/angular` |
-| A capability | The capability, and a variant joins a family folder | `samples/networking`, `samples/storage/sd`, `samples/storage/emmc` |
-| A purpose that is neither | A short noun for the purpose | none now: the product template moved to `templates/product` |
-
-#### Existing samples that do not follow it
-
-Nothing is moved by this proposal. A rule number refers to the table above.
-
-| Sample | What differs | Rule |
-| --- | --- | --- |
-| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/`. It is the application `io_controller` that the owner decided on 9 November 2026 (see [Applications](#applications-proposal-not-adopted)), and it stays here until a move that is not scheduled. | |
-| `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
-| `web/preact` | Follows it: a README, named by its framework | |
-| `networking` | No README. `host/` and `zephyr/` are separate, but both build `client.c` from the sample's root, outside `core/`, and it includes the sockets headers of the qualified profile. | 3, 5 |
-| `time` | Has a README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`, the shared `src/time_command.c` and `include/` are outside `core/`, and `src/time_shell.c` includes a Zephyr header outside `zephyr/`. | 3, 4, 5 |
-| `logging`, `serial` | No README, and no composition folder: `controller.c` and `controller.h` are scenario sources that `tests/logging_consumer` and `tests/serial_consumer` build | 3, 4 |
-| `messaging` | Has a README with no Host, `native_sim` or physical evidence, and the same shape as the two above: `controller.c` is built by `tests/messaging_consumer`. The name is historical: the scenario uses Time and Thread, and Crux Queue was removed | 3, 4 |
-| `storage_emmc`, `storage_sd`, `storage_sd_probe` | No README. A Zephyr application sits in the root with no `zephyr/` folder, so its Zephyr headers are outside `zephyr/`. The names belong to one storage family but are not grouped. | 1, 3, 4, 5 |
-| `storage_sd_interrupt`, `storage_sd_replace` | The same, and `host/` holds a Python capture helper and its test, not a Host composition | 1, 3, 4, 5, 6 |
-| `flash_safety_poc` | `poc` in the name, no README (`docs/flash-safety-poc.md` describes it), and the Zephyr application in the root | 2, 3, 4, 5 |
-| `product_template` | Has a README of 32 lines that says how to start a product and has no evidence section. Its Zephyr application is in `app/`, beside a west manifest, because it is a repository skeleton that a product copies. It is better treated as outside rules 3 and 4 than renamed. | 3, 4 |
-| `web_project` | Has a README. It is a page and a route with C sources, named for the web. The owner kept it in place on 8 November 2026, and it cannot move under `samples/web/`, because the Host test `tests/web/project_sample` names it in a C build and the boundary check counts any `samples/web` path there as a use of Node.js. It holds sources and a reviewed route list, with no composition of its own. No image packages it, and its README says so. | 4 |
-
-Choices for the owner:
-
-| # | Question | Recommendation |
-| --- | --- | --- |
-| 1 | Adopt the rules for new samples, as written? | Yes, after the owner reads rules 2 and 4: they are the ones that existing samples break most |
-| 2 | Move or rename any existing sample? | No move now. Each move touches scripts, tests and documents that name its path, so take them one at a time, when a sample is next changed. |
-| 3 | Treat `product_template` as a separate kind of folder, outside rules 3 and 4? | Yes, since a product copies it as it is |
-| 4 | Group the storage samples under `samples/storage/`? | Only with a move of its own, because four scripts, ten documents and eighteen files under `tests/` name a storage sample folder |
-
-#### Applications (proposal, not adopted)
+### Applications (proposal, not adopted)
 
 **Status.** The owner decided the folder `applications/` and the names `io_controller` and `managed_controller` on 9 November 2026. The definition, the admission conditions and the limit below are proposed text, and like the rest of this section they bind only once adopted. The folder does not exist yet. **The move of the earlier `samples/controller` into `applications/io_controller` is not scheduled** (its code is now under `tests/`), for the reasons in [the status of the move](#status-of-the-move).
 
@@ -251,7 +180,7 @@ An application is a maintained, integrated image of Crux. A sample shows one cap
 | Kind | Where | What it is | What is promised |
 | --- | --- | --- | --- |
 | Application | `applications/<name>` | An integrated image that composes several capabilities into one working whole | Built in CI on every code change. A `README.md` that states its supported configurations, its evidence for Host, `native_sim` and physical results, each on its own, and what it does not show. A named maintenance responsibility |
-| Sample | `samples/<name>` | One capability, framework or scenario through the public contracts | None of these. The rules above apply |
+| Sample | `samples/<name>` | One capability, framework or scenario through the public contracts | None of these. The [sample layout](../samples/README.md#files-inside-a-sample) applies |
 | Test | `tests/` | A check of a claim | An application's or a sample's run does not replace tests. Tests stay under `tests/` |
 | Project template | `templates/product/` | A repository skeleton that a product copies | Not part of this proposal; it moved there from `samples/product_template` on 9 November 2026 |
 | Out-of-tree reference | The separate `crux-controller` repository | A product-shaped repository that consumes Crux as a west project | It is not an application of this repository and stays outside it |
@@ -271,7 +200,7 @@ The two applications decided so far:
 | `io_controller` | The basic integrated application: periodic work, I/O, networking, diagnostics and health supervision | the former `samples/controller` (now `tests/time_periodic` and `tests/board_images/integration_probe`) |
 | `managed_controller` | The same, plus secure remote management over HTTPS, SSH and SFTP | Not started as an application: it is the work of milestones M10 to M12. Its parts are the management components in the [capability inventory](#current-capability-integration), and the [integrated image](ssh-integrated-image.md) is a `native_sim` image built from `tests/native/management_ssh`, not this application |
 
-**Names.** A name says what the application is for. It follows the rule for samples (rule 2): lowercase `snake_case`, and never `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. Its internal layout is not decided here: the earlier `samples/controller` had `core/`, `host/` and `zephyr/`, and this proposal does not change that.
+**Names.** A name says what the application is for. It is lowercase `snake_case`, and never `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. Its internal layout is not decided here: the earlier `samples/controller` had `core/`, `host/` and `zephyr/`, and this proposal does not change that.
 
 **Boot and update are configurations.** Boot (milestone M8, "Boot platform foundation and verified boot") and update (milestone M9, "Secure firmware update and recovery") are configurations of these two applications, selected as the probe configurations of `tests/board_images/integration_probe` are today. They are not applications of their own, so they do not use up the limit.
 
@@ -321,7 +250,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
-| Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
+| Base | Common status declarations and the Crux release version | Header-only usage in Host and Zephyr; no OS provider | Public headers [status](../components/base/include/crux/status.h) and [version](../components/base/include/crux/version.h) |
 | Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional RTC storage; no implicit fallback | [Contract](time-contract.md) |
 | Thread | Bounded joinable workers (frozen for new product code) | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores (frozen for new product code) | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |

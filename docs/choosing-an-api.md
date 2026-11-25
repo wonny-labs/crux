@@ -23,7 +23,7 @@ Product code meant to run on both Zephyr and Linux may use a POSIX subset; that 
 
 ## Frozen for new product code: Thread, Sync and Serial
 
-Do not use `<crux/thread.h>`, `<crux/sync.h>` or `<crux/serial.h>` in new product code. Crux Queue (`<crux/queue.h>`) was frozen too and was removed on 20 November 2026; use Zephyr `k_msgq` ([migration note](messaging-contract.md)). Question 1 covers what they offered: use Zephyr threads, locks, message queues and UART drivers in the product's Zephyr code.
+Do not use `<crux/thread.h>`, `<crux/sync.h>` or `<crux/serial.h>` in new product code. Crux has no queue API: use Zephyr `k_msgq` ([messaging contract](messaging-contract.md)). Question 1 covers what they offered: use Zephyr threads, locks, message queues and UART drivers in the product's Zephyr code.
 
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
@@ -71,6 +71,6 @@ The product template shows the pattern in `templates/product/app/src/main.c`: on
 - [Architecture overview](architecture.md), with the three layers and the capability inventory
 - [Native-free consumer policy](native-interface-policy.md)
 - [Component readiness](component-readiness.md)
-- [Thread and Sync contract](thread-sync.md), [serial contract](serial-contract.md) (frozen for new product code), and the [messaging contract](messaging-contract.md) (Queue removed)
+- [Thread and Sync contract](thread-sync.md), [serial contract](serial-contract.md) (frozen for new product code), and the [messaging contract](messaging-contract.md) (queues use Zephyr `k_msgq`)
 - [GPIO](gpio-contract.md), [I2C](i2c-contract.md) and [SPI](spi-contract.md) contracts (frozen, to be removed)
 - [Glossary](glossary.md), for decision codes such as P1, O4 and D10

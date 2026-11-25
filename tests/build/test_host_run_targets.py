@@ -14,10 +14,10 @@ REPO = Path(__file__).resolve().parents[2]
 
 # target name -> (CMake file, what the target runs)
 TARGETS = {
-    "run_time_shell": ("samples/time/shell/host/CMakeLists.txt", "crux-time-host"),
-    "run_echo_client": ("samples/networking/echo_client/host/CMakeLists.txt",
+    "run_time_shell": ("samples/time/shell/linux/CMakeLists.txt", "crux-time-host"),
+    "run_echo_client": ("samples/networking/echo_client/linux/CMakeLists.txt",
                         "$<TARGET_FILE:crux-networking-host> --echo-peer"),
-    "run_hello_crux": ("samples/hello_crux/host/CMakeLists.txt", "hello-crux-host"),
+    "run_hello_crux": ("samples/hello_crux/linux/CMakeLists.txt", "hello-crux-host"),
 }
 
 

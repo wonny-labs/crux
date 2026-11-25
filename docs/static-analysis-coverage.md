@@ -12,6 +12,8 @@ shape and required checks", "What is not covered", "What was not verified") is t
 2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. The building blocks that the samples layout
 change moved out of `samples/` are named at their new place. Refs #161.
 
+Crux Queue (`components/queue`, `tests/queue`) was removed on 20 November 2026. Its rows below are part of the 2026-11-09 and 2026-11-15 measurements and name no current source.
+
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
 full run would flag, and proposes a staged way to include every compiled source automatically. It does

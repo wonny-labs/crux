@@ -1,13 +1,13 @@
 sample:
   name: Hello Crux
   description: >-
-    The smallest Zephyr application that uses Crux. It links the Time target of the Crux
-    module, makes one public call and prints a ready line.
+    The smallest Zephyr application that uses Crux. It links the base target of the Crux
+    module, prints the Crux version from its public header and prints a ready line.
 # Twister adds list keys of a scenario to those of this section instead of replacing them,
 # so the platforms and tags are set per scenario.
 tests:
   crux.sample.hello_crux:
-    tags: [crux, sample, time]
+    tags: [crux, sample]
     platform_allow:
       - native_sim/native/64
     integration_platforms:
@@ -17,13 +17,12 @@ tests:
       type: multi_line
       ordered: true
       regex:
-        - "Hello from Crux on zephyr"
-        - "Crux Time: unset"
+        - "Hello from Crux \\S+ on zephyr"
         - "CRUX_HELLO_READY composition=zephyr"
   # Build only: the same application cross-built for the EVKB. No board result is recorded for it.
   # It has no `sample` tag, so `-t sample` keeps selecting only what runs on native_sim.
   crux.sample.hello_crux.evkb:
-    tags: [crux, time, link_only]
+    tags: [crux, link_only]
     build_only: true
     platform_allow:
       - mimxrt1060_evk@B/mimxrt1062/qspi

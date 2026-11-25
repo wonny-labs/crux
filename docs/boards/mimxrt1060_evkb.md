@@ -96,11 +96,11 @@ Other builds, such as the `west build` of [tutorial step 14](../tutorial.md#14-f
 
 | Profile | What it does |
 | --- | --- |
-| **Board: Debug** | Runs the task **Board: Build**, which asks for the sample directory to debug, relative to the repository. Press Enter to accept `samples/hello_crux`, or type another directory, such as `samples/time/shell`. The task builds that sample with `--app`; the profile then downloads the image through the J-Link GDB Server in the container, resets the board and stops at `main` |
+| **Board: Debug** | Runs the task **Board: Build**, which asks for the sample directory to debug, relative to the repository. Press Enter to accept `samples/hello_crux/zephyr`, or type another directory, such as `samples/time/shell/zephyr`. The task builds that sample with `--app`; the profile then downloads the image through the J-Link GDB Server in the container, resets the board and stops at `main` |
 | **Board: Attach** | Connects through the J-Link GDB Server in the container to the image already running, without build, reset or download. It cannot stop at `main`, which has already run. Connecting may still halt the target |
 | **Board: Attach (external)** | Like **Board: Attach**, through a J-Link GDB Server that runs on the host on port 2331 (see [Known limits](#known-limits)) |
 
-The two attach profiles do not build: the image on the board must be the one behind the link. The task **Board: Flash** flashes that image, and **Board: Clean** deletes `build/zephyr/mimxrt1060_evk_B_qspi`, the debug builds beside it and the link ([VS Code tasks](../build.md#vs-code)). VS Code does not remember the last directory typed into the prompt; it offers `samples/hello_crux` each time. The settings the J-Link profiles share are listed in the [J-Link board route](../board-jlink-usbipd.md#the-dev-container-and-the-board).
+The two attach profiles do not build: the image on the board must be the one behind the link. The task **Board: Flash** flashes that image, and **Board: Clean** deletes `build/zephyr/mimxrt1060_evk_B_qspi`, the debug builds beside it and the link ([VS Code tasks](../build.md#vs-code)). VS Code does not remember the last directory typed into the prompt; it offers `samples/hello_crux/zephyr` each time. The settings the J-Link profiles share are listed in the [J-Link board route](../board-jlink-usbipd.md#the-dev-container-and-the-board).
 
 ### Debug builds of other applications
 
@@ -111,7 +111,7 @@ scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/boards/nxp/
 ~~~
 
 Without either option the build directory is `build/zephyr/<board>`, here `build/zephyr/mimxrt1060_evk_B_qspi`.
-With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell`, and `--debug-optimizations` appends `--og`.
+With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time/shell/zephyr`, and `--debug-optimizations` appends `--og`.
 The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file--og`.
 A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in.
 The script prints the build directory before it builds, and the ELF path and the [current build link](#vs-code-debug-profiles) when it finishes.

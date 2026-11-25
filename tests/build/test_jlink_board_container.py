@@ -231,7 +231,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
         prompt = inputs["sample"]
         self.assertEqual(prompt["type"], "promptString")
         self.assertEqual(prompt["description"], "Sample directory, relative to the repository")
-        self.assertEqual(prompt["default"], "samples/hello_crux")
+        self.assertEqual(prompt["default"], "samples/hello_crux/zephyr")
         self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
 
     def test_every_pre_launch_task_exists(self):
@@ -243,7 +243,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_docs_name_the_debug_profile_and_the_current_link(self):
         tutorial = (REPO / "docs" / "tutorial.md").read_text()
         self.assertIn("Board: Debug", tutorial)
-        self.assertIn("samples/hello_crux", tutorial)
+        self.assertIn("samples/hello_crux/zephyr", tutorial)
         board = (REPO / "docs" / "boards" / "mimxrt1060_evkb.md").read_text()
         self.assertIn("build/zephyr/mimxrt1060_evk_B_qspi--current", board)
         for profile in self.launch:

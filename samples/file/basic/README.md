@@ -8,21 +8,21 @@ systems, and only the Kconfig fragment and the devicetree overlay differ.
 
 | Scenario | Selected by | File provider | Storage |
 | --- | --- | --- | --- |
-| `crux.sample.file.basic.simulator` (default) | [`prj.conf`](prj.conf), [`app.overlay`](app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
-| `crux.sample.file.basic.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
+| `crux.sample.file.basic.simulator` (default) | [`prj.conf`](zephyr/prj.conf), [`app.overlay`](zephyr/app.overlay) | `CONFIG_CRUX_FILE_SIMULATOR` | LittleFS on a partition of the `native_sim` flash simulator |
+| `crux.sample.file.basic.fatfs_ram_disk` | adds [`fatfs_ram_disk.conf`](zephyr/fatfs_ram_disk.conf), [`fatfs_ram_disk.overlay`](zephyr/fatfs_ram_disk.overlay) | `CONFIG_CRUX_FILE_FATFS_SIMULATOR` | FatFs on a 1 MiB RAM disk |
 
 Both providers are for software-only checks on `native_sim`. Neither is a product storage choice, and nothing here says anything about power loss or a real medium.
 
 The source is split the way a product splits it:
 
-- **Application**: [`src/basic.c`](src/basic.c) uses only `<crux/file.h>` and links only `crux::file`. It
-  does not know which provider or file system the build selected. [`CMakeLists.txt`](CMakeLists.txt) checks that boundary with `crux_assert_portable_consumer()` (see [`hello_crux`](../../hello_crux/README.md)).
-- **Platform composition**: [`src/storage_littlefs.c`](src/storage_littlefs.c) or
-  [`src/storage_fatfs_ram_disk.c`](src/storage_fatfs_ram_disk.c) mounts the file system with Zephyr's API, formats
+- **Application**: [`common/basic.c`](common/basic.c) uses only `<crux/file.h>` and links only `crux::file`. It
+  does not know which provider or file system the build selected. [`zephyr/CMakeLists.txt`](zephyr/CMakeLists.txt) checks that boundary with `crux_assert_portable_consumer()` (see [`hello_crux`](../../hello_crux/README.md)).
+- **Platform composition**: [`zephyr/src/storage_littlefs.c`](zephyr/src/storage_littlefs.c) or
+  [`zephyr/src/storage_fatfs_ram_disk.c`](zephyr/src/storage_fatfs_ram_disk.c) mounts the file system with Zephyr's API, formats
   the blank simulated medium, creates a `files` directory and binds it as the File root with
   `crux_file_zephyr_bind()` from `<crux/file_zephyr.h>` (target `crux::file_zephyr`). The File provider itself never
-  mounts or formats. `CMakeLists.txt` compiles the file that matches the selected provider.
-- [`src/main.c`](src/main.c) runs the composition step, then the application, and prints the result.
+  mounts or formats. `zephyr/CMakeLists.txt` compiles the file that matches the selected provider.
+- [`zephyr/src/main.c`](zephyr/src/main.c) runs the composition step, then the application, and prints the result.
 
 ## Requirements
 
@@ -36,19 +36,19 @@ From the repository root (`/workspace/crux-pilot` in the Dev Container).
 Default scenario (simulator provider on LittleFS):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/basic samples/file/basic -t run
+west build -p always -b native_sim/native/64 -d build/basic samples/file/basic/zephyr -t run
 ```
 
 FatFs on a RAM disk: the same command with the scenario's Kconfig fragment and overlay:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/basic_fatfs \
-    samples/file/basic -t run -- \
+    samples/file/basic/zephyr -t run -- \
     -DEXTRA_CONF_FILE=fatfs_ram_disk.conf -DEXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
 ```
 
 The program returns from `main`, but `native_sim` keeps running; stop it with Ctrl+C. Twister builds and runs both
-scenarios from [`sample.yaml`](sample.yaml) and checks their output:
+scenarios from [`zephyr/sample.yaml`](zephyr/sample.yaml) and checks their output:
 
 ```sh
 west twister -T samples/file/basic -p native_sim/native/64

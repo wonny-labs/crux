@@ -3,6 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log_ctrl.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/reboot.h>
@@ -16,9 +17,10 @@
  * watchdog but one channel and its timeout in simulated kernel time. It accepts the call sequence
  * of the shared System provider as it is: one channel, window minimum 0, RESET_SOC only.
  *
- * On expiry it prints one line and calls sys_reboot, the path crux_system_reset takes. With
- * CONFIG_NATIVE_SIM_REBOOT the simulated process then restarts and reads the reset cause SOFTWARE,
- * never WATCHDOG (the native HWINFO supports POR and SOFTWARE only). */
+ * On expiry it flushes deferred logging, prints one line and calls sys_reboot, the path
+ * crux_system_reset takes. With CONFIG_NATIVE_SIM_REBOOT the simulated process then restarts and
+ * reads the reset cause SOFTWARE, never WATCHDOG (the native HWINFO supports POR and SOFTWARE
+ * only). */
 
 static struct k_spinlock state_lock;
 static struct k_work_delayable expiry_work;
@@ -29,6 +31,10 @@ static int64_t armed_at_ms;
 static void expired(struct k_work *work)
 {
     ARG_UNUSED(work);
+    /* The last line before a reset: flush deferred records first, as the real reset does. */
+#if defined(CONFIG_LOG) && !defined(CONFIG_LOG_MODE_MINIMAL)
+    log_panic();
+#endif
     printk("Crux simulated watchdog expired: no feed for %u ms; restarting the simulated process "
            "(after %lld ms)\n",
            (unsigned)timeout_ms, (long long)(k_uptime_get() - armed_at_ms));

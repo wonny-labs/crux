@@ -69,10 +69,10 @@ class ControllerSampleRemovalTest(unittest.TestCase):
         self.assertEqual([], offenders)
 
     def test_every_cmake_include_of_a_probe_file_resolves(self):
-        include_line = "include(../../../tests/board_images/integration_probe/mdio_completion.cmake)"
-        echo = REPO / "samples/networking/echo_client"
+        include_line = "include(../../../../tests/board_images/integration_probe/mdio_completion.cmake)"
+        echo = REPO / "samples/networking/echo_client/zephyr"
         self.assertIn(include_line, (echo / "CMakeLists.txt").read_text())
-        self.assertTrue((echo / "../../../tests/board_images/integration_probe/mdio_completion.cmake").is_file())
+        self.assertTrue((echo / "../../../../tests/board_images/integration_probe/mdio_completion.cmake").is_file())
         self.assertTrue((REPO / "tests/networking_physical/../../tests/board_images/integration_probe/"
                          "mdio_completion.cmake").is_file())
 
