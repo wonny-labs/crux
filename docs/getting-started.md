@@ -115,10 +115,10 @@ After the container is created, it runs `scripts/bootstrap.sh` by itself (`postC
 
 A step that finished is skipped the next time, so reopening or rebuilding the container is quick; a step whose inputs change (the tool pins, `west.yml`, a deleted build folder, a deleted cache volume) runs again. Each step writes its output to `/opt/crux-cache/bootstrap/<step>.log`.
 
-If a download fails, the container still opens. The terminal shows which step failed, its log, and the command that runs it again. Each time VS Code attaches, `scripts/bootstrap.sh status` prints the result of every step. From `/workspace/crux-pilot`:
+If a download fails, the container still opens. The terminal shows which step failed, its log, and the command that runs it again. Each time VS Code attaches, `scripts/bootstrap.sh status` prints the state of every step. From `/workspace/crux-pilot`:
 
 ~~~sh
-scripts/bootstrap.sh status      # what finished, what failed, and the command to rerun it
+scripts/bootstrap.sh status      # ok, running, needs rerun, FAILED or not run, with the command to rerun it
 scripts/bootstrap.sh             # run every unfinished step again
 scripts/bootstrap.sh zephyr      # one step: host or zephyr
 CRUX_BOOTSTRAP_FORCE=1 scripts/bootstrap.sh   # run every step again, finished or not
@@ -134,6 +134,14 @@ To set up less, set `CRUX_BOOTSTRAP` to `host` or `zephyr` in the shell that sta
 | Before a pull request | The host step, because `scripts/check-host.sh` runs offline and reuses the GoogleTest that it fetched | `scripts/check-host.sh`, then the [test guide](../tests/README.md#before-you-open-a-pull-request) |
 
 Disk and time of the steps have not been measured. None of these commands programs or resets a board.
+
+### Open and rebuild the container
+
+Run these commands from the VS Code Command Palette:
+
+- The first time, run **Dev Containers: Reopen in Container**.
+- If VS Code asks to rebuild the container, choose **Rebuild**.
+- After you take a new version, or after you delete and recreate the folder, run **Dev Containers: Rebuild Container**. Deleting the folder keeps the container and the cache volume.
 
 ## 7. If you use a board
 
