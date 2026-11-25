@@ -821,3 +821,5 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - A vendor project built as a Zephyr module. What this guide says of its place in the SBOM, and of a purl on an `https://` URL, comes from reading `zspdx/walker.py` at v4.4.2.
 - More than one application or SDK. Image comparison across paths holds for that one case, on each machine it ran on.
 - Linux, Yocto or any other build system.
+
+Temporary line to check the documentation-only CI path.
