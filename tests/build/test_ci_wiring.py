@@ -126,7 +126,7 @@ class HostScopeScriptTest(unittest.TestCase):
         self.output.write_text("")
         env = {**os.environ, "GITHUB_EVENT_NAME": event, "GITHUB_BASE_REF": "main",
                "GITHUB_OUTPUT": str(self.output)}
-        result = subprocess.run(["bash", "-e", "-c", self.script], cwd=self.clone, env=env,
+        result = subprocess.run(["bash", "-eo", "pipefail", "-c", self.script], cwd=self.clone, env=env,
                                 capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return self.output.read_text().strip()
@@ -147,6 +147,12 @@ class HostScopeScriptTest(unittest.TestCase):
         (self.clone / "docs").mkdir()
         self.git(self.clone, "mv", "src/a.c", "docs/a.md")
         self.commit(self.clone, {})
+        self.assertEqual("docs_only=false", self.docs_only())
+
+    def test_a_source_change_among_many_documents_is_complete(self):
+        # The list of names is larger than a pipe buffer, so an early exit must not hide the match.
+        files = {f"docs/{'n' * 80}-{number}.md": "d\n" for number in range(1500)}
+        self.commit(self.clone, {"a.c": "int a;\n", **files})
         self.assertEqual("docs_only=false", self.docs_only())
 
     def test_an_empty_change_is_complete(self):

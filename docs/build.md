@@ -30,7 +30,7 @@ The same container serves a board: it can reach a USB debug probe and installs t
 On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow.
 Running the full Host and Zephyr suites that way is impractical.
 
-CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`).
+CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (for a change that touches only Markdown or `docs/`, the Zephyr workflow does not run and the Host workflow runs only its documentation checks).
 Use a local run for the narrow checks of the code you changed.
 
 This guide gives no time estimate.

@@ -34,7 +34,7 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = pull_request ]; then
             git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
             changed="$(git diff --name-only --no-renames FETCH_HEAD HEAD)"
-            if [ -n "${changed}" ] && ! printf '%s\n' "${changed}" | grep -q -v -E '^(docs/|.*\.md$)'; then
+            if [ -n "${changed}" ] && ! grep -q -v -E '^(docs/|.*\.md$)' <<<"${changed}"; then
               docs_only=true
             fi
           fi

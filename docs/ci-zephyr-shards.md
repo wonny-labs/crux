@@ -57,13 +57,15 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 | Two shards could share an artifact name | The upload would be refused |
 | The summary job accepts anything but `success` | A cancelled or skipped shard would look like a pass |
 | Anything other than documentation skips the workflow | Code changes would go untested |
-| `host.yml` also skips documentation | Nothing would run the tests that read documentation |
+| `host.yml` gets a `paths-ignore` filter | Nothing would run the tests that read documentation |
 
 The test has two limits. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Apart from those, every step that has a `run:` (in any position) or mentions that repository code must name a shard of the matrix, whatever command it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
 
 ## Documentation-only changes
 
-The workflow does not run when every changed file matches `docs/**` or `**.md`. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and `host.yml` also runs it because that workflow has no such filter.
+The workflow does not run when every changed file matches `docs/**` or `**.md`. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and `host.yml` also runs it: that workflow has no such filter and runs `tests/build` for every pull request, skipping its other checks when only documentation changed.
+
+`psa-crypto.yml` skips documentation too, except a change to a dependency review record, which its pin check reads.
 
 If `zephyr` becomes a required check, a documentation-only pull request would wait for a check that never reports. `main` has no required checks today, so this needs handling before such a rule is added.
 

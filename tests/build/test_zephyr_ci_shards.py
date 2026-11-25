@@ -4,6 +4,7 @@ A step whose shard condition matches nothing is skipped, and a skipped step leav
 run green, so these rules read the workflow text. Only the standard library is used
 because `host.yml` runs this file without PyYAML.
 """
+from fnmatch import fnmatchcase
 from pathlib import Path
 import re
 import unittest
@@ -13,6 +14,9 @@ ZEPHYR = REPO / ".github/workflows/zephyr.yml"
 PSA_CRYPTO = REPO / ".github/workflows/psa-crypto.yml"
 HOST = REPO / ".github/workflows/host.yml"
 DOCS_ONLY = ["docs/**", "**.md"]
+PSA_SCRIPT = REPO / "scripts" / "test-psa-crypto.sh"
+# Later patterns win: everything but documentation, plus the records that the pin check reads.
+PSA_PATHS = ["**", "!docs/**", "!**.md", "docs/dependency-review-*.md"]
 # Steps that run in every shard: they prepare the runner or collect what the shard produced.
 SET_UP_STEPS = {
     "name: List host packages from the signed index",
@@ -47,15 +51,15 @@ def steps(job_lines):
     return result
 
 
-def paths_ignore(workflow, event):
-    """Return the paths-ignore patterns of a trigger event, or None without a filter."""
+def paths_ignore(workflow, event, key="paths-ignore"):
+    """Return the patterns of a trigger event's path filter, or None without that filter."""
     lines = workflow.splitlines()
     start = lines.index(f"  {event}:")
     patterns = None
     for line in lines[start + 1:]:
         if not line.startswith("    "):
             break
-        if line.strip() == "paths-ignore:":
+        if line.strip() == f"{key}:":
             patterns = []
         elif patterns is not None and line.strip().startswith("- "):
             patterns.append(line.strip()[2:].strip("\"'"))
@@ -193,11 +197,20 @@ class ZephyrShardsTest(unittest.TestCase):
                 path = re.search(r"^\s+path: (.+)$", step["text"], re.MULTILINE).group(1)
                 self.assertNotIn("..", path)
 
-    def test_psa_crypto_workflow_skips_documentation(self):
+    def test_psa_crypto_workflow_skips_documentation_but_not_its_review_records(self):
         psa = PSA_CRYPTO.read_text()
         for event in ("push", "pull_request"):
             with self.subTest(event=event):
-                self.assertEqual(DOCS_ONLY, paths_ignore(psa, event))
+                self.assertIsNone(paths_ignore(psa, event))
+                self.assertEqual(PSA_PATHS, paths_ignore(psa, event, "paths"))
+
+    def test_the_review_records_that_the_pin_check_reads_start_the_psa_crypto_workflow(self):
+        records = re.findall(r"'(docs/[^']+)'", PSA_SCRIPT.read_text())
+        self.assertTrue(records)
+        for record in records:
+            with self.subTest(record=record):
+                self.assertTrue(fnmatchcase(record, PSA_PATHS[-1]))
+                self.assertTrue((REPO / record).is_file())
 
     def test_host_workflow_still_runs_for_documentation(self):
         # tests/build reads documentation, so one workflow must keep running on such changes.

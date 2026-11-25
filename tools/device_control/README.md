@@ -68,7 +68,7 @@ reset, so its evidence stays tied to an exact image. `build_id` is required only
 }
 ```
 
-The build host produces this manifest; the tool does not write it.
+No Crux script writes this manifest; the build host must.
 `scripts/record-build-provenance.py` records similar data for Crux's own images.
 
 ## Use
@@ -112,7 +112,7 @@ Limits:
 - **The erase and fuse check reads only the rendered command arguments, without the image path.** A script or command file a profile names can still do either, and so can an inline `sh -c` or an option split across arguments, so the profile needs review.
 - **The tool does not verify that a command does what its name says.** The verify command's result is only as good as that command.
 - **A flash or reset tool can outlive the lock.** If this process is killed while a tool runs, the OS releases the lock and the tool may still be operating the board. On a timeout, the tool's process group is stopped on POSIX, but a program that leaves that group survives, and on Windows only the tool itself is stopped.
-- **A tool this user may not signal, such as one run through `sudo`, can keep running after a timeout or interrupt.** The error or the tool's log says so and the run releases the lock, so check the board before the next run; the Windows branch waits for the tool without a limit ([recorded runs](../../docs/evidence/test-foundation-tool/stop-defect-fix.md)).
+- **A tool this user may not signal, such as one run through `sudo`, can keep running after a timeout or interrupt.** The error or the tool's log says so and the run releases the lock, so check the board before the next run; the Windows branch waits for the tool without a limit. A tool that survives the stop is given up on after a second, and where PID 1 of a container does not reap orphans the warning can be false. Real `sudo` and a real root tool were checked on Linux only ([recorded runs](../../docs/evidence/test-foundation-tool/stop-defect-fix.md)).
 - **Cleanup is not fully safe from interrupts.** An interrupt raised inside the console close or the lock release no longer skips the rest. One that lands between those steps, or during the write of `result.json`, still can, and one that lands as the port opens can leave it open past the lock until the process exits. The OS releases the lock and the port when the process exits.
 - **The lock only excludes runs that agree on it.** Two profiles with different `lock_directory` or `board_id` values for one board do not exclude each other, and `flock` on a shared or virtual machine filesystem was not tested.
 - **A reset can still see an old ready marker.** Earlier output is discarded for up to one second before the reset command starts. A marker printed after that, before the board actually resets, satisfies the wait, so choose a marker the application prints only once per boot.

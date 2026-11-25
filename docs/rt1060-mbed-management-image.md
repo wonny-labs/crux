@@ -1,6 +1,6 @@
 # The management image for RT1060-EVK Rev B on the Mbed TLS profile
 
-Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What runs is the static Host checks of the image's text and the cross-build check (`scripts/test-management-mbed-rt1060.sh build`), which `psa-crypto.yml` runs, without flashing, on each pull request and push to `main`; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
+Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What runs is the static Host checks of the image's text and the cross-build check (`scripts/test-management-mbed-rt1060.sh build`), which `psa-crypto.yml` runs, without flashing, on each pull request and push to `main` that changes more than documentation; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
 
 It is a different image from the [bench image](rt1060-management-image-feasibility.md) of the Wolf profile. That image carries safety gates and **refuses to start by design**, and this one has none of them: see [what is different](#how-it-differs-from-the-bench-image).
 
@@ -164,7 +164,7 @@ The locks of the Mbed profile's core are **not** taken from tests any more. The 
 | Item | State |
 | --- | --- |
 | The image's static rules: Mbed profile, no Wolf or SSH symbol, no bench symbol, the services selected, entropy before any key, the listener after the certificate, only the listed private includes, the test form off and absent from `prj.conf` | **Host**, `tests/build/test_management_mbed_rt1060_image.py` |
-| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **CI**: `scripts/test-management-mbed-rt1060.sh build` runs in `psa-crypto.yml` on each pull request and push to `main`; the step passed on `main` at `164b0428`. |
+| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **CI**: `scripts/test-management-mbed-rt1060.sh build` runs in `psa-crypto.yml` on each pull request and push to `main` that changes more than documentation; the step passed on `main` at `164b0428`. |
 | Everything on the board: boot, the TRNG, the handshake and its time and memory, the stack of the HTTP thread (16,384 B, a first choice), the Mbed TLS heap (120,000 B, sized on `native_sim` for three clients), the network buffers (the bench's numbers), the generated key as the listener's credential, reboot, every client | **Not run** |
 | The Mbed TLS listener with the generated certificate on any target | Not run: the `native_sim` images of the Mbed profile serve the declared test certificate |
 
