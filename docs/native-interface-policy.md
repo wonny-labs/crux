@@ -155,7 +155,7 @@ consumer. Host independent C/C++ execution, the native C++ compilation probe,
 real Zephyr stack tests and EVKB cross-build complement these bounded checks.
 See [integration evidence](evidence/native-interfaces/assessment.md).
 
-Current owned interfaces include `<crux/status.h>`, `<crux/time.h>`,
+Current owned interfaces include `<crux/status.h>`, `<crux/version.h>`, `<crux/time.h>`,
 `<crux/time_calendar.h>` and `<crux/netif.h>`. Component private ports remain
 implementation details. File/Configuration and subsequent execution/device
 contracts retain their existing review gates.

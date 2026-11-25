@@ -321,7 +321,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
-| Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
+| Base | Common status declarations and the Crux release version | Header-only usage in Host and Zephyr; no OS provider | Public headers [status](../components/base/include/crux/status.h) and [version](../components/base/include/crux/version.h) |
 | Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional RTC storage; no implicit fallback | [Contract](time-contract.md) |
 | Thread | Bounded joinable workers (frozen for new product code) | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores (frozen for new product code) | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |

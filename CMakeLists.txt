@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(crux LANGUAGES C)
+# <crux/version.h> is the one place the release version is kept (ADR-0008). CMake versions have
+# no pre-release part, so on main PROJECT_VERSION names the next release without "-dev".
+foreach(_crux_version_part IN ITEMS MAJOR MINOR PATCH)
+    file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/components/base/include/crux/version.h" _crux_version_line
+        REGEX "^#define CRUX_VERSION_${_crux_version_part} [0-9]+$")
+    if(NOT _crux_version_line MATCHES " ([0-9]+)$")
+        message(FATAL_ERROR "components/base/include/crux/version.h defines no CRUX_VERSION_${_crux_version_part}")
+    endif()
+    set(_crux_version_${_crux_version_part} "${CMAKE_MATCH_1}")
+endforeach()
+
+project(crux VERSION ${_crux_version_MAJOR}.${_crux_version_MINOR}.${_crux_version_PATCH} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
