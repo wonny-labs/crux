@@ -260,11 +260,15 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_flash_task_flashes_the_last_board_build_with_the_jlink_runner(self):
         # The task flashes the build behind the link that the debug profiles use, so Board: Build
         # then Board: Flash puts on the board the image that Board: Attach expects.
+        # The probe check runs in the same bash process, before west flash.
         task = self.tasks["Board: Flash"]
-        self.assertEqual(task["command"], "west")
+        self.assertEqual(task["command"], "bash")
         current = self.ELF.removeprefix("${workspaceFolder}/").removesuffix("/zephyr/zephyr.elf")
-        self.assertEqual(task["args"], ["flash", "-d", current, "-r", "jlink"])
-        self.assertEqual(task["dependsOn"], "Board: Check probe")
+        self.assertEqual(task["args"][0], "-c")
+        script = task["args"][1]
+        self.assertTrue(script.endswith(f"; exec west flash -d {current} -r jlink"), script)
+        self.assertTrue(script.startswith(self.tasks["Board: Check probe"]["args"][1]), script)
+        self.assertNotIn("dependsOn", task)
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertNotIn("--erase", json.dumps(task))
 
