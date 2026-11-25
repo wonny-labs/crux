@@ -3,6 +3,8 @@
 The [approved design](superpowers/specs/2026-10-24-logging-design.md) defines
 `<crux/logging.h>` and `crux::logging`. The component depends publicly on Base.
 
+Which code calls `crux_log_write`, and which uses Zephyr logging or `printk`, is in [Output and logging](coding-guidelines.md#output-and-logging).
+
 Submit completed text with `crux_log_write(level, tag, text)`; configure the
 process/boot-local threshold with `crux_log_set_level(maximum_level)`. Defaults
 to INFO. ERROR, WARN, INFO and DEBUG are record levels; OFF is a setter value.
