@@ -303,6 +303,18 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
         self.assertRegex(result.stdout, r"host +not run   rerun: scripts/bootstrap.sh host")
         self.assertNotIn("running", result.stdout)
 
+    @unittest.skipUnless(Path("/proc/self/cmdline").exists(), "needs /proc to read a process's command line")
+    def test_status_ignores_a_lock_held_by_another_program(self):
+        # The lock survives a rebuilt container, where its process ID can belong to another program.
+        self.assertOk(self.run_bootstrap("--keep-going", FAKE_HOST_STATUS="5"))
+        other = subprocess.Popen(["sleep", "30"])
+        self.addCleanup(other.kill)
+        state = self.cache / "bootstrap"
+        (state / "run.pid").write_text(f"{other.pid}\n")
+        (state / "host.status").write_text("running\n")
+        result = self.run_bootstrap("status")
+        self.assertRegex(result.stdout, r"host +not run   rerun: scripts/bootstrap.sh host")
+
     def test_a_finished_run_removes_its_lock(self):
         self.assertOk(self.run_bootstrap())
         self.assertFalse((self.cache / "bootstrap" / "run.pid").exists())

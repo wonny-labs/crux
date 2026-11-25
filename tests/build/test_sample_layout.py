@@ -130,7 +130,7 @@ class SampleLayoutTest(unittest.TestCase):
         self.assertEqual(folders, [])
 
     def test_linux_and_common_folders_are_flat(self):
-        # Sources and headers sit beside CMakeLists.txt: no src/ or include/ at any depth.
+        # Files sit at the folder's top level: no src/ or include/ at any depth.
         nested = [rel(p) for root in sample_roots() for name in ("linux", "common")
                   if (root / name).is_dir() for p in (root / name).rglob("*")
                   if p.is_dir() and p.name in {"src", "include"}]

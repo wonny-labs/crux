@@ -158,11 +158,9 @@ Run these commands from the Command Palette:
 
 1. Select the presets once: **CMake: Select Configure Preset**, **CMake: Select Build Preset** and **CMake: Select Test Preset**, each **Host Debug**. The **Project Status** view in the CMake side bar selects them too.
 2. Run **CMake: Configure**, then **CMake: Build**, then **CMake: Run Tests**.
-3. Check the result. The Output panel's **CMake/Build** channel shows the configure, build and test output; a good build ends with `Build finished with exit code 0`. The **Testing** view lists each CTest test with its result.
+3. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
 
-To run a Host sample, run **CMake: Set Build Target**, pick `run_echo_client` or `run_time_shell`, then run **CMake: Build**: the target builds the sample and runs it, with its output in **CMake/Build**.
-That channel takes no input, so to type time shell commands, pick `crux-time-host` with **CMake: Set Launch/Debug Target** and run **CMake: Run Without Debugging**, which runs it in the terminal.
-Set the build target back to `all` for a full build.
+To run a Host sample, build its target in the terminal: `cmake --build --preset host-debug --target run_time_shell` or `--target run_echo_client` ([tutorial step 3](tutorial.md#3-run-the-networking-sample-on-the-host)).
 
 To debug, pick the program with **CMake: Set Launch/Debug Target** and run **CMake: Debug**, which uses the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
 Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.

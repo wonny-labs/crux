@@ -660,7 +660,7 @@ class DocsTest(unittest.TestCase):
         section = section[:section.index("\n## ", 1)]
         for text in ("CMake: Select Configure Preset", "CMake: Select Build Preset", "CMake: Select Test Preset",
                      "**Host Debug**", "Project Status", "CMake: Configure", "CMake: Build", "CMake: Run Tests",
-                     "CMake/Build", "Testing", "CMake: Set Build Target", "run_time_shell", "run_echo_client"):
+                     "CMake/Build", "Testing", "run_time_shell", "run_echo_client"):
             self.assertIn(text, section)
         tutorial = (REPO / "docs/tutorial.md").read_text()
         self.assertIn("(build.md#linux-host-in-vs-code)", tutorial)

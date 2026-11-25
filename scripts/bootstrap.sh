@@ -257,11 +257,13 @@ step_zephyr() { "$repo/scripts/bootstrap-zephyr.sh" --install-sdk; }
 failed=
 rerun_hint() { printf 'scripts/bootstrap.sh %s' "$1"; }
 
-# run_active: a bootstrap run holds the lock and its process is still alive.
+# run_active: a bootstrap run holds the lock and its process is still alive. The lock outlives a
+# rebuilt container, so where /proc exists the process must also be this script.
 run_active() {
     local pid
     pid=$(cat "$state/run.pid" 2>/dev/null) || return 1
-    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+    [ ! -r "/proc/$pid/cmdline" ] || grep -q -a 'bootstrap\.sh' "/proc/$pid/cmdline"
 }
 
 # run_step <name>: run step_<name> unless it is done, log its output and record the result.

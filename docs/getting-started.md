@@ -139,7 +139,6 @@ Disk and time of the steps have not been measured. None of these commands progra
 
 Run these commands from the VS Code Command Palette:
 
-- The first time, run **Dev Containers: Reopen in Container**.
 - If VS Code asks to rebuild the container, choose **Rebuild**.
 - After you take a new version, or after you delete and recreate the folder, run **Dev Containers: Rebuild Container**. Deleting the folder keeps the container and the cache volume.
 
