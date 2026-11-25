@@ -8,8 +8,9 @@ Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the
 
 | Part | Folder | Runs on |
 | --- | --- | --- |
-| Zephyr application | this folder (`CMakeLists.txt`, `prj.conf`, `src/`, `boards/`, `sample.yaml`) | `native_sim/native/64`; cross-built for `mimxrt1060_evk@B//qspi` |
-| Linux Host program | [`host/`](host/main.c), built by the repository's root `CMakeLists.txt` | The Linux Host build |
+| Zephyr application | [`zephyr/`](zephyr/CMakeLists.txt) (`CMakeLists.txt`, `prj.conf`, `src/`, `boards/`, `sample.yaml`) | `native_sim/native/64`; cross-built for `mimxrt1060_evk@B//qspi` |
+| Linux Host program | [`linux/`](linux/main.c), built by the repository's root `CMakeLists.txt` | The Linux Host build |
+| Command handler | [`common/`](common/crux_time_command.h) | Compiled by both parts and by the Time tests on Host and `native_sim` |
 
 ## Requirements
 
@@ -21,7 +22,7 @@ Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the
 From the repository root (`/workspace/crux-pilot` in the Dev Container):
 
 ```sh
-west build -p always -b native_sim/native/64 -d build/time samples/time/shell -t run
+west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr -t run
 ```
 
 It prints `CRUX_TIME_READY composition=zephyr`, and the shell then waits on a pseudo-terminal that the first output
@@ -40,7 +41,7 @@ build/time/zephyr/zephyr.exe -uart_stdinout
 
 `native_sim` keeps a simulated clock, so `time get` advances with simulated uptime after `time set`, not with the
 Host's wall clock. This sample does not slow the simulation to real time, so the second `time get` can show a later
-time than the example below. Twister runs this sample from [`sample.yaml`](sample.yaml) (id
+time than the example below. Twister runs this sample from [`zephyr/sample.yaml`](zephyr/sample.yaml) (id
 `crux.sample.time.shell`) and stops it after the ready line:
 
 ```sh
@@ -64,11 +65,11 @@ uart:~$ time get
 
 ## Linux Host
 
-The Host build produces `build/linux/debug/samples/time/shell/host/crux-time-host`. Run it, type commands, and
+The Host build produces `build/linux/debug/samples/time/shell/linux/crux-time-host`. Run it, type commands, and
 end with Ctrl+D:
 
 ```sh
-build/linux/debug/samples/time/shell/host/crux-time-host
+build/linux/debug/samples/time/shell/linux/crux-time-host
 ```
 
 The Host program uses a controlled clock that does not advance on its own. `ctest --preset host-debug -L sample` runs

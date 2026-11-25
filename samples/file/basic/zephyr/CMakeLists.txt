@@ -20,7 +20,7 @@ endif()
 # if the target's build requirements (include directories, compile options, linked targets)
 # name a native path, a private Crux directory or a provider target. It does not read
 # #include lines.
-add_library(basic_logic OBJECT src/basic.c)
+add_library(basic_logic OBJECT ../common/basic.c)
 target_link_libraries(basic_logic PRIVATE crux::file)
 set_target_properties(basic_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
@@ -31,5 +31,6 @@ crux_assert_portable_consumer(basic_logic)
 # composition target of the Zephyr File provider.
 target_sources(app PRIVATE src/main.c ${storage_source}
     $<TARGET_OBJECTS:basic_logic>)
+target_include_directories(app PRIVATE ../common)
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

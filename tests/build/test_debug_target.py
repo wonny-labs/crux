@@ -31,7 +31,7 @@ class DebugTargetTests(unittest.TestCase):
         (self.workspace / ".west/config").write_text("")
         (self.workspace / "zephyr").mkdir()
         (self.workspace / "zephyr/zephyr-env.sh").write_text("")
-        for application in ("samples/time/shell", "samples/hello_crux",
+        for application in ("samples/time/shell/zephyr", "samples/hello_crux/zephyr",
                             "samples/boards/nxp/mimxrt1060_evk/sd_card_file"):
             (self.repo / application).mkdir(parents=True)
             (self.repo / application / "CMakeLists.txt").write_text("")
@@ -63,7 +63,7 @@ class DebugTargetTests(unittest.TestCase):
         arguments = self.west_arguments()
         self.assertEqual(arguments[arguments.index("-d") + 1],
                          str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi"))
-        self.assertIn(str(self.repo / "samples/time/shell"), arguments)
+        self.assertIn(str(self.repo / "samples/time/shell/zephyr"), arguments)
         self.assertFalse(any("EXTRA_CONF_FILE" in argument for argument in arguments))
 
     def test_application_path_selects_the_application_and_its_own_directory(self):
@@ -75,7 +75,7 @@ class DebugTargetTests(unittest.TestCase):
                          str(self.repo / "build/zephyr"
                              / "mimxrt1060_evk_B_qspi--samples_boards_nxp_mimxrt1060_evk_sd_card_file"))
         self.assertIn(str(self.repo / "samples/boards/nxp/mimxrt1060_evk/sd_card_file"), arguments)
-        self.assertNotIn(str(self.repo / "samples/time/shell"), arguments)
+        self.assertNotIn(str(self.repo / "samples/time/shell/zephyr"), arguments)
 
     def test_debug_optimizations_adds_the_fragment_and_a_separate_directory(self):
         result = self.run_script("mimxrt1060_evk@B//qspi", "--debug-optimizations")
@@ -86,12 +86,12 @@ class DebugTargetTests(unittest.TestCase):
         self.assertIn(f"-DEXTRA_CONF_FILE={self.repo / 'scripts/debug-optimizations.conf'}", arguments)
 
     def test_application_and_debug_optimizations_combine(self):
-        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/time/shell",
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/time/shell/zephyr",
                                  "--debug-optimizations")
         self.assertEqual(result.returncode, 0, result.stderr)
         arguments = self.west_arguments()
         self.assertEqual(arguments[arguments.index("-d") + 1],
-                         str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_time_shell--og"))
+                         str(self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--samples_time_shell_zephyr--og"))
 
     def test_an_existing_build_directory_is_not_reconfigured(self):
         directory = self.repo / "build/zephyr/mimxrt1060_evk_B_qspi--og"
@@ -104,7 +104,7 @@ class DebugTargetTests(unittest.TestCase):
         self.assertFalse(any("EXTRA_CONF_FILE" in argument for argument in arguments))
 
     def test_rejects_bad_arguments_without_building(self):
-        for arguments in ((), ("--app", "samples/time/shell"), ("board", "--unknown"),
+        for arguments in ((), ("--app", "samples/time/shell/zephyr"), ("board", "--unknown"),
                           ("board", "--app"), ("board", "--app", "samples/missing")):
             with self.subTest(arguments=arguments):
                 result = self.run_script(*arguments)
@@ -123,18 +123,18 @@ class DebugTargetTests(unittest.TestCase):
         self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi")
         self.assertIn(f"Current build link:   {link}", result.stdout)
 
-        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux")
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux/zephyr")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi--samples_hello_crux")
+        self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi--samples_hello_crux_zephyr")
         self.assertTrue((link / "zephyr/zephyr.elf").is_file())
         self.assertEqual(sorted(path.name for path in link.parent.iterdir()),
                          ["mimxrt1060_evk_B_qspi", "mimxrt1060_evk_B_qspi--current",
-                          "mimxrt1060_evk_B_qspi--samples_hello_crux"])
+                          "mimxrt1060_evk_B_qspi--samples_hello_crux_zephyr"])
 
     def test_a_failed_build_leaves_the_previous_link(self):
         link = self.current_link()
         self.assertEqual(self.run_script("mimxrt1060_evk@B//qspi").returncode, 0)
-        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux",
+        result = self.run_script("mimxrt1060_evk@B//qspi", "--app", "samples/hello_crux/zephyr",
                                  FAKE_WEST_FAIL="1")
         self.assertEqual(result.returncode, 37, result.stderr)
         self.assertEqual(os.readlink(link), "mimxrt1060_evk_B_qspi")

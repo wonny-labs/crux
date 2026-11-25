@@ -73,7 +73,7 @@ class NativeInterfaceTest(unittest.TestCase):
                 if not path.startswith(("samples/", "tests/")) or path in planned:
                     continue
                 with self.subTest(table=name, path=path):
-                    self.assertTrue((REPO / path).exists(), path)
+                    self.assertTrue(any(REPO.glob(path)), path)
 
     def test_rejects_native_header_families_and_include_spacing(self):
         for header in ("zephyr/kernel.h", "board.h", "fsl_gpio.h", "fsl_device_registers.h",
@@ -141,8 +141,8 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/new/runtime_porting/lock.h", "runtime_porting/include/lock.h",
                      "applications/new/src/main.c", "runtime/src/thread.c",
                      "tests/time_periodic/core/task.c", "tests/time_periodic/include/task.h",
-                     "samples/time/shell/include/time_command.h",
-                     "samples/time/shell/src/time_command.c",
+                     "samples/time/shell/common/crux_time_command.h",
+                     "samples/time/shell/common/time_command.c",
                      "tests/configuration/controller_scenario.c",
                      "tests/configuration_consumer/consumer.c",
                      "tests/configuration_consumer/consumer.cpp",
@@ -158,8 +158,8 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_applies_to_the_new_sample_layout_paths(self):
         # Paths of the samples layout proposal, including the earlier name time_periodic_task.
-        for path in ("samples/time/shell/include/time_command.h",
-                     "samples/time/shell/src/time_command.c",
+        for path in ("samples/time/shell/common/crux_time_command.h",
+                     "samples/time/shell/common/time_command.c",
                      "tests/configuration/controller_scenario.c",
                      "tests/serial_consumer/scenario/controller.c",
                      "tests/logging_consumer/scenario/controller.c",
@@ -172,10 +172,10 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_new_sample_layout_compositions_remain_native(self):
-        for path in ("samples/time/shell/src/main.c", "samples/time/shell/src/time_shell.c",
-                     "samples/time/shell/host/main.c",
-                     "samples/networking/echo_client/src/main.c",
-                     "samples/networking/echo_client/host/main.c",
+        for path in ("samples/time/shell/zephyr/src/main.c", "samples/time/shell/zephyr/src/time_shell.c",
+                     "samples/time/shell/linux/main.c",
+                     "samples/networking/echo_client/zephyr/src/main.c",
+                     "samples/networking/echo_client/linux/main.c",
                      "tests/board_images/integration_probe/probe_main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
@@ -226,7 +226,7 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/netif/ports/linux/backend.c",
                      "components/netif/ports/zephyr/backend.c",
                      "components/file/ports/linux/backend.c",
-                     "tests/time_periodic/host/main.c", "samples/time/shell/src/main.c"):
+                     "tests/time_periodic/host/main.c", "samples/time/shell/zephyr/src/main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -301,9 +301,9 @@ const char *escaped = "\\\" k_sem_take";
                 shutil.copy2(REPO / relative, destination)
             for relative in ("components/base/include", "components/time/include",
                              "components/time/src", "tests/time_periodic/core",
-                             "tests/time_periodic/include", "samples/time/shell/src"):
+                             "tests/time_periodic/include", "samples/time/shell/common"):
                 (root / relative).mkdir(parents=True, exist_ok=True)
-            probe = root / "samples/time/shell/src/time_command.c"
+            probe = root / "samples/time/shell/common/time_command.c"
             subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
             for source, expected in (("k_timeout_t timeout;", 1),
                                      ("#include <time.h>\n#include <errno.h>\n", 0)):

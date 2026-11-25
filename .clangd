@@ -21,11 +21,12 @@ If:
     - tests/ssh/sftp/native_sim/.*
   PathExclude:
     - (.*/)?host/.*
+    - samples/.*/linux/.*
     - (.*/)?zephyr_shim/.*
     - tests/zephyr/management_rt1060_compile/first_account/.*
     - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
     - components/time/ports/zephyr/busy_wait_zephyr\.c
-    - samples/time/shell/src/time_command\.c
+    - samples/time/shell/common/time_command\.c
     - samples/networking/echo_client/common/.*
     - tests/execution/src/posix\.c
 CompileFlags:
@@ -54,11 +55,12 @@ CompileFlags:
 If:
   PathMatch:
     - (.*/)?host/.*
+    - samples/.*/linux/.*
     - (.*/)?zephyr_shim/.*
     - tests/zephyr/management_rt1060_compile/first_account/.*
     - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
     - components/time/ports/zephyr/busy_wait_zephyr\.c
-    - samples/time/shell/src/time_command\.c
+    - samples/time/shell/common/time_command\.c
     - samples/networking/echo_client/common/.*
     - tests/execution/src/posix\.c
 CompileFlags:

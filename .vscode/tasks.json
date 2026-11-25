@@ -159,7 +159,7 @@
       "id": "sample",
       "type": "promptString",
       "description": "Sample directory, relative to the repository",
-      "default": "samples/hello_crux"
+      "default": "samples/hello_crux/zephyr"
     }
   ]
 }

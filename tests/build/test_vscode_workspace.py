@@ -162,7 +162,7 @@ class TasksTest(unittest.TestCase):
         inputs = self.document["inputs"]
         self.assertEqual([i["id"] for i in inputs], ["sample"])
         self.assertEqual(inputs[0]["type"], "promptString")
-        self.assertEqual(inputs[0]["default"], "samples/hello_crux")
+        self.assertEqual(inputs[0]["default"], "samples/hello_crux/zephyr")
         used = {label for label, task in self.tasks.items() if "${input:sample}" in json.dumps(task)}
         self.assertEqual(used, {"Board: Build", "native_sim: Build"})
         self.assertEqual(set(re.findall(r"\$\{input:([^}]+)\}", json.dumps(self.document["tasks"]))),
@@ -219,7 +219,7 @@ class TasksTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "build/native_sim").mkdir(parents=True)
-            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux\n")
+            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux/zephyr\n")
             result, calls = self.run_native_sim_run(root)
             self.assertEqual(result.returncode, 0, result.stderr)
             # -p never: a user's "west config build.pristine always" must not wipe the configured sample.
@@ -231,7 +231,7 @@ class TasksTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "build/native_sim").mkdir(parents=True)
-            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/time/shell\n")
+            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/time/shell/zephyr\n")
             result, calls = self.run_native_sim_run(root, uart=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(calls, ["west build -p never -d build/native_sim", "zephyr.exe -h",
@@ -241,7 +241,7 @@ class TasksTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "build/native_sim").mkdir(parents=True)
-            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux\n")
+            (root / "build/native_sim/CMakeCache.txt").write_text("APP_DIR:PATH=/x/samples/hello_crux/zephyr\n")
             result, calls = self.run_native_sim_run(root, west_exit=1)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(calls, ["west build -p never -d build/native_sim"])
@@ -263,12 +263,12 @@ class TasksTest(unittest.TestCase):
 
     def make_build_tree(self, root):
         zephyr = root / "build/zephyr"
-        for name in ("mimxrt1060_evk_B_qspi", "mimxrt1060_evk_B_qspi--samples_hello_crux",
-                     "mimxrt1060_evk_B_qspi--samples_hello_crux--og", "networking-evkb",
+        for name in ("mimxrt1060_evk_B_qspi", "mimxrt1060_evk_B_qspi--samples_hello_crux_zephyr",
+                     "mimxrt1060_evk_B_qspi--samples_hello_crux_zephyr--og", "networking-evkb",
                      "mimxrt1060_evk_B_qspi_other"):
             (zephyr / name / "zephyr").mkdir(parents=True)
             (zephyr / name / "zephyr/zephyr.elf").write_text("elf")
-        (zephyr / "mimxrt1060_evk_B_qspi--current").symlink_to("mimxrt1060_evk_B_qspi--samples_hello_crux")
+        (zephyr / "mimxrt1060_evk_B_qspi--current").symlink_to("mimxrt1060_evk_B_qspi--samples_hello_crux_zephyr")
         for name in ("native_sim/zephyr", "linux/debug", "hello_crux_evkb"):
             (root / "build" / name).mkdir(parents=True)
 
@@ -392,7 +392,7 @@ def sal(path):
 
 class NativeSimGdbScriptTest(unittest.TestCase):
     RUNNER = "/workspace/zephyr/scripts/native_simulator/common/src/main.c"
-    APP = "/workspace/crux-pilot/samples/time/shell/src/main.c"
+    APP = "/workspace/crux-pilot/samples/time/shell/zephyr/src/main.c"
 
     def program(self, root, uart):
         exe = root / "zephyr.exe"
@@ -450,8 +450,8 @@ class ClangdTest(unittest.TestCase):
 
     # Files that the Host build compiles although they sit in a Zephyr-looking folder
     # (root CMakeLists.txt, tests/{gpio,i2c,spi,networking,bench_first_account,time/busy_wait}).
-    HOST_BUILT = ["samples/time/shell/src/time_command.c", "samples/time/shell/host/main.c",
-                  "samples/hello_crux/host/main.c", "samples/networking/echo_client/common/client.c",
+    HOST_BUILT = ["samples/time/shell/common/time_command.c", "samples/time/shell/linux/main.c",
+                  "samples/hello_crux/linux/main.c", "samples/networking/echo_client/common/client.c",
                   "components/gpio/ports/zephyr/gpio_status.c", "components/i2c/ports/zephyr/i2c_status.c",
                   "components/spi/ports/zephyr/spi_status.c", "components/time/ports/zephyr/busy_wait_zephyr.c",
                   "tests/time/busy_wait/zephyr_shim/zephyr/kernel.h",
@@ -513,7 +513,7 @@ class ClangdTest(unittest.TestCase):
         return yaml.safe_load("\n".join(lines))["CompileFlags"]["Remove"]
 
     def test_gcc_only_flags_are_removed(self):
-        for path in self.WEST_ONLY + self.HOST_BUILT + ["samples/hello_crux/src/main.c"]:
+        for path in self.WEST_ONLY + self.HOST_BUILT + ["samples/hello_crux/zephyr/src/main.c"]:
             with self.subTest(path=path):
                 self.assertLessEqual(GCC_ONLY_FLAGS, self.removed(path))
         self.assertEqual(set(self.repository_remove_list()), GCC_ONLY_FLAGS)
@@ -527,7 +527,7 @@ class ClangdTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("clangd") and (REPO / "build/native_sim/compile_commands.json").is_file(),
                          "needs clangd and a native_sim: Build")
     def test_clangd_accepts_a_native_sim_source(self):
-        result = subprocess.run(["clangd", "--check=samples/hello_crux/src/main.c"], cwd=REPO,
+        result = subprocess.run(["clangd", "--check=samples/hello_crux/zephyr/src/main.c"], cwd=REPO,
                                 capture_output=True, text=True, timeout=300)
         output = result.stdout + result.stderr
         self.assertNotIn("Unknown argument", output)

@@ -157,9 +157,9 @@ Choose the target with the Command Palette command **CMake: Set Debug Target**.
 Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.
 
 The build targets `run_time_shell` and `run_echo_client` run a Host sample.
-`samples/hello_crux/host` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
+`samples/hello_crux/linux` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
 
-**native_sim and the board.** CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux`.
+**native_sim and the board.** CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux/zephyr`.
 
 | Task | What it does |
 | --- | --- |

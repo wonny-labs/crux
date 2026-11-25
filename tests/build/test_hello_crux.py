@@ -38,17 +38,16 @@ class HelloCruxSourcesTest(unittest.TestCase):
                     self.assertNotRegex(text, r"CONFIG_CRUX_TIME|crux::time|CRUX_BUILD_TIME|crux/time\.h|Crux Time")
 
     def test_no_portable_source_remains(self):
-        self.assertFalse((SAMPLE / "src/hello_crux.c").exists())
-        self.assertFalse((SAMPLE / "src/hello_crux.h").exists())
+        self.assertFalse((SAMPLE / "common").exists())
 
     def test_both_compositions_link_crux_base(self):
-        for path in (SAMPLE / "CMakeLists.txt", SAMPLE / "host/CMakeLists.txt"):
+        for path in (SAMPLE / "zephyr/CMakeLists.txt", SAMPLE / "linux/CMakeLists.txt"):
             with self.subTest(path=path.relative_to(REPO).as_posix()):
                 self.assertRegex(path.read_text(), r"target_link_libraries\([^)]*crux::base")
 
     def test_each_main_prints_the_version_with_its_own_os_facility(self):
-        zephyr = (SAMPLE / "src/main.c").read_text()
-        host = (SAMPLE / "host/main.c").read_text()
+        zephyr = (SAMPLE / "zephyr/src/main.c").read_text()
+        host = (SAMPLE / "linux/main.c").read_text()
         for text in (zephyr, host):
             self.assertIn("#include <crux/version.h>", text)
             self.assertIn("CRUX_VERSION_STRING", text)
@@ -60,7 +59,7 @@ class HelloCruxSourcesTest(unittest.TestCase):
 @unittest.skipUnless(yaml, "PyYAML is required to parse sample.yaml")
 class HelloCruxTwisterTest(unittest.TestCase):
     def regexes(self):
-        sample = yaml.safe_load((SAMPLE / "sample.yaml").read_text())
+        sample = yaml.safe_load((SAMPLE / "zephyr/sample.yaml").read_text())
         return sample["tests"]["crux.sample.hello_crux"]["harness_config"]["regex"]
 
     def test_console_check_accepts_any_version_then_the_ready_line(self):
@@ -78,7 +77,7 @@ class HelloCruxHostProgramTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             program = Path(temporary) / "hello-crux-host"
             subprocess.run([compiler(), "-std=c17", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
-                            "-I", str(REPO / "components/base/include"), str(SAMPLE / "host/main.c"),
+                            "-I", str(REPO / "components/base/include"), str(SAMPLE / "linux/main.c"),
                             "-o", str(program)], check=True)
             output = subprocess.run([str(program)], check=True, capture_output=True, text=True).stdout
         version = re.search(r'#define CRUX_VERSION_STRING "([^"]+)"',
