@@ -18,8 +18,8 @@ import runpy
 # tests/time_periodic/{host,zephyr} and tests/board_images/integration_probe are legacy
 # native compositions/qualification fixtures, not portable consumers. Future application/runtime
 # consumers have no such exemption: classify a new provider deliberately.
-# The samples layout proposal (docs/plans/samples-layout-proposal.md) moves portable
-# sample code. Each path below exists in the tree.
+# samples/README.md ("Files inside a sample") defines the sample folders. Each path below
+# exists in the tree.
 PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
@@ -59,7 +59,8 @@ NETWORKING_HEADERS = {"sys/socket.h", "netinet/in.h", "arpa/inet.h", "poll.h",
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 # Direct references into implementation/provider/test trees cannot become public
 # contracts even if their basename looks portable. This does not follow includes.
-PRIVATE_INCLUDE_SEGMENTS = {"ports", "host", "zephyr", "board", "boards", "nxp", "vendor",
+# "zephyr" and "linux" also keep a sample's common/ out of its OS folders.
+PRIVATE_INCLUDE_SEGMENTS = {"ports", "host", "zephyr", "linux", "board", "boards", "nxp", "vendor",
                             "test", "tests", "private"}
 NATIVE_HEADER = re.compile(
     r"^(?:zephyr/|boards?/|board\.h$|nxp/|vendor/|fsl_|MIMXRT|cmsis|stm32|"
