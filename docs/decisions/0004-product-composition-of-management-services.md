@@ -1,4 +1,4 @@
-# ADR-0004: How a product composes the Crux management services (proposal)
+# ADR-0004: How a product composes the Crux management services
 
 Status: **Accepted** on 14 November 2026, as recommended: C1 to C9, with C8 deferred. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `a72032b2f29c8c4579de8de07a43b40f19bb9516`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session on 14 November 2026 (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended"). The scope for the product comes from the owner's decision in the Crux Controller chat on 14 November 2026 at about 16:30 UTC (also relayed): the management set plus the System service, HTTPS first on the Mbed profile, SSH and SFTP later on a manual job that publishes nothing. Excluded: Device I/O, the four frozen headers on the product surface, Reliance and eMMC, Linux and RT1170.
 

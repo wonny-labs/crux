@@ -5,10 +5,21 @@ name: psa-crypto
 # default workflow must not select the GPL stacks, so wolfPSA does not run here: see
 # docs/psa-crypto-qualification.md. It takes only the two Apache-2.0 option projects by name.
 
+# Documentation changes do not run it, except to a review record that the pin check reads.
 on:
   push:
     branches: [main]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**.md"
+      - "docs/dependency-review-*.md"
   pull_request:
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**.md"
+      - "docs/dependency-review-*.md"
   workflow_dispatch:
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.

@@ -24,6 +24,22 @@ jobs:
       CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
     steps:
       - uses: actions/checkout@v4
+      - name: Decide the scope of the run
+        id: scope
+        run: |
+          # A pull request that changes only documentation (docs/** and *.md) skips the C builds and
+          # the validations that read no documentation. Install host tools and tests/build still run:
+          # many tests there read the documentation. Pushes to main and manual runs are complete.
+          docs_only=false
+          if [ "${GITHUB_EVENT_NAME}" = pull_request ]; then
+            git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
+            changed="$(git diff --name-only --no-renames FETCH_HEAD HEAD)"
+            if [ -n "${changed}" ] && ! grep -q -v -E '^(docs/|.*\.md$)' <<<"${changed}"; then
+              docs_only=true
+            fi
+          fi
+          echo "docs_only=${docs_only}" >> "$GITHUB_OUTPUT"
+          echo "docs_only=${docs_only}"
       - name: Install host tools
         run: |
           sudo apt-get update
@@ -33,36 +49,50 @@ jobs:
             cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pyyaml==6.0.3
           echo "${RUNNER_TEMP}/crux-tools/bin" >> "$GITHUB_PATH"
       - name: Configure, build, and test
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/bootstrap-host.sh
       - name: Verify host checks with network dependency resolution disabled
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/check-host.sh
       - name: Verify host sanitizers
+        if: steps.scope.outputs.docs_only != 'true'
         run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
       - name: Validate Access on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-access.sh
       - name: Validate the command line on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-cli.sh
       - name: Validate the command line over SSH under ThreadSanitizer
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./tests/ssh/cli/test-thread-sanitizer.sh
       - name: Validate the credential store on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-credential.sh
       - name: Validate Security events on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-security-event.sh
       - name: Validate the status and configuration services on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-mgmt-services.sh
       - name: Validate the web contract on Host
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-web.sh host
       - name: Validate independent execution consumers and public boundaries
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers
+        if: steps.scope.outputs.docs_only != 'true'
         run: |
           cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build/file-consumers
           ctest --test-dir build/file-consumers --output-on-failure
       - name: Validate the File service on Host and its independent consumer
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-file-service.sh
 
       - name: Validate the independent controller timing consumer
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-messaging.sh --host-only
       - name: Check build provenance safeguards
         env:
@@ -70,24 +100,31 @@ jobs:
           CLANG_TIDY: clang-tidy-18
         run: python3 -m unittest discover -s tests/build -v
       - name: Test the power-cut wrapper with fake commands
+        if: steps.scope.outputs.docs_only != 'true'
         run: python3 -m unittest discover -s tests/power_cut -v
       - name: Check format
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/check-format.sh
       - name: Validate public Serial consumers
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-serial.sh --host-only
 
       - name: Validate public Logging consumers
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-logging.sh --host-only
 
       - name: Validate public System consumers
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/test-system.sh --host-only
 
       - name: Analyze host sources
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/analyze-host.sh
       - name: Check build boundaries
+        if: steps.scope.outputs.docs_only != 'true'
         run: ./scripts/check-dependencies.sh
       - name: Upload host test reports and raw logs
-        if: always()
+        if: always() && steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: host-${{ github.run_id }}-${{ github.run_attempt }}

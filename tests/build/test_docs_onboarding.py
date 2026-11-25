@@ -24,6 +24,8 @@ BOARD_PROCEDURE = (
     "host.docker.internal",
     "-localhostonly",
 )
+# The markers that the EVKB board page itself holds.
+EVKB_PAGE_MARKERS = tuple(marker for marker in BOARD_PROCEDURE if marker != "host.docker.internal")
 
 
 def read(path):
@@ -153,6 +155,8 @@ class BuildGuide(unittest.TestCase):
         self.assertIn("boards/mimxrt1060_evkb.md", section(text, "RT1060-EVKB debugging"))
         board = read(BOARDS / "mimxrt1060_evkb.md")
         self.assertIn("scripts/macos/start-jlink-gdbserver.command", board)
+        for marker in EVKB_PAGE_MARKERS:
+            self.assertIn(marker, board)
 
 
 class Guidelines(unittest.TestCase):
