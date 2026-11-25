@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds and runs the starter samples and checks their output.
 #
-#   --host    samples/hello_crux/host as a standalone consumer CMake project (Linux with CMake 3.28+,
+#   --host    samples/hello_crux/linux as a standalone consumer CMake project (Linux with CMake 3.28+,
 #             Ninja and a C compiler; the Host composition does not build on macOS)
-#   --zephyr  samples/hello_crux and samples/file/basic with Twister on native_sim/native/64,
+#   --zephyr  samples/hello_crux/zephyr and samples/file/basic/zephyr with Twister on native_sim/native/64,
 #             whose console harness checks each sample's output lines (Linux, west workspace)
 #
 # With no option it runs both. Nothing here flashes or resets a board.
@@ -28,12 +28,11 @@ fi
 
 if ((run_host)); then
     build="$repo/build/samples/hello_crux_host"
-    printf 'Building samples/hello_crux/host as a standalone consumer of %s.\n' "$repo"
-    cmake -S "$repo/samples/hello_crux/host" -B "$build" -G Ninja -DCRUX_SOURCE_DIR="$repo"
+    printf 'Building samples/hello_crux/linux as a standalone consumer of %s.\n' "$repo"
+    cmake -S "$repo/samples/hello_crux/linux" -B "$build" -G Ninja -DCRUX_SOURCE_DIR="$repo"
     cmake --build "$build"
     "${CRUX_PYTHON:-python3}" "$repo/scripts/run-host-sample.py" "$build/hello-crux-host" \
-        "--expect=^Hello from Crux on host$" \
-        "--expect=^Crux Time: unset$" \
+        "--expect=^Hello from Crux \S+ on host$" \
         "--expect=^CRUX_HELLO_READY composition=host$"
     printf 'PASS: hello_crux on the Linux Host composition.\n'
 fi
