@@ -149,6 +149,7 @@ VS Code in the Dev Container is the supported editor. clangd is the language ser
 
 [`.clangd`](../.clangd) gives the sources that only west builds the database `build/native_sim/compile_commands.json`, which **native_sim: Build** writes.
 The other sources, including Zephyr files that the Host tests also compile, use `build/clangd`.
+`.clangd` and the Dev Container's clangd user config remove the GCC-only options that Zephyr adds to `native_sim` builds, so clangd accepts that database for repository sources and for Zephyr's own headers.
 
 **Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
 **Build** builds the selected preset, the **Testing** view runs its CTest tests, and **Debug** starts the debug target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).

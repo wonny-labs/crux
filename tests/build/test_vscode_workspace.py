@@ -13,6 +13,8 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,6 +45,10 @@ USB_DEVICES = "/sys/bus/usb/devices"
 FLASH_COMMAND = "exec west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink"
 NATIVE_SIM_DATABASE = "build/native_sim"
 DEFAULT_DATABASE = "build/clangd"
+# GCC options that Zephyr adds to native_sim builds and that clang rejects or ignores.
+GCC_ONLY_FLAGS = {"-fno-reorder-functions", "-fno-defer-pop", "--param=min-pagesize=0",
+                  "-fno-freestanding", "-fno-printf-return-value"}
+CLANGD_USER_CONFIG = "/home/vscode/.config/clangd/config.yaml"
 # Dated pages record what was true when they were written; they keep the old names.
 DATED = ("docs/evidence/", "docs/history/", "docs/plans/", "docs/superpowers/", "docs/research/",
          "docs/decisions/", "docs/baseline.md")
@@ -461,27 +467,71 @@ class ClangdTest(unittest.TestCase):
 
     def test_fragments_use_only_documented_keys(self):
         self.assertTrue(self.fragments)
+        unconditional = []
         for fragment in self.fragments:
             self.assertLessEqual(set(fragment), {"If", "CompileFlags"})
-            self.assertEqual(set(fragment["CompileFlags"]), {"CompilationDatabase"})
+            if "If" in fragment:
+                self.assertEqual(set(fragment["CompileFlags"]), {"CompilationDatabase"})
+            else:
+                unconditional.append(fragment)
             for key, value in fragment.get("If", {}).items():
                 self.assertIn(key, {"PathMatch", "PathExclude"})
                 self.assertIsInstance(value, list)
                 for pattern in value:
                     re.compile(pattern)
+        # One fragment without a condition only removes flags, so it applies to every file.
+        self.assertEqual(len(unconditional), 1)
+        self.assertEqual(set(unconditional[0]["CompileFlags"]), {"Remove"})
 
-    def databases(self, path):
+    def matching(self, path):
         # Conditions are ANDed, the values of one condition ORed, and each regex must match the whole
         # path relative to the .clangd folder.
-        found = set()
         for fragment in self.fragments:
             condition = fragment.get("If", {})
             if "PathMatch" in condition and not any(re.fullmatch(p, path) for p in condition["PathMatch"]):
                 continue
             if any(re.fullmatch(p, path) for p in condition.get("PathExclude", [])):
                 continue
-            found.add(fragment["CompileFlags"]["CompilationDatabase"])
-        return found
+            yield fragment
+
+    def databases(self, path):
+        return {fragment["CompileFlags"]["CompilationDatabase"] for fragment in self.matching(path)
+                if "CompilationDatabase" in fragment["CompileFlags"]}
+
+    def removed(self, path):
+        return {flag for fragment in self.matching(path) for flag in fragment["CompileFlags"].get("Remove", [])}
+
+    def repository_remove_list(self):
+        return next(f for f in self.fragments if "If" not in f)["CompileFlags"]["Remove"]
+
+    def container_remove_list(self):
+        # The Dockerfile writes the clangd user config with printf, one quoted argument per line.
+        dockerfile = (DEVCONTAINER / "Dockerfile").read_text()
+        step = next(s for s in dockerfile.split("\nRUN ")[1:] if CLANGD_USER_CONFIG in s)
+        printf = step[step.index("printf '%s\\n'"):step.index(f"> {CLANGD_USER_CONFIG}")]
+        lines = shlex.split(printf.replace("\\\n", " "))[2:]
+        return yaml.safe_load("\n".join(lines))["CompileFlags"]["Remove"]
+
+    def test_gcc_only_flags_are_removed(self):
+        for path in self.WEST_ONLY + self.HOST_BUILT + ["samples/hello_crux/src/main.c"]:
+            with self.subTest(path=path):
+                self.assertLessEqual(GCC_ONLY_FLAGS, self.removed(path))
+        self.assertEqual(set(self.repository_remove_list()), GCC_ONLY_FLAGS)
+
+    def test_container_user_config_removes_the_same_flags(self):
+        # Zephyr headers sit outside the repository, where only the clangd user config applies.
+        self.assertEqual(self.container_remove_list(), self.repository_remove_list())
+        dockerfile = (DEVCONTAINER / "Dockerfile").read_text()
+        self.assertIn(f"chown -R vscode:vscode /home/vscode/.config", dockerfile)
+
+    @unittest.skipUnless(shutil.which("clangd") and (REPO / "build/native_sim/compile_commands.json").is_file(),
+                         "needs clangd and a native_sim: Build")
+    def test_clangd_accepts_a_native_sim_source(self):
+        result = subprocess.run(["clangd", "--check=samples/hello_crux/src/main.c"], cwd=REPO,
+                                capture_output=True, text=True, timeout=300)
+        output = result.stdout + result.stderr
+        self.assertNotIn("Unknown argument", output)
+        self.assertNotIn("drv_unknown_argument", output)
 
     def west_app_sources(self):
         # A folder with prj.conf is a west application root; the Host build compiles none of its

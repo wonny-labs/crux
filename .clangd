@@ -63,3 +63,14 @@ If:
     - tests/execution/src/posix\.c
 CompileFlags:
   CompilationDatabase: build/clangd
+---
+# Zephyr adds these GCC options to native_sim builds (zephyr/CMakeLists.txt,
+# cmake/compiler/gcc/compiler_flags.cmake); clang rejects or ignores them. The Dev Container's
+# clangd user config (.devcontainer/Dockerfile) removes the same list for Zephyr's own headers.
+CompileFlags:
+  Remove:
+    - -fno-reorder-functions
+    - -fno-defer-pop
+    - --param=min-pagesize=0
+    - -fno-freestanding
+    - -fno-printf-return-value
