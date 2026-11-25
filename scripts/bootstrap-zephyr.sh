@@ -45,8 +45,7 @@ if [[ "${1:-}" == "--install-sdk" ]]; then
     fi
     (cd "$workspace/zephyr" && west sdk install "${sdk_args[@]}")
 elif [[ $# -eq 0 ]]; then
-    printf 'SDK prerequisite: Zephyr SDK v1.0.1; arm-zephyr-eabi toolchain.\n'
-    printf 'After confirming storage headroom, run: scripts/bootstrap-zephyr.sh --install-sdk\n'
+    printf 'Next, with enough free disk, install the Zephyr SDK 1.0.1: scripts/bootstrap-zephyr.sh --install-sdk\n'
 else
     exit 0
 fi
