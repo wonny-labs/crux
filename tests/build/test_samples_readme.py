@@ -45,6 +45,17 @@ class SamplesReadme(unittest.TestCase):
                           if f not in self.listed and f.split("/")[0] not in self.listed)
         self.assertEqual([], unlisted)
 
+    def test_test_only_scenarios_and_board_images_live_in_the_test_guide(self):
+        # One home: the test guide lists them, the samples overview links there.
+        samples = (SAMPLES / "README.md").read_text(encoding="utf-8")
+        guide = (ROOT / "tests" / "README.md").read_text(encoding="utf-8")
+        self.assertNotIn("tests/board_images/", samples)
+        self.assertIn("../tests/README.md#test-only-scenarios-and-board-test-images", samples)
+        self.assertIn("\n## Test-only scenarios and board test images\n", guide)
+        for image in sorted(p.name for p in (ROOT / "tests" / "board_images").iterdir() if p.is_dir()):
+            with self.subTest(image=image):
+                self.assertIn(f"`tests/board_images/{image}/`", guide)
+
     def test_every_web_example_has_a_readme(self):
         examples = [p for p in (SAMPLES / "web").iterdir() if p.is_dir()]
         self.assertTrue(examples)

@@ -1,4 +1,4 @@
-# ADR-0006: How Crux handles its cryptographic dependencies over time (proposal)
+# ADR-0006: How Crux handles its cryptographic dependencies over time
 
 Status: **Accepted** on 14 November 2026, as recommended: Q1 to Q8. See [the owner's decisions](#the-owners-decisions). Baseline: `origin/main` at `8a6fc5a59142963ebe49d6d0041ad29c952f47d4`. Author: Claude Code, model `claude-sonnet-5-5`. The owner approved writing this proposal, and only the proposal, in the Crux Pilot main session chat on 14 November 2026 at about 18:37 UTC (relayed by that session as the words "추천대로 승인할게", meaning "I approve as you recommended", for the item it recommended: a short crypto dependency policy, to be written after the phase 0 and System proposals and allowed to start now). The question behind it came from the owner through the Crux Controller session: is wolfSSL used, and what does Crux do about Mbed TLS support ending in 2027?
 

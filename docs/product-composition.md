@@ -151,6 +151,8 @@ It compares commits resolved by git, so a tag and its commit are equal. The work
 
 A contract revision that cannot be resolved is an error, never `OK`, and `crux-override` does not excuse it. So a fork must contain the commit that Crux pins.
 
+Crux's own `west.yml` pins every project by full commit SHA, with any tag only in a comment, because `scripts/bootstrap-zephyr.sh` runs `west update --narrow`, which fetches no tags, and a tag in the contract would then not resolve with `git rev-parse`.
+
 A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected. The command uses no network, so it cannot see an upstream branch that moved after the last `west update`. A tag not yet fetched is treated the same way.
 
 Matching is by project name, so a module replaced under a new name reports `PRODUCT`. `OK` describes `HEAD` only, so a change applied to the checkout without a commit still reports `OK`; the build record refuses that checkout.
