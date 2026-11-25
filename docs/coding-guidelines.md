@@ -39,11 +39,11 @@ The rules follow Zephyr's [logging guide](https://docs.zephyrproject.org/latest/
 | Code | Output |
 | --- | --- |
 | Drivers | Zephyr `LOG_*`, one log module per driver ([driver rules](#rules-for-driver-and-adapter-code)). No `printk`, `printf` or Crux Logging |
-| Zephyr ports of Crux components (`components/*/ports/zephyr`) | Return a status. Use Zephyr `LOG_*` for a diagnostic only when one is needed. Add a per-component log level Kconfig symbol (`Kconfig.template.log_config`) when a port first logs, not in advance |
+| Zephyr ports of Crux components (`components/*/ports/zephyr`) | Return a status. Use Zephyr `LOG_*` for a diagnostic only when one is needed. Add a per-component log level Kconfig symbol (`Kconfig.template.log_config`) when a port first logs, not in advance. Never Crux Logging |
 | Portable Crux components (`components/*/src`) | Return a status. Use Crux Logging only when a log record is part of the component's contract, as for security events |
 | Product application | Zephyr `LOG_*` for diagnostics; `printk` for console lines that a person or a test harness reads |
 | Samples and tests | `printk` on Zephyr and `printf` on Linux, one call per checked line. A test-only line inside a port is compiled only in test builds |
-| The last message before a reset | `log_panic()` first (when `CONFIG_LOG` is set and not minimal), then the message, then the reset |
+| The last message before a reset | `log_panic()` first (when `CONFIG_LOG` is set and not minimal), then one `LOG_ERR`, then the reset; a `native_sim` test device whose line is a test oracle may use `printk`. Never Crux Logging |
 
 Crux Logging (`<crux/logging.h>`) is for portable code whose log record is part of its contract or that must log on both Linux Host and Zephyr.
 It has no console provider; console lines use `printk` or `printf`.

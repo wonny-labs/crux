@@ -54,6 +54,17 @@ class SampleLayoutTest(unittest.TestCase):
                 self.assertTrue((root / "README.md").is_file())
                 self.assertLessEqual({entry.name for entry in root.iterdir()}, ROOT_ENTRIES)
 
+    def test_relative_file_arguments_in_manifests_name_existing_files(self):
+        # Zephyr resolves a relative overlay or configuration file against the application folder.
+        argument = re.compile(r"[A-Z_]*(?:OVERLAY_FILE|CONF_FILE)=\"?(\.\.?/[^\"\s;]+)")
+        found = 0
+        for manifest in [p for name in ("sample.yaml", "testcase.yaml") for p in SAMPLES.rglob(name)]:
+            for path in argument.findall(manifest.read_text()):
+                found += 1
+                with self.subTest(manifest=rel(manifest), path=path):
+                    self.assertTrue((manifest.parent / path).is_file())
+        self.assertGreaterEqual(found, 1)
+
     def test_every_sample_manifest_sits_in_a_zephyr_folder(self):
         for manifest in manifests():
             with self.subTest(manifest=rel(manifest)):

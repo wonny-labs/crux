@@ -9,7 +9,7 @@ The compatibility tiers and change rules stay in [ADR-0001 Decision 4](0001-appl
 ## Context
 
 - Products pin Crux by full SHA, and a bot moves the pin ([Keeping the Crux pin current](../product-composition.md#keeping-the-crux-pin-current)).
-- Company copies of the repository carry no Git history, so neither tags nor `git describe` survive an export.
+- Exported copies of the repository carry no Git history, so neither tags nor `git describe` survive an export.
   The version must live in a checked-in file.
 - `west spdx` gives a Zephyr module only its Git revision, so the product's release step adds the Crux version to the SBOM ([SBOM](../product-composition.md#sbom)).
 - CMake `project(VERSION)` accepts only integer parts, with no pre-release suffix ([CMake `project()`](https://cmake.org/cmake/help/latest/command/project.html)).

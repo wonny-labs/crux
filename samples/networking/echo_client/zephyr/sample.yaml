@@ -23,4 +23,4 @@ tests:
   crux.sample.networking.echo_client:
     # The same network overlay that scripts/test-networking.sh passes; relative to this folder.
     extra_args:
-      - DTC_OVERLAY_FILE="../../boards/nxp/mimxrt1060_evk/common/network.overlay"
+      - DTC_OVERLAY_FILE="../../../boards/nxp/mimxrt1060_evk/common/network.overlay"
