@@ -139,6 +139,12 @@ class RunFromRepositoryRoot(unittest.TestCase):
 
 
 class GettingStarted(unittest.TestCase):
+    def test_wsl_section_turns_off_the_wayland_socket_mount(self):
+        body = section(read(DOCS / "getting-started.md"), "3. Windows with WSL2")
+        for needle in ("Dev › Containers: Mount Wayland Socket", "user settings", "wayland-0",
+                       "Dev Containers: Rebuild Container"):
+            self.assertIn(needle, body)
+
     def test_holds_no_board_procedure_and_links_the_board_pages(self):
         text = read(DOCS / "getting-started.md")
         for marker in BOARD_PROCEDURE:

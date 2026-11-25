@@ -156,7 +156,7 @@ board_host() {
     done <<<"$probes"
 
     if [ "$blocked" -ne 0 ]; then
-        printf 'Reattach the probe (usbipd detach, then usbipd attach --wsl --busid <BUSID>) or replug it, then run this again.\n' >&2
+        printf 'Reattach the probe (usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>) or replug it, then run this again.\n' >&2
         printf 'See docs/board-jlink-usbipd.md#if-a-step-fails.\n' >&2
         exit 1
     fi
@@ -273,7 +273,8 @@ run_step() {
     printf 'FAILED (exit %s)\n' "$status" >"$state/$name.status"
     rm -f "$(record_file "$name")"
     failed="$failed $name"
-    printf 'bootstrap: %s FAILED (exit %s). Log: %s. Rerun: %s\n' "$name" "$status" "$log" "$(rerun_hint "$name")" >&2
+    printf 'bootstrap: %s FAILED (exit %s). Log: %s. Rerun: %s. See docs/getting-started.md, section 6.\n' \
+        "$name" "$status" "$log" "$(rerun_hint "$name")" >&2
     if [ "$keep_going" -eq 0 ]; then
         exit 1
     fi

@@ -156,9 +156,10 @@ The other sources, including Zephyr files that the Host tests also compile, use 
 The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
 Run these commands from the Command Palette:
 
-1. Select the presets once: **CMake: Select Configure Preset**, **CMake: Select Build Preset** and **CMake: Select Test Preset**, each **Host Debug**.
-2. Run **CMake: Configure**, then **CMake: Build**, then **CMake: Run Tests**.
-3. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
+1. Run **CMake: Configure** and choose **Host Debug** if asked. In a new workspace the other CMake commands appear only after this first configure.
+2. Select **Host Debug** with **CMake: Select Build Preset** and **CMake: Select Test Preset**.
+3. Run **CMake: Build**, then **CMake: Run Tests**.
+4. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
 
 To run the time shell, pick `crux-time-host` with **CMake: Set Launch/Debug Target** and run **CMake: Run Without Debugging**.
 It runs in a terminal, which takes its commands; Ctrl+D ends it.

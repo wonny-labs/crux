@@ -206,7 +206,7 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
         # One line names the failure, its log and the rerun command; no list of causes.
         report = [line for line in result.stderr.splitlines() if line.startswith("bootstrap:")]
         self.assertEqual(report, [f"bootstrap: host FAILED (exit 7). Log: {self.cache / 'bootstrap' / 'host.log'}. "
-                                  "Rerun: scripts/bootstrap.sh host"])
+                                  "Rerun: scripts/bootstrap.sh host. See docs/getting-started.md, section 6."])
         self.assertIn("configuring the host build", (self.cache / "bootstrap" / "host.log").read_text())
 
     def test_keep_going_runs_the_rest_and_exits_zero(self):

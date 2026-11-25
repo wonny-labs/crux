@@ -66,6 +66,7 @@ Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reope
 - Clone inside the WSL2 file system, for example under `~/crux-workspace`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
 - Set `git config --global core.autocrlf false` in WSL2 before cloning. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
 - Start VS Code from WSL2 (`code ~/crux-workspace/crux-pilot`) with the Dev Containers extension, then reopen in the container.
+- In VS Code on Windows, turn off **Dev › Containers: Mount Wayland Socket** in your user settings (it cannot be set in the repository). The container needs no display, and with the setting on it can fail to start with `bind source path does not exist: /run/user/1000/wayland-0`; after turning it off, run **Dev Containers: Rebuild Container** once.
 - Give the WSL2 virtual machine more than the container limit (see section 5). Memory and processors for WSL2 are set in `%UserProfile%\.wslconfig`.
 
 ## 4. Network and proxy prerequisites
