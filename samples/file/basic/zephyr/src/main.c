@@ -6,7 +6,7 @@
 
 #define FILE_NAME "greeting.txt"
 
-static const char greeting[] = "Hello from Crux File API!";
+static const char greeting[] = "Hello from Crux File API";
 
 int main(void)
 {
