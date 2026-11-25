@@ -150,7 +150,8 @@ class SetupBoardHostTest(unittest.TestCase):
         result = self.run_script(CRUX_PLUGDEV_GID="99999")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("cannot open", result.stderr)
-        self.assertIn("--auto-attach", result.stderr)
+        self.assertIn("usbipd attach --wsl --busid", result.stderr)
+        self.assertNotIn("--auto-attach", result.stderr)
 
     def test_udevadm_failure_is_a_warning_and_the_node_decides(self):
         self.lsusb()

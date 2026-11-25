@@ -83,12 +83,11 @@ board_host() {
         cat >&2 <<'EOF'
 On WSL2, attach the probe from PowerShell on Windows, then run this script again:
 
-    usbipd attach --wsl --busid <BUSID> --auto-attach
+    usbipd attach --wsl --busid <BUSID>
 
-Keep that PowerShell window open: --auto-attach attaches the probe again when it
-re-enumerates, for example after a probe firmware update.
-`usbipd list` shows the BUSID of the J-Link (vendor ID 1366). It must be bound
-once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
+`usbipd list` shows the BUSID of the J-Link (vendor ID 1366). If its STATE is `Not shared`,
+bind it once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
+After a probe re-enumerates, for example after a firmware update, attach it again.
 On native Linux, plug the probe in.
 EOF
     }
@@ -169,8 +168,8 @@ EOF
 The container user can open the probe only if the node is 0666, or 0660 with
 group ID $plugdev_gid (plugdev in the container). Check that $rule_dst is
 installed and that udev runs, then detach and attach the probe again
-(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>
---auto-attach) or replug it. A probe that re-enumerated has a new node, which
+(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>)
+or replug it. A probe that re-enumerated has a new node, which
 on WSL2 may not get the rule (crw-rw-r-- root). \`getent group plugdev\` must show ID $plugdev_gid; if it does not,
 use MODE="0666" in your local copy of the rule.
 EOF

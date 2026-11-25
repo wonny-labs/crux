@@ -19,6 +19,11 @@ import tempfile
 import types
 import unittest
 
+try:
+    import yaml
+except ImportError:  # pragma: no cover - CI installs PyYAML
+    yaml = None
+
 REPO = Path(__file__).resolve().parents[2]
 VSCODE = REPO / ".vscode"
 DEVCONTAINER = REPO / ".devcontainer"
@@ -35,6 +40,9 @@ NATIVE_SIM_GDB_SCRIPT = VSCODE / "native_sim_debug.py"
 PROBE_MESSAGE = ("No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> "
                  "(Getting started, section 7).")
 USB_DEVICES = "/sys/bus/usb/devices"
+FLASH_COMMAND = "exec west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink"
+NATIVE_SIM_DATABASE = "build/native_sim"
+DEFAULT_DATABASE = "build/clangd"
 # Dated pages record what was true when they were written; they keep the old names.
 DATED = ("docs/evidence/", "docs/history/", "docs/plans/", "docs/superpowers/", "docs/research/",
          "docs/decisions/", "docs/baseline.md")
@@ -86,8 +94,57 @@ class TasksTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout + result.stderr, "")
 
-    def test_board_flash_checks_the_probe_first(self):
-        self.assertEqual(self.tasks["Board: Flash"]["dependsOn"], "Board: Check probe")
+    def test_board_flash_runs_the_probe_check_and_west_flash_in_one_process(self):
+        # VS Code still starts a task when a task in its dependsOn fails, so the check runs inside
+        # the Flash command; a failed check ends the process before west flash starts.
+        flash = self.tasks["Board: Flash"]
+        check = self.tasks["Board: Check probe"]
+        self.assertNotIn("dependsOn", flash)
+        self.assertEqual(flash["command"], "bash")
+        self.assertEqual(flash["args"][0], "-c")
+        self.assertEqual(len(flash["args"]), 2)
+        self.assertEqual(flash["args"][1], f"{check['args'][1]}; {FLASH_COMMAND}")
+        self.assertIn(PROBE_MESSAGE, flash["args"][1])
+
+    def run_flash(self, root, vendors):
+        devices = root / "devices"
+        devices.mkdir()
+        for number, vendor in enumerate(vendors):
+            (devices / f"1-{number}").mkdir()
+            (devices / f"1-{number}/idVendor").write_text(vendor + "\n")
+        stubs = root / "stubs"
+        stubs.mkdir()
+        log = root / "calls.log"
+        (stubs / "west").write_text(f'#!/bin/sh\necho "west $*" >> "{log}"\n')
+        (stubs / "west").chmod(0o755)
+        task = self.tasks["Board: Flash"]
+        arguments = [a.replace(USB_DEVICES, str(devices)) for a in task["args"]]
+        env = dict(os.environ, PATH=f"{stubs}:{os.environ['PATH']}")
+        result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True,
+                                env=env)
+        calls = log.read_text().splitlines() if log.exists() else []
+        return result, calls
+
+    def test_board_flash_without_a_probe_prints_one_line_and_does_not_flash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, calls = self.run_flash(Path(temporary), ["1d6b"])
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((result.stdout + result.stderr).splitlines(), [PROBE_MESSAGE])
+            self.assertEqual(calls, [])
+
+    def test_board_flash_with_a_probe_flashes_the_current_build(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, calls = self.run_flash(Path(temporary), ["1366"])
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink"])
+
+    def test_probe_tasks_do_not_echo_the_command_line(self):
+        # echo false hides VS Code's "Executing task" line; the task output still shows.
+        for label in ("Board: Flash", "Board: Check probe"):
+            with self.subTest(task=label):
+                presentation = self.tasks[label]["presentation"]
+                self.assertIs(presentation["echo"], False)
+                self.assertEqual(presentation["reveal"], "always")
 
     def test_check_probe_and_build_runs_the_check_then_board_build(self):
         task = self.tasks["Board: Check probe and build"]
@@ -108,10 +165,16 @@ class TasksTest(unittest.TestCase):
     def test_native_sim_build_reuses_one_build_folder(self):
         # -p auto makes the folder pristine when the sample or the board differs from the cached one
         # (Zephyr scripts/west_commands/build.py, _sanity_check).
+        # CONFIG_NO_OPTIMIZATIONS builds with -O0, which Zephyr's native_sim documentation recommends
+        # for debugging; the board tasks keep Zephyr's default size optimization.
         task = self.tasks["native_sim: Build"]
         self.assertEqual(task["command"], "west")
         self.assertEqual(task["args"], ["build", "-p", "auto", "-b", "native_sim/native/64",
-                                        "-d", "build/native_sim", "${input:sample}"])
+                                        "-d", "build/native_sim", "${input:sample}",
+                                        "--", "-DCONFIG_NO_OPTIMIZATIONS=y"])
+        for label in ("Board: Build", "Board: Flash"):
+            with self.subTest(task=label):
+                self.assertNotIn("OPTIMIZATIONS", json.dumps(self.tasks[label]))
 
     def test_native_sim_run_uses_the_build_folder_of_native_sim_build(self):
         task = self.tasks["native_sim: Run"]
@@ -263,6 +326,9 @@ class LaunchTest(unittest.TestCase):
         self.assertTrue(NATIVE_SIM_GDB_SCRIPT.is_file())
         # The script places the stop at the application main; stopping at entry would stop elsewhere.
         self.assertIs(profile["stopAtEntry"], False)
+        # The script's breakpoint is unknown to the C/C++ extension; "stop" reports it as a plain stop
+        # instead of "Exception has occurred" (cpptools package.json, unknownBreakpointHandling).
+        self.assertEqual(profile["unknownBreakpointHandling"], "stop")
 
     def test_board_profiles_check_the_probe_before_they_start(self):
         self.assertEqual(self.launch["Board: Debug"]["preLaunchTask"], "Board: Check probe and build")
@@ -367,6 +433,85 @@ class ContainerTest(unittest.TestCase):
         # The clangd extension warns while cpptools IntelliSense is on and offers this setting.
         self.assertEqual(load(VSCODE / "settings.json")["C_Cpp.intelliSenseEngine"], "disabled")
 
+    def test_cmake_tools_debug_stops_at_main(self):
+        # cmake.debugConfig passes cppdbg attributes to the CMake Tools Debug command.
+        self.assertEqual(load(VSCODE / "settings.json")["cmake.debugConfig"], {"stopAtEntry": True})
+
+
+@unittest.skipUnless(yaml, "PyYAML is required to parse .clangd")
+class ClangdTest(unittest.TestCase):
+    """Zephyr sources use the native_sim database, the others build/clangd (https://clangd.llvm.org/config)."""
+
+    # Files that the Host build compiles although they sit in a Zephyr-looking folder
+    # (root CMakeLists.txt, tests/{gpio,i2c,spi,networking,bench_first_account,time/busy_wait}).
+    HOST_BUILT = ["samples/time/shell/src/time_command.c", "samples/time/shell/host/main.c",
+                  "samples/hello_crux/host/main.c", "samples/networking/echo_client/common/client.c",
+                  "components/gpio/ports/zephyr/gpio_status.c", "components/i2c/ports/zephyr/i2c_status.c",
+                  "components/spi/ports/zephyr/spi_status.c", "components/time/ports/zephyr/busy_wait_zephyr.c",
+                  "tests/time/busy_wait/zephyr_shim/zephyr/kernel.h",
+                  "tests/zephyr/management_rt1060_compile/first_account/bench_first_account_provision.c",
+                  "tests/execution/src/posix.c"]
+    OTHER = ["components/time/src/busy_wait.c", "components/time/ports/linux/time_clock_linux.c",
+             "tests/time/busy_wait/zephyr_port_test.c", "tests/gpio/status_test.c"]
+    WEST_ONLY = ["components/time/ports/zephyr/time_clock_zephyr.c", "tests/execution/src/native.c", "zephyr/psa_threading/crux_tf_psa_threading.c",
+                 "tests/zephyr/management_rt1060_compile/report/bench_report_core.c"]
+
+    def setUp(self):
+        self.fragments = list(yaml.safe_load_all((REPO / ".clangd").read_text()))
+
+    def test_fragments_use_only_documented_keys(self):
+        self.assertTrue(self.fragments)
+        for fragment in self.fragments:
+            self.assertLessEqual(set(fragment), {"If", "CompileFlags"})
+            self.assertEqual(set(fragment["CompileFlags"]), {"CompilationDatabase"})
+            for key, value in fragment.get("If", {}).items():
+                self.assertIn(key, {"PathMatch", "PathExclude"})
+                self.assertIsInstance(value, list)
+                for pattern in value:
+                    re.compile(pattern)
+
+    def databases(self, path):
+        # Conditions are ANDed, the values of one condition ORed, and each regex must match the whole
+        # path relative to the .clangd folder.
+        found = set()
+        for fragment in self.fragments:
+            condition = fragment.get("If", {})
+            if "PathMatch" in condition and not any(re.fullmatch(p, path) for p in condition["PathMatch"]):
+                continue
+            if any(re.fullmatch(p, path) for p in condition.get("PathExclude", [])):
+                continue
+            found.add(fragment["CompileFlags"]["CompilationDatabase"])
+        return found
+
+    def west_app_sources(self):
+        # A folder with prj.conf is a west application root; the Host build compiles none of its
+        # files except the HOST_BUILT ones.
+        # Its host/ subfolders are Host builds.
+        sources = set()
+        for conf in list(REPO.glob("samples/**/prj.conf")) + list(REPO.glob("tests/**/prj.conf")):
+            for source in conf.parent.rglob("*.c"):
+                path = source.relative_to(REPO)
+                if "host" not in path.parts:
+                    sources.add(path.as_posix())
+        return sorted(sources - set(self.HOST_BUILT))
+
+    def test_listed_files_exist(self):
+        for path in self.HOST_BUILT + self.OTHER + self.WEST_ONLY:
+            with self.subTest(path=path):
+                self.assertTrue((REPO / path).is_file())
+
+    def test_west_application_sources_use_the_native_sim_database(self):
+        sources = self.west_app_sources()
+        self.assertGreater(len(sources), 100)
+        for path in sources + self.WEST_ONLY:
+            with self.subTest(path=path):
+                self.assertEqual(self.databases(path), {NATIVE_SIM_DATABASE})
+
+    def test_host_built_sources_use_build_clangd(self):
+        for path in self.HOST_BUILT + self.OTHER:
+            with self.subTest(path=path):
+                self.assertEqual(self.databases(path), {DEFAULT_DATABASE})
+
 
 class PresetNamesTest(unittest.TestCase):
     def test_display_names_use_ide_wording_without_a_language_standard(self):
@@ -399,6 +544,25 @@ class DocsTest(unittest.TestCase):
         section = section[:section.index("\n## ", 1)]
         for name in TASKS + PROFILES + ["host-debug", "host-sanitize", "CMake Tools", "Testing"]:
             self.assertIn(name, section)
+
+    def test_build_guide_describes_host_debug_and_optimization(self):
+        guide = (REPO / "docs/build.md").read_text()
+        section = guide[guide.index("\n## VS Code\n"):]
+        section = section[:section.index("\n## ", 1)]
+        for text in ("CMake: Set Debug Target", "cmake.debugConfig", "-O0", "-Os", "CONFIG_NO_OPTIMIZATIONS",
+                     "unknownBreakpointHandling", "build/native_sim/compile_commands.json"):
+            self.assertIn(text, section)
+        self.assertNotIn("status bar", section)
+
+    def test_board_route_fixes_a_stale_probe_after_reattaching(self):
+        page = (REPO / "docs/board-jlink-usbipd.md").read_text()
+        section = page[page.index("\n## If a step fails\n"):]
+        section = section[:section.index("\n## ", 1)]
+        for text in ("lsusb -d 1366:", "usbipd detach --busid <BUSID>", "wsl --shutdown",
+                     "usbipd attach --wsl --busid <BUSID>"):
+            self.assertIn(text, section)
+        tutorial = (REPO / "docs/tutorial.md").read_text()
+        self.assertIn("(board-jlink-usbipd.md#if-a-step-fails)", tutorial)
 
     def test_no_current_page_names_a_deleted_task(self):
         pages = [p for p in REPO.rglob("*.md")
