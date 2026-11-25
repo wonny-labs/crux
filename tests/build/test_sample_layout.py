@@ -120,6 +120,10 @@ class SampleLayoutTest(unittest.TestCase):
         self.assertTrue(common)
         self.assertEqual(sorted(rel(p) for p in common if p not in scanned), [])
 
+    def test_native_interface_check_keeps_common_out_of_os_folders(self):
+        segments = runpy.run_path(str(CHECKER))["PRIVATE_INCLUDE_SEGMENTS"]
+        self.assertLessEqual({"zephyr", "linux"}, segments)
+
     def test_no_include_folder_in_samples(self):
         folders = [rel(p) for p in SAMPLES.rglob("include")
                    if p.is_dir() and not exempt(p) or (p.is_dir() and SAMPLES / "boards" in p.parents)]
