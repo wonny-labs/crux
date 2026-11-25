@@ -327,7 +327,7 @@ class ScriptTest(unittest.TestCase):
 
 class SimulatedWatchdogSourceTest(unittest.TestCase):
     """The simulated watchdog's last line before the reset survives deferred logging (coding guidelines,
-    Output and logging): log_panic() first, under the guard the real reset path uses, then the line of
+    Logging): log_panic() first, under the guard the real reset path uses, then the line of
     GOOD_RUN, then sys_reboot."""
 
     SOURCE = REPO / "components/system/ports/zephyr/system_sim_watchdog.c"

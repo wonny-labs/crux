@@ -53,7 +53,7 @@ The colleague's central point: **no general advantage over a well-structured Zep
 | One composition target: `crux::file_zephyr` (Zephyr), with a negative boundary test: `tests/build/test_file_zephyr_boundary.py`. **Amended on 25 November 2026:** the Linux Host target `crux::queue_linux` was removed with Crux Queue | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
 | A product-shaped consumer that already uses three checked trees | `crux-controller`, see [Crux today](../research/app-boundary-and-api-stability.md#crux-today) |
 | Version rules before `v1`, and a provisional compatibility table | [Versions](../product-composition.md#versions), [Compatibility table](../compatibility-table.md) |
-| `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-consistency) |
+| `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-design) |
 
 **What is missing.**
 
