@@ -200,9 +200,8 @@ This example shows how an external consumer selects components and links their
 targets. It is not a model for new product code: Thread, Sync and Serial are
 frozen for new product code, so a new product uses Zephyr threads and message queues
 in its own Zephyr code (see [Choosing an API](choosing-an-api.md)). Existing users
-keep working, and the build mechanics below are unchanged. Crux Queue was removed on
-20 November 2026; a message queue is Zephyr's `k_msgq` (see the
-[messaging contract](messaging-contract.md) for the migration note).
+keep working, and the build mechanics below are unchanged. A message queue is Zephyr's `k_msgq`
+([messaging contract](messaging-contract.md)).
 
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
@@ -302,7 +301,7 @@ Each selection is a CMake cache variable; `cmake -LH <build-dir>` lists the sele
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
-No capability exposes a Linux composition-only target since Crux Queue and its `crux::queue_linux` alias were removed (20 November 2026); setting `CRUX_BUILD_QUEUE` stops the configure with a pointer to Zephyr `k_msgq`. Providers have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
+No capability exposes a Linux composition-only target; setting `CRUX_BUILD_QUEUE` stops the configure with a pointer to Zephyr `k_msgq`. Providers have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
 The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
@@ -322,7 +321,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux Queue was removed. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |
+| `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux has no queue API. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |

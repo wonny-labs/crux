@@ -50,7 +50,7 @@ The colleague's central point: **no general advantage over a well-structured Zep
 | --- | --- |
 | The native-free consumer policy: portable application logic uses public Crux targets and qualified standard APIs; native providers and platform composition use Zephyr | [Native-free consumer policy](../native-interface-policy.md), adopted under Issue #24 |
 | Lexical and build-graph checks of that policy on Crux's own trees | `scripts/check-native-interfaces.py`, `cmake/CruxConsumerBoundary.cmake` |
-| Two composition targets: `crux::file_zephyr` (Zephyr) and `crux::queue_linux` (Linux Host). Each has a negative boundary test: `tests/build/test_file_zephyr_boundary.py` and `tests/build/test_consumer_boundary.py:99` | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
+| One composition target: `crux::file_zephyr` (Zephyr), with a negative boundary test: `tests/build/test_file_zephyr_boundary.py`. **Amended on 25 November 2026:** the Linux Host target `crux::queue_linux` was removed with Crux Queue | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
 | A product-shaped consumer that already uses three checked trees | `crux-controller`, see [Crux today](../research/app-boundary-and-api-stability.md#crux-today) |
 | Version rules before `v1`, and a provisional compatibility table | [Versions](../product-composition.md#versions), [Compatibility table](../compatibility-table.md) |
 | `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-consistency) |
@@ -153,7 +153,7 @@ This refines the existing roles in the [architecture](../architecture.md#archite
 | 5 | It may include a Zephyr header or name a Zephyr type, such as `const struct device *`, only where the binding needs one. `<crux/file_zephyr.h>` needs none. | New. Composition code is Zephyr code already, so passing a device is more honest than inventing an identifier |
 | 6 | It follows the same stability tiers as any public interface ([Decision 4](#decision-4-api-stability-and-change-policy)). A change forced by a Zephyr baseline move is listed as a breaking change | New |
 
-Rules 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::queue_linux`, which name `linux` in place of `zephyr`. Rule 2 does not. On Linux Host no Kconfig selects a provider, so the composition target is the provider itself: `crux::queue_linux` is an alias of the static provider library `crux_queue_linux`. Its negative test covers the direct link and the transitive wrappers. No test runs the usage check on it, because the identity check rejects it first.
+Rules 3, 4 and 6 also cover the Linux Host composition targets, which name `linux` in place of `zephyr`. Rule 2 does not. On Linux Host no Kconfig selects a provider, so the composition target is the provider itself. **Amended on 25 November 2026:** the example `crux::queue_linux` was removed with Crux Queue, and no Linux Host composition target exists ([Composition interface rules](../composition-interfaces.md#linux-host-composition-targets)).
 
 Rule 1 extends the placement that the [File root binding](../file-composition-interface.md#decisions-taken) justified for one header (its decision 5) to every composition interface. [CONTRIBUTING](../../CONTRIBUTING.md#public-headers-and-module-dependencies) places public headers in a component's `include/crux/`. Whether CONTRIBUTING should name this second location is a follow-up. CONTRIBUTING is a protected path, so that change needs the owner's approval.
 
@@ -176,7 +176,7 @@ A pass-through to a Zephyr driver API fails the first condition.
 | --- | --- |
 | Management services: Access, command line, web, SSH and SFTP adapters, credential store, security events, the status, configuration, network settings and reboot services | Policy and integration that Zephyr does not provide as a unit, and that each product would otherwise write and secure again |
 | Configuration and File service policy, health supervision and watchdog policy, time authority | Policy above Zephyr's mechanisms |
-| Time, Thread, Sync, Queue, Logging, File, Configuration with Host providers | Bounded contracts that let domain logic run on Linux Host. These are thin over the Zephyr kernel, so this justification is the one the [experiment](#decision-5-crux-value-and-the-evidence-that-would-show-it) measures |
+| Time, Thread, Sync, Logging, File, Configuration with Host providers | Bounded contracts that let domain logic run on Linux Host. These are thin over the Zephyr kernel, so this justification is the one the [experiment](#decision-5-crux-value-and-the-evidence-that-would-show-it) measures. **Amended on 25 November 2026:** Queue is no longer listed; it was removed ([messaging contract](../messaging-contract.md)) |
 | Qualified standard profiles, such as Sockets | A documented subset, with no wrapper |
 | Composition interfaces | The binding route of Decision 2 |
 | Product composition: the importable manifest, `west crux-pins`, the baseline gate, provenance and the release bundle | Delivery tooling that a plain Zephyr application does not have |

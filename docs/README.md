@@ -38,7 +38,7 @@ A contract page defines one component's public behaviour, its limits and its val
 | Area | Pages |
 | --- | --- |
 | Time | [Time contract](time-contract.md), [CPU busy-wait](time-busy-wait.md) |
-| Execution and messaging | [Thread and Sync](thread-sync.md), [event and queue](messaging-contract.md) and its [validation](messaging-validation.md) |
+| Execution and messaging | [Thread and Sync](thread-sync.md), [messaging](messaging-contract.md) and its [validation](messaging-validation.md) |
 | Communication and networking | [Serial](serial-contract.md), [serial validation](serial-validation.md), [networking](networking-contract.md) |
 | Storage and configuration | [File](file-contract.md), [Configuration](configuration-contract.md), [File root binding](file-composition-interface.md), [microSD composition](microsd-composition.md), [eMMC on Reliance Edge](emmc-reliance-composition.md) |
 | Diagnostics and system | [Logging](logging-contract.md), [system health and reset](system-validation.md) |

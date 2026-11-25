@@ -35,7 +35,7 @@ and changes none of its rules or checks. It prescribes no directory layout and a
 policy run on Crux's own trees as before. A product's own checks, an include check and a Host build of the domain, are
 the product's. The product template carries an example of the include check, for its domain, and does not carry a Host build script.
 
-**Frozen interfaces.** Thread, Sync and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). Queue was frozen too and was removed on 20 November 2026, with its `crux::queue_linux` composition target. The freeze adds no check to this policy, and existing consumers and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
+**Frozen interfaces.** Thread, Sync and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). Crux has no queue API ([messaging contract](messaging-contract.md)). The freeze adds no check to this policy, and existing consumers and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
 
 The ADR names three layers for product code. Each maps onto a role of the dependency policy:
 
@@ -123,8 +123,7 @@ roots, child paths, compound flag strings, include paths and link options remain
 subject to the existing native checks. `test_real_messaging_facades_preserve_selected_toolchain_flags`
 in `tests/build/test_consumer_boundary.py` covers this distinction for the Thread and Sync facades
 with a mocked Zephyr toolchain, and the Zephyr module's deferred usage checks apply it in every
-Zephyr build. The combined Queue consumer probes that also covered it on native_sim and EVKB were
-removed with Crux Queue.
+Zephyr build.
 
 ### Scoped #28 integration
 
@@ -251,8 +250,7 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final application executables declare
-the used public capabilities. No Linux composition-only target exists since `crux::queue_linux` was
-removed with Crux Queue (20 November 2026). This does not inspect all provider-private requirements
+the used public capabilities. No Linux composition-only target exists. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
 
