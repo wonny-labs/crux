@@ -42,7 +42,7 @@ features, bootloader customisation, upstream source changes, and adoption of a
 manifest change, Flash layout or bootloader.
 
 Many controller designs execute the application from external SDRAM loaded
-from block storage and boot from eMMC. The pilot does not validate these paths.
+from block storage and boot from eMMC. Crux does not validate these paths.
 The investigation keeps them open by avoiding choices that would rule them out,
 and evaluates a close analogue on the evaluation kit where one is cheap: MCUboot
 RAM load for SDRAM execution, and microSD on uSDHC for eMMC.

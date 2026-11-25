@@ -14,7 +14,7 @@
  *
  * Malformed arguments are refused first, then a store that has not started, then an unusable one.
  *
- * On the pilot basis the store is not confidential against someone who can read the medium and the
+ * On the planned basis the store is not confidential against someone who can read the medium and the
  * chip ID. See docs/credential-store.md.
  */
 #ifndef CRUX_CREDENTIAL_ADAPTER_H

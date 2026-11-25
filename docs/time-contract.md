@@ -2,7 +2,7 @@
 
 Time provides typed clocks, authority state and Gregorian UTC conversion. The
 [accepted redesign](superpowers/specs/2026-10-25-time-redesign.md) replaces the
-original Pilot's whole-second RTC-backed get/set contract. The initial plan and
+original Time Pilot's whole-second RTC-backed get/set contract. The initial plan and
 [baseline](baseline.md) retain historical evidence; those physical results do
 not qualify this redesigned API or its native system realtime implementation.
 

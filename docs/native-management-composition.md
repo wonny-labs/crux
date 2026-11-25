@@ -274,7 +274,7 @@ The same run does not show: a client over HTTP, power loss, a real card, or entr
 | --- | --- |
 | Entropy | **Test-only.** `fake_entropy_native_sim`, which `composition.cmake` requires, so that a change needs review. Any key here repeats for the same seed. The private keys these runs generate are test keys, and they appear only in the file on the host. |
 | Credential confidentiality | **Simulation.** The device key comes from a 4-byte identifier that `--device_id` or `gethostid()` sets. It is not secret on `native_sim`, and it is not secret on a target either. `status` reports `device_id_key`, `software`, not confidential. |
-| The disk | A file on the host, and it belongs to the test, so the composition formats a blank one. The pilot's composition does not: a blank card reads `UNUSABLE`. |
+| The disk | A file on the host, and it belongs to the test, so the composition formats a blank one. A board composition does not: a blank card reads `UNUSABLE`. |
 
 ### Locks on the Mbed profile
 

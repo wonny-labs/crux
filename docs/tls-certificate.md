@@ -267,7 +267,7 @@ certificate a user has accepted is **not tested**, because no browser ran. A com
 
 | Where | Form | Who can reach it |
 | --- | --- | --- |
-| Credential store, `TLS_KEY` record | 32-byte scalar, sealed with the image | The store's adapter, linked privately. On the pilot basis someone with the medium and the chip ID can read it, as the [store declares](credential-store.md#limits). |
+| Credential store, `TLS_KEY` record | 32-byte scalar, sealed with the image | The store's adapter, linked privately. On the planned basis someone with the medium and the chip ID can read it, as the [store declares](credential-store.md#limits). |
 | This module's RAM | One PKCS #8 copy of 138 bytes, for the life of the program | The TLS stack, through the material, which the product's registration code takes with `crux_tls_certificate_material_take()` (ADR-0004 C4, A1), and the signature port. The copy read from the store is cleared at once. |
 | Zephyr TLS credentials | A pointer to that copy | The socket backend, which parses it per connection |
 | Signature port | The scalar, for one signature | PSA imports it into a volatile key slot, signs and destroys the slot |

@@ -1,4 +1,4 @@
-# Crux Pilot architecture
+# Crux architecture
 
 This document explains the architecture implemented in `crux-pilot` so that developers can understand the component boundaries and extend the code without access to a separate planning repository. It is an implementation overview, not a complete product architecture or a replacement for individual API contracts.
 
