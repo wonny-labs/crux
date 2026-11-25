@@ -6,13 +6,14 @@ A decision record holds one platform-wide decision that stays in force: its cont
 
 | # | Title | Status |
 | --- | --- | --- |
-| [0001](0001-application-boundary-and-api-stability.md) | Application boundary and public API stability | Accepted, D10 phase 1 only. Amended by ADR-0002 |
+| [0001](0001-application-boundary-and-api-stability.md) | Application boundary and public API stability | Accepted, D10 phase 1 only. Amended by ADR-0002 and ADR-0008 |
 | [0002](0002-platform-direction-zephyr-execution-crux-services.md) | Platform direction: Zephyr for execution, Crux for services | Accepted, 13 November 2026. Amended by ADR-0003 |
 | [0003](0003-p9-result-services-keep-narrow-thread-sync.md) | P9 result: services keep a narrow Crux Thread and Sync | Accepted, 14 November 2026 |
 | [0004](0004-product-composition-of-management-services.md) | How a product composes the Crux management services | Accepted, 14 November 2026, as recommended (C8 deferred) |
 | [0005](0005-native-sim-test-watchdog-for-system-consumers.md) | How a consumer composes the Crux System service on native_sim with a test watchdog | Accepted, 14 November 2026, as recommended (S1 to S9) |
 | [0006](0006-cryptographic-dependency-policy.md) | How Crux handles its cryptographic dependencies over time | Accepted, 14 November 2026, as recommended (Q1 to Q8) |
 | [0007](0007-west-flash-and-debug-for-people-and-automation.md) | Zephyr's west flash and west debug for people and automation | Accepted, 21 November 2026, with conditions W1 to W3 |
+| [0008](0008-versioning-and-release-rules.md) | Crux versioning and release rules | Accepted, 25 November 2026, as recommended (O2 to O8) |
 
 ## Convention
 

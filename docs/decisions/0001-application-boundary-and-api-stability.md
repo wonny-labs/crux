@@ -1,6 +1,6 @@
 # ADR-0001: Application boundary and public API stability
 
-Status: **Accepted**, with D10 limited to phase 1 (Host and `native_sim`, no hardware). **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md).** The decided outcomes are listed under [Owner decisions](#owner-decisions).
+Status: **Accepted**, with D10 limited to phase 1 (Host and `native_sim`, no hardware). **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0008](0008-versioning-and-release-rules.md).** The decided outcomes are listed under [Owner decisions](#owner-decisions).
 
 Each decision that this record puts into effect is its own change, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
 
@@ -306,7 +306,7 @@ The rule in [Versions](../product-composition.md#versions) stays as it is:
 
 - `v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes.
 - It makes no compatibility promise.
-- A Zephyr baseline move or a change to a pinned module raises `y`.
+- A Zephyr baseline move or a change to a pinned module raises `y`. **Amended on 25 November 2026** by [ADR-0008](0008-versioning-and-release-rules.md) O5: a pin move within a module's own patch line is allowed in a `z` release.
 
 [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages) asks for a `BREAKING CHANGE:` footer, which does not by itself set a version.
 
