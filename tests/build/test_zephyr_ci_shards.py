@@ -10,6 +10,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 ZEPHYR = REPO / ".github/workflows/zephyr.yml"
+PSA_CRYPTO = REPO / ".github/workflows/psa-crypto.yml"
 HOST = REPO / ".github/workflows/host.yml"
 DOCS_ONLY = ["docs/**", "**.md"]
 # Steps that run in every shard: they prepare the runner or collect what the shard produced.
@@ -191,6 +192,12 @@ class ZephyrShardsTest(unittest.TestCase):
             with self.subTest(step=step["title"]):
                 path = re.search(r"^\s+path: (.+)$", step["text"], re.MULTILINE).group(1)
                 self.assertNotIn("..", path)
+
+    def test_psa_crypto_workflow_skips_documentation(self):
+        psa = PSA_CRYPTO.read_text()
+        for event in ("push", "pull_request"):
+            with self.subTest(event=event):
+                self.assertEqual(DOCS_ONLY, paths_ignore(psa, event))
 
     def test_host_workflow_still_runs_for_documentation(self):
         # tests/build reads documentation, so one workflow must keep running on such changes.
