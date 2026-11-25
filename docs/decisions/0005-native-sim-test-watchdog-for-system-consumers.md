@@ -1,4 +1,4 @@
-# ADR-0005: How a consumer composes the Crux System service on native_sim with a test watchdog (proposal)
+# ADR-0005: How a consumer composes the Crux System service on native_sim with a test watchdog
 
 Status: **Accepted**, as recommended: S1 to S9, listed under [Decided](#the-owners-decisions). The T4 row of section 4 was later amended in place to match the S6 guard rule. Route A and the Crux-side follow-ups are implemented, see [Follow-up changes](#follow-up-changes).
 

@@ -21,7 +21,6 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "docs_page_types.json"
 BOARD_PROCEDURE = (
     "start-jlink-gdbserver",
     "JLinkGDBServer",
-    "host.docker.internal",
     "-localhostonly",
 )
 
@@ -153,6 +152,8 @@ class BuildGuide(unittest.TestCase):
         self.assertIn("boards/mimxrt1060_evkb.md", section(text, "RT1060-EVKB debugging"))
         board = read(BOARDS / "mimxrt1060_evkb.md")
         self.assertIn("scripts/macos/start-jlink-gdbserver.command", board)
+        for marker in BOARD_PROCEDURE:
+            self.assertIn(marker, board)
 
 
 class Guidelines(unittest.TestCase):

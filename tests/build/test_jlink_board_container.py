@@ -207,7 +207,9 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertEqual(profile["executable"], self.ELF)
         args = profile["serverArgs"]
         self.assertEqual(args[args.index("-speed") + 1], "auto")
-        self.assertNotIn("host.docker.internal", json.dumps(profile))
+        # Cortex-Debug starts the J-Link GDB Server in the container over USB. A gdbTarget or a
+        # J-Link ipAddress would send GDB to a server elsewhere, such as one on the host.
+        self.assertFalse({"gdbTarget", "ipAddress"} & profile.keys())
 
     def test_flash_profile_builds_downloads_and_runs_to_main(self):
         flash = self.launch["Board: Debug"]

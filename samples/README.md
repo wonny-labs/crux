@@ -33,29 +33,7 @@ Start with the [Tutorial](../docs/tutorial.md). Threads and synchronization have
 | `boards/nxp/mimxrt1060_evk/sd_card_file/` | Board-only application | Files on the board's microSD card through the Crux File API, with FatFs. Link only. See its [README](boards/nxp/mimxrt1060_evk/sd_card_file/README.md) |
 | `web/angular/`, `web/preact/` | Web front end | Browser examples of the management API ([Preact](web/preact/README.md), [Angular](web/angular/README.md)); the [web guide](../web/README.md) describes them |
 
-Scenarios that only a test compiles live with that test, not under `samples/`:
-
-| Folder | What compiles and runs it |
-| --- | --- |
-| `tests/system_consumer/scenario/` | A controller system-health scenario, compiled by `tests/system_consumer`, which `scripts/test-system.sh` runs |
-| `tests/configuration/controller_scenario.c` | A controller configuration scenario, compiled by the Host test `tests/configuration`, which `scripts/check-host.sh` runs |
-| `tests/messaging_consumer/scenario/` | A bounded controller timing scenario, built and run by `scripts/test-messaging.sh` through `tests/messaging_consumer` |
-| `tests/logging_consumer/scenario/`, `tests/serial_consumer/scenario/` | Compiled by `tests/logging_consumer` and `tests/serial_consumer`, which `scripts/test-logging.sh` and `scripts/test-serial.sh` run; `scripts/check-native-interfaces.py` checks their includes |
-| `tests/web/project_sample/project/` | A project's own page and API route beside the management routes. The Host test `tests/web/project_sample` (CTest `Web.project_sample`, run by `scripts/check-host.sh`) compiles it, and `tests/build/test_project_sample.py` checks it |
-
-### Board test images
-
-Probe, power-cut and Flash safety images test a board or a procedure; they teach no single thing, so they live under
-`tests/board_images/`, not under `samples/`:
-
-| Folder | Twister ids |
-| --- | --- |
-| [`tests/board_images/sd_card_power_cut_append/`](../tests/board_images/sd_card_power_cut_append/README.md) | `crux.file.sd_card_power_cut_append` and `.test` |
-| [`tests/board_images/sd_card_power_cut_replace/`](../tests/board_images/sd_card_power_cut_replace/README.md) | `crux.file.sd_card_power_cut_replace` and `.test` |
-| [`tests/board_images/sd_card_probe/`](../tests/board_images/sd_card_probe/README.md) | `crux.file.sd_card_probe` and `.stack`, `.removal` |
-| [`tests/board_images/sd_card_power_cut_sequence/`](../tests/board_images/sd_card_power_cut_sequence/README.md) | `crux.file.sd_card_power_cut_sequence` and `.start`, `.append`, `.replace`, `.format`, `.native`, `.native.start`, `.native.append`, `.native.replace`, `.native.format` |
-| [`tests/board_images/flash_safety_check/`](../tests/board_images/flash_safety_check/README.md) | none: `scripts/test-flash-safety-check.sh` builds and inspects it and never programs it |
-| [`tests/board_images/integration_probe/`](../tests/board_images/integration_probe/README.md) | The EVKB device, network and integrated images; see its README |
+Scenarios that only a test compiles, and the board test images, live under `tests/`: see [Test-only scenarios and board test images](../tests/README.md#test-only-scenarios-and-board-test-images).
 
 ## Run every runnable sample
 

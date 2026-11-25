@@ -227,7 +227,7 @@ ctest --test-dir build/file-consumers --output-on-failure
 | `tests/native/file_sd_probe`, `file_sd_interrupt`, `file_sd_replace`, `file_sd_settings_recover` | storage gate | The logic and host scripts of the physical-gate board images `tests/board_images/sd_card_*`, and the Settings File recovery step, against scripted boards and a RAM disk; the images are only linked in CI | [power cut](../docs/evidence/microsd-power-cut/README.md), [replace cut](../docs/evidence/microsd-replace-cut/README.md) |
 | `tests/native/configuration_settings_file` | storage gate | The Zephyr Settings File backend on a FatFs RAM disk with injected I/O faults, on build-local corrected copies of three backend sources; a control on the unpatched backend must fail the cases that expose its defects | [Configuration qualification](../docs/configuration-validation.md) |
 
-A remount inside one process and a simulated cut are not persistence or power-loss evidence about a card. The sample and the board images that these suites cover are in the [samples overview](../samples/README.md).
+A remount inside one process and a simulated cut are not persistence or power-loss evidence about a card. The sample that these suites cover is in the [samples overview](../samples/README.md), and the board images are in [Test-only scenarios and board test images](#test-only-scenarios-and-board-test-images).
 
 ### eMMC simulator on `native_sim`
 
@@ -340,6 +340,30 @@ The runners below need the optional `crux-secure-management` west group, and no 
 | `tests/native/management_ssh` | The services image with the wolfSSH provider beside the HTTPS listener (Wolf profile only), driven by OpenSSH and curl; see [the integrated image](../docs/ssh-integrated-image.md) |
 
 `scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them; `e2e-mbed` and `e2e-wolf` run `server_checks.py` and the browser cases of `web/e2e`. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group and runs locally. `mbed` and `wolf` also build the services image and check it with `scripts/check-composition-image.py --services`. `target-*` only compiles. `scripts/test-ssh-integrated.sh [guards|build|controls|run|all]` builds and drives the SSH image and needs the same group. See the [composition](../docs/native-management-composition.md).
+
+## Test-only scenarios and board test images
+
+A scenario that only a test compiles lives with that test, not under `samples/`:
+
+| Folder | What compiles and runs it |
+| --- | --- |
+| `tests/system_consumer/scenario/` | A controller system-health scenario, compiled by `tests/system_consumer`, which `scripts/test-system.sh` runs |
+| `tests/configuration/controller_scenario.c` | A controller configuration scenario, compiled by the Host test `tests/configuration`, which `scripts/check-host.sh` runs |
+| `tests/messaging_consumer/scenario/` | A bounded controller timing scenario, built and run by `scripts/test-messaging.sh` through `tests/messaging_consumer` |
+| `tests/logging_consumer/scenario/`, `tests/serial_consumer/scenario/` | Compiled by `tests/logging_consumer` and `tests/serial_consumer`, which `scripts/test-logging.sh` and `scripts/test-serial.sh` run; `scripts/check-native-interfaces.py` checks their includes |
+| `tests/web/project_sample/project/` | A project's own page and API route beside the management routes. The Host test `tests/web/project_sample` (CTest `Web.project_sample`, run by `scripts/check-host.sh`) compiles it, and `tests/build/test_project_sample.py` checks it |
+
+Probe, power-cut and Flash safety images test a board or a procedure.
+They teach no single thing, so they live under `tests/board_images/`, not under `samples/`:
+
+| Folder | Twister ids |
+| --- | --- |
+| [`tests/board_images/sd_card_power_cut_append/`](board_images/sd_card_power_cut_append/README.md) | `crux.file.sd_card_power_cut_append` and `.test` |
+| [`tests/board_images/sd_card_power_cut_replace/`](board_images/sd_card_power_cut_replace/README.md) | `crux.file.sd_card_power_cut_replace` and `.test` |
+| [`tests/board_images/sd_card_probe/`](board_images/sd_card_probe/README.md) | `crux.file.sd_card_probe` and `.stack`, `.removal` |
+| [`tests/board_images/sd_card_power_cut_sequence/`](board_images/sd_card_power_cut_sequence/README.md) | `crux.file.sd_card_power_cut_sequence` and `.start`, `.append`, `.replace`, `.format`, `.native`, `.native.start`, `.native.append`, `.native.replace`, `.native.format` |
+| [`tests/board_images/flash_safety_check/`](board_images/flash_safety_check/README.md) | none: `scripts/test-flash-safety-check.sh` builds and inspects it and never programs it |
+| [`tests/board_images/integration_probe/`](board_images/integration_probe/README.md) | The EVKB device, network and integrated images; see its README |
 
 ## Advisory test coverage
 
