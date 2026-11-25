@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -63,6 +64,11 @@ exit 3
         self.stub(self.repo / "scripts" / "bootstrap-host.sh", f"""
 echo "host CRUX_HOST_PRESET=${{CRUX_HOST_PRESET:-}}" >> "{log}"
 echo "configuring the host build"
+# FAKE_HOST_GATE: hold the step until that file exists, so a test can look at a running bootstrap.
+if [ -n "${{FAKE_HOST_GATE:-}}" ]; then
+    : > "$FAKE_HOST_GATE.waiting"
+    while [ ! -e "$FAKE_HOST_GATE" ]; do sleep 0.05; done
+fi
 exit "${{FAKE_HOST_STATUS:-0}}"
 """)
         sdk = self.cache / "sdk" / "zephyr-sdk-1.0.1"
@@ -96,7 +102,7 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
         path.write_text("#!/bin/sh\n" + body)
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
-    def run_bootstrap(self, *arguments, **environment):
+    def environment(self, **environment):
         env = {
             "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
             # A J-Link installed on the test machine must not answer for the container.
@@ -108,8 +114,14 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
             "ZEPHYR_SDK_INSTALL_DIR": str(self.cache / "sdk" / "zephyr-sdk-1.0.1"),
         }
         env.update(environment)
-        return subprocess.run(["bash", str(self.repo / "scripts" / "bootstrap.sh"), *arguments],
-                              env=env, capture_output=True, text=True)
+        return env
+
+    def command(self, *arguments):
+        return ["bash", str(self.repo / "scripts" / "bootstrap.sh"), *arguments]
+
+    def run_bootstrap(self, *arguments, **environment):
+        return subprocess.run(self.command(*arguments), env=self.environment(**environment),
+                              capture_output=True, text=True)
 
     def calls(self):
         return self.log.read_text().splitlines() if self.log.exists() else []
@@ -235,11 +247,67 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
     def test_status_follows_the_records(self):
         self.assertOk(self.run_bootstrap())
         shutil.rmtree(self.repo / "build" / "linux" / "debug")
-        self.assertRegex(self.run_bootstrap("status").stdout, r"host +not run")
+        self.assertRegex(self.run_bootstrap("status").stdout, r"host +needs rerun   rerun: scripts/bootstrap.sh host")
         # A deleted cache volume loses the status files; a skipped step writes its status again.
         shutil.rmtree(self.cache / "bootstrap")
         self.assertOk(self.run_bootstrap("--keep-going"))
         self.assertRegex(self.run_bootstrap("status").stdout, r"host +ok")
+
+    def test_status_before_any_run_says_not_run(self):
+        result = self.run_bootstrap("status")
+        self.assertOk(result)
+        for step in ("tools", "host", "zephyr"):
+            self.assertRegex(result.stdout, rf"bootstrap: {step} +not run   rerun: scripts/bootstrap.sh {step}")
+
+    def test_status_says_needs_rerun_when_the_inputs_changed(self):
+        self.assertOk(self.run_bootstrap())
+        (self.repo / "west.yml").write_text("manifest: {projects: []}\n")
+        result = self.run_bootstrap("status")
+        self.assertRegex(result.stdout, r"zephyr +needs rerun   rerun: scripts/bootstrap.sh zephyr")
+        self.assertRegex(result.stdout, r"tools +ok\n")
+        self.assertRegex(result.stdout, r"host +ok\n")
+        # The record alone shows that the step finished, as after the status files were lost.
+        (self.cache / "bootstrap" / "zephyr.status").unlink()
+        self.assertRegex(self.run_bootstrap("status").stdout, r"zephyr +needs rerun")
+
+    def test_status_says_running_while_a_run_is_in_progress(self):
+        gate = Path(self.temporary.name) / "gate"
+        run = subprocess.Popen(self.command("host"), env=self.environment(FAKE_HOST_GATE=str(gate)),
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            deadline = time.monotonic() + 30
+            while not Path(f"{gate}.waiting").exists():
+                self.assertIsNone(run.poll(), "bootstrap ended before the host step started")
+                self.assertLess(time.monotonic(), deadline, "the host step did not start")
+                time.sleep(0.05)
+            status = self.run_bootstrap("status")
+            self.assertOk(status)
+            self.assertRegex(status.stdout, r"bootstrap: host +running\n")
+            self.assertRegex(status.stdout, r"bootstrap: tools +ok\n")
+            self.assertRegex(status.stdout, r"bootstrap: zephyr +not run")
+        finally:
+            gate.touch()
+            run.wait(timeout=30)
+        self.assertEqual(run.returncode, 0)
+        self.assertRegex(self.run_bootstrap("status").stdout, r"host +ok\n")
+
+    def test_status_ignores_a_run_whose_process_is_gone(self):
+        # A run that was killed leaves its lock and a running step behind; that step never finished.
+        self.assertOk(self.run_bootstrap("--keep-going", FAKE_HOST_STATUS="5"))
+        dead = subprocess.Popen(["true"])
+        dead.wait()
+        state = self.cache / "bootstrap"
+        (state / "run.pid").write_text(f"{dead.pid}\n")
+        (state / "host.status").write_text("running\n")
+        result = self.run_bootstrap("status")
+        self.assertRegex(result.stdout, r"host +not run   rerun: scripts/bootstrap.sh host")
+        self.assertNotIn("running", result.stdout)
+
+    def test_a_finished_run_removes_its_lock(self):
+        self.assertOk(self.run_bootstrap())
+        self.assertFalse((self.cache / "bootstrap" / "run.pid").exists())
+        self.assertEqual(self.run_bootstrap(FAKE_HOST_STATUS="7", CRUX_BOOTSTRAP_FORCE="1").returncode, 1)
+        self.assertFalse((self.cache / "bootstrap" / "run.pid").exists())
 
     def test_jlink_notice_when_the_tools_are_missing(self):
         result = self.run_bootstrap("host")
