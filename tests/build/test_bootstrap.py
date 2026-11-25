@@ -203,6 +203,10 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
         self.assertIn("bootstrap: host FAILED (exit 7)", result.stderr)
         self.assertIn("scripts/bootstrap.sh host", result.stderr)
         self.assertIn(str(self.cache / "bootstrap" / "host.log"), result.stderr)
+        # One line names the failure, its log and the rerun command; no list of causes.
+        report = [line for line in result.stderr.splitlines() if line.startswith("bootstrap:")]
+        self.assertEqual(report, [f"bootstrap: host FAILED (exit 7). Log: {self.cache / 'bootstrap' / 'host.log'}. "
+                                  "Rerun: scripts/bootstrap.sh host"])
         self.assertIn("configuring the host build", (self.cache / "bootstrap" / "host.log").read_text())
 
     def test_keep_going_runs_the_rest_and_exits_zero(self):
@@ -324,13 +328,17 @@ exit "${{FAKE_WEST_COMPLETION_STATUS:-1}}"
     def test_jlink_notice_when_the_tools_are_missing(self):
         result = self.run_bootstrap("host")
         self.assertOk(result)
-        self.assertIn("J-Link software is not installed", result.stdout)
-        # Behind a TLS-inspecting proxy the image's own download fails, so the notice names
-        # the organisation CA first and the placed package second.
-        self.assertIn(".devcontainer/certs/", result.stdout)
-        self.assertIn(".devcontainer/jlink/packages/", result.stdout)
-        self.assertLess(result.stdout.index(".devcontainer/certs/"),
-                        result.stdout.index(".devcontainer/jlink/packages/"))
+        # One line: what is missing, what needs it, and the doc step that adds it.
+        notice = [line for line in result.stdout.splitlines() if "J-Link" in line]
+        self.assertEqual(notice, ["J-Link software is not installed: board flashing and debugging need it. "
+                                  "See docs/board-jlink-usbipd.md, step 3."])
+        # That step holds the detail: behind a TLS-inspecting proxy the image's own download
+        # fails, so it names the organisation CA before the placed package.
+        page = (REPO / "docs/board-jlink-usbipd.md").read_text()
+        step = page[page.index("\n3. **The J-Link package"):page.index("\n4. **")]
+        self.assertIn(".devcontainer/certs/", step)
+        self.assertIn(".devcontainer/jlink/packages/", step)
+        self.assertLess(step.index(".devcontainer/certs/"), step.index(".devcontainer/jlink/packages/"))
         self.stub(self.bin / "crux-test-jlink-exe", "exit 0\n")
         result = self.run_bootstrap("host")
         self.assertNotIn("J-Link software is not installed", result.stdout)
