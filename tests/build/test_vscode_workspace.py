@@ -599,10 +599,24 @@ class DocsTest(unittest.TestCase):
         guide = (REPO / "docs/build.md").read_text()
         section = guide[guide.index("\n## VS Code\n"):]
         section = section[:section.index("\n## ", 1)]
-        for text in ("CMake: Set Debug Target", "cmake.debugConfig", "-O0", "-Os", "CONFIG_NO_OPTIMIZATIONS",
+        for text in ("CMake: Set Launch/Debug Target", "cmake.debugConfig", "-O0", "-Os", "CONFIG_NO_OPTIMIZATIONS",
                      "unknownBreakpointHandling", "build/native_sim/compile_commands.json"):
             self.assertIn(text, section)
         self.assertNotIn("status bar", section)
+        self.assertNotIn("CMake: Set Debug Target", section)
+
+    def test_build_guide_gives_the_linux_host_steps_with_cmake_tools_command_names(self):
+        # Command titles from the CMake Tools package.json and package.nls.json (category "CMake").
+        guide = (REPO / "docs/build.md").read_text()
+        section = guide[guide.index("\n### Linux Host in VS Code\n"):]
+        section = section[:section.index("\n## ", 1)]
+        for text in ("CMake: Select Configure Preset", "CMake: Select Build Preset", "CMake: Select Test Preset",
+                     "**Host Debug**", "Project Status", "CMake: Configure", "CMake: Build", "CMake: Run Tests",
+                     "CMake/Build", "Testing", "CMake: Set Build Target", "run_time_shell", "run_echo_client"):
+            self.assertIn(text, section)
+        tutorial = (REPO / "docs/tutorial.md").read_text()
+        self.assertIn("(build.md#linux-host-in-vs-code)", tutorial)
+        self.assertNotIn("CMake: Select Configure Preset", tutorial)
 
     def test_board_route_fixes_a_stale_probe_after_reattaching(self):
         page = (REPO / "docs/board-jlink-usbipd.md").read_text()
