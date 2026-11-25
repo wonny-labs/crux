@@ -6,17 +6,14 @@ The smallest application that uses Crux. It shows how a product application reac
 
 - The application is an ordinary Zephyr application. Crux is a **Zephyr module** in the west workspace, found
   like any other module.
-- A **Kconfig symbol** (`CONFIG_CRUX_TIME=y` in [`prj.conf`](prj.conf)) tells the module to build a component and
-  its Zephyr provider.
-- The application links the component's **public usage target** (`crux::time` in
-  [`CMakeLists.txt`](CMakeLists.txt)) and includes its **public header** (`<crux/time.h>`). It never names a Crux
-  source file, a port or a private include directory. That line is the consumer boundary.
+- The application links a **public usage target** (`crux::base` in [`CMakeLists.txt`](CMakeLists.txt)) and
+  includes its **public header** (`<crux/version.h>`). It never names a Crux source file, a port or a private
+  include directory. That line is the consumer boundary.
 
-The program makes one public read after initialisation: it prepares Crux Time and reads the realtime clock. Right after start the clock
-is ready but unset, because Crux never invents a time of day, so the sample prints `unset`.
+The program prints the Crux version from that header, with the output facility of its operating system:
+`printk` on Zephyr, `printf` on the Linux Host.
 
-The same portable source, [`src/hello_crux.c`](src/hello_crux.c), also builds on the Linux Host composition. The
-[`host/`](host/CMakeLists.txt) program is a separate CMake project that consumes Crux as an external application does;
+The [`host/`](host/CMakeLists.txt) program is a separate CMake project that consumes Crux as an external application does;
 `crux_assert_portable_consumer()` checks its build boundary ([Build and Integration Guide](../../docs/build.md#external-linux-application-using-crux-source)).
 
 | Part | Folder | Runs on |
@@ -31,7 +28,7 @@ The same portable source, [`src/hello_crux.c`](src/hello_crux.c), also builds on
 - For the Host program: Linux with CMake 3.28 or later, Ninja and a C compiler. The Host composition is a
   development and test composition and does not build on macOS.
 
-No board is needed. On the EVKB the same source and `prj.conf` use Crux Time on Zephyr's system clock and print on the board's console UART; [Part C of the Tutorial](../../docs/tutorial.md#part-c-run-on-your-board) flashes it.
+No board is needed. On the EVKB the same source and `prj.conf` print on the board's console UART; [Part C of the Tutorial](../../docs/tutorial.md#part-c-run-on-your-board) flashes it.
 
 ## Building and running
 
@@ -58,11 +55,10 @@ west twister -T samples/hello_crux -p native_sim/native/64
 
 ## Sample output
 
-Zephyr on `native_sim` (after the Zephyr boot banner):
+The version is the one in `<crux/version.h>` of your checkout. Zephyr on `native_sim` (after the Zephyr boot banner):
 
 ```text
-Hello from Crux on zephyr
-Crux Time: unset
+Hello from Crux 0.1.0-dev on zephyr
 CRUX_HELLO_READY composition=zephyr
 ```
 
@@ -71,15 +67,15 @@ The Zephyr program returns from `main`, but `native_sim` keeps running; stop it 
 Linux Host:
 
 ```text
-Hello from Crux on host
-Crux Time: unset
+Hello from Crux 0.1.0-dev on host
 CRUX_HELLO_READY composition=host
 ```
 
 ## Next steps
 
+- [`samples/time/shell`](../time/shell/README.md) uses a component that Kconfig enables
+  (`CONFIG_CRUX_TIME`), links its usage target `crux::time` and compiles one portable command source
+  on both compositions.
 - [`samples/file/basic`](../file/basic/README.md) selects a File provider by build
-  configuration alone.
-- [`samples/time/shell`](../time/shell/README.md) sets and reads the clock from shell commands on
-  both compositions.
+  configuration alone, with application code that uses only the portable File API.
 - [`templates/product`](../../templates/product/README.md) is the shape of a product repository on Crux.

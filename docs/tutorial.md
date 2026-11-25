@@ -35,7 +35,7 @@ cmake --build build/samples/hello_crux_host --target run_hello_crux
 
 The `run_hello_crux` target builds the program and runs it in your terminal.
 
-It prints `Hello from Crux on host`, `Crux Time: unset` and `CRUX_HELLO_READY composition=host`. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
+It prints `Hello from Crux 0.1.0-dev on host` (the version of your checkout) and `CRUX_HELLO_READY composition=host`. [Its README](../samples/hello_crux/README.md) explains what the sample shows.
 
 ### 3. Run the networking sample on the Host
 
@@ -88,8 +88,7 @@ west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_c
 You should see, after the boot banner:
 
 ```text
-Hello from Crux on zephyr
-Crux Time: unset
+Hello from Crux 0.1.0-dev on zephyr
 CRUX_HELLO_READY composition=zephyr
 ```
 
@@ -249,7 +248,7 @@ failures.
 
 ### 15. See the console line
 
-Once the image is running, the console of step 13 shows the Zephyr boot banner and then the three lines of step 7,
+Once the image is running, the console of step 13 shows the Zephyr boot banner and then the two lines of step 7,
 ending with `CRUX_HELLO_READY composition=zephyr`. If the board does nothing, [Troubleshooting](#troubleshooting)
 checks board and probe with Zephyr's `blinky`.
 

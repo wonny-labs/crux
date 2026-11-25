@@ -21,7 +21,7 @@ Start with the [Tutorial](../docs/tutorial.md). Threads and synchronization have
 | Folder | Kind | Build and run, or what uses it |
 | --- | --- | --- |
 | `hello_crux/` | Runnable Zephyr application | The smallest application that uses Crux. See its [README](hello_crux/README.md) |
-| `hello_crux/host/` | Runnable Linux Host program | The same source on the Linux Host, as its own CMake project that consumes Crux from its source tree. See the [sample's README](hello_crux/README.md) |
+| `hello_crux/host/` | Runnable Linux Host program | The same program on the Linux Host, as its own CMake project that consumes Crux from its source tree. See the [sample's README](hello_crux/README.md) |
 | `file/basic/` | Runnable Zephyr application | Writes a file through the Crux File API and reads it back, with the provider chosen by configuration. See its [README](file/basic/README.md) |
 | `time/shell/` | Runnable Zephyr application | A shell on Crux Time. See its [README](time/shell/README.md) |
 | `time/shell/host/` | Runnable Linux Host program | The same commands, read from stdin. See the [sample's README](time/shell/README.md) |

@@ -12,28 +12,18 @@ project(hello_crux_host LANGUAGES C)
 get_filename_component(default_crux_source "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CRUX_SOURCE_DIR "${default_crux_source}" CACHE PATH "Crux source tree")
 
-# Select only what the application uses, before adding Crux. Here: Time, with the controlled
-# development clock of the Linux Host composition.
-set(CRUX_BUILD_TIME ON CACHE BOOL "Use Crux Time")
-set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
+# Added as a subproject, Crux selects no capability by default; crux::base always exists.
 add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 
-# The portable part, the same file the Zephyr application compiles. The check fails the
-# configure step if the target's build requirements (include directories, compile options,
-# linked targets) name a native path, a private Crux directory or a provider target. It does
-# not read #include lines.
-add_library(hello_crux_logic STATIC ../src/hello_crux.c)
-set_target_properties(hello_crux_logic PROPERTIES
-    C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_link_libraries(hello_crux_logic PRIVATE crux::time)
-target_compile_options(hello_crux_logic PRIVATE -Wall -Wextra -Wpedantic -Werror)
-crux_assert_portable_consumer(hello_crux_logic)
-
-# The program: the final executable declares the Crux capability it uses.
+# The program links the public usage target only. The check fails the configure step if the
+# target's build requirements (include directories, compile options, linked targets) name a
+# native path, a private Crux directory or a provider target. It does not read #include lines.
 add_executable(hello-crux-host main.c)
-target_include_directories(hello-crux-host PRIVATE ../src)
-target_link_libraries(hello-crux-host PRIVATE hello_crux_logic crux::time)
+set_target_properties(hello-crux-host PROPERTIES
+    C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+target_link_libraries(hello-crux-host PRIVATE crux::base)
 target_compile_options(hello-crux-host PRIVATE -Wall -Wextra -Wpedantic -Werror)
+crux_assert_portable_consumer(hello-crux-host)
 
 # `cmake --build <build folder> --target run_hello_crux` builds the program and runs it.
 add_custom_target(run_hello_crux COMMAND hello-crux-host USES_TERMINAL)
