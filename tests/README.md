@@ -227,7 +227,8 @@ ctest --test-dir build/file-consumers --output-on-failure
 | `tests/native/file_sd_probe`, `file_sd_interrupt`, `file_sd_replace`, `file_sd_settings_recover` | storage gate | The logic and host scripts of the physical-gate board images `tests/board_images/sd_card_*`, and the Settings File recovery step, against scripted boards and a RAM disk; the images are only linked in CI | [power cut](../docs/evidence/microsd-power-cut/README.md), [replace cut](../docs/evidence/microsd-replace-cut/README.md) |
 | `tests/native/configuration_settings_file` | storage gate | The Zephyr Settings File backend on a FatFs RAM disk with injected I/O faults, on build-local corrected copies of three backend sources; a control on the unpatched backend must fail the cases that expose its defects | [Configuration qualification](../docs/configuration-validation.md) |
 
-A remount inside one process and a simulated cut are not persistence or power-loss evidence about a card. The sample that these suites cover is in the [samples overview](../samples/README.md), and the board images are in [Test-only scenarios and board test images](#test-only-scenarios-and-board-test-images).
+A remount inside one process and a simulated cut are not persistence or power-loss evidence about a card.
+The sample that these suites cover is in the [samples overview](../samples/README.md), and the board images are in [Test-only scenarios and board test images](#test-only-scenarios-and-board-test-images).
 
 ### eMMC simulator on `native_sim`
 
