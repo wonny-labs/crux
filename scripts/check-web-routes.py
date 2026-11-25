@@ -32,8 +32,7 @@ SPEC.loader.exec_module(web_routes)
 METHOD_NAME = {token: token.removeprefix("CRUX_WEB_") for token in web_routes.METHODS}
 DEFAULT_LIST = REPO / "components/web/reviewed-routes.txt"
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".inc", ".def"}
-# Folders whose projects may keep their own reviewed-routes.txt. The samples layout proposal moves
-# samples/web_project into tests/web/project_sample/project; until it moves, both are listed.
+# Folders whose projects may keep their own reviewed-routes.txt.
 PROJECT_ROOTS = ("samples", "tests/web/project_sample/project")
 
 

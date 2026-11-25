@@ -658,7 +658,9 @@ class DocsTest(unittest.TestCase):
         guide = (REPO / "docs/build.md").read_text()
         section = guide[guide.index("\n### Linux Host in VS Code\n"):]
         section = section[:section.index("\n## ", 1)]
-        for text in ("CMake: Select Configure Preset", "CMake: Select Build Preset", "CMake: Select Test Preset",
+        # A new workspace shows the other CMake commands only after its first configure.
+        self.assertLess(section.index("CMake: Configure"), section.index("CMake: Select Build Preset"))
+        for text in ("CMake: Select Build Preset", "CMake: Select Test Preset",
                      "**Host Debug**", "CMake: Configure", "CMake: Build", "CMake: Run Tests",
                      "CMake/Build", "Testing", "run_time_shell", "run_echo_client",
                      "CMake: Run Without Debugging", "crux-time-host"):
