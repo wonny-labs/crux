@@ -125,6 +125,13 @@ class SampleLayoutTest(unittest.TestCase):
                    if p.is_dir() and not exempt(p) or (p.is_dir() and SAMPLES / "boards" in p.parents)]
         self.assertEqual(folders, [])
 
+    def test_linux_and_common_folders_are_flat(self):
+        # Sources and headers sit beside CMakeLists.txt: no src/ or include/ at any depth.
+        nested = [rel(p) for root in sample_roots() for name in ("linux", "common")
+                  if (root / name).is_dir() for p in (root / name).rglob("*")
+                  if p.is_dir() and p.name in {"src", "include"}]
+        self.assertEqual(nested, [])
+
     def test_board_samples_are_zephyr_applications_at_their_root(self):
         apps = {p.parent for name in ("sample.yaml", "testcase.yaml", "prj.conf")
                 for p in (SAMPLES / "boards").rglob(name)}

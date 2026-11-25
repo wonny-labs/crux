@@ -42,11 +42,12 @@ A sample is one folder, `samples/<name>` or `samples/<family>/<name>`. Its root 
 | Folder | Holds | Compiled by | May include |
 | --- | --- | --- | --- |
 | `zephyr/` | A standard Zephyr application: `CMakeLists.txt`, `prj.conf`, `sample.yaml`, `Kconfig`, `boards/`, overlays, and its sources in `src/` | Zephyr only | What a Zephyr application may use; no Crux private or `ports/` path |
-| `linux/` | A Linux program: `CMakeLists.txt` and its sources, with no `src/`. The Linux Host build compiles it | Linux only | C library, POSIX and public Crux headers |
+| `linux/` | A Linux program: `CMakeLists.txt` and its sources. The Linux Host build compiles it | Linux only | C library, POSIX and public Crux headers |
 | `common/` | Code that both `zephyr/` and `linux/` compile (or one of them and a test of the other), and code checked with `crux_assert_portable_consumer` | Both | ISO C, public `<crux/NAME.h>` headers other than `thread.h`, `sync.h`, `serial.h` and the `_zephyr`/`_linux` composition headers, the Sockets profile where `scripts/check-native-interfaces.py` allows it, and its own headers. No platform test such as `CONFIG_` or `__ZEPHYR__` |
 
 A sample has only the OS folders it runs on.
-Headers sit beside their sources; there is no `include/`.
+`linux/` and `common/` are flat: sources and headers sit beside `CMakeLists.txt`, with no `src/` or `include/`.
+Give `linux/` a `src/` only when it must hold files other than sources and build files, and then in every sample in the same change.
 No build names another OS folder.
 `common/` follows the include rule of the product template's `domain/`.
 
