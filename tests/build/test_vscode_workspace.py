@@ -659,9 +659,11 @@ class DocsTest(unittest.TestCase):
         section = guide[guide.index("\n### Linux Host in VS Code\n"):]
         section = section[:section.index("\n## ", 1)]
         for text in ("CMake: Select Configure Preset", "CMake: Select Build Preset", "CMake: Select Test Preset",
-                     "**Host Debug**", "Project Status", "CMake: Configure", "CMake: Build", "CMake: Run Tests",
-                     "CMake/Build", "Testing", "run_time_shell", "run_echo_client"):
+                     "**Host Debug**", "CMake: Configure", "CMake: Build", "CMake: Run Tests",
+                     "CMake/Build", "Testing", "run_time_shell", "run_echo_client",
+                     "CMake: Run Without Debugging", "crux-time-host"):
             self.assertIn(text, section)
+        self.assertNotIn("Project Status", section)
         tutorial = (REPO / "docs/tutorial.md").read_text()
         self.assertIn("(build.md#linux-host-in-vs-code)", tutorial)
         self.assertNotIn("CMake: Select Configure Preset", tutorial)

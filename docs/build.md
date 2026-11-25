@@ -156,13 +156,16 @@ The other sources, including Zephyr files that the Host tests also compile, use 
 The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
 Run these commands from the Command Palette:
 
-1. Select the presets once: **CMake: Select Configure Preset**, **CMake: Select Build Preset** and **CMake: Select Test Preset**, each **Host Debug**. The **Project Status** view in the CMake side bar selects them too.
+1. Select the presets once: **CMake: Select Configure Preset**, **CMake: Select Build Preset** and **CMake: Select Test Preset**, each **Host Debug**.
 2. Run **CMake: Configure**, then **CMake: Build**, then **CMake: Run Tests**.
 3. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
 
-To run a Host sample, build its target in the terminal: `cmake --build --preset host-debug --target run_time_shell` or `--target run_echo_client` ([tutorial step 3](tutorial.md#3-run-the-networking-sample-on-the-host)).
+To run the time shell, pick `crux-time-host` with **CMake: Set Launch/Debug Target** and run **CMake: Run Without Debugging**.
+It runs in a terminal, which takes its commands; Ctrl+D ends it.
+In the terminal, `cmake --build --preset host-debug --target run_time_shell` does the same, and `--target run_echo_client` runs the echo client with its local peer ([tutorial step 3](tutorial.md#3-run-the-networking-sample-on-the-host)).
 
 To debug, pick the program with **CMake: Set Launch/Debug Target** and run **CMake: Debug**, which uses the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+**F5** starts the `launch.json` profiles for `native_sim` and the board, not a Host program.
 Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.
 
 `samples/hello_crux/linux` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
