@@ -146,7 +146,7 @@ flowchart TD
 | Provisioning | `DENIED`, because a store that cannot be read is not an empty one | The same case |
 | Removing the key through Access | Not possible: Access is not ready | |
 | The stored bytes | Not modified. A save never ran. | |
-| Recovery | The documents show whole-store recovery only: the credential store has an internal erase that no Crux code calls, and the Pilot recovers with a card reader ([credential store](credential-store.md)), after which provisioning starts again. They show no way to rewrite only the accounts record. Running the earlier revision, removing the key and upgrading also works. | |
+| Recovery | The documents show whole-store recovery only: the credential store has an internal erase that no Crux code calls, and recovery uses a card reader ([credential store](credential-store.md)), after which provisioning starts again. They show no way to rewrite only the accounts record. Running the earlier revision, removing the key and upgrading also works. | |
 
 This is the one consequence that a reader should weigh. It follows from fail-closed decoding, and it means that an upgrade over a store with such a key does not degrade to "that key is ignored", it stops Access. No Crux release exists, and Access has no Zephyr composition outside `tests/`, so a store of this kind can only come from a bench or a test image. A tolerant decoder that dropped the key, and said so with an event, would be a separate decision: it changes what a "valid" record may hold and rewrites data on the next save. It is recorded as a [decision for review](#decisions-for-review-issue-316).
 

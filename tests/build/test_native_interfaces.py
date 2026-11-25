@@ -173,6 +173,16 @@ class NativeInterfaceTest(unittest.TestCase):
                 good = self.check_source("#include <crux/time.h>\n#include <stdio.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
+    def test_sample_common_code_cannot_include_linux_headers(self):
+        # common/ is compiled by both OS folders, so it must not reach into linux/ (samples/README.md).
+        for path in ("samples/time/shell/common/time_command.c",
+                     "samples/networking/echo_client/common/client.c"):
+            for header in ("../linux/host_io.h", "linux/host_io.h"):
+                with self.subTest(path=path, header=header):
+                    result = self.check_source(f'#include "{header}"\n', path)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("native/private header", result.stdout)
+
     def test_new_sample_layout_compositions_remain_native(self):
         for path in ("samples/time/shell/zephyr/src/main.c", "samples/time/shell/zephyr/src/time_shell.c",
                      "samples/time/shell/linux/main.c",

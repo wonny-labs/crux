@@ -223,14 +223,16 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_board_build_asks_for_the_sample_and_defaults_to_hello_crux(self):
         task = self.tasks["Board: Build"]
         self.assertEqual(task["type"], "process")
-        self.assertEqual(task["command"], "${workspaceFolder}/scripts/build-debug-target.sh")
-        self.assertEqual(task["args"], ["mimxrt1060_evk@B//qspi", "--app", "${input:sample}"])
+        # tests/build/test_vscode_workspace.py runs the command and checks the sample folder it builds.
+        self.assertEqual(task["command"], "bash")
+        self.assertIn("scripts/build-debug-target.sh mimxrt1060_evk@B//qspi --app", task["args"][1])
+        self.assertEqual(task["args"][-1], "${input:sample}")
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertEqual(task["group"], "build")
         inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
         prompt = inputs["sample"]
         self.assertEqual(prompt["type"], "promptString")
-        self.assertEqual(prompt["description"], "Sample directory, relative to the repository")
+        self.assertEqual(prompt["description"], "Sample folder, relative to the repository")
         self.assertEqual(prompt["default"], "samples/hello_crux/zephyr")
         self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
 
@@ -393,10 +395,22 @@ cp "{self.server}/${{url##*/}}" "$out"
     def apt_calls(self):
         return self.log.read_text() if self.log.exists() else ""
 
+    def assertShortNotice(self, stderr, prefix):
+        # One line: what failed, the file to place and the doc step. In auto mode the hosted
+        # copy (CRUX_JLINK_URL) is left to the guide; CRUX_JLINK=1 names it as the other route.
+        lines = [line for line in stderr.splitlines() if line.startswith(prefix)]
+        self.assertEqual(len(lines), 1, stderr)
+        self.assertIn(".devcontainer/jlink/packages/", lines[0])
+        self.assertIn("docs/board-jlink-usbipd.md, step 3", lines[0])
+        self.assertNotIn("native_sim", lines[0])
+        if prefix == "warning:":
+            self.assertNotIn("CRUX_JLINK_URL", lines[0])
+
     def test_required_fails_without_a_package(self):
         result = self.run_install(CRUX_JLINK="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("no SEGGER J-Link package", result.stderr)
+        self.assertShortNotice(result.stderr, "error:")
         self.assertEqual(self.apt_calls(), "")
 
     def test_auto_without_package_or_url_warns_and_installs_nothing(self):
@@ -407,6 +421,7 @@ cp "{self.server}/${{url##*/}}" "$out"
                 self.assertIn("warning: no SEGGER J-Link package", result.stderr)
                 self.assertIn(".devcontainer/jlink/packages/", result.stderr)
                 self.assertIn("Rebuild Container", result.stderr)
+                self.assertShortNotice(result.stderr, "warning:")
                 self.assertEqual(self.apt_calls(), "")
                 self.assertFalse(self.udevadm.exists())
 
@@ -579,6 +594,7 @@ cp "{self.server}/${{url##*/}}" "$out"
         self.assertIn("warning: the J-Link download from SEGGER failed", result.stderr)
         self.assertIn("built without the J-Link software", result.stderr)
         self.assertIn(".devcontainer/jlink/packages/", result.stderr)
+        self.assertShortNotice(result.stderr, "warning:")
         calls = self.apt_calls()
         self.assertIn("curl ", calls)
         self.assertNotIn("install", calls)

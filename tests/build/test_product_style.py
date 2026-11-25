@@ -478,12 +478,24 @@ class GuidelineTest(unittest.TestCase):
         self.assertIn("not a Crux interface", opening)
         self.assertIn("no Crux check enforces", opening)
 
+    def test_title_and_top_level_sections(self):
+        text = GUIDELINES.read_text()
+        self.assertTrue(text.startswith("# Coding Guidelines\n"))
+        headings = re.findall(r"^## (.+)$", text, re.MULTILINE)
+        self.assertEqual(headings, ["Purpose and scope", "Coding conventions", "Public API design",
+                                    "Public API documentation", "Logging", "Review and validation",
+                                    "Zephyr and driver code in a product repository", "References"])
+        logging = section(GUIDELINES, "## Logging")
+        first = logging.split("\n\n", 2)[1]
+        self.assertIn("log records and console output", first.split(". ")[0])
+        self.assertNotIn("Pilot", text)
+
     def test_the_purpose_section_points_to_the_new_section(self):
         purpose = section(GUIDELINES, "## Purpose and scope")
         self.assertIn("(#zephyr-and-driver-code-in-a-product-repository)", purpose)
 
     def test_the_upstream_list_links_style_devicetree_kconfig_doxygen_and_api_design(self):
-        upstream = section(GUIDELINES, "## Upstream guidance")
+        upstream = section(GUIDELINES, "## References")
         for page in ("contribute/style/code", "contribute/style/devicetree", "contribute/style/kconfig",
                      "contribute/style/doxygen", "develop/api/design_guidelines"):
             self.assertIn(f"https://docs.zephyrproject.org/latest/{page}.html", upstream, page)

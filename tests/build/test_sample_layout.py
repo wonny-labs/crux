@@ -120,10 +120,21 @@ class SampleLayoutTest(unittest.TestCase):
         self.assertTrue(common)
         self.assertEqual(sorted(rel(p) for p in common if p not in scanned), [])
 
+    def test_native_interface_check_keeps_common_out_of_os_folders(self):
+        segments = runpy.run_path(str(CHECKER))["PRIVATE_INCLUDE_SEGMENTS"]
+        self.assertLessEqual({"zephyr", "linux"}, segments)
+
     def test_no_include_folder_in_samples(self):
         folders = [rel(p) for p in SAMPLES.rglob("include")
                    if p.is_dir() and not exempt(p) or (p.is_dir() and SAMPLES / "boards" in p.parents)]
         self.assertEqual(folders, [])
+
+    def test_linux_and_common_folders_are_flat(self):
+        # Files sit at the folder's top level: no src/ or include/ at any depth.
+        nested = [rel(p) for root in sample_roots() for name in ("linux", "common")
+                  if (root / name).is_dir() for p in (root / name).rglob("*")
+                  if p.is_dir() and p.name in {"src", "include"}]
+        self.assertEqual(nested, [])
 
     def test_board_samples_are_zephyr_applications_at_their_root(self):
         apps = {p.parent for name in ("sample.yaml", "testcase.yaml", "prj.conf")

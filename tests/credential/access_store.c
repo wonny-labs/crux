@@ -255,7 +255,7 @@ static void test_cut_during_first_account(void)
     credential_test_context[0] = '\0';
 }
 
-/* S6, accepted for the Pilot: losing both directory entries reads as EMPTY and reopens
+/* S6, accepted for Crux: losing both directory entries reads as EMPTY and reopens
  * provisioning. Only a marker outside the medium would close this, as limit A7 says. */
 static void test_lost_directory_entries_reopen_provisioning(void)
 {

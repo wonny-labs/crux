@@ -49,7 +49,7 @@ NOT_COMPILED_RULES = (
         r"|^tests/external_application/main\.c$|^tests/execution/src/native\.c$"
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
         r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$"
-        # New paths of the samples layout proposal; the old ones above leave after the moves.
+        # Board images, board test images and sample Zephyr applications (samples/README.md).
         r"|^samples/boards/nxp/mimxrt1060_evk/(emmc_file|sd_card_file|web_management)/|^tests/board_images/"
         r"|^tests/(probe_device_health|integrated_smoke)/"
         r"|^samples/.*/zephyr/")),
@@ -473,8 +473,8 @@ class SelfTest(unittest.TestCase):
         self.assertEqual(classify_not_compiled("components/new/src/new.c"), "unclassified")
 
     def test_classify_old_and_new_sample_paths(self) -> None:
-        # The samples layout proposal moves board images and Zephyr compositions. Until the moves
-        # land, the old path and the new path of each one classify the same way.
+        # The paths before the samples/README.md layout and the current paths classify the
+        # same way, so older trees measure the same.
         zephyr = "zephyr-or-native_sim-only"
         for old, new in (
                 ("samples/storage_emmc/main.c", "samples/boards/nxp/mimxrt1060_evk/emmc_file/main.c"),

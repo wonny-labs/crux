@@ -56,6 +56,8 @@ ctest --preset host-debug -L sample
 
 It runs `Sample.TimeShellHost` and `Sample.EchoClientHost`; `hello_crux` is its own CMake project (step 2).
 
+To build, test and run the Host samples from VS Code instead, see [Linux Host in VS Code](build.md#linux-host-in-vs-code).
+
 ### 5. Change a Host build
 
 CMake options configure the build itself. The Linux Host build selects Crux components and samples with `CRUX_BUILD_*` options:

@@ -93,6 +93,9 @@ class SetupBoardHostTest(unittest.TestCase):
         result = self.run_script()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("usbipd attach --wsl --busid <BUSID>", result.stderr)
+        # What failed, the one action and the doc step: the detail lives in the guide.
+        self.assertLessEqual(len(result.stderr.splitlines()), 3, result.stderr)
+        self.assertIn("docs/board-jlink-usbipd.md, step 1", result.stderr)
         self.assertEqual(list(self.rules.iterdir()), [])
 
     def test_stops_when_no_jlink_is_listed(self):
@@ -142,6 +145,14 @@ class SetupBoardHostTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("cannot open", result.stderr)
         self.assertIn("usbipd attach", result.stderr)
+        self.assertLessEqual(len(result.stderr.splitlines()), 3, result.stderr)
+        self.assertIn("docs/board-jlink-usbipd.md#if-a-step-fails", result.stderr)
+        # The guide keeps the checks that the message no longer lists.
+        page = (REPO / "docs/board-jlink-usbipd.md").read_text()
+        section = page[page.index("\n## If a step fails\n"):]
+        section = section[:section.index("\n## ", 1)]
+        for text in ("cannot open", "getent group plugdev", 'MODE="0666"', "systemd=true"):
+            self.assertIn(text, section)
 
     def test_re_enumerated_root_node_without_write_access_fails(self):
         # After a re-enumeration on WSL2 the udev rule may not apply: crw-rw-r-- root.
@@ -159,6 +170,7 @@ class SetupBoardHostTest(unittest.TestCase):
         result = self.run_script(FAKE_UDEVADM_STATUS="1")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("warning", result.stderr)
+        self.assertEqual(len(result.stderr.splitlines()), 1, result.stderr)
 
     def test_refused_inside_the_dev_container(self):
         self.lsusb()
@@ -166,6 +178,7 @@ class SetupBoardHostTest(unittest.TestCase):
         result = self.run_script(CRUX_REPO="/workspace/crux-pilot")
         self.assertEqual(result.returncode, 2)
         self.assertIn("not in the Dev Container", result.stderr)
+        self.assertEqual(len(result.stderr.splitlines()), 1, result.stderr)
         marker = Path(self.temporary.name) / "dockerenv"
         marker.write_text("")
         result = self.run_script(CRUX_DOCKERENV=str(marker))

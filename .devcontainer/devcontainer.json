@@ -1,5 +1,5 @@
 {
-  "name": "Crux Pilot (Ubuntu 24.04 amd64)",
+  "name": "Crux (Ubuntu 24.04 amd64)",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",

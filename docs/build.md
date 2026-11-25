@@ -151,15 +151,30 @@ VS Code in the Dev Container is the supported editor. clangd is the language ser
 The other sources, including Zephyr files that the Host tests also compile, use `build/clangd`.
 `.clangd` and the Dev Container's clangd user config remove the GCC-only options that Zephyr adds to `native_sim` builds, so clangd accepts that database for repository sources and for Zephyr's own headers.
 
-**Linux Host.** The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
-**Build** builds the selected preset, the **Testing** view runs its CTest tests, and **Debug** starts the debug target under the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
-Choose the target with the Command Palette command **CMake: Set Debug Target**.
+### Linux Host in VS Code
+
+The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
+Run these commands from the Command Palette:
+
+1. Select the presets once: **CMake: Select Configure Preset**, **CMake: Select Build Preset** and **CMake: Select Test Preset**, each **Host Debug**.
+2. Run **CMake: Configure**, then **CMake: Build**, then **CMake: Run Tests**.
+3. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
+
+To run the time shell, pick `crux-time-host` with **CMake: Set Launch/Debug Target** and run **CMake: Run Without Debugging**.
+It runs in a terminal, which takes its commands; Ctrl+D ends it.
+In the terminal, `cmake --build --preset host-debug --target run_time_shell` does the same, and `--target run_echo_client` runs the echo client with its local peer ([tutorial step 3](tutorial.md#3-run-the-networking-sample-on-the-host)).
+
+To debug, pick the program with **CMake: Set Launch/Debug Target** and run **CMake: Debug**, which uses the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+**F5** starts the `launch.json` profiles for `native_sim` and the board, not a Host program.
 Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.
 
-The build targets `run_time_shell` and `run_echo_client` run a Host sample.
 `samples/hello_crux/linux` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
 
-**native_sim and the board.** CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux/zephyr`.
+### native_sim and the board in VS Code
+
+CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample folder, relative to the repository, and offer `samples/hello_crux/zephyr`.
+A sample folder such as `samples/time/shell` builds its `zephyr/` application.
+A folder with neither `CMakeLists.txt` nor `zephyr/CMakeLists.txt` stops the task with `No Zephyr application at <path>; enter samples/<name>/zephyr.`
 
 | Task | What it does |
 | --- | --- |

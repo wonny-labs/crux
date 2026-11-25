@@ -9,8 +9,8 @@ state and `crux_credential_start`, and nothing that reads or writes a record (AD
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
 `components/credential/src/credential_port.h`.
 
-**This is not secure storage on the pilot.** On the planned pilot basis, someone who can read the card and the chip ID can
-read every secret. See [Limits](#limits). Results must state this, and `crux_credential_store_get_info` declares it.
+**This is not secure storage on the planned basis** (`BASIS_DEVICE_ID_KEY`, a key derived from the chip ID).
+Someone who can read the card and the chip ID can read every secret. See [Limits](#limits). Results must state this, and `crux_credential_store_get_info` declares it.
 
 ## What exists
 
@@ -24,7 +24,7 @@ read every secret. See [Limits](#limits). Results must state this, and `crux_cre
 | Device-ID protection through PSA | Implemented for a composition, `components/credential/ports/psa`, with the device ID from `hwinfo` in `ports/zephyr`. The root build has no PSA, so no target holds it. | [`tests/psa_ports`](native-management-composition.md#provider-results) on both providers, and [this store on it](native-management-composition.md#composition-results) on a file-backed disk on `native_sim`. No target run. |
 | Event identifiers | Six private event types, mapped to the `credential.*` records by `crux_credential_security_events`, which a composition links | `ManagementProviders.events`, and the composition |
 | Reserved roots in the file service | `crux_credential_roots` feeds the reserved list of the file service from #232 | `credential_file_service_roots`, on the real service |
-| Pilot card layout, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. A Zephyr composition on `native_sim` exists: [management composition](native-management-composition.md). | Gap on a target |
+| Card layout on a target, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. A Zephyr composition on `native_sim` exists: [management composition](native-management-composition.md). | Gap on a target |
 
 Host tests show contract behaviour. They do not establish confidentiality, entropy quality, or behaviour across real
 power loss.
@@ -226,7 +226,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 
 | Limit | Shown by |
 | --- | --- |
-| Not confidential on the pilot against the medium and chip ID. The PSA provider declares this: `BASIS_DEVICE_ID_KEY`, with no confidentiality. The fake's cipher is not encryption. | `get_info` carries the declaration, in `test_info_carries_the_declaration`, and `first_boot.test_01_declaration` on the provider |
+| Not confidential on the planned basis against the medium and chip ID. The PSA provider declares this: `BASIS_DEVICE_ID_KEY`, with no confidentiality. The fake's cipher is not encryption. | `get_info` carries the declaration, in `test_info_carries_the_declaration`, and `first_boot.test_01_declaration` on the provider |
 | Rollback is not detected, including the return of a record's absence | `test_accepted_limits` |
 | S6: losing both directory entries reads as `EMPTY` and reopens provisioning | `test_accepted_limits`, `test_lost_directory_entries_reopen_provisioning` |
 | A writer without the chip ID can overwrite both headers with an exact pending header, which has no tag, and the store reads `EMPTY` with no event. This is wider than S6's wording, which speaks of a lost directory entry, and it equals blanking the card under limit A7. | `test_accepted_limits` |
@@ -243,7 +243,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 | `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
 | A reset can undo an interrupted erase. Erase zeroes slot A, then slot B, then removes both files. A reset after slot A is zeroed and before slot B is reached leaves slot B valid, and the next start reads `VALID` with slot B's records, until erase runs again. Only an erase that returned `OK` reached both slots. | `test_interrupted_erase_states` |
-| No unauthenticated wipe (S4). The reference has no command for erase, and the Pilot recovers with a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
+| No unauthenticated wipe (S4). The reference has no command for erase, and recovery uses a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
 
 ## Tests
 

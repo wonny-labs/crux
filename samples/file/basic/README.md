@@ -62,8 +62,8 @@ Default scenario (after the Zephyr boot banner):
 
 ```text
 Storage: LittleFS on the flash simulator, bound at /lfs/files
-Wrote 25 bytes to greeting.txt
-Read 25 bytes: Hello from Crux File API!
+Wrote 24 bytes to greeting.txt
+Read 24 bytes: Hello from Crux File API
 CRUX_FILE_WRITE_READ_OK provider=simulator
 ```
 
@@ -71,8 +71,8 @@ FatFs on a RAM disk:
 
 ```text
 Storage: FatFs on a RAM disk, bound at /RAM:/files
-Wrote 25 bytes to greeting.txt
-Read 25 bytes: Hello from Crux File API!
+Wrote 24 bytes to greeting.txt
+Read 24 bytes: Hello from Crux File API
 CRUX_FILE_WRITE_READ_OK provider=fatfs_ram_disk
 ```
 

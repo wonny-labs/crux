@@ -11,8 +11,9 @@
 #   zephyr  tools, then scripts/bootstrap-zephyr.sh --install-sdk: the west workspace in the parent
 #           folder, Zephyr's Python requirements and the Zephyr SDK with arm-zephyr-eabi; then
 #           west's bash Tab completion (see west_completion)
-#   status  print the result of each step's last run and whether the J-Link software is installed;
-#           installs nothing (the Dev Container prints it when VS Code attaches)
+#   status  print each step's state and whether the J-Link software is installed; installs nothing
+#           (the Dev Container prints it when VS Code attaches). A step is ok, running, needs rerun
+#           (it finished, but its inputs changed since), FAILED (exit N), or not run
 #   board-host  only for a board: prepare the Linux system that the J-Link probe is attached to
 #           (WSL2 or native Linux) so that the Dev Container can open it; see board_host below.
 #           Never run automatically, and refused inside the container
@@ -24,7 +25,8 @@
 # A finished step is recorded in $CRUX_CACHE_DIR/bootstrap/ and skipped while its inputs stay the
 # same: the tool pins; west.yml, the west workspace and the SDK; the Host build folder.
 # CRUX_BOOTSTRAP_FORCE=1 runs every selected step again. Each step's output is kept in
-# $CRUX_CACHE_DIR/bootstrap/<step>.log.
+# $CRUX_CACHE_DIR/bootstrap/<step>.log. A run holds $CRUX_CACHE_DIR/bootstrap/run.pid until it
+# exits; a lock whose process is gone is ignored.
 #
 # Without --keep-going the first failed step stops the script with exit status 1. With
 # --keep-going every step runs, each failure is reported with its log and the command that
@@ -62,8 +64,7 @@ usage() {
 # board_host begin
 board_host() {
     if [ -n "${CRUX_REPO:-}" ] || [ -f "${CRUX_DOCKERENV:-/.dockerenv}" ]; then
-        printf 'error: run "scripts/bootstrap.sh board-host" on the Linux host that has the probe (the WSL2\n' >&2
-        printf 'error: distribution or native Linux), not in the Dev Container.\n' >&2
+        printf 'error: run "scripts/bootstrap.sh board-host" on the Linux host with the probe, not in the Dev Container.\n' >&2
         exit 2
     fi
     usb_dir=${CRUX_USB_DIR:-/dev/bus/usb}
@@ -80,16 +81,8 @@ board_host() {
     step() { printf '\n== %s\n' "$*"; }
     fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
     attach_hint() {
-        cat >&2 <<'EOF'
-On WSL2, attach the probe from PowerShell on Windows, then run this script again:
-
-    usbipd attach --wsl --busid <BUSID>
-
-`usbipd list` shows the BUSID of the J-Link (vendor ID 1366). If its STATE is `Not shared`,
-bind it once first with `usbipd bind --busid <BUSID>` in an administrator PowerShell.
-After a probe re-enumerates, for example after a firmware update, attach it again.
-On native Linux, plug the probe in.
-EOF
+        printf 'Attach the probe (WSL2: usbipd attach --wsl --busid <BUSID> in PowerShell; native Linux: plug it in),\n' >&2
+        printf 'then run this again. See docs/board-jlink-usbipd.md, step 1.\n' >&2
     }
 
     step "1/5 usbutils"
@@ -103,7 +96,7 @@ EOF
 
     step "2/5 USB devices"
     if [ ! -d "$usb_dir" ]; then
-        printf 'error: %s does not exist. On WSL2 it appears only after a USB device is attached.\n' "$usb_dir" >&2
+        printf 'error: %s does not exist: no USB device is attached.\n' "$usb_dir" >&2
         attach_hint
         exit 1
     fi
@@ -131,8 +124,7 @@ EOF
         && $sudo udevadm settle; then
         echo "udev rules reloaded"
     else
-        printf 'warning: udevadm failed. On WSL2, udev runs only when the distribution runs systemd\n' >&2
-        printf 'warning: ([boot] systemd=true in /etc/wsl.conf). The check below decides.\n' >&2
+        printf 'warning: udevadm failed (WSL2 needs [boot] systemd=true in /etc/wsl.conf); the check below decides.\n' >&2
     fi
 
     step "5/5 device permissions"
@@ -157,22 +149,15 @@ EOF
             echo "  Group plugdev (ID $plugdev_gid) can open it (0660). The expected result on native"
             echo "  Linux: the container user is in plugdev and can open the probe."
         else
-            printf 'error: the Dev Container cannot open %s (mode %s, group ID %s).\n' \
-                "$node" "$mode" "$gid" >&2
+            printf 'error: the Dev Container cannot open %s (mode %s, group ID %s; needs 0666, or 0660 with group ID %s).\n' \
+                "$node" "$mode" "$gid" "$plugdev_gid" >&2
             blocked=1
         fi
     done <<<"$probes"
 
     if [ "$blocked" -ne 0 ]; then
-        cat >&2 <<EOF
-The container user can open the probe only if the node is 0666, or 0660 with
-group ID $plugdev_gid (plugdev in the container). Check that $rule_dst is
-installed and that udev runs, then detach and attach the probe again
-(usbipd detach --busid <BUSID>, then usbipd attach --wsl --busid <BUSID>)
-or replug it. A probe that re-enumerated has a new node, which
-on WSL2 may not get the rule (crw-rw-r-- root). \`getent group plugdev\` must show ID $plugdev_gid; if it does not,
-use MODE="0666" in your local copy of the rule.
-EOF
+        printf 'Reattach the probe (usbipd detach, then usbipd attach --wsl --busid <BUSID>) or replug it, then run this again.\n' >&2
+        printf 'See docs/board-jlink-usbipd.md#if-a-step-fails.\n' >&2
         exit 1
     fi
     printf '\nThe Linux side is ready. Open the Dev Container next.\n'
@@ -255,6 +240,15 @@ step_zephyr() { "$repo/scripts/bootstrap-zephyr.sh" --install-sdk; }
 failed=
 rerun_hint() { printf 'scripts/bootstrap.sh %s' "$1"; }
 
+# run_active: a bootstrap run holds the lock and its process is still alive. The lock outlives a
+# rebuilt container, so where /proc exists the process must also be this script.
+run_active() {
+    local pid
+    pid=$(cat "$state/run.pid" 2>/dev/null) || return 1
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+    [ ! -r "/proc/$pid/cmdline" ] || grep -q -a 'bootstrap\.sh' "/proc/$pid/cmdline"
+}
+
 # run_step <name>: run step_<name> unless it is done, log its output and record the result.
 run_step() {
     local name=$1 log=$state/$1.log status
@@ -264,6 +258,7 @@ run_step() {
         return 0
     fi
     printf '\n== bootstrap: %s\n' "$name"
+    printf 'running\n' >"$state/$name.status"
     set +e
     "step_$name" 2>&1 | tee "$log"
     status=${PIPESTATUS[0]}
@@ -278,8 +273,7 @@ run_step() {
     printf 'FAILED (exit %s)\n' "$status" >"$state/$name.status"
     rm -f "$(record_file "$name")"
     failed="$failed $name"
-    printf 'bootstrap: %s FAILED (exit %s). Log: %s\n' "$name" "$status" "$log" >&2
-    printf 'bootstrap: fix the cause (network, proxy, disk), then run: %s\n' "$(rerun_hint "$name")" >&2
+    printf 'bootstrap: %s FAILED (exit %s). Log: %s. Rerun: %s\n' "$name" "$status" "$log" "$(rerun_hint "$name")" >&2
     if [ "$keep_going" -eq 0 ]; then
         exit 1
     fi
@@ -294,14 +288,7 @@ jlink_notice() {
         printf 'J-Link software: installed (%s)\n' "$(command -v "${CRUX_JLINK_EXE:-JLinkExe}")"
         return 0
     fi
-    cat <<'EOF'
-J-Link software is not installed in this container. Host and native_sim work without it; flashing
-and debugging a board need it. The image downloads it at build time. Behind a proxy that
-re-signs TLS, put your organisation's root CA in .devcontainer/certs/ (see its README.md) and
-run "Dev Containers: Rebuild Container". Otherwise download JLink_Linux_<version>_x86_64.deb from
-SEGGER (accept its licence there), place it in .devcontainer/jlink/packages/ on the host, then
-rebuild. See docs/board-jlink-usbipd.md.
-EOF
+    printf 'J-Link software is not installed: board flashing and debugging need it. See docs/board-jlink-usbipd.md, step 3.\n'
 }
 
 # west_completion: write west's bash Tab completion, `west completion bash`, to the first
@@ -323,15 +310,18 @@ west_completion() {
 if [ "$mode" = status ]; then
     for name in tools host zephyr; do
         # A finished step counts only while its record still matches, as in a real run.
-        if is_done "$name"; then
+        result=$(cat "$state/$name.status" 2>/dev/null || printf 'not run')
+        if [ "$result" = running ]; then
+            # A step of a run that was killed never finished.
+            run_active || result='not run'
+        elif is_done "$name"; then
             result=ok
-        else
-            result=$(cat "$state/$name.status" 2>/dev/null || printf 'not run')
-            [ "$result" != ok ] || result='not run'
+        elif [ "$result" = ok ] || [ -f "$(record_file "$name")" ]; then
+            result='needs rerun'
         fi
         line=$(printf '%-7s %s' "$name" "$result")
         case "$result" in
-            ok) ;;
+            ok | running) ;;
             *) line="$line   rerun: $(rerun_hint "$name")" ;;
         esac
         printf 'bootstrap: %s\n' "$line"
@@ -344,6 +334,10 @@ if [ "$(uname -s)" != Linux ]; then
     printf 'scripts/bootstrap.sh sets up Linux; reopen this repository in the Dev Container.\n' >&2
     exit 2
 fi
+
+printf '%s\n' "$$" >"$state/run.pid"
+# Remove the lock only while it is this run's, not a later run's.
+trap '[ "$(cat "$state/run.pid" 2>/dev/null)" != "$$" ] || rm -f "$state/run.pid"' EXIT
 
 steps=tools
 case "$mode" in

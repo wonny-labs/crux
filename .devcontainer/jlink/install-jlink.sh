@@ -44,19 +44,19 @@ expected=$(printf '%s' "${CRUX_JLINK_DEB_SHA256:-}" | tr 'A-F' 'a-f')
 segger_version=${CRUX_JLINK_SEGGER_VERSION:-}
 segger_sha256=$(printf '%s' "${CRUX_JLINK_SEGGER_SHA256:-}" | tr 'A-F' 'a-f')
 
-overrides="To add it, place JLink_Linux_<version>_x86_64.deb from SEGGER in .devcontainer/jlink/packages/
-or set the build arguments CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 to a copy that your
-organisation hosts, then run Dev Containers: Rebuild Container."
+# What to do, in one line; docs/board-jlink-usbipd.md, step 3, has the detail. CRUX_JLINK=1
+# is a deliberate build, so its error also names the hosted copy.
+overrides="To add it, place JLink_Linux_<version>_x86_64.deb in .devcontainer/jlink/packages/ and run Dev Containers: Rebuild Container (docs/board-jlink-usbipd.md, step 3)."
+required="Place JLink_Linux_<version>_x86_64.deb in .devcontainer/jlink/packages/ or set CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 (docs/board-jlink-usbipd.md, step 3)."
 
 # The SEGGER route could not give a package: auto builds the image without
 # J-Link, 1 stops the build.
 no_segger_package() {
     if [ "$mode" = auto ]; then
-        echo "warning: $1. The image is built without the J-Link software; Host and" \
-             "native_sim work without it, flashing and debugging a board need it. $overrides" >&2
+        echo "warning: $1. The image is built without the J-Link software. $overrides" >&2
         exit 0
     fi
-    echo "error: $1. $overrides" >&2
+    echo "error: $1. $required" >&2
     exit 1
 }
 
@@ -108,18 +108,10 @@ if [ -z "$deb" ]; then
             no_segger_package "the J-Link download from SEGGER failed ($segger_url)"
         fi
     elif [ "$mode" = auto ]; then
-        echo "warning: no SEGGER J-Link package; the image is built without the J-Link software." \
-             "Host and native_sim work without it; flashing and debugging a board need it. To add it," \
-             "download JLink_Linux_<version>_x86_64.deb from SEGGER, accept its licence, place the file" \
-             "in .devcontainer/jlink/packages/ and run Dev Containers: Rebuild Container, or set the" \
-             "build arguments CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 to a copy that your" \
-             "organisation hosts" >&2
+        echo "warning: no SEGGER J-Link package; the image is built without the J-Link software. $overrides" >&2
         exit 0
     else
-        echo "error: no SEGGER J-Link package. Either download JLink_Linux_<version>_x86_64.deb" \
-             "from SEGGER, accept its licence and place the file in .devcontainer/jlink/packages/," \
-             "or set the build arguments CRUX_JLINK_URL and CRUX_JLINK_DEB_SHA256 to a copy" \
-             "that your organisation hosts" >&2
+        echo "error: no SEGGER J-Link package. $required" >&2
         exit 1
     fi
 fi
