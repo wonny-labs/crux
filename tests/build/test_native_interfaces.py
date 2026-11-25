@@ -70,10 +70,12 @@ class NativeInterfaceTest(unittest.TestCase):
         checker = runpy.run_path(str(CHECKER))
         for name in ("PORTABLE_ROOTS", "NETWORKING_PROFILE"):
             for path in checker[name]:
-                if not path.startswith(("samples/", "tests/")) or path in planned:
+                # A glob such as samples/*/common may match nothing yet; test_sample_layout.py checks
+                # that it covers every common/ folder.
+                if not path.startswith(("samples/", "tests/")) or path in planned or "*" in path:
                     continue
                 with self.subTest(table=name, path=path):
-                    self.assertTrue(any(REPO.glob(path)), path)
+                    self.assertTrue((REPO / path).exists(), path)
 
     def test_rejects_native_header_families_and_include_spacing(self):
         for header in ("zephyr/kernel.h", "board.h", "fsl_gpio.h", "fsl_device_registers.h",
