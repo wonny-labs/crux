@@ -223,14 +223,16 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def test_board_build_asks_for_the_sample_and_defaults_to_hello_crux(self):
         task = self.tasks["Board: Build"]
         self.assertEqual(task["type"], "process")
-        self.assertEqual(task["command"], "${workspaceFolder}/scripts/build-debug-target.sh")
-        self.assertEqual(task["args"], ["mimxrt1060_evk@B//qspi", "--app", "${input:sample}"])
+        # tests/build/test_vscode_workspace.py runs the command and checks the sample folder it builds.
+        self.assertEqual(task["command"], "bash")
+        self.assertIn("scripts/build-debug-target.sh mimxrt1060_evk@B//qspi --app", task["args"][1])
+        self.assertEqual(task["args"][-1], "${input:sample}")
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertEqual(task["group"], "build")
         inputs = {i["id"]: i for i in load(REPO / ".vscode" / "tasks.json")["inputs"]}
         prompt = inputs["sample"]
         self.assertEqual(prompt["type"], "promptString")
-        self.assertEqual(prompt["description"], "Sample directory, relative to the repository")
+        self.assertEqual(prompt["description"], "Sample folder, relative to the repository")
         self.assertEqual(prompt["default"], "samples/hello_crux/zephyr")
         self.assertTrue((REPO / prompt["default"] / "CMakeLists.txt").is_file())
 

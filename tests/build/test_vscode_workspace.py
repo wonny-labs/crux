@@ -168,16 +168,64 @@ class TasksTest(unittest.TestCase):
         self.assertEqual(set(re.findall(r"\$\{input:([^}]+)\}", json.dumps(self.document["tasks"]))),
                          {"sample"})
 
+    def run_build_task(self, label, entered):
+        # Run a build task as VS Code would, in a tree with two samples, with stub west and build script.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for sample in ("samples/hello_crux/zephyr", "samples/time/shell/zephyr"):
+                (root / sample).mkdir(parents=True)
+                (root / sample / "CMakeLists.txt").write_text("find_package(Zephyr)\n")
+            (root / "samples/time/shell/linux").mkdir(parents=True)
+            (root / "samples/time/shell/linux/CMakeLists.txt").write_text("project(x)\n")
+            log = root / "calls.log"
+            stubs = root / "stubs"
+            stubs.mkdir()
+            (root / "scripts").mkdir()
+            for stub, name in ((stubs / "west", "west"), (root / "scripts/build-debug-target.sh", "build-debug-target.sh")):
+                stub.write_text(f'#!/bin/sh\necho "{name} $*" >> "{log}"\n')
+                stub.chmod(0o755)
+            task = self.tasks[label]
+            arguments = [a.replace("${workspaceFolder}", str(root)).replace("${input:sample}", entered)
+                         for a in task["args"]]
+            env = dict(os.environ, PATH=f"{stubs}:{os.environ['PATH']}")
+            result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True,
+                                    env=env)
+            calls = log.read_text().splitlines() if log.exists() else []
+            return result, calls
+
+    def test_build_tasks_accept_a_sample_folder_or_its_zephyr_folder(self):
+        expected = {"native_sim: Build": "west build -p auto -b native_sim/native/64 -d build/native_sim "
+                                         "{app} -- -DCONFIG_NO_OPTIMIZATIONS=y",
+                    "Board: Build": "build-debug-target.sh mimxrt1060_evk@B//qspi --app {app}"}
+        for label, call in expected.items():
+            for entered in ("samples/time/shell", "samples/time/shell/", "samples/time/shell/zephyr",
+                            "samples/time/shell/zephyr/"):
+                with self.subTest(task=label, entered=entered):
+                    result, calls = self.run_build_task(label, entered)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    app = entered.rstrip("/")
+                    app = app if app.endswith("/zephyr") else app + "/zephyr"
+                    self.assertEqual(calls, [call.format(app=app)])
+
+    def test_build_tasks_refuse_a_folder_without_a_zephyr_application(self):
+        for label in ("native_sim: Build", "Board: Build"):
+            for entered in ("samples/missing", "samples/time", "samples/time/shell/linux/src"):
+                with self.subTest(task=label, entered=entered):
+                    result, calls = self.run_build_task(label, entered)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual((result.stdout + result.stderr).splitlines(),
+                                     [f"No Zephyr application at {entered}; enter samples/<name>/zephyr."])
+                    self.assertEqual(calls, [])
+
     def test_native_sim_build_reuses_one_build_folder(self):
         # -p auto makes the folder pristine when the sample or the board differs from the cached one
         # (Zephyr scripts/west_commands/build.py, _sanity_check).
         # CONFIG_NO_OPTIMIZATIONS builds with -O0, which Zephyr's native_sim documentation recommends
         # for debugging; the board tasks keep Zephyr's default size optimization.
-        task = self.tasks["native_sim: Build"]
-        self.assertEqual(task["command"], "west")
-        self.assertEqual(task["args"], ["build", "-p", "auto", "-b", "native_sim/native/64",
-                                        "-d", "build/native_sim", "${input:sample}",
-                                        "--", "-DCONFIG_NO_OPTIMIZATIONS=y"])
+        result, calls = self.run_build_task("native_sim: Build", "samples/hello_crux/zephyr")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, ["west build -p auto -b native_sim/native/64 -d build/native_sim "
+                                 "samples/hello_crux/zephyr -- -DCONFIG_NO_OPTIMIZATIONS=y"])
         for label in ("Board: Build", "Board: Flash"):
             with self.subTest(task=label):
                 self.assertNotIn("OPTIMIZATIONS", json.dumps(self.tasks[label]))
@@ -185,7 +233,7 @@ class TasksTest(unittest.TestCase):
     def test_native_sim_run_uses_the_build_folder_of_native_sim_build(self):
         task = self.tasks["native_sim: Run"]
         self.assertNotIn("${input:", json.dumps(task))
-        build = self.tasks["native_sim: Build"]["args"]
+        build = self.tasks["native_sim: Build"]["args"][1].split()
         folder = build[build.index("-d") + 1]
         self.assertEqual(NATIVE_SIM_EXE, f"${{workspaceFolder}}/{folder}/zephyr/zephyr.exe")
         self.assertIn(folder, " ".join(task["args"]))

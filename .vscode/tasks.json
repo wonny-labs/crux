@@ -4,10 +4,11 @@
     {
       "label": "Board: Build",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
+      "command": "bash",
       "args": [
-        "mimxrt1060_evk@B//qspi",
-        "--app",
+        "-c",
+        "app=${1%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $1; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec scripts/build-debug-target.sh mimxrt1060_evk@B//qspi --app \"$app\"",
+        "bash",
         "${input:sample}"
       ],
       "options": {
@@ -62,18 +63,12 @@
     {
       "label": "native_sim: Build",
       "type": "process",
-      "command": "west",
+      "command": "bash",
       "args": [
-        "build",
-        "-p",
-        "auto",
-        "-b",
-        "native_sim/native/64",
-        "-d",
-        "build/native_sim",
-        "${input:sample}",
-        "--",
-        "-DCONFIG_NO_OPTIMIZATIONS=y"
+        "-c",
+        "app=${1%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $1; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec west build -p auto -b native_sim/native/64 -d build/native_sim \"$app\" -- -DCONFIG_NO_OPTIMIZATIONS=y",
+        "bash",
+        "${input:sample}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -158,7 +153,7 @@
     {
       "id": "sample",
       "type": "promptString",
-      "description": "Sample directory, relative to the repository",
+      "description": "Sample folder, relative to the repository",
       "default": "samples/hello_crux/zephyr"
     }
   ]

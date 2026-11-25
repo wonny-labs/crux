@@ -171,7 +171,9 @@ Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.jso
 
 ### native_sim and the board in VS Code
 
-CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample directory, relative to the repository, and offer `samples/hello_crux/zephyr`.
+CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample folder, relative to the repository, and offer `samples/hello_crux/zephyr`.
+A sample folder such as `samples/time/shell` builds its `zephyr/` application.
+A folder with neither `CMakeLists.txt` nor `zephyr/CMakeLists.txt` stops the task with `No Zephyr application at <path>; enter samples/<name>/zephyr.`
 
 | Task | What it does |
 | --- | --- |
