@@ -8,6 +8,9 @@ fi
 
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+crux_board_require "$(crux_board_target 'mimxrt1060_evk@B/mimxrt1062/qspi')" 'mimxrt1060_evk@B/mimxrt1062/qspi'
 if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     printf 'Run scripts/bootstrap-zephyr.sh before Zephyr tests.\n' >&2
     exit 2

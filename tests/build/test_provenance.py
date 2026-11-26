@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -109,7 +110,9 @@ class ProvenanceTest(unittest.TestCase):
         manifest.write_text('{"stale": true}\n')
         task = next(task for task in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]
                     if task["label"] == "Board: Clean")
-        arguments = [argument.replace("${workspaceFolder}", str(self.root)) for argument in task["args"]]
+        settings = json.loads((REPO / ".vscode/settings.json").read_text())
+        arguments = [re.sub(r"\$\{config:([^}]+)\}", lambda match: settings[match.group(1)], argument)
+                     .replace("${workspaceFolder}", str(self.root)) for argument in task["args"]]
         result = subprocess.run([task["command"], *arguments], cwd=self.root, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(manifest.exists())

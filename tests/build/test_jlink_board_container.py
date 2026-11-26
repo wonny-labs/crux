@@ -173,7 +173,8 @@ class BoardDebugProfilesTest(unittest.TestCase):
     """The Cortex-Debug profiles: J-Link in the container, or a GDB server on the host."""
 
     # The link that scripts/build-debug-target.sh points at the build it made last.
-    ELF = "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi--current/zephyr/zephyr.elf"
+    # The board comes from crux.boardKey and crux.jlinkDevice in .vscode/settings.json.
+    ELF = "${workspaceFolder}/build/zephyr/${config:crux.boardKey}--current/zephyr/zephyr.elf"
 
     def setUp(self):
         vscode = REPO / ".vscode"
@@ -202,7 +203,7 @@ class BoardDebugProfilesTest(unittest.TestCase):
     def check_jlink(self, profile):
         self.assertEqual(profile["type"], "cortex-debug")
         self.assertEqual(profile["servertype"], "jlink")
-        self.assertEqual(profile["device"], "MIMXRT1062xxx6A")
+        self.assertEqual(profile["device"], "${config:crux.jlinkDevice}")
         self.assertEqual(profile["interface"], "swd")
         self.assertEqual(profile["executable"], self.ELF)
         args = profile["serverArgs"]
@@ -225,7 +226,8 @@ class BoardDebugProfilesTest(unittest.TestCase):
         self.assertEqual(task["type"], "process")
         # tests/build/test_vscode_workspace.py runs the command and checks the sample folder it builds.
         self.assertEqual(task["command"], "bash")
-        self.assertIn("scripts/build-debug-target.sh mimxrt1060_evk@B//qspi --app", task["args"][1])
+        self.assertIn('scripts/build-debug-target.sh "$1" --app', task["args"][1])
+        self.assertEqual(task["args"][3:5], ["${config:crux.board}", "${config:crux.boardKey}"])
         self.assertEqual(task["args"][-1], "${input:sample}")
         self.assertEqual(task["options"]["cwd"], "${workspaceFolder}")
         self.assertEqual(task["group"], "build")

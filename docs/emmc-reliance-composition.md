@@ -63,9 +63,9 @@ the physical gate is approved for the current task.
 ## Selection
 
 - `CONFIG_CRUX_FILE_RELIANCE_EDGE` links the File provider over the Reliance Edge file system, on any board that has
-  the file system. It is mutually exclusive with the other File selections, and names are stored unencoded. It sets
-  `CONFIG_SDHC_BUFFER_ALIGNMENT` to 32, as the two RT1060 FatFs selections do, because the USDHC HAL invalidates a read
-  target by whole D-cache lines. Two compile-time checks guard it: with an SD host and a data cache, `file_native.c`
+  the file system. It is mutually exclusive with the other File selections, and names are stored unencoded. With the USDHC
+  driver it sets `CONFIG_SDHC_BUFFER_ALIGNMENT` to 32, as the two SD card FatFs selections do, because the USDHC HAL
+  invalidates a read target by whole D-cache lines; another SD host keeps its driver's value. Two compile-time checks guard it: with an SD host and a data cache, `file_native.c`
   refuses a value below the cache line size, and with an SD host the adapter refuses a `REDCONF_BUFFER_ALIGNMENT` below
   it.
 - Reliance Edge source is not in this repository. It comes from the optional west group `crux-reliance`, which is off by
@@ -80,7 +80,7 @@ the physical gate is approved for the current task.
   fixture-only `CRUX_EMMC_FLUSH_CONTROL` that bypasses both guards is honoured on `native_sim` only. **Any use of an MMC
   disk needs this option, including by code that is not Crux.** Without it a successful sync can leave data in the
   card's cache.
-- **FatFs on an MMC disk is not a Crux File selection.** `CONFIG_CRUX_FILE_FATFS_RT1060` requires the SDMMC disk, and
+- **FatFs on an MMC disk is not a Crux File selection.** `CONFIG_CRUX_FILE_FATFS_SDMMC` requires the SDMMC disk, and
   nothing selects FatFs for an MMC disk. A project that mounts FatFs on one still needs the flush option, and its
   behaviour on the simulator is covered by the FatFs power-cut replay only, not by the composition.
 - The sample's `prj.conf` names `CONFIG_DISK_DRIVER_MMC=y` and `CONFIG_IMX_USDHC=y`. The flush option depends on the MMC

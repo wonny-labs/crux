@@ -9,18 +9,20 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 zephyr="$workspace/zephyr"
-board="${1:-}"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+if [[ $# -gt 1 ]]; then
+    printf 'Usage: %s [board-target]\n' "$0" >&2
+    exit 2
+fi
+board="${1:-$(crux_board_target 'mimxrt1060_evk@B//qspi')}"
 if [[ ! -f "$workspace/.west/config" || ! -d "$zephyr" ]]; then
     printf 'Run scripts/bootstrap-zephyr.sh before Zephyr tests.\n' >&2
     exit 2
 fi
-if [[ -z "$board" ]]; then
-    printf 'Usage: %s <validated-board-target>\n' "$0" >&2
-    exit 2
-fi
 
 # Twister replaces reports referenced by an older bundle, even if this run fails.
-build_key="$(printf '%s' "$board" | sed -E 's/[^A-Za-z0-9_.-]+/_/g')"
+build_key="$(crux_board_key "$board")"
 rm -f "$repo/build/zephyr/$build_key/provenance.json"
 
 test_output="$repo/build/zephyr/twister-time"

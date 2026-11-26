@@ -148,6 +148,7 @@ The board test tooling programs and restores only registered images. Each image 
 
 - The physical test suites have been used from macOS only. Flashing and debugging from the Dev Container on Linux and WSL2 are described in [Probe and connection](#probe-and-connection).
 - Flashing and debugging are supported from the Dev Container on Linux and WSL2. For a J-Link GDB Server started on the host on port 2331, as `scripts/macos/start-jlink-gdbserver.command` starts it on a Mac, [`.vscode/launch.json`](../../.vscode/launch.json) has the Cortex-Debug profile **Board: Attach (external)**. It does not build or download: the ELF behind the [current build link](#vs-code-debug-profiles) must match the image on the board. That script listens on all interfaces (`-localhostonly 0`), so use it only on a trusted network.
+- On this board CSI shares pins with LPUART3 and LPUART8 (Zephyr's `mimxrt1060_evk` pinctrl). Crux checks no pin conflict, so an image that puts a UART on either of them keeps CSI disabled and checks it itself, as `tests/serial_consumer/zephyr/CMakeLists.txt` does.
 - A cross-build for this target proves that an image compiles and links, not that it boots or operates on the board ([supported environments](../getting-started.md#8-supported-environments)).
 - The physical Time suite runs against an image that is already loaded and never flashes ([test guide](../../tests/README.md#physical-uart-target)).
 - Hardware integration tests have no supported entry point ([Build and Integration Guide](../build.md#hardware-integration-tests)).

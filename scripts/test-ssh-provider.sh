@@ -42,7 +42,10 @@ output="${CRUX_SSH_PROVIDER_OUTPUT:-$repo/build/zephyr/ssh-provider}"
 jobs="${CRUX_SSH_PROVIDER_JOBS:-4}"
 app="$repo/tests/zephyr/ssh_provider"
 native_board='native_sim/native/64'
-target_board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+target_board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+if [[ "$run_target" == true ]]; then crux_board_require "$target_board" 'mimxrt1060_evk@B//qspi'; fi
 export ZEPHYR_BASE="$workspace/zephyr"
 
 fail() {

@@ -27,8 +27,10 @@ class LoggingCompositionTest(unittest.TestCase):
             'unsupported': ('&logging_uarts { uarts = <&uart0>; };', '', 'unsupported UART resource'),
             'parity': ('&logging_test { parity = "even"; };', '', 'unsupported UART mode'),
             'flow_control': ('&logging_test { hw-flow-control; };', '', 'unsupported UART mode'),
+            # The shared-Console rule is about the Console, not the board: without Logging-only routing
+            # (this image has LOG_PRINTK off) a shared Console is refused on every board.
             'console': ('/ { chosen { zephyr,console = &logging_test; }; };', '',
-                        'conflicts with UART Console'),
+                        'shared Console requires Logging-only routing'),
             'shell': ('/ { chosen { zephyr,shell-uart = &logging_test; }; };',
                       'CONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_SERIAL=y\n'
                       'CONFIG_SHELL_BACKEND_SERIAL_API_POLLING=y\nCONFIG_SHELL_LOG_BACKEND=n\n', 'conflicts with UART Shell'),
@@ -47,19 +49,19 @@ class LoggingCompositionTest(unittest.TestCase):
             'custom_macros': ('', 'CONFIG_LOG_CUSTOM_HEADER=y\n', 'unsupported CONFIG_LOG_CUSTOM_HEADER'),
             'no_severity': ('', 'CONFIG_LOG_BACKEND_SHOW_LEVEL=n\n', 'requires CONFIG_LOG_BACKEND_SHOW_LEVEL=y'),
             'no_boundary': ('', 'CONFIG_LOG_BACKEND_CRLF_NONE=y\n', 'unsupported CONFIG_LOG_BACKEND_CRLF_NONE'),
-            'evkb_revision': ('', '', 'unsupported EVKB board revision'),
+            # No board revision check: Rev C of the EVK builds, by its devicetree like any board.
+            'evk_revision_c': ('', '', None),
             'evkb_stdout': ('', 'CONFIG_STDOUT_CONSOLE=y\n', 'shared Console requires Logging-only routing'),
             'evkb_printk': ('', 'CONFIG_LOG_PRINTK=n\n', 'shared Console requires Logging-only routing'),
             'evkb_input': ('', 'CONFIG_CONSOLE_SUBSYS=y\nCONFIG_CONSOLE_GETCHAR=y\n',
                            'shared Console requires Logging-only routing'),
             'evkb_positive': ('', '', None),
-            # The RT1060-EVKB keeps its bounded LPUART1 profile: another LPUART is refused there,
-            # even with Serial off.
-            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n',
-                             'unsupported UART resource'),
+            # The board's devicetree chooses the instance: another enabled LPUART builds on the EVKB as on
+            # any board, with Serial off so that it has one owner.
+            'evkb_lpuart3': ('&logging_uarts { uarts = <&lpuart3>; };', 'CONFIG_CRUX_SERIAL=n\n', None),
             'positive': ('', '', None),
             # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
-            # with the same mode and owner checks.
+            # with the same mode and owner checks, as on every board.
             'custom_positive': ('', '', None),
             'custom_shared_console': ('/ { chosen { zephyr,console = &lpuart2; }; };', '', None),
             'custom_shared_stdout': ('/ { chosen { zephyr,console = &lpuart2; }; };', 'CONFIG_STDOUT_CONSOLE=y\n',
@@ -84,19 +86,19 @@ class LoggingCompositionTest(unittest.TestCase):
                 (case / 'case.overlay').write_text(overlay)
                 (case / 'case.conf').write_text(config)
                 custom = name.startswith('custom_')
-                target = name.startswith('evkb_') or custom
+                target = name.startswith(('evkb_', 'evk_')) or custom
                 modules = [str(REPO)]
                 if target:
                     modules += subprocess.check_output(
                         ['west', 'list', 'cmsis', 'cmsis_6', 'hal_nxp', '-f', '{abspath}'],
                         cwd=os.environ['CRUX_WORKSPACE'], text=True).splitlines()
                 board = 'mimxrt1060_evk@B//qspi' if target else 'native_sim/native/64'
-                if name == 'evkb_revision':
+                if name == 'evk_revision_c':
                     board = 'mimxrt1060_evk@C//qspi'
                 app = REPO / ('tests/logging_consumer/zephyr' if target else 'tests/logging/zephyr')
                 build = root / ('evkb-build' if target else 'native-build')
                 extra = []
-                if name == 'evkb_revision':
+                if name == 'evk_revision_c':
                     build = root / 'revision-build'
                 elif custom:
                     board = FIXTURE_BOARD

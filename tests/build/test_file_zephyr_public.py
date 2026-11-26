@@ -155,9 +155,16 @@ class Target(unittest.TestCase):
     cmake = (PORT / 'CMakeLists.txt').read_text()
 
     def test_each_provider_branch_publishes_the_composition_target(self):
+        # Every provider branch builds its targets through one helper, which publishes crux::file and
+        # the composition target together.
         calls = len(re.findall(r'^\s*crux_file_zephyr_composition\(\)\s*$', self.cmake, re.M))
         self.assertEqual(calls, self.cmake.count('add_library(crux_file INTERFACE)'))
-        self.assertGreaterEqual(calls, 3)
+        helper = re.search(r'function\(crux_file_zephyr_provider\)(.*?)endfunction\(\)', self.cmake, re.S)
+        self.assertIsNotNone(helper)
+        self.assertIn('add_library(crux_file INTERFACE)', helper.group(1))
+        self.assertRegex(helper.group(1), r'(?m)^\s*crux_file_zephyr_composition\(\)\s*$')
+        branches = len(re.findall(r'^\s*crux_file_zephyr_provider\(\)\s*$', self.cmake, re.M))
+        self.assertGreaterEqual(branches, 4)    # SD card, RAM disk, Reliance Edge, simulators
 
     def test_the_target_exposes_only_the_public_include_root_and_the_file_contract(self):
         body = re.search(r'function\(crux_file_zephyr_composition\)(.*?)endfunction\(\)', self.cmake, re.S)

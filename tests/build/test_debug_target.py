@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -159,10 +160,14 @@ class DebugTargetTests(unittest.TestCase):
         configurations = [c for c in json.loads((REPO / ".vscode/launch.json").read_text())["configurations"]
                           if c["type"] == "cortex-debug"]
         labels = {task["label"] for task in json.loads((REPO / ".vscode/tasks.json").read_text())["tasks"]}
+        # The profiles name the board through .vscode/settings.json, whose default is this board.
+        settings = json.loads((REPO / ".vscode/settings.json").read_text())
         self.assertEqual(len(configurations), 3)
         for configuration in configurations:
             with self.subTest(profile=configuration["name"]):
-                self.assertEqual(configuration["executable"], expected)
+                executable = re.sub(r"\$\{config:([^}]+)\}", lambda match: settings[match.group(1)],
+                                    configuration["executable"])
+                self.assertEqual(executable, expected)
                 if "preLaunchTask" in configuration:
                     self.assertIn(configuration["preLaunchTask"], labels)
 

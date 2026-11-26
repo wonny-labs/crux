@@ -44,7 +44,9 @@ jobs="${CRUX_PSA_JOBS:-4}"
 modules="$workspace/modules/crypto"
 host_source="$repo/tests/psa_crypto/host"
 zephyr_source="$repo/tests/psa_crypto/zephyr"
-board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 native_board='native_sim/native/64'
 
 # Case counts, so a run that silently shrinks fails. Host runs the cases, and Zephyr adds a list check.
@@ -384,6 +386,7 @@ PY
 run_target() {
     local provider build config providers=(tf-psa-crypto wolfpsa)
     [[ "$scope" == all ]] || providers=(tf-psa-crypto)
+    crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
     require_module Zephyr "$workspace/zephyr"
     export ZEPHYR_BASE="$workspace/zephyr"
     unset ZEPHYR_TOOLCHAIN_VARIANT

@@ -23,6 +23,9 @@ if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     exit 2
 fi
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+crux_board_require "$(crux_board_target 'mimxrt1060_evk@B/mimxrt1062/qspi')" 'mimxrt1060_evk@B/mimxrt1062/qspi'
 board='mimxrt1060_evk@B/mimxrt1062/qspi'
 # The name does not start with twister-, so the CI step that collects Twister evidence does not
 # match this directory: it holds the map of an image that links GPLv2 source.
@@ -78,7 +81,7 @@ REQUIRED = ['CONFIG_DISK_DRIVER_MMC=y', 'CONFIG_MMC_STACK=y', 'CONFIG_CRUX_MMC_C
             'CONFIG_SDHC_BUFFER_ALIGNMENT=32', 'CONFIG_CRUX_FS_RELIANCE_EDGE=y',
             'CONFIG_CRUX_FILE_RELIANCE_EDGE=y']
 UNSET = ['CONFIG_DISK_DRIVER_SDMMC', 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT', 'CONFIG_FAT_FILESYSTEM_ELM',
-         'CONFIG_CRUX_FILE_FATFS_RT1060']
+         'CONFIG_CRUX_FILE_FATFS_RT1060', 'CONFIG_CRUX_FILE_FATFS_SDMMC']
 
 # Each scenario is (name, mount at boot, Configuration on the Settings File backend).
 SCENARIOS = [('crux.sample.boards.mimxrt1060_evk.emmc_file', False, False), ('crux.sample.boards.mimxrt1060_evk.emmc_file.start', True, False),

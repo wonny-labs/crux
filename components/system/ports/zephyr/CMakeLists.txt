@@ -1,8 +1,5 @@
-# The EVKB is built at revision B only. Another RT1062 board has no EVK revision; its own
-# revisions are the product's to check.
-if(CONFIG_BOARD_MIMXRT1060_EVK AND NOT BOARD_REVISION STREQUAL "B")
-    message(FATAL_ERROR "Crux System unsupported EVKB board revision: ${BOARD_REVISION}; expected B")
-endif()
+# No board, SoC or revision check: the binding selects the watchdog by devicetree (system_binding.c),
+# and a board revision that changes the hardware changes its devicetree.
 set(CRUX_SYSTEM_PROVIDER zephyr CACHE STRING "System provider for this composition")
 if(NOT CRUX_SYSTEM_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux System unsupported provider: ${CRUX_SYSTEM_PROVIDER}")
