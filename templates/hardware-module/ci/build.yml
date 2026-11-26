@@ -6,7 +6,7 @@
 # native_sim and cross-builds every board the module carries. It flashes and
 # runs nothing on hardware.
 #
-# Versions follow Crux at the time of writing: Zephyr 4.4.2, SDK 1.0.1 and
+# Versions follow Crux at the time of writing: Zephyr 4.5.0, SDK 1.0.1 and
 # west 1.4.0. Keep them equal to what the organisation manifest pins.
 name: acme-hw
 

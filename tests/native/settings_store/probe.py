@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tempfile
 
-PIN = "dccb09599635bdff17633fa7e9dab014b91dce90"
+PIN = "41d10b59730406bbab4ca9f1fbbe9e96aafb4966"
 
 CALLBACKS = r'''
 #ifndef PROBE_SETTINGS_H

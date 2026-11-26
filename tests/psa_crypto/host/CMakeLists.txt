@@ -70,7 +70,8 @@ else()
     add_library(crux_psa_provider STATIC ../stubs/stub.c)
     target_include_directories(crux_psa_provider SYSTEM PUBLIC
         "${_crux_tf_psa_crypto_dir}/include"
-        "${_crux_tf_psa_crypto_dir}/drivers/builtin/include")
+        "${_crux_tf_psa_crypto_dir}/drivers/builtin/include"
+        "${_crux_tf_psa_crypto_dir}/dispatch/include")
     if(CRUX_PSA_PROVIDER STREQUAL "stub-permissive")
         target_compile_definitions(crux_psa_provider PRIVATE CRUX_PSA_STUB_PERMISSIVE=1)
     else()

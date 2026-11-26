@@ -2,8 +2,10 @@
 """A model of MCUboot's image trailer rules in RAM load with revert, for power-cut replay.
 
 Written from reading MCUboot 6d3b3d2c38ab20c242e5b9abb04d050086383eb2 (the revision in Zephyr
-v4.4.2's west.yml) and Zephyr v4.4.2. No MCUboot code is copied or linked; each rule names the
-upstream function it follows, so that a reviewer can compare it with the pinned source:
+v4.4.2's west.yml) and Zephyr v4.4.2. At the current pin, MCUboot 725d63c9 of Zephyr v4.5.0,
+bootutil_misc.h is unchanged and bootutil_public.c changes one comment; the boot decision rules of
+loader.c and bootutil_area.c were not read again. No MCUboot code is copied or linked; each rule
+names the upstream function it follows, so that a reviewer can compare it with the pinned source:
 
 - Trailer offsets: boot_magic_off, boot_image_ok_off, boot_copy_done_off (bootutil_misc.h) and
   boot_swap_info_off (bootutil_public.c), with the alignment unit BOOT_MAX_ALIGN.

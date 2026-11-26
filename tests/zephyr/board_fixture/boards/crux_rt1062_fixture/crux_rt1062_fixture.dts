@@ -10,8 +10,8 @@
 
 /dts-v1/;
 
-#include <nxp/imxrt/nxp_rt1060.dtsi>
-#include <nxp/nxp_imx/rt/mimxrt1062dvl6a-pinctrl.dtsi>
+#include <nxp/imxrt/imxrt10xx/nxp_rt1060.dtsi>
+#include <nxp/imxrt/imxrt10xx/pinctrl/mimxrt1062dvl6a-pinctrl.dtsi>
 
 / {
 	model = "Crux RT1062 compile-only fixture (fictional)";

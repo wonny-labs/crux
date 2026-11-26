@@ -1,7 +1,7 @@
 /* Two things this test image does at the socket call that the server makes.
  *
  * The server's inactivity timer closes a client with zsock_shutdown(), and the native socket
- * offload at v4.4.2 has no shutdown operation, so there the call fails and the timer does nothing.
+ * offload at v4.5.0 has no shutdown operation, so there the call fails and the timer does nothing.
  * This gives the timer the effect it has on Zephyr's own TCP stack, so that the measurements mean
  * something.
  *
@@ -36,8 +36,10 @@ ssize_t __real_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int fl
                                    const struct net_sockaddr *dest_addr, net_socklen_t addrlen);
 ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int flags,
                                    const struct net_sockaddr *dest_addr, net_socklen_t addrlen);
+ssize_t __real_z_impl_zsock_sendmsg(int sock, const struct net_msghdr *msg, int flags);
+ssize_t __wrap_z_impl_zsock_sendmsg(int sock, const struct net_msghdr *msg, int flags);
 
-/* The start of the driver's private struct nsos_socket at v4.4.2, up to the host descriptor. A
+/* The start of the driver's private struct nsos_socket at v4.5.0, up to the host descriptor. A
  * wrong layout makes the host call fail, and the driver's inactivity cases then fail. */
 struct nsos_socket_start {
     int fd;
@@ -73,11 +75,12 @@ int __wrap_z_impl_zsock_shutdown(int sock, int how)
     return web_host_shutdown(socket->poll_mid.fd, how);
 }
 
-ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int flags,
-                                   const struct net_sockaddr *dest_addr, net_socklen_t addrlen)
+/* Counts one send. A piece (one sendmsg() of a response, from Zephyr v4.5.0) may be made to fail
+ * with -EAGAIN; a header block flushed with sendto() is counted but never failed. Returns false
+ * when it failed the send. */
+static bool send_enter(int sock, bool piece)
 {
     const struct nsos_socket_start *socket = zvfs_get_fd_obj(sock, NULL, EBADF);
-    ssize_t sent;
 
     if (shrink_size != 0 && socket != NULL && !net_socket_is_tls((void *)socket)) {
         (void)web_host_set_send_buffer(socket->poll_mid.fd, shrink_size);
@@ -85,12 +88,12 @@ ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int fl
     }
     if (send_depth == 0u) {
         ++outer_sends;
-        if (fail_armed) {
+        if (fail_armed && piece) {
             if (fail_skip == 0u) {
                 fail_armed = false;
                 ++eagain_count;
                 errno = EAGAIN;
-                return -1;
+                return false;
             }
             --fail_skip;
         }
@@ -98,11 +101,41 @@ ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int fl
         ++inner_sends;
     }
     ++send_depth;
-    sent = __real_z_impl_zsock_sendto(sock, buf, len, flags, dest_addr, addrlen);
+    return true;
+}
+
+static void send_leave(ssize_t sent)
+{
     --send_depth;
     if (send_depth == 0u && sent < 0 && errno == EAGAIN) {
         ++real_eagain;
     }
+}
+
+/* From Zephyr v4.5.0 the server passes the rest of a response's header block, a chunk and the
+ * terminator to the socket in one sendmsg(), one call for each piece of the body. */
+ssize_t __wrap_z_impl_zsock_sendmsg(int sock, const struct net_msghdr *msg, int flags)
+{
+    ssize_t sent;
+
+    if (!send_enter(sock, true)) {
+        return -1;
+    }
+    sent = __real_z_impl_zsock_sendmsg(sock, msg, flags);
+    send_leave(sent);
+    return sent;
+}
+
+ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int flags,
+                                   const struct net_sockaddr *dest_addr, net_socklen_t addrlen)
+{
+    ssize_t sent;
+
+    if (!send_enter(sock, false)) {
+        return -1;
+    }
+    sent = __real_z_impl_zsock_sendto(sock, buf, len, flags, dest_addr, addrlen);
+    send_leave(sent);
     return sent;
 }
 

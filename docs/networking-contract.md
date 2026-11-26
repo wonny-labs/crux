@@ -190,7 +190,8 @@ unless identified physical evidence is separately accepted.
 ## Tuning and limits for products
 
 This section is guidance. It restates the profile above and adds no option, function or
-promise. Zephyr citations are to the pinned v4.4.2 (the `west.yml` revision). The same facts hold
+promise. Zephyr citations are to v4.4.2, the `west.yml` revision when this was written, and were not
+read again at the current pin v4.5.0. The same facts hold
 in v4.4.0, where the `sockets_inet.c` lines are three lower, the `tcp.c` lines are one higher and
 `Kconfig.tcp` is identical.
 

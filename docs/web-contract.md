@@ -181,8 +181,10 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 
 ### The slow reader bound
 
-The send timeout bounds one send, and not a response. The server makes about twenty sends for a small response: the status
-line, three for each header, an end of headers, three for a chunk and a terminator. All are in one callback, and the thread
+The send timeout bounds one send, and not a response. At Zephyr v4.4.2 the server made about twenty sends for a small
+response: the status line, three for each header, an end of headers, three for a chunk and a terminator. Zephyr v4.5.0
+assembles the header block in a 128-byte buffer, sends each full buffer, and passes the rest with a chunk and the
+terminator in one `sendmsg()`, so a small `/api/v1/status` response takes two sends on `native_sim`. All are in one callback, and the thread
 serves nobody else until they finish. So the bound, **for one callback, is the number of sends times the send timeout**,
 and with pieces, the response deadline plus that.
 
@@ -222,9 +224,9 @@ any of them has changed:
 | Any of them, after another client's response | The store's generation | The core has built a response since |
 
 **The generation is what keeps another client's bytes out**, because once the core has built any other response no piece of
-the old one is sent. `data_len` and the URL's length catch the ordinary re-entries, but not every one. Zephyr v4.4.2 removes
-dot segments from the whole URL buffer when headers complete, so a split request for `/../21` appended to `/probe/fail/21`
-folds back to `/probe/fail/21`, with the same length and content. After another client's response the generation closes it,
+the old one is sent. `data_len` and the URL's length catch the ordinary re-entries, but not every one. Zephyr removes
+dot segments from the whole URL buffer when headers complete (v4.4.2 and v4.5.0), so a split request for `/../1` appended to
+`/probe/fail/1` folds back to `/probe/fail/1`, with the same length and content. After another client's response the generation closes it,
 and with the generation check removed, 2,048 bytes of that client's body arrive. Alone, nothing tells it from the server's own
 piece loop, and the client's old response resumes past the piece whose send failed: 3,072 of its 4,096 bytes arrive, in a
 broken chunked stream.

@@ -181,7 +181,7 @@ To move the pin, change the Crux `revision` in the product manifest to a newer S
 
 ### Zephyr baseline gate
 
-The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.4.2. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
+The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.5.0. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
 
 `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` turns the warning into an error that stops the build.
 
@@ -223,7 +223,7 @@ flowchart TD
 | Vendor source delivered to you, not a public upstream | [Vendor branch](#vendor-branch) in an internal repository | `PRODUCT` | Each delivery is a merge, and a hash list to keep |
 | Commercial edition of a module that Crux pins publicly | [Different project name](#commercial-editions) in the product manifest, with the Crux group off or the original filtered out | `PRODUCT` | The product tracks that edition itself |
 | Public upstream the product must change, such as `zephyr` or `hal_nxp` | [Soft fork](#soft-forks) with tagged commits. Provisional until it is compared with patch files on a fresh workspace | `OVERRIDE` | SBOM identity, and the allowlist if the fork is `zephyr` |
-| Binary-only delivery | Internal git or `west blobs`, with a hash and a release record | `PRODUCT` if in git | The `west blobs` HTTP fetcher passes no credentials. The library appears in no SBOM document at v4.4.2 |
+| Binary-only delivery | Internal git or `west blobs`, with a hash and a release record | `PRODUCT` if in git | The `west blobs` HTTP fetcher passes no credentials. From Zephyr v4.5.0, a prebuilt library that a module declares is listed in the SBOM |
 | Delivery that may not enter the repository | Keep it outside the checkout, identified by a committed hash list | Nothing | The build record does not cover it, so the release must record it separately |
 
 ### Vendor branch
@@ -621,7 +621,7 @@ flowchart TD
 
 ### Crypto library pins
 
-Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. Since the pin move of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) (approved 14 November 2026) they are the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), not the revisions Zephyr's manifest pins at v4.4.2. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. At Zephyr v4.5.0 they are the revisions that Zephyr's manifest pins (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1). The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
 
 A product **can**:
 
@@ -637,7 +637,7 @@ A product **must**:
 
 ### Taking a Zephyr patch release
 
-A Zephyr patch release such as 4.4.3 trips both checks until Crux moves its baseline.
+A Zephyr patch release such as 4.5.1 trips both checks until Crux moves its baseline.
 
 - **`west crux-pins`.** It reports `MISMATCH` on `zephyr` and on each module whose pin moved with it.
 - **Baseline gate.** The [gate](#zephyr-baseline-gate) compares exact release numbers, so the build warns, and `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops it. A required build then needs the option dropped, or Crux's baseline moved first.
@@ -677,7 +677,7 @@ flowchart TD
     B --> C["Fresh workspace: west init --mf"]
     C --> D["west update, with mirror rewrites active"]
     D --> E["west crux-pins"]
-    E --> F["Rewrites off: capture inputs, west spdx --init, west build with the Zephyr gate required"]
+    E --> F["Rewrites off: capture inputs, west build with the Zephyr gate required"]
     F --> G["scripts/record-build-provenance.py --repo"]
     G --> H["west spdx"]
     H --> I["Assemble the release bundle"]
@@ -709,7 +709,6 @@ west crux-pins
 
 python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
     --capture-inputs product-x/build/inputs.json
-west spdx --init -d product-x/build/app
 west build -b <board> -d product-x/build/app product-x/app -- -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON
 west build -d product-x/build/app -t rom_report
 west build -d product-x/build/app -t ram_report
@@ -778,12 +777,17 @@ Signing was not tested. Whether identity is taken before or after signing is und
 
 ## SBOM
 
-At Zephyr v4.4.2:
+At Zephyr v4.5.0, from its release notes and migration guide:
 
-- `west spdx` needs `CONFIG_BUILD_OUTPUT_META`, which the template sets. Run `west spdx --init -d <build>` before the build and `west spdx -d <build>` after it.
-- It emits SPDX 2.2 or 2.3. It does not support `native_sim`.
+- `west spdx` needs `CONFIG_BUILD_OUTPUT_META`, which the template sets. The build itself prepares what `west spdx` reads, so run `west spdx -d <build>` after the build. Do not run `west spdx --init`, which Zephyr plans to remove in 5.0.
+- It emits SPDX 2.3 by default and SPDX 3.0 with `--spdx-version 3.0`; SPDX 3.1 is experimental.
+- Prebuilt libraries linked into the image are listed, with the version and URL that their module declares.
+- Zephyr and its modules get a purl pinned to the built revision, and Zephyr a CPE built from its `VERSION` file.
+
+What follows was read in the source at v4.4.2 and not read again at v4.5.0:
+
+- It does not support `native_sim`.
 - A default set exposes file names, copyright text and internal URLs. Reduce it before giving it outward.
-- Prebuilt libraries declared in `module.yml` appear in no document. A release step must add them.
 - `zspdx/walker.py` `_build_purl` accepts only `git@` and `http(s)://` URLs, so a fork on an `ssh://` URL gets no purl.
 - Only an exact `vX.Y.Z` tag gives the package version and the CPE, so a fork tag such as `v4.4.2-acme1` does not. A release step can add the upstream base identity back. A fork on an `https://` URL was not tested.
 - A repair step must cover each modified package, including the module dependency records in `modules-deps.spdx`, whose references come from `module.yml` and not from the fork.

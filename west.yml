@@ -18,7 +18,7 @@ manifest:
     - name: zephyr
       remote: zephyrproject-rtos
       repo-path: zephyr
-      revision: dccb09599635bdff17633fa7e9dab014b91dce90 # v4.4.2
+      revision: 41d10b59730406bbab4ca9f1fbbe9e96aafb4966 # v4.5.0
       import:
         name-allowlist:
           - cmsis
@@ -32,25 +32,24 @@ manifest:
     # group. It is a plain project in Crux's own optional group instead.
     - name: mcuboot
       remote: zephyrproject-rtos
-      revision: 6d3b3d2c38ab20c242e5b9abb04d050086383eb2
+      revision: 725d63c9d5bc1bb572d802e7a768daf504186daf
       path: bootloader/mcuboot
       groups:
         - crux-boot
-    # Crypto library security pins (ADR-0006). Zephyr's own west.yml at the tag above pins mbedtls
-    # a3e190fe and tf-psa-crypto dc575a2d (Mbed TLS 4.1.0 and TF-PSA-Crypto 1.1.0). These two are the
-    # revisions of Zephyr's v4.4-branch from commit 9b9a84fc (13 August 2026, after v4.4.2): Mbed TLS
-    # 4.1.1 and TF-PSA-Crypto 1.1.1, which hold the fixes of the advisories of 7 July 2026. The reason
-    # and the evidence plan are in docs/dependency-review-mbed-tls-4.1.1.md. scripts/test-psa-crypto.sh
-    # accepts a pin that differs from Zephyr's manifest only for these two revisions.
+    # The crypto libraries follow the revisions in Zephyr's own west.yml at the tag above: Mbed TLS
+    # 4.1.1 and TF-PSA-Crypto 1.1.1 (Zephyr's fork tags zephyr_mbedtls_v4.1.1 and
+    # zephyr_tf-psa-crypto_v1.1.1), which hold the fixes of the advisories of 7 July 2026
+    # (docs/dependency-review-mbed-tls-4.1.1.md). A pin that differs from Zephyr's needs a security pin
+    # review under ADR-0006, which scripts/test-psa-crypto.sh checks.
     - name: mbedtls
       remote: zephyrproject-rtos
-      revision: 098e120afb51877ed814bdc04443890ae12e0642
+      revision: c43f34b93797e81fd0257c30004dcd0ae332ae51
       path: modules/crypto/mbedtls
       groups:
         - crux-secure-management
     - name: tf-psa-crypto
       remote: zephyrproject-rtos
-      revision: fa92349590a54959ee2efc21b668e5afdb144726
+      revision: 765af96a20a2b408474dcd950372ba9af4d26b62
       path: modules/crypto/tf-psa-crypto
       groups:
         - crux-secure-management

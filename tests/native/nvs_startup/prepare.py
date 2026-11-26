@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-PIN = 'dccb09599635bdff17633fa7e9dab014b91dce90'
+PIN = '41d10b59730406bbab4ca9f1fbbe9e96aafb4966'
 SOURCE_SHA = '21ad6c753b5bc8370502799568426ec69648ea41a8b0b263df0f3eb840f6767b'
 
 def prepare(zephyr, output):

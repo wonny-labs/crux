@@ -5,6 +5,8 @@ Refs #183.
 
 **Everything here ran on the Host, on `native_sim`, or as a compile and link for `mimxrt1060_evk@B//qspi`. Nothing ran on a board.**
 
+**Zephyr v4.5.0.** This record, its results and the patch are on Zephyr v4.4.2, the Zephyr of the wolfSSL bench line. Crux now pins v4.5.0, which corrects both defects below but falls back to `sys_rand32_get()` when the key read or the hash fails; [patches/zephyr](../patches/zephyr/README.md#tcp-initial-sequence-number-that-fails-closed) describes the smaller v4.5.0 rebase. The bench chain cannot be made on v4.5.0 until a 4.5 TLS socket patch exists, and the runs here were not repeated on v4.5.0.
+
 **Update (T11 of [the freeze design](rt1060-bench-freeze-and-capture-design.md)).** This row first shipped with a sibling declaration block `patched_zephyr.isn_fail_closed` and a second marker `.crux-isn-fail-closed` (decisions 8 and 10 below). T11 moved the patch into the design's ordered list and replaced the two markers by the **one** marker `.crux-wolf-tls` with `<pin> <tls sha256> <isn sha256>`, which `scripts/prepare-isn-fail-closed.py` now writes by extending the TLS step's marker, with the owner's approval of that one edit to a protected script (see [how this relates to the freeze design](#how-this-relates-to-the-freeze-design)). The sections *How the copy is made* and *Decisions for review* are current, and so is the table of *The guards*; its mutant count is the C11 figure at merge, and the T11 figure is stated beside it. The *Proof* section and the evidence folder record what ran when the row merged, with two markers, and stay as they were.
 
 ## The owner's decision

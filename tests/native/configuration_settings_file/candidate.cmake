@@ -3,7 +3,6 @@ set(_copy "${CMAKE_BINARY_DIR}/settings-file-candidate")
 # Re-stage whenever an input changes, also in an incremental build.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_LIST_DIR}/prepare.py ${CMAKE_CURRENT_LIST_DIR}/settings_file.patch
-  ${CMAKE_CURRENT_LIST_DIR}/settings_line.patch
   ${CMAKE_CURRENT_LIST_DIR}/../settings_error/settings_store.patch
   ${ZEPHYR_BASE}/subsys/settings/src/settings_file.c
   ${ZEPHYR_BASE}/subsys/settings/src/settings_line.c

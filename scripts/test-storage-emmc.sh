@@ -532,8 +532,8 @@ python3 - "$control.run.log" <<'PY'
 import re
 import sys
 
-# The 13 cases that fail on the FatFs RAM disk (scripts/test-storage-simulators.sh) less one. The
-# 12 below fail here for the same reason: the unpatched backend turns an I/O fault that the fixture
+# The 11 cases that fail on the FatFs RAM disk (scripts/test-storage-simulators.sh) less one. The
+# 10 below fail here for the same reason: the unpatched backend turns an I/O fault that the fixture
 # injects into success, into a missing key or into a lost record, and the injection is the same.
 # test_full_volume_never_acknowledges_a_lost_save fails on FatFs and passes here. The backend's
 # write handler returns a negative result and turns a byte count into success. FatFs answers a
@@ -546,13 +546,11 @@ import sys
 # own.
 expected = {
     'test_a_callback_error_is_returned_by_the_load',
-    'test_compaction_close_error_is_not_success',
     'test_compaction_read_error_keeps_other_records',
     'test_compaction_read_fault_never_loses_a_record',
     'test_each_load_read_fault_preserves_active',
     'test_interrupted_save_never_yields_a_wrong_value',
     'test_missing_file_with_a_compaction_leftover_is_an_error',
-    'test_name_write_error_is_failure',
     'test_save_scan_error_is_not_success',
     'test_scan_read_error_is_not_missing',
     'test_short_write_is_failure',
@@ -560,11 +558,11 @@ expected = {
 }
 log = open(sys.argv[1], errors='replace').read()
 failed = set(re.findall(r'^ - FAIL - \[configuration_settings_reliance\.(\w+)\]', log, re.M))
-if failed != expected or 'pass = 16, fail = 12, skip = 1, total = 29' not in log:
+if failed != expected or 'pass = 18, fail = 10, skip = 1, total = 29' not in log:
     raise RuntimeError(f'settings-reliance control differs: unexpected {sorted(failed - expected)}, '
                        f'missing {sorted(expected - failed)}')
 print(f'settings-reliance control (unpatched backend): {len(failed)} of 29 cases fail as expected, '
-      '16 pass and 1 skips')
+      '18 pass and 1 skips')
 PY
 
 # Power-cut replay of W4: three keys saved through the Settings File backend, which compacts its

@@ -1,9 +1,9 @@
 --- a/subsys/net/lib/http/http_server_core.c
 +++ b/subsys/net/lib/http/http_server_core.c
-@@ -67,6 +67,69 @@
- #endif
- 
- static void close_client_connection(struct http_client_ctx *client);
+@@ -92,6 +92,69 @@
+ static void restore_h3_stream_state(struct http_client_ctx *client, int slot);
+ static void store_h3_stream_state(struct http_client_ctx *client, int slot);
+ static void close_all_sockets(struct http_server_ctx *ctx);
 +
 +/* Header-phase deadline. Every read that returns data restarts the inactivity timer, so that
 + * timer alone does not bound a client that trickles an incomplete request head. From the first
@@ -14,7 +14,7 @@
 +#if !defined(CONFIG_CRUX_WEB_HEADER_DEADLINE_MS)
 +#error "the header-phase deadline needs CONFIG_CRUX_WEB_HEADER_DEADLINE_MS"
 +#endif
-+BUILD_ASSERT(!IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_2),
++BUILD_ASSERT(!IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_2) && !IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_3),
 +	     "the header-phase deadline covers the HTTP/1 request states only");
 +
 +static struct {
@@ -70,7 +70,7 @@
  
  HTTP_SERVER_CONTENT_TYPE(html, "text/html")
  HTTP_SERVER_CONTENT_TYPE(css, "text/css")
-@@ -439,6 +502,7 @@
+@@ -760,6 +823,7 @@
  
  	memset(client->buffer, 0, sizeof(client->buffer));
  	memset(client->url_buffer, 0, sizeof(client->url_buffer));
@@ -78,12 +78,12 @@
  	k_work_init_delayable(&client->inactivity_timer, client_timeout);
  	http_client_timer_restart(client);
  
-@@ -735,6 +799,8 @@
- 				 */
- 				LOG_ERR("RX buffer too small to handle request");
- 				close_client_connection(client);
-+			} else {
-+				(void)header_deadline_check(client);
- 			}
- 		}
+@@ -1302,6 +1366,8 @@
+ 	} else if (client->data_len >= sizeof(client->buffer)) {
+ 		LOG_ERR("RX buffer too small to handle request");
+ 		close_client_connection(client);
++	} else {
++		(void)header_deadline_check(client);
  	}
+ }
+ 

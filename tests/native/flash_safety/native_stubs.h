@@ -24,10 +24,21 @@ struct flash_flexspi_nor_data {
     unsigned port;
     uint64_t size;
     bool legacy_poll;
+    /* Zephyr v4.5.0: bytes erased by one block erase, 64 KiB without SFDP. */
+    uint32_t erase_block_size;
     struct {
         unsigned flashSize;
     } config;
 };
+/* Zephyr v4.5.0: the optional driver mutex, off as without CONFIG_FLASH_MCUX_FLEXSPI_NOR_MUTEX. */
+static inline void flash_flexspi_nor_lock(const struct device *dev)
+{
+    (void)dev;
+}
+static inline void flash_flexspi_nor_unlock(const struct device *dev)
+{
+    (void)dev;
+}
 static int fail_stage, calls[6], xip, unlocks, resets, fail_after = 1;
 static jmp_buf terminal;
 static int terminal_reason;

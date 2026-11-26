@@ -8,3 +8,5 @@ endif()
 target_sources(app PRIVATE src/main.c)
 target_include_directories(app PRIVATE credentials)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+# The offload reports a peer FIN as POLLHUP, which Zephyr v4.5.0 needs: see src/main.c.
+include(${CMAKE_CURRENT_LIST_DIR}/../web_https/nsos_rdhup.cmake)

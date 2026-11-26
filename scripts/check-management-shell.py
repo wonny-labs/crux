@@ -29,12 +29,13 @@ import sys
 
 MANAGEMENT = ("CRUX_CLI", "CRUX_WEB", "CRUX_SSH")
 DEVELOPMENT = "CRUX_DEVELOPMENT_IMAGE"
-FORBIDDEN_EVERYWHERE = ("SHELL_BACKEND_TELNET", "SHELL_BACKEND_WEBSOCKET", "SHELL_BACKEND_MQTT",
+FORBIDDEN_EVERYWHERE = ("SHELL_BACKEND_TELNET", "SHELL_BACKEND_WEBSOCKET", "SHELL_BACKEND_MQTT", "SHELL_BACKEND_SSH",
                         "MCUMGR_GRP_SHELL")
 BACKEND = re.compile(r"^SHELL_BACKEND_")
 ALLOWED_BACKEND = re.compile(r"^SHELL_BACKEND_SERIAL(_|$)")
 SETTING = re.compile(r"^CONFIG_([A-Za-z0-9_]+)=(.*)$")
-SHELL_SECTIONS = ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds")
+# shell_remote is a section of Zephyr v4.5.0, in its linker script whether or not the shell is built.
+SHELL_SECTIONS = ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds", "shell_remote")
 SHELL_SYMBOL = re.compile(r"^(_{0,2}|z_)shell(_|$)")
 
 

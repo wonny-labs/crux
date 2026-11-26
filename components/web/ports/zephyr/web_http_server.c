@@ -2,7 +2,7 @@
  *
  * It holds no routing or access logic. Each generated resource calls the one callback here, which
  * hands the request to the portable core. Behaviour it depends on is from the server's source at
- * v4.4.2, and tests/native/web_http holds it to the real server:
+ * v4.5.0, and tests/native/web_http holds it to the real server:
  *
  * - A negative return from the callback closes the connection, unless it is -EAGAIN, which leaves
  * the client open with its resource held. Every close here therefore uses another error.
@@ -12,7 +12,7 @@
  *   chunked terminator goes after the last callback. To answer before the body ends, the adapter
  *   writes a complete response itself and closes. It never does this on a kept connection.
  * - The server sends on a blocking socket with no timeout of its own, so a timeout is set on each
- *   request's first callback. It bounds one send, not a response: the server makes about twenty
+ *   request's first callback. It bounds one send, not a response: the server makes several
  * sends for a small response, in one callback, without returning to poll.
  * - A send that fails with -EAGAIN comes back through the server, which swallows it and leaves the
  *   client open with its resource and this slot held. The response stops there, and what the client
@@ -20,7 +20,7 @@
  * built in the same store. The store generation is what keeps another client's bytes out: a piece
  * is never sent once the core has built any other response. data_len and the URL's length catch the
  *   ordinary re-entries, a request in one read and one in two, but not a URL that folds back to the
- *   old one under the dot-segment removal of v4.4.2, which can resume the client's own response.
+ *   old one under the dot-segment removal of v4.5.0, which can resume the client's own response.
  *   That only sends it bytes of the response it was already given, and is declared.
  * - The server calls back without returning to poll until a response is final, so a large body goes
  * in pieces, and a callback between pieces closes a response that has run over its deadline. A
