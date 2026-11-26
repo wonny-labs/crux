@@ -283,6 +283,8 @@ Time owns typed monotonic observation and deadlines, and Thread owns sleep. Thei
 
 `scripts/test-serial.sh --host-only` runs independently authored public C17/C++17 consumers and the controller against disposable PTYs. The default command also runs UART-emulator and native ownership suites and cross-builds the EVKB fixture. The Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider through the root entry point. The composition test also compiles Serial on the fictional RT1062 board of `tests/zephyr/board_fixture` (LPUART3), where the mode, owner and resource checks still refuse. See [Serial qualification](../docs/serial-validation.md).
 
+The Serial, Settings (`tests/native/configuration_settings`) and NVS startup (`tests/native/nvs_startup`) fixtures wrap a device in a proxy whose API table is outside the linker section that Zephyr checks with `CONFIG_DEVICE_API_ASSERT`. They build with it off, so they do not exercise that check.
+
 ## Portable Logging
 
 `scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and controller checks. The full script also checks rejected native compositions, UART-emulator output and the revision-B EVKB cross-build. Its composition test compiles Logging on `tests/zephyr/board_fixture` (LPUART2, next to Serial on LPUART3). Logging-only external profiles verify public usage and the exclusion of unrelated components. Root Host tests include `Logging.*`. See [Logging validation](../docs/logging-validation.md).

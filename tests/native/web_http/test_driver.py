@@ -993,7 +993,7 @@ def send_dot_split_request(client):
     """A split request whose URL, appended to the old one, folds back to it.
 
     Zephyr v4.5.0 removes dot segments from the whole URL buffer when headers complete, so
-    `/probe/fail/21` with `/../21` appended becomes `/probe/fail/21` again: same length, same content.
+    `/probe/fail/1` with `/../1` appended becomes `/probe/fail/1` again: same length, same content.
     """
     request = encode("GET", f"/../{SENDS_BEFORE_SECOND_BODY_PIECE}")
     client.send(request[:len(request) // 2])

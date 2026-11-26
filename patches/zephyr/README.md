@@ -33,7 +33,16 @@ The secure management work uses a wolfSSL backend behind the Zephyr TLS socket A
 
 The core patch touches nine files (seven modified, two added); the paths and the hashes of the results are in `tests/zephyr/management_rt1060_compile/bench_declaration.json`. Upstream generated it for Zephyr 4.4.1. On v4.4.2, `git apply --check` fails in `sockets_tls.c` and `git apply --3way` merges it with no conflict.
 
-**Zephyr v4.5.0.** `wolfSSL/osp` has no patch for Zephyr 4.5 (its `zephyr` folder holds 3.7, 4.3 and 4.4 only). The 4.4 patch does not apply to v4.5.0: a three-way merge with `diff3` against v4.4.2 leaves conflicts in seven of the nine files (`sockets_tls.c` 20, sockets `Kconfig` 5, random `Kconfig` 2, and one each in `net_compat.h`, `socket.h` and the two `CMakeLists.txt`). Crux does not store a patch of its own here while the licence question of Issue #185 is open, so the wolfSSL line keeps its own Zephyr v4.4.2 revision in `scripts/test-web.sh`, `scripts/test-ssh-wolf-settings.sh` and the bench image pins of `tests/target/bench_image.py`. Those runs need a workspace that has that revision, and they are not part of any default workflow. The line moves when a 4.5 patch exists. `scripts/prepare-wolf-tls-zephyr.sh` makes the patched copy of the tree for a test, and the patch runs on `native_sim` only. How a product composition applies it without editing the Zephyr checkout is open (Issue #185).
+**Zephyr v4.5.0.** `wolfSSL/osp` has no patch for Zephyr 4.5 (its `zephyr` folder holds 3.7, 4.3 and 4.4 only). The 4.4 patch does not apply to v4.5.0: a three-way merge with `diff3` against v4.4.2 leaves conflicts in seven of the nine files (`sockets_tls.c` 20, sockets `Kconfig` 5, random `Kconfig` 2, and one each in `net_compat.h`, `socket.h` and the two `CMakeLists.txt`). Crux does not store a patch of its own here while the licence question of Issue #185 is open, so the wolfSSL line keeps its own Zephyr v4.4.2 revision in `scripts/test-web.sh`, `scripts/test-ssh-wolf-settings.sh` and the bench image pins of `tests/target/bench_image.py`. Those runs need a workspace that has that revision, and they are not part of any default workflow. The line moves when a 4.5 patch exists. How a product composition applies it without editing the Zephyr checkout is open (Issue #185).
+
+`scripts/prepare-wolf-tls-zephyr.sh` makes the patched copy of the tree for the other wolfSSL runs, and the patch runs on `native_sim` only. These runs take the Zephyr that `west.yml` pins. On v4.5.0 the TLS socket patch does not apply (and, for the ISN test, `tcp.c` is not the declared one), so they always fail, closed:
+
+- `scripts/test-native-composition.sh`: `wolf`, `e2e-wolf` and the default `all`
+- `scripts/test-ssh-integrated.sh`: `build` and the default `all`
+- `scripts/test-tls-offload-probe.sh`: `wolf` and the default `all`
+- `scripts/test-isn-fail-closed.sh`: `patched` and the default `all`
+
+No default workflow runs these modes: `scripts/ci/checks.toml` runs the `host`, `mbed` and `target-mbed` modes of those scripts.
 
 The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the `crux-secure-management` group. wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence, and wolfPSA's source states GPL-3.0-or-later only; binaries built with these stacks are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are Apache-2.0 OR GPL-2.0-or-later.
 
@@ -72,16 +81,20 @@ A failure returns an error: the wait's own value in step 1 (`-EBUSY` when the ca
 
 `zephyr-isn-fail-closed.patch` changes `subsys/net/ip/tcp.c` of Zephyr v4.4.2 (SHA-256 `393b940e…`, and `94642fe2…` after the patch; Intel Corporation copyright). See the [ISN record](../../docs/rt1060-isn-fail-closed.md). It is applied only on the build-local copy of the wolfSSL bench line, after the TLS socket patch, so it stays on that line's Zephyr v4.4.2 together with the bench declaration and its recorded first freeze, until a 4.5 TLS socket patch exists (see [wolfSSL TLS socket backend](#wolfssl-tls-socket-backend)). On the v4.5.0 pin `scripts/prepare-isn-fail-closed.py` refuses the copy, because `tcp.c` is not the declared one.
 
-At the pin, `tcp_init_isn()` (RFC 6528, `CONFIG_NET_TCP_ISN_RFC6528`, Zephyr's default) has two defects:
+At v4.4.2, `tcp_init_isn()` (RFC 6528, `CONFIG_NET_TCP_ISN_RFC6528`, Zephyr's default) has two defects:
 
 - It ignores the result of `sys_csrand_get()` for its 16-byte key and marks the key as read, so after one failed read the key stays all zero for the rest of the boot.
 - It hashes with SHA-256 into a 16-byte buffer. PSA refuses that with `PSA_ERROR_BUFFER_TOO_SMALL`, which is ignored too, so the hash is never produced (wolfPSA leaves the buffer as it was, Mbed TLS fills it with `'!'`) and the key is never used.
 
 With the patch, a missing key or a failed hash makes `tcp_init_isn()` return an error. A SYN to a listening port gets a RST, and `net_context_connect()` returns the error and sends nothing. The key is read again at the next attempt; when the read works, the number is the hash of the key and the tuple plus the uptime, as the code intends.
 
-**Zephyr v4.5.0** (`tcp.c` SHA-256 `7bd732e5…`) corrects both defects: the key is read again until a read works, and the buffer has the size of a SHA-256 digest. When the key read or the hash fails, it falls back to `sys_rand32_get()`, which is not a cryptographic generator. Crux keeps the fail-closed policy. The patch for v4.5.0 is therefore smaller: `tcp_init_isn()` returns the error instead of falling back, and the two callers refuse as above; without RFC 6528, or for an address family that the hash does not cover, the number still comes from `sys_rand32_get()`. That rebase moves with the wolfSSL line, because this patch has no other user.
+`scripts/prepare-isn-fail-closed.py` applies the patch to a build-local copy of the pinned tree (it refuses a Git checkout), after `scripts/prepare-wolf-tls-zephyr.sh` has made the copy and applied the TLS socket patch. It extends the copy's marker `.crux-wolf-tls` from `<pin> <tls patch sha256>` to `<pin> <tls patch sha256> <isn patch sha256>` and writes no marker of its own. The bench guard compares that marker with the pin and the declared patches' hashes in order, and checks every patched file's hash (`patched_zephyr`, schema 2, in `bench_declaration.json`).
 
-`scripts/prepare-isn-fail-closed.py` applies it to a build-local copy of the pinned tree (it refuses a Git checkout), after `scripts/prepare-wolf-tls-zephyr.sh` has made the copy and applied the TLS socket patch. It extends the copy's marker `.crux-wolf-tls` from `<pin> <tls patch sha256>` to `<pin> <tls patch sha256> <isn patch sha256>` and writes no marker of its own. The bench guard compares that marker with the pin and the declared patches' hashes in order, and checks every patched file's hash (`patched_zephyr`, schema 2, in `bench_declaration.json`).
+**Zephyr v4.5.0** (`tcp.c` SHA-256 `7bd732e5…`) corrects both defects: the key is read again until a read works, and the buffer has the size of a SHA-256 digest. When the key read or the hash fails, it falls back to `sys_rand32_get()`, which is not a cryptographic generator (`tcp.c` lines 2685-2693).
+
+**Which images are fail-closed.** This patch has only ever been applied to the wolfSSL bench copy. Every other image ran upstream `tcp.c` before the baseline move and runs it after: at v4.4.2 upstream ignored the result of the key read and of the hash, and on v4.5.0 it uses the keyed hash with the fallback above.
+
+A v4.5.0 rebase that keeps the fail-closed behaviour is smaller: `tcp_init_isn()` returns the error instead of falling back, and the two callers refuse as above; without RFC 6528, or for an address family that the hash does not cover, the number still comes from `sys_rand32_get()`. It is not stored or applied here, and moves with the wolfSSL line.
 
 ## HTTP header-phase deadline
 

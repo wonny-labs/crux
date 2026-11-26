@@ -111,11 +111,11 @@ class CliCompositionTest(unittest.TestCase):
         backends = re.findall(r"^config (SHELL_BACKEND_\w+)\n\s+bool\b", kconfig, re.MULTILINE)
         rule = (REPO / "components/cli/ports/zephyr/cli_shell_rule.c").read_text(encoding="utf-8")
         self.assertIn("SHELL_BACKEND_SERIAL", backends)
+        # Options, not backends: they depend on a backend that the rule names. A new name that is
+        # not listed here fails, also one that extends a backend's name.
+        options = {"SHELL_BACKEND_RPMSG_FORCE_TX_BLOCKING_MODE"}
         for backend in backends:
-            # An option of a backend extends its name, such as SHELL_BACKEND_SERIAL_* or, from
-            # Zephyr v4.5.0, SHELL_BACKEND_RPMSG_FORCE_TX_BLOCKING_MODE. The backend itself is
-            # in the rule, and its options depend on it.
-            if any(backend.startswith(other + "_") for other in backends if other != backend):
+            if backend.startswith("SHELL_BACKEND_SERIAL_") or backend in options:
                 continue
             self.assertIn(f"CONFIG_{backend})", rule, f"{backend} is new to the compile rule")
 

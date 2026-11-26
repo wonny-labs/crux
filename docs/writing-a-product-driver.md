@@ -1,6 +1,6 @@
 # Writing a product driver
 
-**Status: developer guidance, not a contract.** It describes how a product repository holds its own board, its own Zephyr drivers and devicetree bindings, and their tests. It adds no Crux interface and no Crux device model. The kit it describes is the Zephyr module in [`templates/product/`](../templates/product/README.md), written against **Zephyr v4.4** (Crux pins v4.4.2, see [`west.yml`](../west.yml)).
+**Status: developer guidance, not a contract.** It describes how a product repository holds its own board, its own Zephyr drivers and devicetree bindings, and their tests. It adds no Crux interface and no Crux device model. The kit it describes is the Zephyr module in [`templates/product/`](../templates/product/README.md), written against **Zephyr v4.4** (Crux pins v4.5.0, see [`west.yml`](../west.yml)).
 
 What runs: `scripts/test-product-template.sh`, which Crux's Zephyr CI runs, builds the example driver and runs its unit tests on `native_sim`, and builds its hardware scenario for two boards without running it. Nothing of the kit has run on a board. The example part is fictional.
 
@@ -196,7 +196,7 @@ The probe `tests/product_template_link` tests this. `scripts/test-product-templa
 
 ## Zephyr versions
 
-This guide and the kit are written against Zephyr v4.4. Crux plans to move its pin to Zephyr 4.6 when it is released (planned, not decided or dated; see [ADR-0006](decisions/0006-cryptographic-dependency-policy.md)); the move is a change of its own. A product that follows the pin does the same. When it moves:
+This guide and the kit are written against Zephyr v4.4, and Crux's CI builds the kit at its v4.5.0 pin. Crux plans to move its pin to Zephyr 4.6 when it is released (planned, not decided or dated; see [ADR-0006](decisions/0006-cryptographic-dependency-policy.md)); the move is a change of its own. A product that follows the pin does the same. When a pin moves:
 
 - Re-run the kit's tests: they are the check that the example still builds and passes with the new tree.
 - Read the Zephyr migration guides for each release between the two, for the classes that your drivers use. The sensor API and the board model have both changed in recent releases.
