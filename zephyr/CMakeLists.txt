@@ -146,6 +146,13 @@ if(CONFIG_CRUX_MMC_CACHE_FLUSH)
     include("${CMAKE_CURRENT_LIST_DIR}/mmc_cache_flush.cmake")
 endif()
 
+# Every image with Zephyr's own TCP and the RFC 6528 initial sequence number gets the build-local tcp.c
+# that refuses a connection when the key read or the hash fails, instead of falling back to
+# sys_rand32_get(). There is no option: a tcp.c it does not know stops the configuration.
+if(CONFIG_NET_NATIVE_TCP AND CONFIG_NET_TCP_ISN_RFC6528)
+    include("${CMAKE_CURRENT_LIST_DIR}/tcp_isn_fail_closed.cmake")
+endif()
+
 if(CONFIG_CRUX_FS_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")

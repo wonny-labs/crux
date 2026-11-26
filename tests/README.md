@@ -357,6 +357,8 @@ The runners below need the optional `crux-secure-management` west group, and no 
 
 `tests/psa_entropy` shows what Zephyr's Mbed TLS glue does when the entropy device fails, on a `native_sim` application over a test entropy device, in three Twister configurations that `scripts/test-psa-crypto.sh zephyr` runs. See [Entropy failure](../docs/psa-crypto-qualification.md#entropy-failure).
 
+`tests/native/tcp_isn` shows what Zephyr's TCP stack does when the key read or the PSA hash of the initial sequence number fails, with the Crux module (refused) and without it (the negative control on upstream `tcp.c`). `scripts/test-tcp-isn.sh` runs both and a drift check, and the `psa-crypto` workflow runs it. See [patches/zephyr](../patches/zephyr/README.md#default-images-at-the-pin).
+
 ## Management composition on `native_sim`
 
 | Directory | What it runs |
