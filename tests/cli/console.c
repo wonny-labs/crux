@@ -354,8 +354,8 @@ static void run_loop(void)
     expect_five_second_pauses(2);
 }
 
-/* With a progress hook, the pause is slept in one-second steps, with a report before each, so that a
- * supervisor hears from a console whose port will not open. */
+/* With a progress hook, the pause is slept in one-second steps, with a report before each, so that
+ * a supervisor hears from a console whose port will not open. */
 static unsigned progress_reports;
 static unsigned pauses_at_report[PAUSES_MAX];
 

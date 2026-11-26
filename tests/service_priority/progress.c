@@ -1,6 +1,6 @@
-/* The progress hook of the Crux service threads on the Host: one registration per boot, a report per
- * call with the thread's identifier and the context, nothing before a registration or for an unknown
- * identifier, and reports from several threads while the registration lands. */
+/* The progress hook of the Crux service threads on the Host: one registration per boot, a report
+ * per call with the thread's identifier and the context, nothing before a registration or for an
+ * unknown identifier, and reports from several threads while the registration lands. */
 #include "service_priority.h"
 
 #include <pthread.h>
@@ -98,7 +98,7 @@ static void identifiers_are_stable(void)
 
 static void *reporter(void *argument)
 {
-    crux_service_thread_t thread = (crux_service_thread_t)(long)argument;
+    crux_service_thread_t thread = *(const crux_service_thread_t *)argument;
     for (unsigned pass = 0; pass < PASSES; ++pass) {
         crux_service_progress_report(thread);
     }
@@ -110,8 +110,11 @@ static void registration_while_threads_report(void)
     /* Reports run while the registration lands: each sees nothing or the whole registration. */
     begin();
     pthread_t threads[REPORTERS];
+    static const crux_service_thread_t identifiers[REPORTERS] = {
+        CRUX_SERVICE_THREAD_SECURITY_EVENT_DRAIN, CRUX_SERVICE_THREAD_REBOOT_WORKER,
+        CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER, CRUX_SERVICE_THREAD_WEB_SESSION_WORKER};
     for (long index = 0; index < REPORTERS; ++index) {
-        CHECK(pthread_create(&threads[index], NULL, reporter, (void *)index) == 0);
+        CHECK(pthread_create(&threads[index], NULL, reporter, (void *)&identifiers[index]) == 0);
     }
     CHECK(crux_service_progress_register(record, &context_value) == CRUX_OK);
     for (long index = 0; index < REPORTERS; ++index) {

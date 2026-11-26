@@ -1,5 +1,6 @@
 /* The queue and the stage between Logging and a console on a shared UART: entries whole or not at
- * all, drop new with a count, the drop line in the queue's order, a cut message and the text rules. */
+ * all, drop new with a count, the drop line in the queue's order, a cut message and the text rules.
+ */
 #include "cli_console_log.h"
 #include "cli_test.h"
 
@@ -25,7 +26,7 @@ static const char *get(void)
 {
     size_t length = crux_cli_log_queue_get(&queue, text, CRUX_CLI_LOG_ENTRY_MAX);
     CHECK(length <= CRUX_CLI_LOG_ENTRY_MAX);
-    text[length] = '\0';
+    text[length <= CRUX_CLI_LOG_ENTRY_MAX ? length : CRUX_CLI_LOG_ENTRY_MAX] = '\0';
     return text;
 }
 

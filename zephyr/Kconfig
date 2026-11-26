@@ -221,7 +221,8 @@ config CRUX_CLI_CONSOLE
       composition target crux::cli_zephyr for <crux/cli_zephyr.h> (Experimental), which declares
       crux_cli_serial_start(): a composition interface, not a portable usage target. The console
       owns the UART that the devicetree alias crux-serial0 names, so no Zephyr console, log
-      backend or shell may use it. The application passes its command tables to crux_cli_init()
+      backend or shell may use it; only Crux Logging may share it, under
+      CONFIG_CRUX_CLI_CONSOLE_UART_SHARED. The application passes its command tables to crux_cli_init()
       first. See docs/cli-contract.md.
 
 config CRUX_CLI_CONSOLE_BAUD_RATE
@@ -232,6 +233,42 @@ config CRUX_CLI_CONSOLE_BAUD_RATE
     help
       Read by crux_cli_serial_start() when it opens the port. Data bits, stop bits and parity are
       8, 1 and none.
+
+choice CRUX_CLI_CONSOLE_UART
+    prompt "Console and Logging UART (Experimental)"
+    default CRUX_CLI_CONSOLE_UART_DEDICATED
+    depends on CRUX_CLI_CONSOLE
+    help
+      Whether the console has a UART of its own, or shares it with Crux Logging. See
+      docs/cli-contract.md.
+
+config CRUX_CLI_CONSOLE_UART_DEDICATED
+    bool "Separate UARTs for the console and Logging"
+    help
+      The console owns the UART of crux-serial0 alone, and Logging uses Zephyr's UART backend on
+      the UART that zephyr,log-uart names. No log text appears on the console.
+
+config CRUX_CLI_CONSOLE_UART_SHARED
+    bool "One UART for the console and Logging"
+    help
+      Experimental. Needs CONFIG_CRUX_LOGGING and CONFIG_LOG_BACKEND_UART=n, which the build checks.
+      A Crux Logging backend replaces Zephyr's UART backend on the UART of crux-serial0. Until the
+      console's thread starts, and after a panic, it writes each message directly. In between it
+      queues finished messages (drop new, with a count), and the console prints them only while it
+      waits for input: it clears the input line, writes the log text and redraws the prompt and the
+      typed text, never a password. Log text can therefore appear before login. The UART's
+      current-speed must equal CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE.
+
+endchoice
+
+config CRUX_CLI_CONSOLE_LOG_QUEUE_BYTES
+    int "Bytes of log text queued for a console that shares its UART"
+    default 2048
+    range 1024 65536
+    depends on CRUX_CLI_CONSOLE_UART_SHARED
+    help
+      Static memory for messages that wait for the console. A message that does not fit is dropped
+      and counted, and the console prints "--- N log messages dropped ---" in its place.
 
 config CRUX_DEVELOPMENT_IMAGE
     bool "Mark this image as a development image"

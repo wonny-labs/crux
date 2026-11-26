@@ -2,9 +2,10 @@
  * crux_cli_console_run() on port 0, which the devicetree alias crux-serial0 binds. The context, the
  * settings and the thread handle are static, so a product holds none of them and includes neither
  * <crux/serial.h> nor <crux/thread.h>. The thread is a placed service worker (ADR-0002 P3): its
- * entry calls the placement first, so that it runs at CONFIG_CRUX_CLI_CONSOLE_PRIORITY, and each pass
- * of its loop reports progress. Under CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console also prints the
- * log text of the Logging backend in cli_console_log_backend.c, which shares its UART. */
+ * entry calls the placement first, so that it runs at CONFIG_CRUX_CLI_CONSOLE_PRIORITY, and each
+ * pass of its loop reports progress. Under CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console also
+ * prints the log text of the Logging backend in cli_console_log_backend.c, which shares its UART.
+ */
 #include "cli_console.h"
 #include "cli_internal.h"
 

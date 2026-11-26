@@ -1,10 +1,11 @@
 /* The console's connection to crux_serial. Portable: the Serial contract owns everything native,
  * and a composition selects the port, which on the EVKB is LPUART3 (rule L1).
  *
- * With a log source (a UART shared with Logging), the console shows log text only while it waits for
- * input: it clears the input line, writes the text, and redraws the line from what it wrote since the
- * last line end. That record holds the prompt and the echo, and never a secret, which is not echoed.
- * Command output is never interleaved, because no read happens while a command prints. */
+ * With a log source (a UART shared with Logging), the console shows log text only while it waits
+ * for input: it clears the input line, writes the text, and redraws the line from what it wrote
+ * since the last line end. That record holds the prompt and the echo, and never a secret, which is
+ * not echoed. Command output is never interleaved, because no read happens while a command prints.
+ */
 #include "cli_console.h"
 
 #include "cli_console_log.h"
@@ -64,8 +65,7 @@ static int raw_write(void *transport, const void *buffer, size_t length, uint32_
 
 /* Log text and redraws: the terminal's line ends, and no record of what was written. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): crux_cli_io_t fixes this signature.
-static int untracked_write(void *transport, const void *buffer, size_t length,
-                           uint32_t timeout_ms)
+static int untracked_write(void *transport, const void *buffer, size_t length, uint32_t timeout_ms)
 {
     console_transport_t *console = transport;
     return crux_cli_write_terminal(&console->line_ends, raw_write, console, buffer, length,

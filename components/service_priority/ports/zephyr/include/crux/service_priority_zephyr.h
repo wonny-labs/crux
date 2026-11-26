@@ -52,8 +52,8 @@ typedef void (*crux_service_progress_t)(crux_service_thread_t thread, void *cont
 
 /**
  * Register the one progress function for this boot. Thread context. Call it before the services
- * start, so that the first pass of each thread reports; a later call is safe, and each thread reports
- * from its next pass.
+ * start, so that the first pass of each thread reports; a later call is safe, and each thread
+ * reports from its next pass.
  * @param callback Called for every report.
  * @param context Passed unchanged to callback; kept for the program's life.
  * @retval CRUX_OK Registered.

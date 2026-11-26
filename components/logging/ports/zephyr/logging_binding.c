@@ -3,9 +3,9 @@
 #include <zephyr/sys/util.h>
 
 #if defined(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
-/* The console shares its UART with Logging: the console's own backend writes log text on the UART of
- * crux-serial0 (components/cli/ports/zephyr/cli_console_log_backend.c). zephyr,log-uart is optional,
- * and when it is chosen it names that UART. */
+/* The console shares its UART with Logging: the console's own backend writes log text on the UART
+ * of crux-serial0 (components/cli/ports/zephyr/cli_console_log_backend.c). zephyr,log-uart is
+ * optional, and when it is chosen it names that UART. */
 #define LOG_UART DT_ALIAS(crux_serial0)
 #if !DT_NODE_HAS_STATUS(LOG_UART, okay)
 #error "Crux Logging shared with the console requires an enabled crux-serial0 UART alias"

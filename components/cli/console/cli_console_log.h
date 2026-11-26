@@ -1,9 +1,10 @@
-/* The log text of a console that shares its UART with Logging (CONFIG_CRUX_CLI_CONSOLE_UART_SHARED).
+/* The log text of a console that shares its UART with Logging
+ * (CONFIG_CRUX_CLI_CONSOLE_UART_SHARED).
  *
  * A Logging backend formats each message into a stage and puts it in a bounded queue; the console
  * thread takes entries out between its reads and prints them. Portable, so that it is tested on the
- * Host. It holds no lock of its own: the caller holds one lock around each queue call, and the stage
- * belongs to the one thread that formats. It never waits and never allocates.
+ * Host. It holds no lock of its own: the caller holds one lock around each queue call, and the
+ * stage belongs to the one thread that formats. It never waits and never allocates.
  *
  * Drop policy: drop new. An entry that does not fit is dropped and counted, and nothing already
  * queued is touched. The count becomes one line, "--- N log messages dropped ---", in the queue's
@@ -44,8 +45,8 @@ void crux_cli_log_stage_begin(crux_cli_log_stage_t *stage);
  * control byte but LF and TAB becomes '?', so that a message cannot carry a terminal sequence onto
  * the console. Text past the limit is dropped, and the message is marked as cut. */
 void crux_cli_log_stage_append(crux_cli_log_stage_t *stage, const void *data, size_t length);
-/* Ends the message with a LF, or with "...\n" when it was cut. Returns its length, or 0 when nothing
- * was added since the begin. */
+/* Ends the message with a LF, or with "...\n" when it was cut. Returns its length, or 0 when
+ * nothing was added since the begin. */
 size_t crux_cli_log_stage_finish(crux_cli_log_stage_t *stage);
 
 /* False when the storage is missing or smaller than CRUX_CLI_LOG_QUEUE_MIN. */
@@ -56,7 +57,8 @@ bool crux_cli_log_queue_put(crux_cli_log_queue_t *queue, const char *text, size_
 /* Counts entries that were lost before they reached the queue. */
 void crux_cli_log_queue_add_dropped(crux_cli_log_queue_t *queue, uint32_t count);
 /* Copies the oldest entry into text, or the drop line when only a count is left, and returns its
- * length; 0 when there is nothing. With a capacity below CRUX_CLI_LOG_ENTRY_MAX it takes nothing. */
+ * length; 0 when there is nothing. With a capacity below CRUX_CLI_LOG_ENTRY_MAX it takes nothing.
+ */
 size_t crux_cli_log_queue_get(crux_cli_log_queue_t *queue, char *text, size_t capacity);
 
 #endif
