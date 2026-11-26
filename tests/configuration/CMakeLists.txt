@@ -4,7 +4,7 @@ target_link_libraries(crux_configuration_tests PRIVATE crux::configuration)
 target_compile_options(crux_configuration_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME Configuration.Conformance COMMAND crux_configuration_tests)
 set_tests_properties(Configuration.Conformance PROPERTIES TIMEOUT 10)
-# The port a composition selects until #16 decides a target provider, linked as a composition would.
+# The port of a composition that links no Configuration provider, linked as a composition would.
 add_executable(crux_configuration_no_provider_test no_provider.c)
 target_link_libraries(crux_configuration_no_provider_test PRIVATE crux::configuration
     crux_configuration_no_provider)

@@ -1,4 +1,4 @@
-/* PUT on a device with no Configuration provider, which is the target until #16: the
+/* PUT on a device whose image links no Configuration provider: the
  * specification's 501, after the rules and before anything is queued. */
 #include "network_web.h"
 

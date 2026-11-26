@@ -223,6 +223,18 @@ The run on `native_sim` is a software result, and no physical-board result exist
 This section is guidance. It restates the contract above and adds no function, option or
 promise. Where it states a limit, the source is named.
 
+### Shared limits to plan for
+
+Every File user in an image, the credential store and the file service included, shares these:
+
+- One global File lock, held around each provider call, so one slow write delays every other File caller
+  ([File service limits](file-service-contract.md#limits)).
+- One handle pool and one listing pool, 4 handles and 2 listings by default
+  ([Pool size and handle budget](#pool-size-and-handle-budget)).
+- A writer excludes every other handle on its name, readers included ([Public contract](#public-contract)).
+- No free-space query ([Free space](#free-space)).
+- No atomic replace ([Pool size and handle budget](#pool-size-and-handle-budget), [Rename limits](#rename-limits)).
+
 ### Append
 
 File has no append call or open mode ([the list of excluded operations](#file-alternatives-and-recommendation)).

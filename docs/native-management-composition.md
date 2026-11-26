@@ -20,7 +20,7 @@ Nothing here is physical evidence. `native_sim` results use the host's TCP stack
 | First credential | **Declared test step**: serial provisioning called directly, in place of the console of #181 | Named in results |
 | TLS certificate | **Declared test certificate**, in place of #190 | Named in results |
 | Entropy, confidentiality | **Declared test-only** and simulation, below | |
-| Configuration save | **No provider**, `configuration_no_provider`, by decision C6 until #16. A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
+| Configuration save | **No provider**, `configuration_no_provider`: this image links no Configuration provider (decision C6). A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
 | Logging | The Crux provider on an **emulated UART**: a line counts as delivered when `crux_log_write` returns `CRUX_OK`, and nothing reads the wire | `native_sim` |
 | Reset causes, watchdog | Real System on `native_sim`. `system.watchdog_state` reads `not_supported`. | `native_sim` |
 | HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186 and #190 are in other documents, and [the services image](native-composition-242.md) composes them | |
@@ -329,7 +329,7 @@ Each is a statement about `native_sim`, and none is device evidence.
 | 4 | The PSA providers are source files that a composition lists, and they have no CMake target in the root build | Decision 1 of the PSA design: the root build holds no PSA | Add targets when a Host composition needs them |
 | 5 | The device ID goes through one small function, `crux_credential_psa_device_id`, and `hwinfo` stays in `ports/zephyr` | The provider then runs on Host under sanitizers, and it keeps `hwinfo` out of portable code | None for a composition |
 | 6 | The composition lives under `tests/native`, and not in a component or the Zephyr module | Nothing yet says what a product's composition is, and the Kconfig integration has no owner. Later issues include its CMake. | Move it when a product composition exists |
-| 7 | The composition has no save provider, so `config.save` gives `ERR_STORE` with `NOT_SUPPORTED` | Decision C6, until #16. The Settings backends need a patched backend on this pin. | Add a provider when #16 decides |
+| 7 | The composition has no save provider, so `config.save` gives `ERR_STORE` with `NOT_SUPPORTED` | Decision C6: this image links no Configuration provider. The Settings backends need a patched backend on this pin. | Link the Settings File provider |
 | 8 | Port cases, and also [the existing suites through a shim](#the-existing-suites-on-the-real-ports) on Host only, behind an option that the root build leaves off | The shim keeps the fakes' hooks, and so leaves these suites' assertions unchanged. wolfPSA and `native_sim` would need their suites ported. | Run them on `native_sim` |
 | 9 | The core locks were test composition code. **This change (PR #485) moved them into the module as `CONFIG_CRUX_PSA_THREADING` (Experimental, `zephyr/psa_threading`)**; only the Mbed profile builds them, `composition.cmake` refuses that profile without the option, and the lock counter stays test code | The design asks for a way, and a product needs one to enable Access (platform gap B1). The probe stays without them, on one thread. | A product composition adopts the option (#185) |
 | 10 | A role, `guest`, holds a permission no service names | So that "unpermitted" can be shown on status, where every other role holds `status.read` | None |

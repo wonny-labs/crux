@@ -16,7 +16,7 @@ internal target `crux_web_adapter`.
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
 | Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
 | Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host, and served over HTTPS by [the services image](native-composition-242.md) on `native_sim`. | Host, `native_sim` |
-| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host, and served by [the services image](native-composition-242.md) on `native_sim`, with no saving on the target until #16. | Host, `native_sim` |
+| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host, and served by [the services image](native-composition-242.md) on `native_sim`, which links no Configuration provider. | Host, `native_sim` |
 | Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only: **no image composes it**, not even [the services image](native-composition-242.md), and nothing calls a real reset. A composition that leaves the service out has no reboot route. | Host |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
