@@ -35,6 +35,18 @@ static uint32_t bytes_echoed, empty_polls;
 static bool sweep_on_empty_poll = true;
 #define PROBE_NO_SWEEP "@probe-no-sweep"
 
+/*
+ * tests/native/web_https/nsos_rdhup.cmake: the offload reports a peer's FIN as POLLHUP, as a
+ * target's stack does. Zephyr v4.5.0 needs it here too. Its offload now reports the host readiness
+ * at every poll update, also when its signal did not fire (commits 35977a277356 and db19d19ba695,
+ * "net: nsos: update 'revents' with poll() when not signalled"), so a FIN seen as POLLIN alone
+ * makes the TLS layer ask the poll to retry at once, every time: the poll spins and never returns
+ * 0, and a native_sim thread that never sleeps also stops the simulated clock, so neither a timeout
+ * nor the eventfd timer ends it. With POLLHUP the TLS layer reports the hangup and the server
+ * closes the client. The no-sweep mode turns it off again, to show the raw offload.
+ */
+void crux_nsos_set_rdhup(int on);
+
 static void event_writer(struct k_timer *timer)
 {
     ARG_UNUSED(timer);
@@ -148,6 +160,7 @@ static void serve_client(struct zsock_pollfd *slot)
         if (received == sizeof(PROBE_NO_SWEEP) - 1 &&
             memcmp(buffer, PROBE_NO_SWEEP, sizeof(PROBE_NO_SWEEP) - 1) == 0) {
             sweep_on_empty_poll = false;
+            crux_nsos_set_rdhup(0);
             printk("PROBE sweep off\n");
         }
     } else {
@@ -209,10 +222,7 @@ int main(void)
     printk("PROBE ready\n");
 
     while (true) {
-        /* On Zephyr v4.5.0 a client that sent only a FIN keeps the poll busy inside the TLS layer
-         * until something else is ready, so the sweep needs a bounded poll to get control back. The
-         * driver's no-sweep mode keeps the unbounded poll that a server like Zephyr's uses. */
-        int ready = zsock_poll(slots, ARRAY_SIZE(slots), sweep_on_empty_poll ? 200 : -1);
+        int ready = zsock_poll(slots, ARRAY_SIZE(slots), -1);
 
         if (ready < 0) {
             printk("PROBE poll errno=%d\n", errno);
@@ -228,7 +238,7 @@ int main(void)
          */
         if (ready == 0) {
             if (++empty_polls == 1) {
-                printk("PROBE poll returned 0\n");
+                printk("PROBE poll returned 0 with no timeout\n");
             }
             if (sweep_on_empty_poll) {
                 for (int i = SLOT_CLIENT; i < (int)ARRAY_SIZE(slots); ++i) {
@@ -246,19 +256,6 @@ int main(void)
             if (!event_seen) {
                 event_seen = true;
                 printk("PROBE eventfd wakes the poll set\n");
-            }
-            /*
-             * Zephyr v4.5.0's offload reports the host readiness at every update, so the poll
-             * no longer returns 0 for a client that sent only a FIN: it keeps that client at
-             * revents 0 and returns when something else is ready, such as this eventfd. The
-             * same sweep then runs on each wake, so the end of the stream is still found.
-             */
-            if (sweep_on_empty_poll) {
-                for (int i = SLOT_CLIENT; i < (int)ARRAY_SIZE(slots); ++i) {
-                    if (slots[i].fd >= 0 && slots[i].revents == 0) {
-                        serve_client(&slots[i]);
-                    }
-                }
             }
         }
         for (int i = 0; i < PROBE_LISTENERS; ++i) {
