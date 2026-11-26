@@ -378,6 +378,21 @@ class TasksTest(unittest.TestCase):
                              ["Set crux.boardKey in .vscode/settings.json."])
             self.assertEqual(sorted(p.name for p in (root / "build/zephyr").iterdir()), before)
 
+    def test_board_clean_refuses_a_key_that_leaves_its_build_directory(self):
+        task = self.tasks["Board: Clean"]
+        for key in (".", "..", "../linux", "a/b", ".hidden"):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                self.make_build_tree(root)
+                before = sorted(str(p.relative_to(root)) for p in (root / "build").rglob("*"))
+                arguments = [with_settings(a, dict(BOARD_SETTINGS, **{"crux.boardKey": key}))
+                             for a in task["args"]]
+                result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual((result.stdout + result.stderr).splitlines(),
+                                 ["Set crux.boardKey in .vscode/settings.json."])
+                self.assertEqual(sorted(str(p.relative_to(root)) for p in (root / "build").rglob("*")), before)
+
     def test_native_sim_clean_removes_only_its_build(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
