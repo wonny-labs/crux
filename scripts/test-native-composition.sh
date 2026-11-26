@@ -39,7 +39,9 @@ cache_dir="${CRUX_CACHE_DIR:-${repo}/../.crux-cache}"
 out="${CRUX_COMPOSITION_OUTPUT:-$repo/build/native-composition}"
 jobs="${CRUX_COMPOSITION_JOBS:-4}"
 board=native_sim/native/64
-target_board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+target_board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 composition="$repo/tests/native/management_composition"
 
 fail() {
@@ -149,6 +151,7 @@ run_services() { # profile, ZEPHYR_BASE
 # Compile only, on the qualified entropy source. A build with a test generator must not compile.
 run_target() { # profile: mbed or wolf, conf file
     local build="$out/target-$1" config
+    crux_board_require "$target_board" 'mimxrt1060_evk@B//qspi'
     mkdir -p "$out"
     (cd "$workspace" && west build -p always -b "$target_board" -d "$build" -o="-j$jobs" "$repo/tests/psa_ports/zephyr" \
         -- "-DEXTRA_CONF_FILE=../../psa_crypto/zephyr/$2.conf;target-device-id.conf") > "$out/target-$1.log" 2>&1 ||

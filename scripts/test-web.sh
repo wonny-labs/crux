@@ -43,7 +43,9 @@ jobs="${CRUX_WEB_JOBS:-4}"
 modules="$workspace/modules"
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 native_board='native_sim/native/64'
-target_board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+target_board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 zephyr_revision=dccb09599635bdff17633fa7e9dab014b91dce90
 # As in scripts/test-ssh-wolf-settings.sh. See patches/zephyr/README.md.
 patch_url=https://raw.githubusercontent.com/wolfSSL/osp/8c32b060ac6017b1291a6da0875a48637bfb682d/zephyr/4.4/zephyr-tls-4.4.1.patch
@@ -164,6 +166,7 @@ prepare_patched_zephyr() {
 run_target() { # profile
     local selected="$1" build="$output/target-$1" tree="$workspace/zephyr" list tls_symbol
     local nm="$ZEPHYR_SDK_INSTALL_DIR/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-nm"
+    crux_board_require "$target_board" 'mimxrt1060_evk@B//qspi'
     list="$modules/hal/cmsis;$modules/hal/cmsis_6;$modules/hal/nxp;$repo"
     if [[ "$selected" == wolfssl ]]; then
         prepare_patched_zephyr

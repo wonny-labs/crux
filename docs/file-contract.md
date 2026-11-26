@@ -373,3 +373,20 @@ handling. Compare named values from the declaring API, never cast or compare
 against base enum values, and do not treat every nonzero value as an error.
 Any necessary composition-level translation uses an explicit switch; no generic
 conversion service or change to base status values is introduced.
+
+## Migration notes
+
+### Board-neutral names of the FatFs selections
+
+The Zephyr selections of the FatFs provider on a real medium were renamed after what they select, and their dependencies are generic devicetree and disk facts instead of the RT1062 SoC and the RT1060-EVK board and revision.
+
+| Old Kconfig symbol | Replacement | The replacement needs |
+| --- | --- | --- |
+| `CONFIG_CRUX_FILE_FATFS_RT1060` | `CONFIG_CRUX_FILE_FATFS_SDMMC` | An enabled `zephyr,sdmmc-disk` node and `CONFIG_DISK_DRIVER_SDMMC` |
+| `CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK` | `CONFIG_CRUX_FILE_FATFS_RAM_DISK` | An enabled `zephyr,ram-disk` node and `CONFIG_DISK_DRIVER_RAM`, with no SD card driver, SD host driver or flash disk |
+| `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` | `CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK` | As `CONFIG_CRUX_FILE_FATFS_SDMMC` |
+
+Each old symbol still works: it has the dependencies of its replacement, selects it, and selects Zephyr's `DEPRECATED` symbol, so the build prints `Deprecated symbol ... is enabled`.
+The old symbols stay through the first tagged Crux release that carries them and will be removed in the tagged release after it, which gives one tagged release of notice ([ADR-0001](decisions/0001-application-boundary-and-api-stability.md#43-deprecation-window)).
+To move, replace the old name with the new one in `prj.conf` and in any CMake or C check of the image.
+An image on another board than the RT1060-EVKB now gets the selection whenever its devicetree has the disk; the RT1060-EVKB images build as before.

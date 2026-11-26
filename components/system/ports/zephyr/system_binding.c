@@ -34,23 +34,24 @@ bool crux_watchdog_zephyr_running(void)
     return false;
 }
 #endif
-#elif defined(CONFIG_SOC_MIMXRT1062)
-/* Any board with the RT1062 SoC, the EVKB included: accepted by SoC and devicetree,
- * not by board name. The asserts below still require the SoC's WDOG1. Accepted is
- * not qualified: how the watchdog reset is wired on a board is not checked here. */
+#else
+/* Any board: the watchdog is the node that the board's devicetree selects with crux-watchdog0, and
+ * the driver-specific code is chosen by that node's compatible, never by a SoC or board name.
+ * Accepted is not qualified: how the watchdog reset is wired on a board is not checked here. */
 #if !DT_NODE_EXISTS(DT_ALIAS(crux_watchdog0))
 #error "Crux System requires explicit crux-watchdog0 selection"
 #elif !DT_NODE_HAS_STATUS(DT_ALIAS(crux_watchdog0), okay)
 #error "Crux System watchdog must be enabled"
-#else
+#elif DT_NODE_HAS_COMPAT(DT_ALIAS(crux_watchdog0), nxp_imx_wdog)
+/* The i.MX WDOG block (nxp,imx-wdog): the provider's timeout range, 500 to 64000 ms in steps of
+ * 500, is this block's, and Zephyr's watchdog API has no "is running" query, so it is read through
+ * the block's HAL. */
 #include <fsl_wdog.h>
 
 #define SYSTEM_WDOG DT_ALIAS(crux_watchdog0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(SYSTEM_WDOG, okay), "Crux System watchdog must be enabled");
-BUILD_ASSERT(DT_SAME_NODE(SYSTEM_WDOG, DT_NODELABEL(wdog0)) &&
-                 DT_NODE_HAS_COMPAT(SYSTEM_WDOG, nxp_imx_wdog) &&
-                 DT_REG_ADDR(SYSTEM_WDOG) == 0x400b8000,
-             "Crux System requires the qualified RT1060 WDOG1 resource");
+BUILD_ASSERT(DT_NODE_HAS_COMPAT(SYSTEM_WDOG, nxp_imx_wdog),
+             "Crux System requires a supported watchdog driver");
 
 const struct device *crux_watchdog_zephyr_device(void)
 {
@@ -61,7 +62,7 @@ bool crux_watchdog_zephyr_running(void)
 {
     return (WDOG_GetStatusFlags((WDOG_Type *)DT_REG_ADDR(SYSTEM_WDOG)) & kWDOG_RunningFlag) != 0;
 }
-#endif
 #else
-#error "Crux System unsupported SoC or watchdog resource"
+#error "Crux System unsupported watchdog driver: crux-watchdog0 must be an nxp,imx-wdog node"
+#endif
 #endif

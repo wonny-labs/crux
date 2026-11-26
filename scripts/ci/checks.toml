@@ -136,15 +136,20 @@ web-ui = [
 description = "Linux Host builds, unit tests, sanitizers, static analysis and boundaries"
 [jobs.host-build-tests]
 description = "The Python checks of the build, validation and CI tooling"
+# The Zephyr jobs build for the board in CRUX_BOARD_TARGET (scripts/lib/board.sh,
+# tests/README.md#board-input); a CI system or a developer may set another.
 [jobs.zephyr-storage]
 description = "Zephyr storage, File, Time and product template checks"
 env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-controller]
 description = "Zephyr smoke builds, execution candidates and controller checks"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-runtime]
 description = "Zephyr portable execution, messaging, Logging, System and boot composition"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-io]
 description = "Zephyr Serial, command line, GPIO, I2C, SPI, web and networking"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.psa-crypto]
 description = "TF-PSA-Crypto and the Mbed TLS management composition"
 [jobs.web-specification]
@@ -394,7 +399,7 @@ fast = ["controller", "networking"]
 [[check]]
 id = "rt1170-cross-build"
 job = "zephyr-controller"
-run = "scripts/test-m3-rt1170.sh"
+run = "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-m3-rt1170.sh"
 fast = ["controller"]
 
 [[check]]

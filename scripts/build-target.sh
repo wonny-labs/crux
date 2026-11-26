@@ -20,7 +20,9 @@ if [[ ! -f "$workspace/.west/config" || ! -f "$zephyr/zephyr-env.sh" ]]; then
     exit 2
 fi
 
-build_key="$(printf '%s' "$board" | sed -E 's/[^A-Za-z0-9_.-]+/_/g')"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+build_key="$(crux_board_key "$board")"
 build_dir="$repo/build/zephyr/$build_key"
 evidence_dir="$repo/build/evidence"
 mkdir -p "$evidence_dir"

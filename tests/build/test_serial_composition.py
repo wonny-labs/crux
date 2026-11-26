@@ -11,7 +11,7 @@ REPO = Path(__file__).resolve().parents[2]
 # overlay puts Serial on LPUART3 (GPIO_B0_08/09) and leaves the board console on LPUART1.
 FIXTURE_BOARD_ROOT = REPO / 'tests/zephyr/board_fixture'
 FIXTURE_BOARD = 'crux_rt1062_fixture'
-EVKB_CASES = ('csi', 'unsupported_lpuart', 'single_wire', 'rs485')
+EVKB_CASES = ('csi', 'csi_lpuart8', 'evkb_lpuart8', 'single_wire', 'rs485')
 
 
 @unittest.skipUnless(os.environ.get("CRUX_SERIAL_COMPOSITION_TESTS") == "1",
@@ -54,11 +54,16 @@ class SerialCompositionTest(unittest.TestCase):
             "mcumgr_raw": ('/ { chosen { zephyr,uart-mcumgr = &serial_test; }; };',
                            'CONFIG_UART_MCUMGR=y\nCONFIG_UART_MCUMGR_RAW_PROTOCOL=y\n',
                            'Crux Serial conflicts with UART management'),
+            # The EVKB's pin conflict is a board fact, checked by its composition
+            # (tests/serial_consumer/zephyr/CMakeLists.txt), not by Crux Serial.
             "csi": ('&csi { status = "okay"; };', '',
                     'LPUART3 Serial pins conflict with enabled EVKB CSI'),
-            "unsupported_lpuart": ('/ { aliases { crux-serial0 = &lpuart8; }; };'
-                                   '&lpuart8 { status = "okay"; };', '',
-                                   'Crux Serial unsupported UART resource'),
+            "csi_lpuart8": ('/ { aliases { crux-serial0 = &lpuart8; }; };'
+                            '&lpuart8 { status = "okay"; };&csi { status = "okay"; };', '',
+                            'LPUART8 Serial pins conflict with enabled EVKB CSI'),
+            # The board's devicetree chooses the instance: another enabled LPUART builds on the EVKB.
+            "evkb_lpuart8": ('/ { aliases { crux-serial0 = &lpuart8; }; };'
+                             '&lpuart8 { status = "okay"; };', '', None),
             "single_wire": ('&lpuart3 { single-wire; };', '',
                             'Crux Serial unsupported UART electrical mode'),
             "rs485": ('&lpuart3 { nxp,rs485-mode; };', '',
@@ -73,7 +78,7 @@ class SerialCompositionTest(unittest.TestCase):
                                 'CONFIG_UART_CONSOLE=n\nCONFIG_SHELL=n\n'
                                 'CONFIG_UART_MCUMGR=n\nCONFIG_LOG=n\n', None),
             # A custom board with an i.MX RT1062 and its own board name: any enabled LPUART,
-            # with the same mode and owner checks. The RT1060-EVKB stays at LPUART3 (cases above).
+            # with the same mode and owner checks, as on every board.
             "custom_positive": ('', '', None),
             "custom_console": ('/ { aliases { crux-serial0 = &lpuart1; }; };', '',
                                'Crux Serial conflicts with UART Console'),
@@ -84,7 +89,7 @@ class SerialCompositionTest(unittest.TestCase):
                                   'current-speed = <115200>; rx-fifo-size = <16>; tx-fifo-size = <16>; '
                                   'status = "okay"; }; };', '', 'Crux Serial unsupported UART resource'),
             # The CSI rule is the RT1060-EVK's pin conflict: a custom board's LPUART3 pins are its own,
-            # so an enabled CSI there builds (the EVKB "csi" case above still fails).
+            # so an enabled CSI there builds (the EVKB "csi" case above fails).
             "custom_csi": ('&csi { status = "okay"; };', '', None),
         }
         selected = os.environ.get("CRUX_SERIAL_COMPOSITION_CASE")

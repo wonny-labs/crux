@@ -35,6 +35,10 @@ if [[ "$mode" == --host-only ]]; then
 fi
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+tag="$(crux_board_tag "$board")"
 mapfile -t dependencies < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
 if [[ ${#dependencies[@]} != 3 ]]; then
     printf 'Expected three pinned west dependencies.\n' >&2
@@ -51,19 +55,19 @@ unset ZEPHYR_EXTRA_MODULES EXTRA_ZEPHYR_MODULES
     -T "$repo/tests/service_priority/zephyr" \
     -O "$repo/build/zephyr/twister-portable-execution" --inline-logs)
 for consumer in portable_execution execution_runtime; do
-    out="$repo/build/zephyr/$consumer-evkb"
-    (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \
+    out="$repo/build/zephyr/$consumer-$tag"
+    (cd "$workspace" && west build -b "$board" -d "$out" \
         "$repo/tests/$consumer/zephyr")
     python3 "$repo/scripts/check-execution-boundaries.py" --compile-commands "$out/compile_commands.json"
 done
 # This Ztest is a native integration probe, with no designated portable consumer
 # translation unit for check-execution-boundaries.py. The independent consumers
 # above and below retain their existing boundary checks.
-(cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/thread-evkb" "$repo/tests/thread/zephyr")
+(cd "$workspace" && west build -b "$board" \
+    -d "$repo/build/zephyr/thread-$tag" "$repo/tests/thread/zephyr")
 for component in thread sync; do
-    out="$repo/build/zephyr/$component-only-evkb"
-    (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \
+    out="$repo/build/zephyr/$component-only-$tag"
+    (cd "$workspace" && west build -b "$board" -d "$out" \
         "$repo/tests/thread_sync_consumer/zephyr" -- -DEXTRA_CONF_FILE="$component.conf")
     python3 "$repo/tests/thread_sync_consumer/check_selection.py" "$component" "$out" "$out/zephyr/zephyr.elf"
 done

@@ -141,6 +141,15 @@ class ZephyrShardsTest(unittest.TestCase):
         self.assertLess(titles.index("name: Fetch pinned Zephyr workspace and install SDK"),
                         titles.index("name: Run the checks of this tier"))
 
+    def test_every_zephyr_job_builds_the_board_of_the_workflow(self):
+        # The workflow needs the board for its upload paths; the map file gives other CI systems the
+        # same default.
+        board = re.search(r"^      CRUX_BOARD_TARGET: (\S+)$", "\n".join(self.job), re.MULTILINE).group(1)
+        for name, job in self.manifest["jobs"].items():
+            if name.startswith("zephyr-"):
+                with self.subTest(job=name):
+                    self.assertEqual(board, job.get("env", {}).get("CRUX_BOARD_TARGET"))
+
     def test_set_up_is_skipped_only_when_the_plan_is_empty(self):
         for step in self.steps:
             if step["title"] in SET_UP_STEPS - {"name: Collect Twister evidence"}:
