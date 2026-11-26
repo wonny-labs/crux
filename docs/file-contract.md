@@ -184,10 +184,11 @@ reaches that path. The Linux provider uses `renameat2` with `RENAME_NOREPLACE`, 
 followed by `renameat` only where the kernel or file system lacks that flag (see **Rename** above).
 `CONFIG_FS_FATFS_NUM_DIRS` must be at least the listing pool, and the build checks this.
 
-`struct fs_dirent` has no modification time, which is why decision F6 leaves time out. On
-`native_sim` these additions have run on FatFs and on Reliance Edge, over a RAM disk. The LittleFS
-simulator composition compiles them and has not run them. Earlier physical runs do not extend to
-them.
+`struct fs_dirent` has no modification time, which is why decision F6 leaves time out.
+`native_sim` suites run these additions on FatFs, on Reliance Edge and on
+[LittleFS over a block device](#littlefs-block-device-mapping), each over a RAM disk.
+The LittleFS composition on the flash simulator (`CONFIG_CRUX_FILE_SIMULATOR`) compiles them and no suite calls them there.
+Physical results for File do not cover them.
 
 ### Reliance Edge mapping
 
@@ -217,6 +218,44 @@ What differs is the mapping:
 
 The selection works on any board that has the file system and excludes the other File selections.
 The run on `native_sim` is a software result, and no physical-board result exists for it.
+
+### LittleFS block device mapping
+
+`CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV` selects the same provider over the LittleFS file system of the Zephyr VFS on a disk (`CONFIG_FS_LITTLEFS_BLK_DEV`).
+It needs an enabled `zephyr,sdmmc-disk` node with the SD card disk driver, or an enabled `zephyr,mmc-disk` node with the eMMC disk driver, on any board.
+On `native_sim` a RAM disk is accepted too, for tests.
+It excludes the other File selections, and the build refuses FatFs in the same image.
+It mounts and formats nothing by itself: see [Mounting a LittleFS volume](#mounting-a-littlefs-volume).
+
+Every statement of the contract above holds. What differs is the mapping:
+
+- A name is stored as it is, with no encoding. A name that fails the File name rule, or a directory, is not listed.
+- The destination of a rename is checked first under the File lock, as on FatFs, because LittleFS's own rename replaces an existing file.
+- A full volume gives `CRUX_FILE_ERR_NO_SPACE`, at a write, a sync or the creation of a file.
+- **A writable handle keeps its first native error.** After a failed write, sync, read, seek or size call on a handle opened with `CRUX_FILE_READ_WRITE` or `CRUX_FILE_CREATE_REPLACE`, every later call on that handle returns the same error without a native call, and `crux_file_close` returns it too.
+  The reason: LittleFS closes a file whose write failed without committing it, and reports success.
+  Close the handle, open the file again and read its size before retrying.
+  A refused argument, such as a seek past the end, does not count as a failure.
+- LittleFS commits a file's data and size at a sync or a close. Data that no successful sync or close followed is lost at a reset.
+- File offers no atomic replace here either. The [rename limits](#rename-limits) apply.
+
+| Setting | Rule | Checked |
+| --- | --- | --- |
+| `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` | Above 63, or unset. A longer native name is cut in a directory entry, and the cut name must not be a File name | At build |
+| `CONFIG_FS_LITTLEFS_NUM_FILES` | At least `CONFIG_CRUX_FILE_POOL_SIZE`. Add the files that other code holds open: two for a Settings File save | The pool at build, the rest not |
+| `CONFIG_FS_LITTLEFS_NUM_DIRS` | At least `CONFIG_CRUX_FILE_DIR_POOL_SIZE` | At build |
+| `CONFIG_FS_LITTLEFS_CACHE_SIZE` | At least 512, one sector. The selection defaults it to 512 | At build |
+| `CONFIG_CRUX_MMC_CACHE_FLUSH` | `y` on an eMMC disk, because a sync does not otherwise flush the eMMC cache | At configuration |
+
+[Configuration](configuration-contract.md) can save on the same volume through `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS`, in a directory that no File root covers.
+
+Limits of LittleFS on a large disk, from its upstream design and not measured here:
+its block allocator scans the file system to find free blocks, a free-space query traverses the whole file system, and one block is one sector.
+Expect slow first writes after a mount on a large card; a small partition or a larger lookahead buffer shortens them.
+LittleFS assumes that the disk keeps what it synced: what a card does with its own mapping at a power cut is outside that.
+
+The `native_sim` suites use a RAM disk and an eMMC simulator, and they are software results.
+No physical-board result exists for this selection; the [power-cut evidence plan](plans/littlefs-power-cut-evidence-plan.md) says what a product would need.
 
 ## Recipes for consumers
 
@@ -307,6 +346,47 @@ nothing more about it.
   default pool of 4 and 3 service transfers open, one slot is free and the destination open returns
   NO_RESOURCES. `CREATE_REPLACE` truncates an existing destination when it opens, so a copy over an
   existing name loses the old content at once and is not a safe replace.
+
+### Mounting a LittleFS volume
+
+Zephyr's `littlefs` mount **formats a volume that it cannot mount**, unless the mount has `FS_MOUNT_FLAG_NO_FORMAT` (a devicetree `zephyr,fstab` entry: the `no-format` property).
+A corrupt card, a card of another file system or a blank card would otherwise be erased at boot.
+
+1. Mount with both flags, and never call `fs_mkfs` on the path of a failed mount.
+2. After a failed mount, report it and leave File unbound.
+3. Format only as a separate action that an authorised person starts, never as part of the start sequence.
+4. Create the directories when the volume is provisioned, not at each boot. Check that they exist before binding.
+
+```c
+FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(product_littlefs);
+
+static struct fs_mount_t mount = {
+    .type = FS_LITTLEFS,
+    .mnt_point = "/lfs",
+    .fs_data = &product_littlefs,
+    .storage_dev = (void *)"SD", /* the disk-name of the devicetree node */
+    .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS | FS_MOUNT_FLAG_NO_FORMAT,
+};
+
+int product_storage_start(void)
+{
+    struct fs_dirent entry;
+    int result = fs_mount(&mount);
+
+    if (result != 0) {
+        return result; /* report it: no format here */
+    }
+    if (fs_stat("/lfs/files", &entry) != 0 || entry.type != FS_DIR_ENTRY_DIR ||
+        crux_file_zephyr_bind("/lfs/files") != CRUX_FILE_OK) {
+        (void)fs_unmount(&mount);
+        return -ENOENT;
+    }
+    return 0;
+}
+```
+
+`tests/native/file_littlefs_blk` shows that the mount with the flag leaves a blank and a damaged disk as they are, and that the same mount without it formats the damaged one.
+`samples/file/basic` formats after a failed mount because its partition is simulated; do not copy that into a product.
 
 ### Rename limits
 

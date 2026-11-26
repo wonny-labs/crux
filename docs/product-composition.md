@@ -340,7 +340,7 @@ Use it for short-term development checks only. At Zephyr v4.4.2:
 
 ### Sources replaced in this repository
 
-This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout. Three are single-file corrections in [patches/zephyr](../patches/zephyr/README.md): NXP ENET MDIO, Mbed TLS entropy and MMC cache flush. The fourth case is the Settings File backend: `zephyr/CMakeLists.txt` generates corrected copies of three Settings sources through `tests/native/configuration_settings_file/candidate.cmake`, with patches under `tests/native/configuration_settings_file` and `tests/native/settings_error`, when `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` is set, apart from one `native_sim` test fixture, so a product build reaches a file under `tests/`. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
+This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout, with the corrections in [patches/zephyr](../patches/zephyr/README.md). Three are single-file corrections: NXP ENET MDIO, Mbed TLS entropy and MMC cache flush. The fourth is the Settings File backend: for either Settings File selection of Configuration, `zephyr/settings_file.cmake` generates corrected copies of three Settings sources. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
 
 ## Versions
 

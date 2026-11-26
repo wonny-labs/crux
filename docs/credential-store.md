@@ -7,7 +7,9 @@ accepted, recorded in [the owner's decision of 3 November 2026](https://github.c
 Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
 state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
-`components/credential/src/credential_port.h`.
+`components/credential/src/credential_port.h`. On Zephyr, a product's composition code reaches the erase, and nothing
+else of the adapter, through `<crux/credential_store_zephyr.h>` and `crux::credential_store_zephyr`
+([composition interface](composition-interfaces.md#the-credential-store-erase)).
 
 **This is not secure storage on the planned basis** (`BASIS_DEVICE_ID_KEY`, a key derived from the chip ID).
 Someone who can read the card and the chip ID can read every secret. See [Limits](#limits). Results must state this, and `crux_credential_store_get_info` declares it.
@@ -71,6 +73,7 @@ flowchart TB
 | `crux::credential_store` | A product that starts the store, a project that displays the basis, the status service | The public header only, with the File contract that it includes. On Host it links the core, which needs providers, so an image without them does not link. In the Zephyr module (`CONFIG_CRUX_ACCESS`) it is an INTERFACE target that adds the include root and links `crux::base` and `crux::file`, and the module links the library itself. |
 | `crux_credential_adapter` | The bridge, TLS and SSH providers, a composition, always `PRIVATE` | The adapter header. `cmake/CruxCredentialBoundary.cmake` rejects any path by which it reaches a consumer. |
 | `crux_credential_access_store` | A composition | Nothing. It implements a private port of Access. |
+| `crux::credential_store_zephyr` | A product's composition code that wires a [factory reset](management-in-a-product.md#factory-reset). A native-free consumer check rejects it | `<crux/credential_store_zephyr.h>`: `crux_credential_erase()` only, which takes no session |
 | `crux_credential_test_composition` and `_small` | Only `tests/credential` | Exist only under `CRUX_BUILD_TESTS`. |
 
 ### Boot order and calls
@@ -243,7 +246,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 | `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
 | A reset can undo an interrupted erase. Erase zeroes slot A, then slot B, then removes both files. A reset after slot A is zeroed and before slot B is reached leaves slot B valid, and the next start reads `VALID` with slot B's records, until erase runs again. Only an erase that returned `OK` reached both slots. | `test_interrupted_erase_states` |
-| No unauthenticated wipe (S4). The reference has no command for erase, and recovery uses a card reader. | By absence: `crux_credential_erase` has no caller in Crux |
+| No unauthenticated wipe (S4). Crux has no command and no trigger for erase: a product wires `crux_credential_erase()` to a button or to a command that needs a login ([factory reset](management-in-a-product.md#factory-reset)). Without one, recovery uses a card reader. | By absence: `crux_credential_erase` has no caller in Crux outside `tests/` |
 
 ## Tests
 
@@ -269,9 +272,11 @@ does not link, and that the headers are free of provider tokens.
 The rule has the limits of the Access rule it copies: it cannot see a target that nothing asks it to check, a `-I` option
 given as two separate tokens, or a relative path.
 
-`tests/native/credential_fatfs` runs the conformance cases on real Zephyr FatFs over a RAM disk, under
-`scripts/test-storage-simulators.sh`, on both `native_sim` widths. It shows the file behaviour and no power loss, and it
-still uses the test-only protection. The other suites do not run there: a walk needs the fake.
+`tests/native/credential_fatfs` and `tests/native/credential_littlefs` run the conformance cases on real Zephyr FatFs
+and on LittleFS over a block device, each over a RAM disk, under `scripts/test-storage-simulators.sh`, on both
+`native_sim` widths. They show the file behaviour and no power loss, and they use the test-only protection. The other
+suites do not run there: a walk needs the fake. `tests/native/management_module` erases the store on the real PSA
+providers through the composition header and restarts on the same disk (`scripts/test-management-module.sh`).
 
 ### What is untested
 

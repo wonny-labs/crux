@@ -230,7 +230,18 @@ ctest --test-dir build/file-consumers --output-on-failure
 
 `scripts/test-file-service.sh` runs the file service on Host with and without sanitizers and builds a C and C++ consumer from its public headers; the host CI job runs it. `FileService.default` and `FileService.small_table` use the fake File provider and walk a power cut across every mutation of a commit and of the rename that recovery finishes. `FileService.with_access` runs it on the real Access core with fake ports.
 
-`scripts/test-storage-simulators.sh` runs the VFS/LittleFS and FatFs File suites on 32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`, and the Configuration source-staging regressions. It needs the pinned west workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries. The Zephyr CI workflow runs it.
+`scripts/test-storage-simulators.sh` runs the VFS/LittleFS and FatFs File suites on 32/64-bit `native_sim` (the LittleFS ones on a flash simulator, `tests/native/file_littlefs`, and on a RAM disk, [below](#littlefs-block-device-file-on-native_sim)), the Settings/NVS Configuration suite on 64-bit `native_sim`, and the Configuration source-staging regressions. It needs the pinned west workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries. The Zephyr CI workflow runs it.
+
+### LittleFS block device File on `native_sim`
+
+| Suite | Runner | What it shows | Record |
+| --- | --- | --- | --- |
+| `tests/native/file_littlefs_blk` | storage gate | `CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV` on a RAM disk: the File contract and additions, a failed handle that closes with its error, a mount that never formats a blank or damaged disk (and a control that does), and Configuration saving on the same volume, with the removal of the settings files | [File contract](../docs/file-contract.md#littlefs-block-device-mapping) |
+| `tests/native/credential_littlefs` | storage gate | The credential store's contract on that provider, with the test-only protection | [Credential store](../docs/credential-store.md#tests) |
+| `tests/native/emmc_powercut`, workloads W4, W5, W8 and W8C with `--fs littlefs` | storage gate | Power-cut replay on the eMMC simulator: Settings saves, File appends and File replaces, with controls that must fail. Model results, not device evidence | [Evidence plan](../docs/plans/littlefs-power-cut-evidence-plan.md) |
+| `tests/zephyr/file_littlefs_link` | `scripts/test-file-rt1060-compile.sh` | The provider and Configuration link for the RT1060-EVKB microSD disk; the image is never flashed | [File contract](../docs/file-contract.md#littlefs-block-device-mapping) |
+
+The storage gate is `scripts/test-storage-simulators.sh`. A remount inside one process is not persistence evidence.
 
 ### FatFs File on `native_sim`
 
@@ -258,7 +269,7 @@ The sample that these suites cover is in the [samples overview](../samples/READM
 | `tests/native/file_emmc_composition` | The mount sequence of `samples/boards/nxp/mimxrt1060_evk/emmc_file`: unchanged-medium and blank-medium checks, fail-closed start, a sync reaches the persistent image | [Composition](../docs/emmc-reliance-composition.md) |
 | `tests/native/configuration_settings_reliance` | The Settings File suite on Reliance Edge over a RAM disk, with the real provider and a control on the unpatched backend | [Composition](../docs/emmc-reliance-composition.md) |
 | `tests/native/configuration_settings_littlefs` (run by `scripts/test-storage-simulators.sh`, in CI) | The same suite on LittleFS over a block device, with the real provider and a control on the unpatched backend | [Composition](../docs/emmc-reliance-composition.md) |
-| `tests/native/emmc_powercut` | Power-cut replay on FatFs and Reliance Edge for workloads W1 to W4 and W8 (a file replaced through the Crux File provider), at chosen cut points under four models, with controls that must fail; the LittleFS W4 replay runs from `scripts/test-storage-simulators.sh` | [FatFs](../docs/evidence/emmc-reliance/replay-fatfs/README.md), [Reliance Edge](../docs/evidence/emmc-reliance/replay-reliance/README.md), [Settings](../docs/evidence/emmc-reliance/replay-settings/README.md), [File replace](../docs/evidence/emmc-reliance/replay-file-w8/README.md) |
+| `tests/native/emmc_powercut` | Power-cut replay on FatFs and Reliance Edge for workloads W1 to W4 and W8 (a file replaced through the Crux File provider), at chosen cut points under four models, with controls that must fail; the LittleFS replays (W4, W5, W8) run from `scripts/test-storage-simulators.sh` | [FatFs](../docs/evidence/emmc-reliance/replay-fatfs/README.md), [Reliance Edge](../docs/evidence/emmc-reliance/replay-reliance/README.md), [Settings](../docs/evidence/emmc-reliance/replay-settings/README.md), [File replace](../docs/evidence/emmc-reliance/replay-file-w8/README.md) |
 | `tests/native/reliance_stage_a` | The five Stage A images of the [eMMC physical gate](../docs/emmc-reliance-physical-gate.md) on the simulator with the disk named `SD`; it exercises application logic, the File provider and Reliance Edge, not the SD host driver or a card | [Physical gate](../docs/emmc-reliance-physical-gate.md) |
 
 `scripts/test-file-emmc-compile.sh` links `samples/boards/nxp/mimxrt1060_evk/emmc_file` and the `tests/board_images/sd_card_power_cut_sequence` images for the RT1060-EVKB, reads each generated `.config`, and checks which drivers, the formatter and the entry points are linked. Configurations without the cache flush, with the fixture-only controls or in the wrong place must fail at CMake. It needs the optional west group `crux-reliance`, builds no image that is kept, and runs nothing; the sizes are in the [link record](../docs/evidence/emmc-reliance/rt1060-link/README.md).
@@ -311,7 +322,7 @@ The root Host suite runs `tests/cli` as `Cli.*` with a scripted transport, a rec
 
 ## Portable credential store
 
-The root Host suite runs `tests/credential` as `Credential.*`, on the File fake and on the Linux File provider. The protection in these suites is **test only** (a CRC in place of a tag and a keystream that is not encryption), exists only in a test composition, and `Credential.credential_production_refuses` shows a product build refusing it. The fault suites cut power before each File operation, each sector and each byte of every save, on a medium model. `scripts/test-credential.sh` also runs the sanitizer preset, clang-tidy and `scripts/check-credential-boundary.py`. `tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk under `scripts/test-storage-simulators.sh`. See the [credential store](../docs/credential-store.md).
+The root Host suite runs `tests/credential` as `Credential.*`, on the File fake and on the Linux File provider. The protection in these suites is **test only** (a CRC in place of a tag and a keystream that is not encryption), exists only in a test composition, and `Credential.credential_production_refuses` shows a product build refusing it. The fault suites cut power before each File operation, each sector and each byte of every save, on a medium model. `scripts/test-credential.sh` also runs the sanitizer preset, clang-tidy and `scripts/check-credential-boundary.py`. `tests/native/credential_fatfs` and `credential_littlefs` run the conformance cases on real FatFs and on LittleFS over a RAM disk under `scripts/test-storage-simulators.sh`. See the [credential store](../docs/credential-store.md).
 
 ## Portable Security events
 

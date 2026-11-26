@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
  * The File provider on LittleFS over a block device (CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV), with
- * Configuration saving on the same volume through the Settings File backend. The disk is a RAM disk:
- * not a card, and not power-loss evidence. The cases are the File contract and the roots, stat,
- * size, rename and listing additions, plus the mount rule: a failed mount never formats.
+ * Configuration saving on the same volume through the Settings File backend. The disk is a RAM
+ * disk: not a card, and not power-loss evidence. The cases are the File contract and the roots,
+ * stat, size, rename and listing additions, plus the mount rule: a failed mount never formats.
  */
 #include "configuration_settings.h"
 #include "conformance.h"
@@ -43,7 +43,8 @@ static uint8_t seen_disk[SECTORS * SECTOR];
 
 /* A write that the disk refuses, to make a File write fail inside LittleFS. */
 static bool fail_disk_writes;
-int __real_disk_access_write(const char *disk, const uint8_t *data, uint32_t sector, uint32_t count);
+int __real_disk_access_write(const char *disk, const uint8_t *data, uint32_t sector,
+                             uint32_t count);
 int __wrap_disk_access_write(const char *disk, const uint8_t *data, uint32_t sector, uint32_t count)
 {
     return fail_disk_writes ? -EIO : __real_disk_access_write(disk, data, sector, count);
@@ -272,8 +273,7 @@ ZTEST(file_littlefs_blk, test_access_mapping_handle_lifetime_and_remove)
 
     zassert_equal(crux_file_open("missing", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_FOUND);
     zassert_is_null(file);
-    zassert_equal(crux_file_open("missing", CRUX_FILE_READ_WRITE, &file),
-                  CRUX_FILE_ERR_NOT_FOUND);
+    zassert_equal(crux_file_open("missing", CRUX_FILE_READ_WRITE, &file), CRUX_FILE_ERR_NOT_FOUND);
     zassert_equal(crux_file_remove("missing"), CRUX_FILE_ERR_NOT_FOUND);
     write_file("access", "x");
     zassert_equal(crux_file_open("access", CRUX_FILE_READ, &file), CRUX_FILE_OK);
@@ -298,8 +298,8 @@ static void open_the_whole_pool(crux_file_t *files[CRUX_FILE_POOL_SIZE])
         char name[] = "pool0";
 
         name[4] = (char)('0' + i);
-        zassert_equal(crux_file_open(name, CRUX_FILE_CREATE_REPLACE, &files[i]), CRUX_FILE_OK,
-                      "%s", name);
+        zassert_equal(crux_file_open(name, CRUX_FILE_CREATE_REPLACE, &files[i]), CRUX_FILE_OK, "%s",
+                      name);
     }
 }
 
@@ -360,8 +360,7 @@ ZTEST(file_littlefs_blk, test_storage_full_is_observable_and_space_is_reclaimed)
             rc = crux_file_sync(file);
         }
     }
-    zassert_equal(rc, CRUX_FILE_ERR_NO_SPACE, "a 2 MiB workload must exhaust a 1 MiB disk: %d",
-                  rc);
+    zassert_equal(rc, CRUX_FILE_ERR_NO_SPACE, "a 2 MiB workload must exhaust a 1 MiB disk: %d", rc);
     zassert_equal(crux_file_close(&file), CRUX_FILE_ERR_NO_SPACE,
                   "a handle that ran out of space does not close with success");
     zassert_is_null(file);
@@ -476,6 +475,37 @@ ZTEST(file_littlefs_blk, test_configuration_saves_on_the_same_volume)
     zassert_equal(value.data.u32, 42);
     expect_file("cfg", "a File of the same name");
     zassert_ok(fs_stat(CONFIG_SETTINGS_FILE_PATH, &entry));
+}
+
+/*
+ * The settings half of a product's factory reset (docs/management-in-a-product.md#factory-reset):
+ * the temporary first, then the settings file. A load then finds nothing and keeps the default, and
+ * a later save works.
+ */
+ZTEST(file_littlefs_blk, test_removing_the_settings_files_gives_the_defaults_again)
+{
+    static const crux_config_spec_t spec = {
+        .key = "mode",
+        .schema_version = 1,
+        .default_value = {.type = CRUX_CONFIG_U32, .data.u32 = 7},
+    };
+    crux_config_param_t param = {0};
+    crux_config_value_t value = {.type = CRUX_CONFIG_U32, .data.u32 = 8};
+    struct fs_file_t file;
+
+    zassert_equal(crux_config_init(&param, &spec), CRUX_CONFIG_OK);
+    zassert_equal(crux_config_update(&param, &value), CRUX_CONFIG_OK);
+    zassert_equal(crux_config_save(&param), CRUX_CONFIG_OK);
+    /* A temporary left by an interrupted compaction. */
+    fs_file_t_init(&file);
+    zassert_ok(fs_open(&file, CONFIG_SETTINGS_FILE_PATH ".cmp", FS_O_CREATE | FS_O_WRITE));
+    zassert_ok(fs_close(&file));
+
+    zassert_ok(fs_unlink(CONFIG_SETTINGS_FILE_PATH ".cmp"));
+    zassert_ok(fs_unlink(CONFIG_SETTINGS_FILE_PATH));
+    zassert_equal(crux_config_load(&param), CRUX_CONFIG_DEFAULT_MISSING);
+    zassert_equal(crux_config_save(&param), CRUX_CONFIG_OK);
+    zassert_equal(crux_config_load(&param), CRUX_CONFIG_OK);
 }
 
 ZTEST(file_littlefs_blk, test_corrupted_media_is_not_formatted_and_recovers_when_restored)
