@@ -9,6 +9,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import run_replay  # noqa: E402
 from replay_model import (SECTOR, CommitPatternError, TraceError, acked_at,  # noqa: E402
                           build_image, flushes_before_metaroot, mandatory_positions,
                           metaroot_sectors, parse_trace)
@@ -230,10 +231,22 @@ class ReplayArguments(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn('--workload W4 needs --fs reliance or --fs littlefs', result.stderr)
 
-    def test_littlefs_runs_w4_only(self):
+    def test_littlefs_needs_a_named_workload(self):
         result = self.run_replay('--fs', 'littlefs')
         self.assertEqual(result.returncode, 2)
-        self.assertIn('--fs littlefs runs W4 only', result.stderr)
+        self.assertIn('--fs littlefs runs W4, W5 or W8', result.stderr)
+
+    def test_w5_runs_on_littlefs_only(self):
+        for fs in ('fatfs', 'reliance'):
+            result = self.run_replay('--fs', fs, '--workload', 'W5')
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('--workload W5 needs --fs littlefs', result.stderr)
+
+    def test_littlefs_w8_has_its_own_images_and_report(self):
+        self.assertEqual(run_replay.IMAGES['littlefs-w8'],
+                         {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'})
+        self.assertEqual(run_replay.IMAGES['littlefs-w5'],
+                         {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'})
 
 
 if __name__ == '__main__':

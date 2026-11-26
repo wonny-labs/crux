@@ -74,12 +74,16 @@ workloads are recorded as observations, a missing target is counted with no span
 no metaroot), only the damaged image control runs, and no fat-nofix image is needed. In a W8 run
 every cut case is listed in the JSON with its position and seed.
 
---fs littlefs runs W4 only, on images built from littlefs.conf and settings_littlefs.conf: LittleFS
-over a block device, under the Settings File selection that does not depend on Reliance Edge. It has
-its own JSON (littlefs-w4.json). Every invariant is asserted on both profiles as on Reliance Edge,
-and the same three controls must fail. LittleFS has no metaroot, so no position is mandatory beyond
-the flushes and the marks, and the damaged image is the baseline with both blocks of the superblock
-pair (sectors 0 and 1, one sector per block on a block device) overwritten: mount=0.
+--fs littlefs runs one named workload on LittleFS over a block device, each with its own JSON
+(littlefs-w4.json, littlefs-w5.json, littlefs-w8.json). W4 runs on images built from littlefs.conf
+and settings_littlefs.conf, under the Settings File selection that does not depend on Reliance Edge.
+W5 and W8 run on images built from littlefs.conf and littlefs-file.conf, with the Crux File provider:
+W5 appends records through File, and W8 runs W8 and W8C as above. Every invariant is asserted on
+both profiles as on Reliance Edge. The flush, early acknowledgement and damaged image controls must
+fail as required, and for W8 the window control on W8C as well. LittleFS has no metaroot, so no
+position is mandatory beyond the flushes and the marks, a W8C window case has no span check, and the
+damaged image is the baseline with both blocks of the superblock pair (sectors 0 and 1, one sector
+per block on a block device) overwritten: mount=0.
 
 The profile commits when a file is created, so a W3 step that creates a file commits twice and a
 cut between the two can leave the new file present and empty. On Reliance Edge the W3 verifier runs
@@ -143,6 +147,8 @@ IMAGES = {'fatfs': {'fix': 'fat-fix', 'nofix': 'fat-nofix'},
           'reliance': {'fix': 'red-fix', 'nofix': 'red-nofix'},
           'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'},
           'littlefs-w4': {'fix': 'lfs-fix-settings', 'nofix': 'lfs-nofix-settings'},
+          'littlefs-w5': {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'},
+          'littlefs-w8': {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'},
           'reliance-w8': {'fix': 'red-fix-file', 'nofix': 'red-nofix-file'},
           'fatfs-w8': {'fix': 'fat-fix-file', 'nofix': None}}
 # LittleFS on a block device: one block per 512-byte sector, and the superblock pair is blocks 0 and 1.
@@ -173,9 +179,11 @@ class Replay:
         self.args = args
         self.exes = {'fix': args.exe_fix, 'nofix': args.exe_nofix}
         self.w4 = args.workload == 'W4'
+        self.w5 = args.workload == 'W5'
         self.w8 = args.workload == 'W8'
-        self.tag = args.fs + {'W4': '-w4', 'W8': '-w8'}.get(args.workload, '')
-        self.workloads = ('W4',) if self.w4 else W8_WORKLOADS if self.w8 else WORKLOADS
+        self.tag = args.fs + {'W4': '-w4', 'W5': '-w5', 'W8': '-w8'}.get(args.workload, '')
+        self.workloads = (('W4',) if self.w4 else ('W5',) if self.w5 else
+                          W8_WORKLOADS if self.w8 else WORKLOADS)
         self.work = os.path.join(args.out, f'work-{self.tag}')
         self.kept = os.path.join(args.out, f'failed-{self.tag}')
         self.image = os.path.join(self.work, 'medium.bin')
@@ -781,7 +789,7 @@ class Replay:
                                                               'second metaroot')},
                 'failed_as_required': ok}
 
-    def damaged_superblock_control(self):
+    def damaged_superblock_control(self, workload='W4'):
         """lfs-fix, the baseline with both blocks of the superblock pair overwritten, must not mount.
 
         Each block overwritten alone is recorded too: LittleFS keeps a pair, so one alone is expected
@@ -798,8 +806,8 @@ class Replay:
             for sector in sectors:
                 image[sector * SECTOR:(sector + 1) * SECTOR] = b'\xa5' * SECTOR
             image = bytes(image)
-            result, reason = self.verify('fix', image, 'W4', 0)
-            record = {'exe': 'fix', 'workload': 'W4', 'acked': 0,
+            result, reason = self.verify('fix', image, workload, 0)
+            record = {'exe': 'fix', 'workload': workload, 'acked': 0,
                       'damage': f'sectors {sectors[0]} to {sectors[-1]} = 0xa5'}
             if result is None:
                 record['no_result'] = reason
@@ -854,12 +862,19 @@ class Replay:
                 groups, failed = self.observe(events, workload, profile)
                 report['observations'].setdefault(workload, {})[profile] = groups
                 report['observed_failures'] += failed
-        if self.w8 and self.reliance:
+        if self.w8 and self.asserting:
             report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
             report['workload'] = 'W8'
+            damaged = (self.damaged_metaroot_control() if self.reliance
+                       else self.damaged_superblock_control('W8'))
             report['controls'] = [self.flush_control('W8'), self.early_ack_control('W8'),
-                                  self.window_control(), self.damaged_metaroot_control()]
+                                  self.window_control(), damaged]
             report['window'] = self.window_report()
+        elif self.w5:
+            report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
+            report['workload'] = 'W5'
+            report['controls'] = [self.flush_control('W5'), self.early_ack_control('W5'),
+                                  self.damaged_superblock_control('W5')]
         elif self.w8:
             report['workload'] = 'W8'
             report['controls'] = [self.damaged_control()]
@@ -948,9 +963,10 @@ def main():
                         help='image built without it (fat-nofix, red-nofix or lfs-nofix); not used '
                              'by --fs fatfs --workload W8')
     parser.add_argument('--fs', required=True, choices=('fatfs', 'reliance', 'littlefs'))
-    parser.add_argument('--workload', choices=('W4', 'W8'),
-                        help='run W4 alone, on images with the Settings File backend, or W8 and '
-                             'W8C, on images with a File provider; without it W1 to W3 run')
+    parser.add_argument('--workload', choices=('W4', 'W5', 'W8'),
+                        help='run W4 alone, on images with the Settings File backend, W5 alone, on '
+                             'LittleFS images with the File provider, or W8 and W8C, on images '
+                             'with a File provider; without it W1 to W3 run')
     parser.add_argument('--seed', type=int, required=True)
     parser.add_argument('--samples', type=int, required=True,
                         help='sampled positions per workload, profile and model')
@@ -961,8 +977,10 @@ def main():
         parser.error('--samples must not be negative')
     if args.workload == 'W4' and args.fs not in ('reliance', 'littlefs'):
         parser.error('--workload W4 needs --fs reliance or --fs littlefs')
-    if args.fs == 'littlefs' and args.workload != 'W4':
-        parser.error('--fs littlefs runs W4 only: add --workload W4')
+    if args.workload == 'W5' and args.fs != 'littlefs':
+        parser.error('--workload W5 needs --fs littlefs')
+    if args.fs == 'littlefs' and args.workload is None:
+        parser.error('--fs littlefs runs W4, W5 or W8: name one with --workload')
     if args.exe_nofix is None and not (args.workload == 'W8' and args.fs == 'fatfs'):
         parser.error('--exe-nofix is required, except with --fs fatfs --workload W8')
 

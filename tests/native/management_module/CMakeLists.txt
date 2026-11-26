@@ -57,8 +57,8 @@ target_include_directories(app PRIVATE
     "${CRUX_ROOT}/components/mgmt_status/include" "${CRUX_ROOT}/components/network_settings/include"
     "${CRUX_ROOT}/components/tls_certificate/include" "${CRUX_ROOT}/components/tls_certificate/adapter"
     "${CRUX_ROOT}/components/file_service/include" "${CRUX_ROOT}/components/reboot/include")
-target_link_libraries(app PRIVATE crux::file_zephyr crux::system crux::time crux_web_adapter
-    crux_service_priority_placement)
+target_link_libraries(app PRIVATE crux::file_zephyr crux::credential_store_zephyr crux::system
+    crux::time crux_web_adapter crux_service_priority_placement)
 
 # The route sources are the application's: it names the ones it wants, and only those are in the table. The
 # module builds the session and management cores, not these (ADR-0004 phase 0, slice 4).

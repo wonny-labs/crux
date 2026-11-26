@@ -404,6 +404,37 @@ config CRUX_FILE_RELIANCE_EDGE
       format and the recovery. The image links GPLv2 source, so it is for testing and is not
       distributed. No physical-board result exists for this selection.
 
+# LittleFS on a block device, chosen by the same generic disk facts. A RAM disk is volatile, so it
+# counts on native_sim only, for tests.
+config CRUX_FILE_LITTLEFS_BLK_DEV
+    bool "Crux File provider on LittleFS over a block device"
+    depends on CRUX_MODULE && FILE_SYSTEM && FILE_SYSTEM_LITTLEFS && FS_LITTLEFS_BLK_DEV
+    depends on (DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED && DISK_DRIVER_SDMMC) || \
+               (DT_HAS_ZEPHYR_MMC_DISK_ENABLED && DISK_DRIVER_MMC) || \
+               (BOARD_NATIVE_SIM && DT_HAS_ZEPHYR_RAM_DISK_ENABLED && DISK_DRIVER_RAM)
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    depends on !CRUX_FILE_FATFS_SDMMC && !CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RAM_DISK && !CRUX_FILE_RELIANCE_EDGE
+    help
+      Experimental (ADR-0001 Decision 4): the symbol may change in any release, and the release
+      notes list the change.
+
+      Link the File provider into an image whose LittleFS volume is on an SD card or eMMC disk
+      (an enabled zephyr,sdmmc-disk or zephyr,mmc-disk node), on any board. On native_sim a RAM
+      disk (zephyr,ram-disk) is accepted too, for tests. Off by default. Names are stored as they
+      are. It mounts and formats nothing by itself: the composition mounts the volume with
+      FS_MOUNT_FLAG_USE_DISK_ACCESS and FS_MOUNT_FLAG_NO_FORMAT, and never formats on the path of a
+      failed mount, because Zephyr's mount otherwise formats a volume it cannot read. The build
+      refuses FatFs in the same image, and an eMMC disk without CONFIG_CRUX_MMC_CACHE_FLUSH.
+      CONFIG_FS_LITTLEFS_NUM_FILES must cover CONFIG_CRUX_FILE_POOL_SIZE and the files that other
+      code holds open, such as two for a Settings File save, and CONFIG_FILE_SYSTEM_MAX_FILE_NAME
+      must be above 63. No physical-board result exists for this selection. See
+      docs/file-contract.md#littlefs-block-device-mapping.
+
+# LittleFS on a block device reads and writes whole 512-byte sectors, so each cache holds one.
+configdefault FS_LITTLEFS_CACHE_SIZE
+    default 512 if CRUX_FILE_LITTLEFS_BLK_DEV
+
 config CRUX_FILE_POOL_SIZE
     int "Crux File open-handle pool size"
     depends on CRUX_MODULE
@@ -434,8 +465,8 @@ config CRUX_FILE_DIR_POOL_SIZE
       CRUX_FILE_DIR_POOL_SIZE with the same default.
 
 # The USDHC HAL (driver IMX_USDHC) invalidates a read target by whole D-cache lines when a transfer
-# completes, while the driver asks for 4-byte alignment only, so with the SD card selections and
-# Reliance Edge this default raises it to 32, the line of a Cortex-M7. It is keyed by that driver:
+# completes, while the driver asks for 4-byte alignment only, so with the SD card selections,
+# Reliance Edge and LittleFS on a block device this default raises it to 32, the line of a Cortex-M7. It is keyed by that driver:
 # a module configdefault comes before a driver's own default, so an unconditional value here would
 # lower a stricter driver default (128 for R-Car). Another SD host keeps its driver's value. With an
 # SD host and a data cache, file_native.c refuses any value below the cache line size, so a board
@@ -443,7 +474,7 @@ config CRUX_FILE_DIR_POOL_SIZE
 # Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
     default 32 if IMX_USDHC && (CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
-                                CRUX_FILE_RELIANCE_EDGE)
+                                CRUX_FILE_RELIANCE_EDGE || CRUX_FILE_LITTLEFS_BLK_DEV)
 
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT
@@ -475,10 +506,9 @@ config CRUX_CONFIGURATION_SETTINGS_FILE
     help
       Link the Configuration component over the Zephyr Settings File backend, on the Reliance
       Edge file system only. The backend of the pinned Zephyr hides I/O faults, so the build
-      stages corrected copies of three of its sources from
-      tests/native/configuration_settings_file, and an image that selects this needs that
-      directory. Settings are initialised by the composition, after its layout check:
-      crux_config_zephyr_init lets the backend create the directories of
+      stages corrected copies of three of its sources (patches/zephyr and
+      zephyr/settings_file.cmake). Settings are initialised by the composition, after its
+      layout check: crux_config_zephyr_init lets the backend create the directories of
       CONFIG_SETTINGS_FILE_PATH, so the composition calls it only after its layout
       check has found the settings directory. Set CONFIG_SETTINGS_FILE_PATH under the
       volume's mount point.
@@ -499,8 +529,7 @@ config CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS
       the selection with a warning and leave the image without a provider. The composition
       mounts the volume, never formats it, and calls crux_config_zephyr_init only after its
       layout check has found the directory of CONFIG_SETTINGS_FILE_PATH. Set that path under
-      the volume's mount point. As for the Reliance Edge selection, an image that selects this
-      needs tests/native/configuration_settings_file for the corrected sources.
+      the volume's mount point.
 
 menuconfig CRUX_WEB
     bool "Crux web server adapter"

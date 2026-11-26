@@ -7,10 +7,26 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-/* Selections: Reliance Edge on any board, the SD card provider or its compile check, the RAM disk
- * provider, or a simulator. The board-side facts (the disk node, the disk drivers, FatFs) are
- * generic Zephyr symbols, required by zephyr/Kconfig and by the CMake of this port. */
-#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
+/* Selections: LittleFS on a block device, Reliance Edge on any board, the SD card provider or its
+ * compile check, the RAM disk provider, or a simulator. The board-side facts (the disk node, the
+ * disk drivers, the file system) are generic Zephyr symbols, required by zephyr/Kconfig and by the
+ * CMake of this port. */
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+#if defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||            \
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC) ||                                                       \
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK) ||                                         \
+    defined(CONFIG_CRUX_FILE_FATFS_RAM_DISK) || defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
+#error "The LittleFS block device File provider cannot be combined with another File selection"
+#endif
+#if !defined(CONFIG_FILE_SYSTEM) || !defined(CONFIG_FILE_SYSTEM_LITTLEFS) ||                       \
+    !defined(CONFIG_FS_LITTLEFS_BLK_DEV) || defined(CONFIG_FAT_FILESYSTEM_ELM) ||                  \
+    !((defined(CONFIG_DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED) && defined(CONFIG_DISK_DRIVER_SDMMC)) ||   \
+      (defined(CONFIG_DT_HAS_ZEPHYR_MMC_DISK_ENABLED) && defined(CONFIG_DISK_DRIVER_MMC)) ||       \
+      (defined(CONFIG_BOARD_NATIVE_SIM) && defined(CONFIG_DT_HAS_ZEPHYR_RAM_DISK_ENABLED) &&       \
+       defined(CONFIG_DISK_DRIVER_RAM)))
+#error "The LittleFS block device File provider requires LittleFS on a block device and no FatFs"
+#endif
+#elif defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||            \
     defined(CONFIG_CRUX_FILE_FATFS_SDMMC) ||                                                       \
     defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK) ||                                         \
@@ -84,12 +100,56 @@ BUILD_ASSERT(CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT >=
                  CRUX_FILE_POOL_SIZE + CRUX_FILE_DIR_POOL_SIZE,
              "CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT must cover the File handle pools");
 #endif
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+/* Names are stored as they are. A directory entry cuts a longer name to MAX_FILE_NAME characters,
+ * which must still be longer than a File name, so that it is never listed as one. */
+BUILD_ASSERT(MAX_FILE_NAME > CRUX_FILE_NATIVE_LEAF_MAX,
+             "set CONFIG_FILE_SYSTEM_MAX_FILE_NAME above the File name limit");
+/* Every open file and listing takes one of LittleFS's objects, and the File pools hold them all. */
+BUILD_ASSERT(CONFIG_FS_LITTLEFS_NUM_FILES >= CRUX_FILE_POOL_SIZE,
+             "CONFIG_FS_LITTLEFS_NUM_FILES must cover the File handle pool");
+BUILD_ASSERT(CONFIG_FS_LITTLEFS_NUM_DIRS >= CRUX_FILE_DIR_POOL_SIZE,
+             "CONFIG_FS_LITTLEFS_NUM_DIRS must cover the File listing pool");
+BUILD_ASSERT(CONFIG_FS_LITTLEFS_CACHE_SIZE >= 512,
+             "LittleFS on a block device needs a cache of at least one 512-byte sector");
+#endif
 K_MUTEX_DEFINE(file_lock);
 static struct fs_file_t handles[CRUX_FILE_POOL_SIZE];
 static struct fs_dir_t listings[CRUX_FILE_DIR_POOL_SIZE];
 static char roots[CRUX_FILE_ROOTS_MAX][64];
 static char paths[CRUX_FILE_POOL_SIZE][sizeof(roots[0]) + CRUX_FILE_NATIVE_LEAF_MAX + 1];
 static crux_file_result_t cleanup_error;
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+/* LittleFS closes a file whose write failed without committing it, and reports success. So a
+ * writable handle keeps the first error of a native call, and every later call on it returns that
+ * error, close included: no sync or close acknowledges lost data. */
+static crux_file_result_t handle_errors[CRUX_FILE_POOL_SIZE];
+static bool handle_writable[CRUX_FILE_POOL_SIZE];
+#endif
+
+/* The error that a handle keeps, and CRUX_FILE_OK for a provider that keeps none. */
+static crux_file_result_t kept_error(size_t s)
+{
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    return handle_errors[s];
+#else
+    ARG_UNUSED(s);
+    return CRUX_FILE_OK;
+#endif
+}
+
+/* Returns the result of a native call on a handle, after keeping it where the provider does. */
+static crux_file_result_t keep(size_t s, crux_file_result_t outcome)
+{
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    if (outcome != CRUX_FILE_OK && handle_writable[s] && handle_errors[s] == CRUX_FILE_OK) {
+        handle_errors[s] = outcome;
+    }
+#else
+    ARG_UNUSED(s);
+#endif
+    return outcome;
+}
 
 static crux_file_result_t result(int rc)
 {
@@ -271,6 +331,10 @@ crux_file_result_t crux_file_impl_open(crux_file_root_t index, size_t s, const c
         flags |= FS_O_CREATE;
     }
     fs_file_t_init(&handles[s]);
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    handle_errors[s] = CRUX_FILE_OK;
+    handle_writable[s] = mode != CRUX_FILE_READ;
+#endif
     int fs_rc = fs_open(&handles[s], paths[s], flags);
 #if defined(CRUX_FILE_NATIVE_FATFS)
     if (fs_rc == -EACCES && (flags & FS_O_CREATE) != 0) {
@@ -295,9 +359,12 @@ crux_file_result_t crux_file_impl_read(size_t s, void *b, size_t l, size_t *n)
     if (l > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     }
+    if (kept_error(s) != CRUX_FILE_OK) {
+        return kept_error(s);
+    }
     ssize_t rc = fs_read(&handles[s], b, l);
     if (rc < 0) {
-        return result((int)rc);
+        return keep(s, result((int)rc));
     }
     *n = (size_t)rc;
     return CRUX_FILE_OK;
@@ -308,9 +375,12 @@ crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_
     if (l > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     }
+    if (kept_error(s) != CRUX_FILE_OK) {
+        return kept_error(s);
+    }
     ssize_t rc = fs_write(&handles[s], b, l);
     if (rc < 0) {
-        return result((int)rc);
+        return keep(s, result((int)rc));
     }
 #if defined(CRUX_FILE_NATIVE_FATFS)
     if (rc == 0) {
@@ -329,38 +399,45 @@ crux_file_result_t crux_file_impl_seek(size_t s, uint64_t offset)
     if (offset > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     }
+    if (kept_error(s) != CRUX_FILE_OK) {
+        return kept_error(s);
+    }
     off_t original = fs_tell(&handles[s]);
     if (original < 0) {
-        return result((int)original);
+        return keep(s, result((int)original));
     }
     int rc = fs_seek(&handles[s], 0, FS_SEEK_END);
     if (rc < 0) {
-        return result(rc);
+        return keep(s, result(rc));
     }
     off_t eof = fs_tell(&handles[s]);
     int restored = fs_seek(&handles[s], original, FS_SEEK_SET);
     if (eof < 0) {
-        return result((int)eof);
+        return keep(s, result((int)eof));
     }
     if (restored < 0) {
-        return result(restored);
+        return keep(s, result(restored));
     }
     if (offset > (uint64_t)eof) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     }
-    return result(fs_seek(&handles[s], (off_t)offset, FS_SEEK_SET));
+    return keep(s, result(fs_seek(&handles[s], (off_t)offset, FS_SEEK_SET)));
 }
 
 crux_file_result_t crux_file_impl_sync(size_t s)
 {
-    return result(fs_sync(&handles[s]));
+    if (kept_error(s) != CRUX_FILE_OK) {
+        return kept_error(s);
+    }
+    return keep(s, result(fs_sync(&handles[s])));
 }
 
 crux_file_result_t crux_file_impl_close(size_t s)
 {
     int rc = fs_close(&handles[s]);
     fs_file_t_init(&handles[s]); /* backend may release data even on failure */
-    return result(rc);
+    crux_file_result_t closed = result(rc);
+    return closed != CRUX_FILE_OK ? closed : kept_error(s);
 }
 
 crux_file_result_t crux_file_impl_remove(crux_file_root_t index, const char *name)
@@ -403,21 +480,24 @@ crux_file_result_t crux_file_impl_stat(crux_file_root_t index, const char *name,
 
 crux_file_result_t crux_file_impl_size(size_t s, uint64_t *size)
 {
+    if (kept_error(s) != CRUX_FILE_OK) {
+        return kept_error(s);
+    }
     off_t original = fs_tell(&handles[s]);
     if (original < 0) {
-        return result((int)original);
+        return keep(s, result((int)original));
     }
     int rc = fs_seek(&handles[s], 0, FS_SEEK_END);
     if (rc < 0) {
-        return result(rc);
+        return keep(s, result(rc));
     }
     off_t eof = fs_tell(&handles[s]);
     int restored = fs_seek(&handles[s], original, FS_SEEK_SET);
     if (eof < 0) {
-        return result((int)eof);
+        return keep(s, result((int)eof));
     }
     if (restored < 0) {
-        return result(restored);
+        return keep(s, result(restored));
     }
     *size = (uint64_t)eof;
     return CRUX_FILE_OK;

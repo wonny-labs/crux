@@ -36,6 +36,39 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-credential" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The File provider on LittleFS over a block device (CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV) on a RAM
+# disk: the File contract and the additions, a mount that never formats, and Configuration saving on
+# the same volume.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_littlefs_blk" \
+    -O "$repo/build/zephyr/twister-storage-file-littlefs-blk" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$littlefs")
+
+# The credential store's contract on the same provider, with its test-only protection.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/credential_littlefs" \
+    -O "$repo/build/zephyr/twister-storage-credential-littlefs" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$littlefs")
+
+# That provider stores names as they are, so the build refuses FatFs in the same image, naming the
+# reason.
+lfs_file_dir="$repo/build/zephyr/file-littlefs-blk-fatfs"
+lfs_file_log="$lfs_file_dir.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$lfs_file_dir" \
+        "$repo/tests/native/file_littlefs_blk" -- "-DZEPHYR_MODULES=$littlefs;$fatfs" \
+        -DCONFIG_FAT_FILESYSTEM_ELM=y) >"$lfs_file_log" 2>&1; then
+    printf 'The LittleFS block device File provider configured with FatFs in the image\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$lfs_file_log")"
+[[ "$folded" == *'The LittleFS block device File provider refuses FatFs (CONFIG_FAT_FILESYSTEM_ELM)'* ]] || {
+    printf 'The LittleFS block device File provider was not refused for FatFs; see %s\n' "$lfs_file_log" >&2
+    exit 1
+}
+printf 'LittleFS block device File provider: refused with FatFs in the image, naming the reason\n'
+
 # The microSD composition sequence (mount order, fail-closed policy) on a RAM disk named "SD".
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
@@ -360,6 +393,82 @@ print(f'replay littlefs W4: {report["counts"]["cases"]} cases, invariants held o
       f'{leftovers} cases with a temporary left behind, all three controls failed as required')
 PY
 
+# Power-cut replay of the File provider on the same LittleFS over the eMMC simulator: W5 appends
+# records through File, W8 replaces a file with File writes and the VFS rename, and W8C replaces as
+# File allows today. lfs-fix-file has the MMC cache flush correction, which a File composition on an
+# MMC disk requires. lfs-nofix-file is built without it under the fixture-only
+# CRUX_EMMC_FLUSH_CONTROL, for the flush control. Without the correction or the control, the image is
+# refused at CMake. These are results of the simulator's model, not evidence about a device.
+lfs_file_guard_log="$lfs_powercut-file-guard.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 \
+        -d "$lfs_powercut/lfs-file-guard" "$repo/tests/native/emmc_powercut" -- \
+        -DZEPHYR_MODULES="$littlefs" "-DEXTRA_CONF_FILE=littlefs.conf;littlefs-file.conf" \
+        -DCONFIG_CRUX_MMC_CACHE_FLUSH=n) >"$lfs_file_guard_log" 2>&1; then
+    printf 'The LittleFS File provider on an MMC disk configured without the flush correction\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$lfs_file_guard_log")"
+[[ "$folded" == *'A Crux File composition on an MMC disk requires CONFIG_CRUX_MMC_CACHE_FLUSH=y'* ]] || {
+    printf 'The MMC guard of the LittleFS File provider did not fail for the stated reason; see %s\n' \
+        "$lfs_file_guard_log" >&2
+    exit 1
+}
+printf 'LittleFS File provider MMC guard: refused without the flush correction\n'
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$lfs_powercut/lfs-fix-file" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$littlefs" \
+    "-DEXTRA_CONF_FILE=littlefs.conf;littlefs-file.conf" -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$lfs_powercut/lfs-nofix-file" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$littlefs" \
+    "-DEXTRA_CONF_FILE=littlefs.conf;littlefs-file.conf" -DCONFIG_CRUX_MMC_CACHE_FLUSH=n \
+    -DCRUX_EMMC_FLUSH_CONTROL=ON)
+for workload in W5 W8; do
+    python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+        --exe-fix "$lfs_powercut/lfs-fix-file/zephyr/zephyr.exe" \
+        --exe-nofix "$lfs_powercut/lfs-nofix-file/zephyr/zephyr.exe" \
+        --fs littlefs --workload "$workload" --seed 1 --samples 8 --max-seconds 600 \
+        --out "$lfs_powercut/replay"
+done
+
+# Every case of both profiles and every model must hold the invariants. A W8C case may instead be the
+# window that remove-then-rename opens, and the window control requires one in every generation.
+python3 - "$lfs_powercut/replay" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+runs = {
+    'W5': (['W5'], ['damaged image', 'early acknowledgement', 'flush']),
+    'W8': (['W8', 'W8C'], ['damaged image', 'early acknowledgement', 'flush', 'window']),
+}
+for name, (workloads, expected_controls) in runs.items():
+    report = json.loads((Path(sys.argv[1]) / f'littlefs-{name.lower()}.json').read_text())
+    if report.get('workload') != name or sorted(report['observations']) != workloads:
+        raise RuntimeError(f'not a {name} report: {sorted(report)}')
+    if report['asserted'] != ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']:
+        raise RuntimeError(f'{name} asserted: {report["asserted"]}')
+    controls = {control['name']: control['failed_as_required'] for control in report['controls']}
+    if controls != {control: True for control in expected_controls}:
+        raise RuntimeError(f'{name} controls: {controls}')
+    for workload in workloads:
+        for profile, expected in models.items():
+            groups = report['observations'][workload][profile]
+            allowed = 'window' if workload == 'W8C' else None
+            if (set(groups) != expected or
+                    any(group['cases'] == 0 or
+                        group['passed'] + group.get(allowed, 0) != group['cases']
+                        for group in groups.values())):
+                raise RuntimeError(f'{workload} {profile}: missing or failing cases')
+            trace = report['traces'][workload][profile]
+            if trace['writes'] == 0 or trace['marks'] == 0 or (profile == 'cached' and
+                                                               trace['flushes'] == 0):
+                raise RuntimeError(f'{workload} {profile}: the trace holds no write, mark or flush')
+    if report['failures'] or report['counts']['cases'] == 0:
+        raise RuntimeError(f'{name}: counts {report["counts"]}, failures {report["failures"]}')
+    print(f'replay littlefs {name}: {report["counts"]["cases"]} cases, invariants held on '
+          f'lfs-fix-file, all {len(controls)} controls failed as required')
+PY
+
 # A filtered/build-only Twister run must not satisfy the provider gate.
 python3 - "$repo/build/zephyr" <<'PY'
 import json
@@ -376,6 +485,13 @@ for directory, expected in [
                                ('native_sim/native/64', 'crux.file.fatfs.pool8'): 19}),
     ('twister-storage-file-roots', {'native_sim/native': 5, 'native_sim/native/64': 5}),
     ('twister-storage-credential', {'native_sim/native': 2, 'native_sim/native/64': 2}),
+    # Two scenarios: the default pools and CONFIG_CRUX_FILE_POOL_SIZE=8 (crux.file.littlefs_blk.pool8).
+    ('twister-storage-file-littlefs-blk',
+     {('native_sim/native', 'crux.file.littlefs_blk'): 15,
+      ('native_sim/native/64', 'crux.file.littlefs_blk'): 15,
+      ('native_sim/native', 'crux.file.littlefs_blk.pool8'): 15,
+      ('native_sim/native/64', 'crux.file.littlefs_blk.pool8'): 15}),
+    ('twister-storage-credential-littlefs', {'native_sim/native': 2, 'native_sim/native/64': 2}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-probe', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),

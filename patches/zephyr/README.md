@@ -9,6 +9,7 @@ Crux carries a few corrections to Zephyr at the pinned revision `41d10b59730406b
 | `mbedtls-entropy-fail-closed.patch` | `modules/mbedtls/zephyr_entropy.c` | image calls `crux_mbedtls_fail_closed_entropy()` (entropy driver route) | `scripts/prepare-mbedtls-entropy.py` | `tests/psa_entropy` | [PSA qualification](../../docs/psa-crypto-qualification.md#entropy-failure) |
 | `mmc-cache-flush.patch` | `subsys/sd/mmc.c` | `CONFIG_CRUX_MMC_CACHE_FLUSH` | `scripts/prepare-mmc-cache-flush.py` | `tests/native/emmc_stack/test_prepare.py` | [eMMC composition](../../docs/emmc-reliance-composition.md) |
 | `zephyr-isn-fail-closed.patch` | `subsys/net/ip/tcp.c` | with the wolfSSL copy | `scripts/prepare-isn-fail-closed.py` | `tests/native/isn_fail_closed/test_prepare.py` | [ISN record](../../docs/rt1060-isn-fail-closed.md) |
+| `settings-file-error.patch`, `settings-store-error.patch` | `subsys/settings/src/settings_file.c`, `settings_store.c` | `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` or `_ANY_FS` | `zephyr/prepare_settings_file.py` | `tests/native/configuration_settings_file/test_prepare.py` | [Settings File backend](#settings-file-backend-faults) |
 | `http-header-deadline.patch` | `subsys/net/lib/http/http_server_core.c` | `CONFIG_CRUX_WEB` (deadline `CONFIG_CRUX_WEB_HEADER_DEADLINE_MS`) | `components/web/ports/zephyr/prepare_header_deadline.py` | `tests/native/web_http/test_prepare_header_deadline.py` | [Web contract](../../docs/web-contract.md) |
 
 ## Reference-controller native MDIO correction
@@ -110,3 +111,17 @@ With the patch, after each read that leaves the client open, the server checks w
 - A body on a request that the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it: every byte restarts the inactivity timer, and a client that trickles such a body and reads the answers holds a slot with no time limit. Bounding that is a change beyond the decided option ([Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529)).
 
 The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too.
+
+## Settings File backend faults
+
+At the pin, the Settings File backend can report a failed write or read as success or as a missing key.
+`settings-file-error.patch` corrects `subsys/settings/src/settings_file.c`, and `settings-store-error.patch` corrects `subsys/settings/src/settings_store.c`.
+`settings_line.c` needs no patch and is staged unchanged, so that the three sources come from one place.
+
+`zephyr/prepare_settings_file.py` refuses a source that differs from the pinned revision and an output inside the checkout, and writes the three copies and a `manifest.json` of hashes to the build folder `settings-file-candidate`.
+`zephyr/settings_file.cmake` puts them in the place of the originals in the `zephyr` library, for both Settings File selections of Configuration ([Configuration validation](../../docs/configuration-validation.md)).
+`CRUX_SETTINGS_FILE_CONTROL` keeps the unpatched backend for the negative controls of the `native_sim` fixtures, and is refused on any other board.
+
+The suites `tests/native/configuration_settings_file`, `tests/native/configuration_settings_reliance` and `tests/native/configuration_settings_littlefs` run the corrected backend, and their controls show the cases that fail without it.
+The NVS candidate (`tests/native/configuration_settings`) and the [error experiment](../../docs/settings-error-investigation.md) apply `settings-store-error.patch` as well.
+The corrections add no checksum or resynchronisation, and a torn tail can lose the latest save.

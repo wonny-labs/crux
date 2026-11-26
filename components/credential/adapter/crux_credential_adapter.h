@@ -182,9 +182,10 @@ crux_credential_result_t crux_credential_key_parse(const void *record, size_t le
  * UNUSABLE from then until the next reset, because provisioning needs a store that was EMPTY at
  * start. This does not prove physical erasure: a card's internal mapping can keep old pages.
  *
- * A composition wires this to its own local trigger. The reference offers no command for it,
- * because a serial command without a login would lower limit A7 from "medium and serial" to "serial
- * alone".
+ * A composition wires this to its own local trigger, and reaches it on Zephyr through
+ * <crux/credential_store_zephyr.h>, which states the conditions. The reference offers no command
+ * for it, because a serial command without a login would lower limit A7 from "medium and serial"
+ * to "serial alone".
  *
  * @retval CRUX_CREDENTIAL_OK Both slots are gone.
  * @retval CRUX_CREDENTIAL_ERR_STORE A step failed. The operator repeats it.

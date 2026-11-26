@@ -114,7 +114,8 @@ endif()
 
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
    CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
-   CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
+   CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE OR
+   CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
     # The guard of the eMMC flush correction for every File composition on an MMC disk. A File
     # sync is the provider's flush, and without the correction a disk sync does not flush a
     # turned-on eMMC cache, whatever the file system. An image with Reliance Edge is refused by the
@@ -136,7 +137,7 @@ if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
        CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
-       CONFIG_CRUX_FILE_RELIANCE_EDGE)
+       CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()
 endif()
@@ -156,17 +157,16 @@ if(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/configuration")
     # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with
-    # the corrected build-local copies of its sources, which the fixture of
-    # tests/native/configuration_settings_file also uses, so a product build reaches a file under
-    # tests/. CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the fixture's negative
-    # control only.
+    # the corrected build-local copies of its sources (settings_file.cmake, patches/zephyr).
+    # CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the negative controls of the
+    # test fixtures only.
     if(CRUX_SETTINGS_FILE_CONTROL)
         if(NOT CONFIG_BOARD_NATIVE_SIM)
             message(FATAL_ERROR "CRUX_SETTINGS_FILE_CONTROL is a native_sim test fixture setting "
                 "and is refused on any other board")
         endif()
     else()
-        include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
+        include("${CMAKE_CURRENT_LIST_DIR}/settings_file.cmake")
     endif()
 endif()
 
