@@ -52,8 +52,10 @@ EXPECTED_FULL = {
         "checks": [
             ("host-build-and-test", "./scripts/bootstrap-host.sh"),
             ("host-offline", "./scripts/check-host.sh"),
+            ("host-sanitizers", "CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh"),
             ("access-host", "./scripts/test-access.sh"),
             ("cli-host", "./scripts/test-cli.sh"),
+            ("cli-ssh-thread-sanitizer", "./tests/ssh/cli/test-thread-sanitizer.sh"),
             ("credential-host", "./scripts/test-credential.sh"),
             ("security-event-host", "./scripts/test-security-event.sh"),
             ("mgmt-services-host", "./scripts/test-mgmt-services.sh"),
@@ -72,13 +74,6 @@ ctest --test-dir build/file-consumers --output-on-failure
             ("system-host", "./scripts/test-system.sh --host-only"),
             ("static-analysis", "./scripts/analyze-host.sh"),
             ("build-boundaries", "./scripts/check-dependencies.sh"),
-        ],
-    },
-    "host-sanitize": {
-        "env": {},
-        "checks": [
-            ("host-sanitizers", "CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh"),
-            ("cli-ssh-thread-sanitizer", "./tests/ssh/cli/test-thread-sanitizer.sh"),
         ],
     },
     "host-build-tests": {

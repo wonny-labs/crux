@@ -55,11 +55,6 @@ case "$job" in
     zephyr-* | coverage-native-sim)
         scripts/bootstrap-zephyr.sh --install-sdk
         ;;
-    host-sanitize)
-        # The first step of scripts/bootstrap-host.sh: the sanitizer checks read the googletest
-        # source that it fetches.
-        cmake --preset host-debug -S "$repo"
-        ;;
     psa-*)
         (cd "$CRUX_WORKSPACE" && west init -l "$repo" && west config manifest.project-filter -- +mbedtls,+tf-psa-crypto)
         scripts/bootstrap-zephyr.sh --install-sdk

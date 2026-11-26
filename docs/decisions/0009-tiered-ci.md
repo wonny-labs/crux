@@ -1,6 +1,6 @@
 # ADR-0009: Tiered CI for Crux and its product repositories
 
-Status: **Proposed**. The owner asked on 26 November 2026, in the Crux core session, for the design and implementation of fast, full and nightly CI with suites chosen per tier, for Crux and the product repositories; acceptance of T1 to T9 is the owner's decision. Baseline: `origin/main` at `39140df6`.
+Status: **Accepted**. The owner asked on 26 November 2026, in the Crux core session, for the design and implementation of fast, full and nightly CI with suites chosen per tier, for Crux and the product repositories, and accepted T1 to T9 as recommended in the same session the same day. T10 was added afterwards at the owner's request to shorten the tiers; it takes effect with the pull request that adds it. Baseline: `origin/main` at `39140df6`; T10 at `62ed69f1`.
 
 This record decides how Crux splits its CI into tiers, how a check is assigned to a tier, and how the same rules run on every CI system.
 The current rules are in [Continuous integration](../ci.md); this record keeps the requirements, the options and the reasons.
@@ -61,7 +61,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | b. Run only the owned components' checks and ignore unowned files | Faster | A change in an unmapped place runs nothing relevant |
 | c. Derive dependencies from the build (CMake or Kconfig graphs) | Precise | A large tool to build and maintain; wrong edges select too little |
 
-**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates.
+**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates. A text search at `62ed69f1` found 39 references from files outside a component to one of the 85 configuration files under that component's tests (some only by a shared file name), among them `tests/controller_m3/testcase.yaml` using the I2C and SPI `native_sim` overlays and the RT1060 web management sample using `tests/zephyr/web_compile/mbedtls.conf`, so counting those files as their component's own would select too little.
 
 ### T4: large tests
 
@@ -104,7 +104,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | b. Cache the Zephyr SDK and west modules with `actions/cache` | Saves up to that step's time | A restored SDK folder skips the installer's download and its checks; the 10 GB limit with least-recently-used eviction ([dependency caching](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching)) |
 | c. ccache | Measured once with 84.7 to 99.7% hits | No measured gain ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
 
-**Recommendation: a.** A measured trial of b, with the SDK verified after restore, can follow.
+**Recommendation: a.** A measured trial of b, with the SDK verified after restore, can follow. T10 rechecks this against the measured set-up times.
 
 ### T9: product repositories
 
@@ -118,4 +118,4 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 
 ## Decisions
 
-Proposed: T1 to T9 as recommended. None is accepted until the owner decides.
+T1 to T9 as recommended, accepted by the owner on 26 November 2026. T10 as recommended, with its pull request.

@@ -137,9 +137,7 @@ web-ui = [
 ]
 
 [jobs.host]
-description = "Linux Host builds, unit tests, static analysis and boundaries"
-[jobs.host-sanitize]
-description = "Linux Host sanitizer builds and tests"
+description = "Linux Host builds, unit tests, sanitizers, static analysis and boundaries"
 [jobs.host-build-tests]
 description = "The Python checks of the build, validation and CI tooling, without the large cases"
 [jobs.host-build-tests-large]
@@ -204,6 +202,12 @@ job = "host"
 run = "./scripts/check-host.sh"
 
 [[check]]
+id = "host-sanitizers"
+job = "host"
+run = "CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh"
+fast = "always"
+
+[[check]]
 id = "access-host"
 job = "host"
 run = "./scripts/test-access.sh"
@@ -213,6 +217,12 @@ fast = ["access"]
 id = "cli-host"
 job = "host"
 run = "./scripts/test-cli.sh"
+fast = ["cli"]
+
+[[check]]
+id = "cli-ssh-thread-sanitizer"
+job = "host"
+run = "./tests/ssh/cli/test-thread-sanitizer.sh"
 fast = ["cli"]
 
 [[check]]
@@ -302,21 +312,6 @@ id = "build-boundaries"
 job = "host"
 run = "./scripts/check-dependencies.sh"
 fast = "always"
-
-# --- host-sanitize ------------------------------------------------------------------------------
-# The sanitizer builds read the googletest source that the job's set-up fetches (docs/ci.md).
-
-[[check]]
-id = "host-sanitizers"
-job = "host-sanitize"
-run = "CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh"
-fast = "always"
-
-[[check]]
-id = "cli-ssh-thread-sanitizer"
-job = "host-sanitize"
-run = "./tests/ssh/cli/test-thread-sanitizer.sh"
-fast = ["cli"]
 
 # --- host-build-tests ---------------------------------------------------------------------------
 # CLANG_TIDY lets the product style check run the real tool on a small source.

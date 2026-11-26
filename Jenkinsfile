@@ -54,10 +54,6 @@ pipeline {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/host/crux-pilot" } }
                     steps { script { runJob('host') } }
                 }
-                stage('host-sanitize') {
-                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/host-sanitize/crux-pilot" } }
-                    steps { script { runJob('host-sanitize') } }
-                }
                 stage('host-build-tests') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/host-build-tests/crux-pilot" } }
                     steps { script { runJob('host-build-tests') } }

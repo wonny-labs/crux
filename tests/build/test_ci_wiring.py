@@ -3,7 +3,7 @@
 
 A gate that CI does not run, or that cannot fail, looks the same as a gate that passes. These
 tests read the preset, the workflow text and the CI map file (scripts/ci/checks.toml) and hold
-seven rules:
+six rules:
 
 - the `host-sanitize` preset aborts on undefined behaviour instead of printing and continuing,
 - the host jobs install PyYAML and west, so that the manifest and workspace cases of `tests/build`
@@ -12,9 +12,7 @@ seven rules:
 - the host job runs the File service checks, whose consumer build no other step covers,
 - a Zephyr job runs the smoke check that AGENTS.md lists as a validation check,
 - the host workflow skips a step only when the tier selected no check for its job; which checks
-  a documentation-only change skips is the selector's rule, tested in test_ci_tiers.py,
-- the host-sanitize job fetches the Host test sources before its offline configure, on GitHub and
-  on Jenkins.
+  a documentation-only change skips is the selector's rule, tested in test_ci_tiers.py.
 
 Only the standard library is used.
 """
@@ -29,7 +27,6 @@ PRESETS = REPO / "CMakePresets.json"
 # The tests skip only in a copy without the workflow folder; a single missing workflow fails them.
 WORKFLOWS = REPO / ".github/workflows"
 HOST = REPO / ".github/workflows/host.yml"
-RUN_JOB = REPO / "scripts/ci/jenkins/run-job.sh"
 MANIFEST = REPO / "scripts/ci/checks.toml"
 NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 
@@ -85,10 +82,6 @@ class HostWorkflowTest(unittest.TestCase):
 
 PLAN_STEP = "Plan the checks of this tier"
 PLANNED = "steps.plan.outputs.checks != '0'"
-FETCH_STEP = "Fetch the Host test sources"
-SANITIZE_ONLY = f"{PLANNED} && matrix.job == 'host-sanitize'"
-# The first command of scripts/bootstrap-host.sh, which fetches googletest into CRUX_CACHE_DIR.
-FETCH = "cmake --preset host-debug -S"
 
 
 @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
@@ -102,37 +95,7 @@ class HostTierStepsTest(unittest.TestCase):
                 conditions = re.findall(r"^        if: (.+)$", block, re.MULTILINE)
                 with self.subTest(step=title):
                     self.assertEqual(1, len(conditions))
-                    allowed = (SANITIZE_ONLY,) if title == FETCH_STEP else (PLANNED, f"always() && {PLANNED}")
-                    self.assertIn(conditions[0], allowed)
-
-
-class HostSanitizeSetUpTest(unittest.TestCase):
-    """The sanitizer checks configure offline; both CI systems fetch their source first."""
-
-    def test_the_sanitizer_checks_read_the_fetched_source_offline(self):
-        for name in ("host-sanitizers", "cli-ssh-thread-sanitizer"):
-            with self.subTest(check=name):
-                self.assertEqual("host-sanitize", checks()[name]["job"])
-        self.assertIn("FETCHCONTENT_FULLY_DISCONNECTED=ON", (REPO / "scripts/check-host.sh").read_text())
-        self.assertIn("FETCHCONTENT_FULLY_DISCONNECTED=ON", (REPO / "tests/ssh/cli/test-thread-sanitizer.sh").read_text())
-        bootstrap = [line for line in (REPO / "scripts/bootstrap-host.sh").read_text().splitlines()
-                     if line.startswith("cmake ")]
-        self.assertTrue(bootstrap[0].startswith('cmake --preset "$host_preset" -S'))
-
-    def test_jenkins_fetches_before_the_checks(self):
-        script = RUN_JOB.read_text()
-        section = script[script.index("    host-sanitize)\n"):]
-        self.assertIn(f'{FETCH} "$repo"', section[:section.index(";;")])
-        self.assertLess(script.index(f'{FETCH} "$repo"'), script.index('exec scripts/ci/run-tier.sh'))
-
-    @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
-    def test_github_fetches_before_the_checks(self):
-        workflow = HOST.read_text()
-        fetch = step_text(workflow, FETCH_STEP)
-        self.assertIn(f"run: {FETCH} .", fetch)
-        self.assertIn(f"if: {SANITIZE_ONLY}", fetch)
-        job = workflow[workflow.index("  host-other:"):]
-        self.assertLess(job.index(FETCH_STEP), job.index("- name: Run the checks of this tier"))
+                    self.assertIn(conditions[0], (PLANNED, f"always() && {PLANNED}"))
 
 
 class ZephyrWorkflowTest(unittest.TestCase):
