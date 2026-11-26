@@ -1,6 +1,6 @@
 # ADR-0009: Tiered CI for Crux and its product repositories
 
-Status: **Proposed**. The owner asked on 26 November 2026, in the Crux core session, for the design and implementation of fast, full and nightly CI with suites chosen per tier, for Crux and the product repositories; acceptance of T1 to T9 is the owner's decision. Baseline: `origin/main` at `39140df6`.
+Status: **Accepted**. The owner asked on 26 November 2026, in the Crux core session, for the design and implementation of fast, full and nightly CI with suites chosen per tier, for Crux and the product repositories, and accepted T1 to T9 as recommended in the same session the same day. T10 was added afterwards at the owner's request to shorten the tiers; it takes effect with the pull request that adds it. Baseline: `origin/main` at `39140df6`; T10 at `62ed69f1`.
 
 This record decides how Crux splits its CI into tiers, how a check is assigned to a tier, and how the same rules run on every CI system.
 The current rules are in [Continuous integration](../ci.md); this record keeps the requirements, the options and the reasons.
@@ -28,7 +28,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | R8 | Outputs that both systems read: exit status, JUnit XML, logs under one folder | Standard: Jenkins [`junit`](https://www.jenkins.io/doc/pipeline/steps/junit/) and GitHub artifacts both take files |
 | R9 | No automatic retries; a flaky check is recorded and fixed, and leaves the full tier only by an approved change | Documented option: Twister has `--retry-failed` and a quarantine list ([Twister](https://docs.zephyrproject.org/latest/develop/twister/index.html#quarantine)); Bazel's `flaky` reruns up to three times and is to be used sparingly ([common definitions](https://bazel.build/reference/be/common-definitions)) |
 
-**R1 status.** Estimated from the per-check times of the first full runs, the fast tier meets the target for most single components: Host jobs 6 to 9 minutes, a Zephyr shard 3.3 minutes when only its quick checks run and 5 to 9 with one component's checks. It misses it for the controller component (about 15 minutes, `controller-integration` alone about 7), the File component (the storage shard, about 10 to 15) and any change to the PSA or web parts (about 6 to 12 in their own jobs). A change that falls back to the full tier takes the full time.
+**R1 status.** Measured with the manual `base` input after T10, on one-file changes to the controller and File components: the slowest Zephyr fast job took 8.2 minutes (`zephyr-integration`) and 7.6 (`zephyr-storage`), and the `host` job 7.8 and 10.3 minutes, which made it the slowest fast job of the File change. The `host` job is the longest fast job for most components: 8 to 10 minutes with its quick checks, plus the component's own Host checks, up to about 1.6 minutes for the web component. It meets the target only partly; T10 option l would bring it to about 5 to 7 minutes. Neither change selected a PSA or web check, so no fast time is measured for a change that does; five of the six `psa-management` checks are fast checks of the web or management service components, and that job took 11.9 to 12.6 minutes in the full tier, so such a change may exceed the target. A change that falls back to the full tier takes the full time, about 14 minutes (T10).
 
 ### Acceptance criteria
 
@@ -61,7 +61,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | b. Run only the owned components' checks and ignore unowned files | Faster | A change in an unmapped place runs nothing relevant |
 | c. Derive dependencies from the build (CMake or Kconfig graphs) | Precise | A large tool to build and maintain; wrong edges select too little |
 
-**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates.
+**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates. A text search at `62ed69f1` found 39 references from files outside a component to one of the 85 configuration files under that component's tests (some only by a shared file name), among them `tests/controller_m3/testcase.yaml` using the I2C and SPI `native_sim` overlays and the RT1060 web management sample using `tests/zephyr/web_compile/mbedtls.conf`, so counting those files as their component's own would select too little.
 
 ### T4: large tests
 
@@ -104,7 +104,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | b. Cache the Zephyr SDK and west modules with `actions/cache` | Saves up to that step's time | A restored SDK folder skips the installer's download and its checks; the 10 GB limit with least-recently-used eviction ([dependency caching](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching)) |
 | c. ccache | Measured once with 84.7 to 99.7% hits | No measured gain ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
 
-**Recommendation: a.** A measured trial of b, with the SDK verified after restore, can follow.
+**Recommendation: a.** A measured trial of b, with the SDK verified after restore, can follow. T10 rechecks this against the measured set-up times.
 
 ### T9: product repositories
 
@@ -116,6 +116,27 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 
 **Recommendation: a**, as [Continuous integration](../ci.md#use-in-a-product-repository) describes.
 
+### T10: shortening the tiers
+
+The full tier took as long as its slowest job: `zephyr-storage`, 30.5 minutes at `be60bc65`, of which one check, `emmc-reliance-edge`, took 9.2 to 14.8 minutes in three runs. Set-up took 0.4 to 0.6 minutes in a Host job and 2.0 to 2.6 in a Zephyr or PSA job. The owner's targets (26 November 2026): fast tier below 10 minutes per job, full tier 15 minutes, 20 at most, by industry-standard methods only.
+
+| Option | Label and source | Result |
+| --- | --- | --- |
+| **a. More jobs, balanced by measured check time: eight Zephyr shards, three Host and two PSA jobs** | Standard: a job matrix ([GitHub matrix](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations)) and parallel stages ([Jenkins](https://www.jenkins.io/doc/book/pipeline/syntax/#parallel)); Zephyr's own pull request CI spreads Twister over a matrix of shards ([twister.yaml](https://github.com/zephyrproject-rtos/zephyr/blob/main/.github/workflows/twister.yaml)) | Applied. No command changes; `emmc-reliance-edge` is cut at its script boundary into two checks in two shards, as `tests/build` was cut in T4 |
+| b. Twister `--subset` over one test plan | Documented option ([Twister](https://docs.zephyrproject.org/latest/develop/twister/index.html)); Zephyr's CI uses it | Not applied: Crux runs many small Twister and `west build` calls inside its check scripts, not one plan; sharding by check gives the same balance without changing a command |
+| c. Twister `-j 4` | Documented option (Twister) | Not applied: measured with no clear gain ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
+| d. Twister integration mode (`--integration`) | Documented option (Twister) | Not applied: it builds fewer platforms, which removes configurations from the full tier (R2) |
+| e. ccache for Zephyr builds | Documented option: Zephyr's build uses ccache when it is installed ([`USE_CCACHE`](https://docs.zephyrproject.org/latest/build/cmake-ref/variable/USE_CCACHE.html)) | Not applied: measured with no gain, since 34 to 54% of compiler calls were cacheable and configuring, linking and running dominate ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
+| f. `actions/cache` for west modules (`west update --path-cache`) keyed on `west.yml` | Documented options ([dependency caching](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching), [west update](https://docs.zephyrproject.org/latest/develop/west/built-in.html#west-update)) | Not applied now: it saves at most the module fetch, about one minute of a Zephyr job, and the slowest job after a, `host`, fetches no west modules (T8) |
+| g. Cache the Zephyr SDK or pip downloads | Documented options (dependency caching; `actions/setup-python` `cache: pip`) | Not applied: a restored SDK skips the installer's checks (T8); the pip step takes 0.1 minutes |
+| h. Move long gating suites to nightly | Project choice | Rejected: no check leaves the full tier (R2, R3) |
+| i. Count a component's Kconfig, `.conf` and overlay files as its own in the fast tier | Standard in kind: path rules per component (R5) | Rejected for now: not provably safe (T3) |
+| j. Run several checks of one job at the same time | Custom scheduler | Rejected: checks share build folders, and the owner excluded custom schedulers |
+| **k. A `base` input for a manual run** | Standard: `workflow_dispatch` inputs ([events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)) and Jenkins parameters | Applied, so that the fast tier can be measured by hand |
+| l. The two sanitizer checks in a Host job of their own | Standard, as a | Tried and withdrawn: `web-host` failed there, because `scripts/test-web.sh` runs every Web test of the `host-sanitize` tree but builds only some of them, and in the `host` job `host-sanitizers` builds the rest first. Making `test-web.sh` build what it runs would change a check script; it is left to the owner and would take the `host` job from about 13 to about 10 minutes |
+
+**Recommendation: a and k.** Measured on hosted runners at `a704189d`: the slowest job is `host` (13.3 minutes), then `psa-management` (12.6) and the `controller` shard (12.0); each workflow took 12.7 to 14.1 minutes from creation to end, against 31.3 for the Zephyr workflow at `be60bc65` ([Zephyr CI shards](../ci-zephyr-shards.md#measurements)). More jobs use more of the runner limit ([Zephyr CI shards](../ci-zephyr-shards.md#limits)). f is the next step if a Zephyr job sets the wall time again.
+
 ## Decisions
 
-Proposed: T1 to T9 as recommended. None is accepted until the owner decides.
+T1 to T9 as recommended, accepted by the owner on 26 November 2026. T10 as recommended, with its pull request.
