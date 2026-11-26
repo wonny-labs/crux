@@ -189,7 +189,7 @@ static void expect_same(const observed_t *actual, const observed_t *expected, co
 static void run_serial(const void *input, size_t length, observed_t *observed)
 {
     static const crux_cli_console_config_t config = {
-        0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator"};
+        0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", NULL, NULL};
     static const char login[] = "alice\r" LOGIN_PASSWORD "\r";
     static const char after_login[] = "password: \r\n";
     static const char prompt[] = "login: ";

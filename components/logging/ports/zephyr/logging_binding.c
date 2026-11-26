@@ -2,18 +2,41 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/util.h>
 
-#if !DT_HAS_CHOSEN(zephyr_log_uart)
+#if defined(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
+/* The console shares its UART with Logging: the console's own backend writes log text on the UART of
+ * crux-serial0 (components/cli/ports/zephyr/cli_console_log_backend.c). zephyr,log-uart is optional,
+ * and when it is chosen it names that UART. */
+#define LOG_UART DT_ALIAS(crux_serial0)
+#if !DT_NODE_HAS_STATUS(LOG_UART, okay)
+#error "Crux Logging shared with the console requires an enabled crux-serial0 UART alias"
+#endif
+#if DT_HAS_CHOSEN(zephyr_log_uart)
+BUILD_ASSERT(DT_PROP_LEN(DT_CHOSEN(zephyr_log_uart), uarts) == 1 &&
+                 DT_SAME_NODE(DT_PHANDLE_BY_IDX(DT_CHOSEN(zephyr_log_uart), uarts, 0), LOG_UART),
+             "Crux Logging shared with the console requires zephyr,log-uart to name crux-serial0");
+#endif
+/* Output before the console opens the port goes at the devicetree's rate, and later output at the
+ * console's, so both are one rate. */
+BUILD_ASSERT(DT_PROP(LOG_UART, current_speed) == CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE,
+             "Crux Logging shared with the console requires its current-speed to be "
+             "CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE");
+#define CRUX_LOGGING_HAS_UART 1
+#elif !DT_HAS_CHOSEN(zephyr_log_uart)
 #error "Crux Logging requires explicit zephyr,log-uart selection"
 #else
 #define LOG_SELECTION DT_CHOSEN(zephyr_log_uart)
 BUILD_ASSERT(DT_PROP_LEN(LOG_SELECTION, uarts) == 1, "Crux Logging requires exactly one UART");
 #define LOG_UART DT_PHANDLE_BY_IDX(LOG_SELECTION, uarts, 0)
+#define CRUX_LOGGING_HAS_UART 1
+#endif
+
+#ifdef CRUX_LOGGING_HAS_UART
 BUILD_ASSERT(DT_NODE_HAS_STATUS(LOG_UART, okay), "Crux Logging UART must be enabled");
 /* The UART drivers whose deferred-backend profile is reviewed, selected by compatible: any enabled
  * node of one of them, on any board, with the mode and owner checks below. The board's devicetree
- * chooses which instance (zephyr,log-uart); Crux checks no pin conflict, so reviewing the board's
- * pins is the product's duty. Accepted is not qualified. Another driver is a reviewed addition
- * here, keyed by its compatible. */
+ * chooses which instance (zephyr,log-uart, or crux-serial0 when the console shares it); Crux checks
+ * no pin conflict, so reviewing the board's pins is the product's duty. Accepted is not qualified.
+ * Another driver is a reviewed addition here, keyed by its compatible. */
 #define TARGET_UART DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart)
 BUILD_ASSERT((IS_ENABLED(CONFIG_BOARD_NATIVE_SIM) &&
               DT_NODE_HAS_COMPAT(LOG_UART, zephyr_uart_emul)) ||
@@ -41,7 +64,9 @@ BUILD_ASSERT(!DT_SAME_NODE(LOG_UART, DT_CHOSEN(zephyr_console)) ||
 #if DT_HAS_CHOSEN(zephyr_shell_uart) && defined(CONFIG_SHELL_BACKEND_SERIAL)
 REJECT_OWNER(DT_CHOSEN(zephyr_shell_uart), "Crux Logging conflicts with UART Shell");
 #endif
-#if DT_NODE_EXISTS(DT_ALIAS(crux_serial0)) && defined(CONFIG_CRUX_SERIAL)
+/* The console is the one Crux Serial user, and it may share the UART only in the shared mode. */
+#if DT_NODE_EXISTS(DT_ALIAS(crux_serial0)) && defined(CONFIG_CRUX_SERIAL) &&                       \
+    !defined(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
 REJECT_OWNER(DT_ALIAS(crux_serial0), "Crux Logging conflicts with Crux Serial");
 #endif
 #if DT_HAS_CHOSEN(zephyr_uart_mcumgr) && defined(CONFIG_UART_MCUMGR)

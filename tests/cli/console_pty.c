@@ -21,7 +21,7 @@ static size_t received_length;
 static crux_cli_result_t cycle_result = CRUX_CLI_OK;
 
 static const crux_cli_console_config_t config = {
-    0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator"};
+    0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", NULL, NULL};
 
 static void *console_thread(void *argument)
 {

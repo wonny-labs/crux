@@ -38,6 +38,24 @@ target_compile_options(cli_console PRIVATE ${CRUX_CLI_TEST_WARNINGS} -UNDEBUG)
 add_test(NAME Cli.console COMMAND cli_console)
 set_tests_properties(Cli.console PROPERTIES TIMEOUT 60)
 
+# The queue between Logging and a console on a shared UART, on its own.
+add_executable(cli_console_log console_log.c cli_test.c fake_events.c fake_transport.c
+    ../../components/cli/console/cli_console_log.c)
+target_include_directories(cli_console_log PRIVATE ${CRUX_CLI_TEST_INCLUDES})
+target_link_libraries(cli_console_log PRIVATE crux_cli_adapter)
+target_compile_definitions(cli_console_log PRIVATE ${CRUX_CLI_TEST_DEFINITIONS})
+target_compile_options(cli_console_log PRIVATE ${CRUX_CLI_TEST_WARNINGS} -UNDEBUG)
+add_test(NAME Cli.console_log COMMAND cli_console_log)
+set_tests_properties(Cli.console_log PROPERTIES TIMEOUT 60)
+
+# The serial cycle of a console that shares its UART with Logging, with the real queue as its source.
+add_executable(cli_console_shared console_shared.c fake_serial.c
+    ../../components/cli/console/cli_console_serial.c ../../components/cli/console/cli_console_log.c)
+target_link_libraries(cli_console_shared PRIVATE cli_test_scripted crux::thread)
+target_compile_options(cli_console_shared PRIVATE ${CRUX_CLI_TEST_WARNINGS} -UNDEBUG)
+add_test(NAME Cli.console_shared COMMAND cli_console_shared)
+set_tests_properties(Cli.console_shared PROPERTIES TIMEOUT 60)
+
 # The same cycle on the real Host Serial provider, over a pseudo-terminal.
 add_executable(cli_console_pty console_pty.c ../../components/cli/console/cli_console_serial.c)
 target_include_directories(cli_console_pty PRIVATE ../../components/serial/ports/linux)

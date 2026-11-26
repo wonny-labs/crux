@@ -5,8 +5,20 @@ if(NOT CRUX_LOGGING_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux Logging unsupported provider: ${CRUX_LOGGING_PROVIDER}")
 endif()
 
-foreach(required LOG LOG_MODE_DEFERRED LOG_PROCESS_THREAD LOG_BACKEND_UART
-                 LOG_BACKEND_UART_AUTOSTART LOG_BACKEND_UART_OUTPUT_TEXT LOG_BACKEND_SHOW_LEVEL)
+# Two backend shapes. By default the native UART backend owns a UART of its own. With
+# CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console's backend (components/cli/ports/zephyr/cli_console_log_backend.c)
+# replaces it, on the console's UART, and the native UART backend must be off.
+if(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
+    if(CONFIG_LOG_BACKEND_UART)
+        message(FATAL_ERROR "Crux Logging shared with the console requires CONFIG_LOG_BACKEND_UART=n: "
+                            "the console's backend replaces it")
+    endif()
+    set(crux_logging_backend_required)
+else()
+    set(crux_logging_backend_required LOG_BACKEND_UART LOG_BACKEND_UART_AUTOSTART LOG_BACKEND_UART_OUTPUT_TEXT)
+endif()
+foreach(required LOG LOG_MODE_DEFERRED LOG_PROCESS_THREAD ${crux_logging_backend_required}
+                 LOG_BACKEND_SHOW_LEVEL)
     if(NOT CONFIG_${required})
         message(FATAL_ERROR "Crux Logging requires CONFIG_${required}=y")
     endif()

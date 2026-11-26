@@ -174,6 +174,10 @@ static void worker_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER);
 #endif
     for (;;) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_WEB_MANAGEMENT_WORKER_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER);
+#endif
         (void)crux_semaphore_take(save_signal, CRUX_WEB_MANAGEMENT_WORKER_WAIT_MS);
         while (web_mgmt_work_once()) {
         }
