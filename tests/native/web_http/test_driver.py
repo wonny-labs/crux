@@ -29,14 +29,21 @@ SEND_TIMEOUT_S = 0.5
 RESPONSE_DEADLINE_S = 1.5
 # Allowance for scheduling in an emulated container.
 SLACK_S = 1.5
-# One small response from the server: the status line, three sends per header, an end of headers, then
-# a chunk's three sends and the terminator. Each can wait out the send timeout on one callback.
+# The most sends of one small response: at Zephyr v4.4.2 the status line, three sends per header, an end
+# of headers, then a chunk's three sends and the terminator. Each can wait out the send timeout on one
+# callback. Zephyr v4.5.0 assembles the header block in a 128-byte buffer, sends each full buffer, and
+# passes the rest with the chunk and the terminator in one sendmsg(), so it makes fewer sends; the bound
+# stays the v4.4.2 count.
 SENDS_PER_RESPONSE = 1 + 3 * 5 + 1 + 3 + 1
 STALL_BOUND_S = RESPONSE_DEADLINE_S + SENDS_PER_RESPONSE * SEND_TIMEOUT_S + SLACK_S
-# Sends before the failing one in /probe/fail: the head, the first piece, and the second piece's size.
+# The fewest sends of a small /api/v1/status response at Zephyr v4.5.0: one full header buffer and one
+# sendmsg() with the rest. A silent reader must see at least these wait.
+SENDS_OF_A_SMALL_RESPONSE = 2
 # Of the sizes tried, this one leaves room for a small send while free space stays too low for POLLOUT.
 SMALL_RESPONSE_SEND_BUFFER = 8192
-SENDS_BEFORE_SECOND_BODY_PIECE = 1 + 3 * 5 + 1 + 3 + 1
+# Pieces before the failing one in /probe/fail: the shim fails a body piece, one sendmsg() each from
+# Zephyr v4.5.0, so 1 lets the first piece (with the headers) through and stops the second.
+SENDS_BEFORE_SECOND_BODY_PIECE = 1
 
 ADMIN = "crux_session=admin"
 VIEWER = "crux_session=viewer"
@@ -861,7 +868,7 @@ def fill_a_silent_readers_socket():
             if pinger.waiting_s() > 0.2:
                 time.sleep(0.05)
                 continue
-            if pinger.latencies and max(pinger.latencies) >= 4 * SEND_TIMEOUT_S:
+            if pinger.latencies and max(pinger.latencies) >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S:
                 break
             try:
                 reader.send(request)
@@ -884,11 +891,11 @@ def case_slow_reader_small_responses():
     attempts = []
     for _ in range(4):
         attempts.append(fill_a_silent_readers_socket())
-        if attempts[-1]["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000:
+        if attempts[-1]["max_ms"] >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S * 1000:
             break
     summary = max(attempts, key=lambda attempt: attempt["max_ms"])
     check(all(attempt["unfinished"] == 0 for attempt in attempts), f"a ping never finished: {attempts}")
-    check(summary["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000, f"several sends waited: {attempts}")
+    check(summary["max_ms"] >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S * 1000, f"several sends waited: {attempts}")
     check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
     results["slow_reader_small_responses"] = {
         **summary, "attempts": len(attempts), "send_timeout_ms": int(SEND_TIMEOUT_S * 1000),

@@ -244,6 +244,19 @@ int main(void)
                 event_seen = true;
                 printk("PROBE eventfd wakes the poll set\n");
             }
+            /*
+             * Zephyr v4.5.0's offload reports the host readiness at every update, so the poll
+             * no longer returns 0 for a client that sent only a FIN: it keeps that client at
+             * revents 0 and returns when something else is ready, such as this eventfd. The
+             * same sweep then runs on each wake, so the end of the stream is still found.
+             */
+            if (sweep_on_empty_poll) {
+                for (int i = SLOT_CLIENT; i < (int)ARRAY_SIZE(slots); ++i) {
+                    if (slots[i].fd >= 0 && slots[i].revents == 0) {
+                        serve_client(&slots[i]);
+                    }
+                }
+            }
         }
         for (int i = 0; i < PROBE_LISTENERS; ++i) {
             if (slots[SLOT_LISTENER + i].fd >= 0 && slots[SLOT_LISTENER + i].revents != 0) {

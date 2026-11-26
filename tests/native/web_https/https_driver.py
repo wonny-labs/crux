@@ -491,7 +491,7 @@ def case_tls_slow_reader_small_responses():
     """The suite's silent reader with a full socket, which behaves otherwise over TLS.
 
     Plain text on the offload, each send can wait out its timeout and then goes through, so one small
-    response can cost about twenty timeouts. Over TLS the socket beneath is non-blocking: the TLS layer
+    response can cost several timeouts (about twenty at Zephyr v4.4.2, two at v4.5.0). Over TLS the socket beneath is non-blocking: the TLS layer
     waits once for room, up to the send timeout, and then returns -EAGAIN, which stops that response.
     So the plain case's bound, several timeouts, does not hold here, and this case holds the TLS one.
     """
