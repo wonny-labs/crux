@@ -274,13 +274,13 @@ It needs a session and its permission, so it cannot run before login. It does no
 | Configuration | `cmake/CruxManagementShell.cmake`, from `zephyr/CMakeLists.txt` for every image | All three image rows | `tests/build/test_management_shell.py` for the logic, `test_cli_composition.py` on real builds |
 | Compilation | `components/cli/ports/zephyr/cli_shell_rule.c` | The management rows | `test_management_shell.py`, compiling it with each symbol |
 | Script | `scripts/check-management-shell.py --config` | All three rows on a built `.config` | Both |
-| Image | The same script, `--elf` | No shell symbol, the shell's sections empty, and all 8 of their markers present, so a stripped image or an empty listing fails | Saved `nm` output, a real ELF on the Host, stripped and not, and real RT1060 and `native_sim` images |
+| Image | The same script, `--elf` | No shell symbol, the shell's sections empty, and all 10 of their markers present, so a stripped image or an empty listing fails | Saved `nm` output, a real ELF on the Host, stripped and not, and real RT1060 and `native_sim` images |
 
 | Image | `CONFIG_SHELL` | Backends |
 | --- | --- | --- |
 | Has `CONFIG_CRUX_CLI`, `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH`, and no `CONFIG_CRUX_DEVELOPMENT_IMAGE` | Must be `n` | None |
 | Has one of those, and is marked | May be `y` | `SHELL_BACKEND_SERIAL` and its options only |
-| Has none of those | May be `y` | Anything except the network backends and `MCUMGR_GRP_SHELL` |
+| Has none of those | May be `y` | Anything except the network backends (Telnet, WebSocket, MQTT and, from Zephyr v4.5.0, SSH) and `MCUMGR_GRP_SHELL` |
 
 The rule reads `CONFIG_CRUX_WEB` and `CONFIG_CRUX_SSH` by name. Both symbols now exist in `zephyr/Kconfig`, so the rule applies to every image that sets them. Host tests cover the rule's logic for them. No document records the image check running on an image that sets `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH`.
 

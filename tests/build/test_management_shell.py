@@ -52,6 +52,7 @@ IMAGES = {
     "plain_telnet": (["SHELL", "SHELL_BACKEND_TELNET"], False),
     "plain_websocket": (["SHELL", "SHELL_BACKEND_WEBSOCKET"], False),
     "plain_mqtt": (["SHELL", "SHELL_BACKEND_MQTT"], False),
+    "plain_ssh": (["SHELL", "SHELL_BACKEND_SSH"], False),
     "plain_mcumgr": (["SHELL", "SHELL_BACKEND_DUMMY", "MCUMGR_GRP_SHELL"], False),
     "marked_mcumgr": (["CRUX_CLI", "CRUX_DEVELOPMENT_IMAGE", "SHELL", "MCUMGR_GRP_SHELL"], False),
 }
@@ -120,6 +121,8 @@ NM_CLEAN = """\
 60003000 R _shell_subcmds_list_end
 60003000 R _shell_dynamic_subcmds_list_start
 60003000 R _shell_dynamic_subcmds_list_end
+60003000 R _shell_remote_list_start
+60003000 R _shell_remote_list_end
          U not_linked_shell_thing
 80001000 D crux_cli_builtin_commands
 """
@@ -133,7 +136,7 @@ class ImageCheck(unittest.TestCase):
         self.assertEqual(self.errors(NM_CLEAN), [])
 
     def test_entries_in_a_section_fail(self):
-        for section in ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds"):
+        for section in ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds", "shell_remote"):
             with self.subTest(section=section):
                 text = NM_CLEAN.replace(f"60003000 R _{section}_list_end",
                                         f"60003010 R _{section}_list_end")
@@ -144,10 +147,10 @@ class ImageCheck(unittest.TestCase):
         for text in ("", "\n", "60002000 T main\n"):
             with self.subTest(text=text):
                 errors = self.errors(text)
-                self.assertEqual(len([e for e in errors if "marker" in e]), 8, errors)
+                self.assertEqual(len([e for e in errors if "marker" in e]), 10, errors)
 
     def test_a_missing_marker_fails(self):
-        for section in ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds"):
+        for section in ("shell", "shell_root_cmds", "shell_subcmds", "shell_dynamic_subcmds", "shell_remote"):
             for end in ("start", "end"):
                 marker = f"_{section}_list_{end}"
                 with self.subTest(marker=marker):
@@ -243,7 +246,7 @@ class NmFailure(unittest.TestCase):
 # The shell's section markers, at one address, as the Zephyr linker script places them when empty.
 MARKERS = "".join(f".globl _{section}_list_{end}\\n_{section}_list_{end}:\\n"
                   for section in ("shell", "shell_root_cmds", "shell_subcmds",
-                                  "shell_dynamic_subcmds")
+                                  "shell_dynamic_subcmds", "shell_remote")
                   for end in ("start", "end"))
 
 
@@ -307,6 +310,7 @@ class CompileRule(unittest.TestCase):
         "marked_telnet": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_TELNET"], False),
         "marked_websocket": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_WEBSOCKET"], False),
         "marked_mqtt": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_MQTT"], False),
+        "marked_ssh": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_SSH"], False),
         "marked_mcumgr": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "MCUMGR_GRP_SHELL"], False),
         "marked_rtt": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_RTT"], False),
         "marked_rpmsg": (["CRUX_DEVELOPMENT_IMAGE", "SHELL", "SHELL_BACKEND_RPMSG"], False),

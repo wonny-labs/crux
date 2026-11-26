@@ -6,7 +6,7 @@ include_guard(GLOBAL)
 # the same table to a built image.
 function(crux_check_management_shell)
     foreach(symbol IN ITEMS SHELL_BACKEND_TELNET SHELL_BACKEND_WEBSOCKET SHELL_BACKEND_MQTT
-                            MCUMGR_GRP_SHELL)
+                            SHELL_BACKEND_SSH MCUMGR_GRP_SHELL)
         if(CONFIG_${symbol})
             message(FATAL_ERROR "Crux images must not enable CONFIG_${symbol}: "
                                 "the Zephyr shell never reaches the network")
