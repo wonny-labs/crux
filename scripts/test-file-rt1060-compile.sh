@@ -195,7 +195,7 @@ nm = next(line.split('=', 1)[1] for line in (build / 'CMakeCache.txt').read_text
 present = {line.split()[-1] for line in subprocess.run(
     [nm, str(build / 'zephyr/zephyr.elf')], check=True, capture_output=True,
     text=True).stdout.splitlines() if len(line.split()) >= 3}
-for symbol in ('main', 'littlefs_mount', 'crux_file_zephyr_bind', 'crux_file_open_at',
+for symbol in ('main', 'littlefs_mount', 'crux_file_zephyr_bind', 'crux_file_open',
                'crux_config_save'):
     if symbol not in present:
         raise RuntimeError(f'{symbol} is not linked into the LittleFS File image')
