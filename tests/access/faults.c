@@ -178,27 +178,308 @@ static size_t record_with_key(const uint8_t *good, size_t key_length_at, const u
 }
 
 /* A store that an earlier revision saved can hold a P-384 or P-521 key, which is no longer a type
- * Access accepts (#316). The record is then malformed as a whole, so the store reads as unusable
- * and no account can log in, as for any other malformed record. */
+ * Access accepts (#316). A record that holds one in an otherwise good shape loads. */
 static void legacy_key_type_cases(const uint8_t *good, size_t key_length_at)
 {
     uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
     uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
+    const struct {
+        const char *type;
+        size_t point_size;
+        const char *curve;
+    } types[] = {
+        {"ecdsa-sha2-nistp256", 65, "nistp256"},
+        {"ecdsa-sha2-nistp384", 97, "nistp384"},
+        {"ecdsa-sha2-nistp521", 133, "nistp521"},
+    };
+    for (size_t index = 0; index < sizeof(types) / sizeof(types[0]); ++index) {
+        size_t used =
+            ecdsa_blob_of(blob, types[index].type, types[index].point_size, types[index].curve);
+        size_t length = record_with_key(good, key_length_at, blob, used, record);
+        access_fake_reset();
+        crux_access_test_reset();
+        access_fake_store_set_record(record, length);
+        CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+        (void)access_test_session(ADMIN, PASSWORD, &access_test_serial);
+    }
+}
 
-    /* The control: the same record shape holding the accepted P-256 type loads. */
-    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 65, "nistp256");
-    size_t length = record_with_key(good, key_length_at, blob, used, record);
+/* --- A stored user key of a type this build does not support --- */
+
+/* The table that the fixtures below start from, as the core saved it, and the one each fixture
+ * edits. Static: each is about 4 KB. */
+static access_table_t fixture_table;
+static access_table_t fixture_edit;
+
+static void put_be32(uint8_t *out, size_t value)
+{
+    out[0] = (uint8_t)(value >> 24);
+    out[1] = (uint8_t)(value >> 16);
+    out[2] = (uint8_t)(value >> 8);
+    out[3] = (uint8_t)value;
+}
+
+/* A blob whose type string claims `claimed` bytes and holds `type`, followed by `data`. */
+static size_t blob_raw(uint8_t *blob, size_t claimed, const char *type, size_t type_length,
+                       const uint8_t *data, size_t data_length)
+{
+    put_be32(blob, claimed);
+    memcpy(&blob[4], type, type_length);
+    memcpy(&blob[4u + type_length], data, data_length);
+    return 4u + type_length + data_length;
+}
+
+/* A well-formed blob of the named type: the type string, then one string of opaque key data. */
+static size_t blob_of_type(uint8_t *blob, const char *type)
+{
+    static const uint8_t data[] = {0, 0, 0, 3, 1, 0, 1};
+    return blob_raw(blob, strlen(type), type, strlen(type), data, sizeof(data));
+}
+
+/* Boots with ACCESS_TEST_ADMIN and ACCESS_TEST_USER, each holding one Ed25519 key, and keeps that
+ * table for the fixtures. */
+static void fixture_prepare(void)
+{
+    access_test_boot_with_admin();
+    crux_access_session_t admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
+    access_test_create_user(admin);
+    const uint8_t admin_key[] = ACCESS_TEST_ED25519_KEY(1);
+    const uint8_t user_key[] = ACCESS_TEST_ED25519_KEY(2);
+    CHECK(crux_access_account_add_key(admin, ADMIN, admin_key, sizeof(admin_key)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_account_add_key(admin, USER, user_key, sizeof(user_key)) == CRUX_ACCESS_OK);
+    fixture_table = crux_access_state.table;
+}
+
+/* The saved fixture with `extra` as ACCESS_TEST_USER's second key. */
+static size_t fixture_record(const uint8_t *extra, size_t extra_length, uint8_t *record)
+{
+    access_table_t *table = &fixture_edit;
+    *table = fixture_table;
+    access_account_t *account = crux_access_table_find(table, USER, NULL);
+    CHECK(account != NULL && account->key_count == 1);
+    account->keys[1].length = extra_length;
+    memcpy(account->keys[1].bytes, extra, extra_length);
+    account->key_count = 2;
+    size_t length = crux_access_record_encode(table, record, CRUX_ACCESS_RECORD_SIZE_MAX);
+    crux_access_secure_zero(table, sizeof(*table));
+    CHECK(length != 0);
+    return length;
+}
+
+static crux_access_result_t boot_from(const uint8_t *record, size_t length)
+{
     access_fake_reset();
     crux_access_test_reset();
     access_fake_store_set_record(record, length);
-    CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+    return crux_access_init(reference());
+}
 
-    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp384", 97, "nistp384");
-    length = record_with_key(good, key_length_at, blob, used, record);
-    expect_record_unusable(record, length);
-    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp521", 133, "nistp521");
-    length = record_with_key(good, key_length_at, blob, used, record);
-    expect_record_unusable(record, length);
+static bool bytes_contain(const uint8_t *haystack, size_t length, const uint8_t *needle,
+                          size_t needle_length)
+{
+    for (size_t at = 0; at + needle_length <= length; ++at) {
+        if (memcmp(&haystack[at], needle, needle_length) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool stored_record_contains(const uint8_t *needle, size_t needle_length)
+{
+    size_t length = 0;
+    const uint8_t *stored = access_fake_store_record(&length);
+    return bytes_contain(stored, length, needle, needle_length);
+}
+
+/* The skip report: one key failure per skipped key, with no channel and an INVALID_ARGUMENT
+ * result, which no client attempt produces. */
+static void expect_skips_reported(size_t skipped, const char *account)
+{
+    size_t found = 0;
+    for (size_t index = 0; index < access_fake_event_count(); ++index) {
+        const crux_access_event_t *event = access_fake_event(index);
+        if (event->type == CRUX_ACCESS_EVENT_KEY_FAILURE) {
+            ++found;
+            CHECK(event->result == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+            CHECK(event->origin.channel == 0);
+            CHECK(event->origin.source_length == 0);
+            CHECK(event->actor[0] == '\0');
+            CHECK(strcmp(event->account, account) == 0);
+        }
+    }
+    CHECK(found == skipped);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_NOT_READY) == 0);
+}
+
+/* Both accounts log in. Each listed Ed25519 key authenticates, and the skipped blob never does. */
+static void expect_others_work(const uint8_t *skipped, size_t skipped_length)
+{
+    const uint8_t admin_key[] = ACCESS_TEST_ED25519_KEY(1);
+    const uint8_t user_key[] = ACCESS_TEST_ED25519_KEY(2);
+    crux_access_session_t session = {0};
+    uint32_t retry = 0;
+    (void)access_test_session(ADMIN, PASSWORD, &access_test_serial);
+    (void)access_test_session(USER, PASSWORD, &access_test_web);
+    CHECK(crux_access_key_is_authorised(ADMIN, admin_key, sizeof(admin_key), true, &access_test_ssh,
+                                        &retry) == CRUX_ACCESS_OK);
+    CHECK(crux_access_login_verified(ADMIN, admin_key, sizeof(admin_key), &access_test_ssh,
+                                     &session) == CRUX_ACCESS_OK);
+    CHECK(crux_access_key_is_authorised(USER, user_key, sizeof(user_key), true, &access_test_ssh,
+                                        &retry) == CRUX_ACCESS_OK);
+    CHECK(crux_access_login_verified(USER, user_key, sizeof(user_key), &access_test_ssh,
+                                     &session) == CRUX_ACCESS_OK);
+    CHECK(crux_access_key_is_authorised(USER, skipped, skipped_length, false, &access_test_ssh,
+                                        &retry) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(crux_access_key_is_authorised(USER, skipped, skipped_length, true, &access_test_ssh,
+                                        &retry) == CRUX_ACCESS_ERR_DENIED);
+    session.value = 0;
+    CHECK(crux_access_login_verified(USER, skipped, skipped_length, &access_test_ssh, &session) ==
+          CRUX_ACCESS_ERR_DENIED);
+    CHECK(session.value == 0);
+}
+
+/* A well-formed record whose only fault is a key type this build does not support loads: that key
+ * is skipped and reported, and every other account and key works. */
+static void unsupported_key_tolerated_cases(void)
+{
+    uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
+    uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
+    uint8_t blobs[6][CRUX_ACCESS_KEY_SIZE_MAX];
+    size_t sizes[6];
+    char longest[65];
+    memset(longest, 'a', 64);
+    longest[64] = '\0';
+    /* Stored by a revision before #316. */
+    sizes[0] = ecdsa_blob_of(blobs[0], "ecdsa-sha2-nistp384", 97, "nistp384");
+    sizes[1] = ecdsa_blob_of(blobs[1], "ecdsa-sha2-nistp521", 133, "nistp521");
+    /* Never accepted, and well formed. */
+    sizes[2] = blob_of_type(blobs[2], "ssh-rsa");
+    /* A name with a domain part. */
+    sizes[3] = blob_of_type(blobs[3], "sk-ssh-ed25519@openssh.com");
+    /* The longest name RFC 4251 allows. */
+    sizes[4] = blob_of_type(blobs[4], longest);
+    /* A type name with no key data after it. */
+    sizes[5] = blob_raw(blobs[5], 7, "ssh-dss", 7, blob, 0);
+    fixture_prepare();
+    for (size_t index = 0; index < sizeof(sizes) / sizeof(sizes[0]); ++index) {
+        size_t used = sizes[index];
+        memcpy(blob, blobs[index], used);
+        size_t length = fixture_record(blob, used, record);
+        CHECK(boot_from(record, length) == CRUX_ACCESS_OK);
+        expect_skips_reported(1, USER);
+        expect_others_work(blob, used);
+        CHECK(crux_access_provision_first_account("other", PASSWORD, strlen(PASSWORD),
+                                                  "administrator",
+                                                  &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    }
+}
+
+/* Changes write the skipped key back unchanged, so a build that supports its type can use it. It
+ * holds a key slot until it is removed by its exact bytes. */
+static void unsupported_key_write_back_cases(void)
+{
+    uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
+    uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
+    fixture_prepare();
+    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp384", 97, "nistp384");
+    size_t length = fixture_record(blob, used, record);
+    CHECK(boot_from(record, length) == CRUX_ACCESS_OK);
+    crux_access_session_t admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
+
+    /* An unrelated change, and changes to the account that holds the key. */
+    CHECK(crux_access_account_create(admin, "carol", "viewer", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(stored_record_contains(blob, used));
+    CHECK(crux_access_account_set_role(admin, USER, "viewer") == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_disable(admin, USER) == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_enable(admin, USER) == CRUX_ACCESS_OK);
+    CHECK(stored_record_contains(blob, used));
+
+    /* The account lists both keys, and the skipped one fills the table. */
+    crux_access_account_info_t accounts[CRUX_ACCESS_ACCOUNT_MAX];
+    size_t count = 0;
+    CHECK(crux_access_account_list(admin, accounts, CRUX_ACCESS_ACCOUNT_MAX, &count) ==
+          CRUX_ACCESS_OK);
+    CHECK(count == 3 && strcmp(accounts[1].user, USER) == 0 && accounts[1].key_count == 2);
+    const uint8_t third[] = ACCESS_TEST_ED25519_KEY(3);
+    CHECK(crux_access_account_add_key(admin, USER, third, sizeof(third)) ==
+          CRUX_ACCESS_ERR_NO_RESOURCES);
+
+    /* The saved record loads again with the same skip and the same working key. */
+    access_fake_events_clear();
+    access_test_power_cycle(reference());
+    expect_skips_reported(1, USER);
+    const uint8_t user_key[] = ACCESS_TEST_ED25519_KEY(2);
+    uint32_t retry = 0;
+    CHECK(crux_access_key_is_authorised(USER, user_key, sizeof(user_key), true, &access_test_ssh,
+                                        &retry) == CRUX_ACCESS_OK);
+    CHECK(crux_access_key_is_authorised(USER, blob, used, true, &access_test_ssh, &retry) ==
+          CRUX_ACCESS_ERR_DENIED);
+
+    /* Removing it by its exact bytes narrows access further, and frees the slot. */
+    admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
+    CHECK(crux_access_account_remove_key(admin, USER, blob, used) == CRUX_ACCESS_OK);
+    CHECK(!stored_record_contains(blob, used));
+    CHECK(crux_access_account_add_key(admin, USER, third, sizeof(third)) == CRUX_ACCESS_OK);
+    access_fake_events_clear();
+    access_test_power_cycle(reference());
+    expect_skips_reported(0, USER);
+}
+
+/* Anything other than a well-formed blob of an unsupported type still makes the record malformed:
+ * a broken type string, a name RFC 4251 does not allow, or a supported type in a malformed form. */
+static void unsupported_key_boundary_cases(void)
+{
+    uint8_t blob[CRUX_ACCESS_KEY_SIZE_MAX];
+    uint8_t record[CRUX_ACCESS_RECORD_SIZE_MAX];
+    static const uint8_t data[] = {0, 0, 0, 1, 0x42};
+    char too_long[66];
+    memset(too_long, 'a', 65);
+    too_long[65] = '\0';
+    fixture_prepare();
+
+    const struct {
+        size_t claimed;
+        const char *type;
+        size_t type_length;
+    } broken[] = {
+        {50, "ssh-x", 5},                /* The type string runs past the blob. */
+        {0, "", 0},                      /* An empty type name. */
+        {7, "ssh rsa", 7},               /* A space. */
+        {7, "ssh,rsa", 7},               /* A comma. */
+        {7, "ssh\x7frsa", 7},            /* DEL. */
+        {7, "ssh\x01rsa", 7},            /* A control character. */
+        {7, "ssh\x80rsa", 7},            /* Not US-ASCII. */
+        {7, "ssh\0rsa", 7},              /* An embedded NUL. */
+        {65, too_long, 65},              /* Longer than 64 characters. */
+        {11, "ssh-ed25519", 11},         /* A supported type: needs a 32-byte point. */
+        {19, "ecdsa-sha2-nistp256", 19}, /* A supported type: needs a curve and a point. */
+    };
+    for (size_t index = 0; index < sizeof(broken) / sizeof(broken[0]); ++index) {
+        size_t used = blob_raw(blob, broken[index].claimed, broken[index].type,
+                               broken[index].type_length, data, sizeof(data));
+        expect_record_unusable(record, fixture_record(blob, used, record));
+    }
+
+    /* Too short to hold a type string at all. */
+    const uint8_t stub[] = {0, 0, 0};
+    expect_record_unusable(record, fixture_record(stub, sizeof(stub), record));
+
+    /* Supported types in a malformed form are not skipped. */
+    size_t used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 65, "nistp384");
+    expect_record_unusable(record, fixture_record(blob, used, record));
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 64, "nistp256");
+    expect_record_unusable(record, fixture_record(blob, used, record));
+    used = ecdsa_blob_of(blob, "ecdsa-sha2-nistp256", 65, "nistp256");
+    blob[used - 65u] = 0x02; /* A compressed point. */
+    expect_record_unusable(record, fixture_record(blob, used, record));
+    const uint8_t ed25519[] = ACCESS_TEST_ED25519_KEY(4);
+    memcpy(blob, ed25519, sizeof(ed25519));
+    blob[sizeof(ed25519)] = 0;
+    expect_record_unusable(record, fixture_record(blob, sizeof(ed25519) + 1u, record));
+    expect_record_unusable(record, fixture_record(blob, sizeof(ed25519) - 1u, record));
 }
 
 /* The store promises to detect corruption, and this layer does not rely on that alone. */
@@ -251,7 +532,7 @@ static void malformed_record_cases(void)
         {iterations_at, 0},             /* Combined below with the rest of the zero count. */
         {key_length_at, 0},             /* Zero-length key. */
         {key_length_at + 1u, 0xFF},     /* Oversized key. */
-        {key_length_at + 2u + 7u, 'x'}, /* A key type this firmware does not accept. */
+        {key_length_at + 2u + 7u, ' '}, /* A key type name no SSH name can be. */
     };
     for (size_t index = 0; index < sizeof(corruptions) / sizeof(corruptions[0]); ++index) {
         memcpy(mutated, good, length);
@@ -261,6 +542,17 @@ static void malformed_record_cases(void)
         }
         expect_record_unusable(mutated, length);
     }
+
+    /* A valid name of a type this firmware does not support is not malformed: only that key is
+     * skipped. Detecting a flipped bit that leaves a valid name is the store's integrity check. */
+    memcpy(mutated, good, length);
+    mutated[key_length_at + 2u + 7u] = 'x';
+    access_fake_reset();
+    crux_access_test_reset();
+    access_fake_store_set_record(mutated, length);
+    CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_KEY_FAILURE) == 1);
+    (void)access_test_session(ADMIN, PASSWORD, &access_test_serial);
 
     /* A duplicate name, by copying the record's only account. */
     const size_t account_size = length - CRUX_ACCESS_RECORD_HEADER_SIZE;
@@ -687,6 +979,9 @@ int main(void)
     exhaustion_cases();
     store_state_cases();
     malformed_record_cases();
+    unsupported_key_tolerated_cases();
+    unsupported_key_write_back_cases();
+    unsupported_key_boundary_cases();
     time_limit_cases();
     provider_failure_cases();
     lock_failure_cases();

@@ -306,6 +306,23 @@ static crux_access_result_t table_load(void)
     return CRUX_ACCESS_OK;
 }
 
+/* One key failure event per stored key of a type this build does not support, naming its account.
+ * The event has no channel and the result INVALID_ARGUMENT, which no client attempt produces. Runs
+ * before init returns, when nothing else can read the table. */
+static void skipped_keys_report(void)
+{
+    const access_table_t *table = &crux_access_state.table;
+    for (size_t index = 0; index < table->count; ++index) {
+        const access_account_t *account = &table->accounts[index];
+        for (size_t key = 0; key < account->key_count; ++key) {
+            if (!account->keys[key].usable) {
+                crux_access_emit(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
+                                 NULL, account->user, false);
+            }
+        }
+    }
+}
+
 crux_access_result_t crux_access_init(const crux_access_policy_t *policy)
 {
     access_state_t *state = &crux_access_state;
@@ -334,6 +351,7 @@ crux_access_result_t crux_access_init(const crux_access_policy_t *policy)
     for (size_t index = 0; index < CRUX_ACCESS_SESSION_MAX; ++index) {
         state->slots[index].generation = 1;
     }
+    skipped_keys_report();
     state->ready = true;
     return CRUX_ACCESS_OK;
 }
