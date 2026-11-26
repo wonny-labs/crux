@@ -8,11 +8,13 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-PIN = 'dccb09599635bdff17633fa7e9dab014b91dce90'
+PIN = '41d10b59730406bbab4ca9f1fbbe9e96aafb4966'
 HERE = Path(__file__).resolve().parent
 SOURCES = {
     'settings_file.c': ('subsys/settings/src/settings_file.c', HERE / 'settings_file.patch'),
-    'settings_line.c': ('subsys/settings/src/settings_line.c', HERE / 'settings_line.patch'),
+    # Zephyr v4.5.0 returns the name write error itself, which was this copy's only correction, so
+    # the copy is staged unchanged and the build still takes all three sources from one place.
+    'settings_line.c': ('subsys/settings/src/settings_line.c', None),
     # Shared with the NVS candidate: one reviewed settings_store.c correction, not a second copy.
     'settings_store.c': ('subsys/settings/src/settings_store.c',
                          HERE.parent / 'settings_error' / 'settings_store.patch'),
@@ -35,10 +37,11 @@ def prepare(zephyr, output):
             target = staging / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
-            subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p1', '-i', str(patch)],
-                           cwd=staging, check=True)
+            if patch is not None:
+                subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p1', '-i', str(patch)],
+                               cwd=staging, check=True)
             manifest[name] = {'original_sha256': hashlib.sha256(content).hexdigest(),
-                              'patch_sha256': hashlib.sha256(patch.read_bytes()).hexdigest(),
+                              'patch_sha256': hashlib.sha256(patch.read_bytes()).hexdigest() if patch else None,
                               'generated_sha256': hashlib.sha256(target.read_bytes()).hexdigest()}
             target.replace(output / name)
         (staging / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

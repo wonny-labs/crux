@@ -181,8 +181,10 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 
 ### The slow reader bound
 
-The send timeout bounds one send, and not a response. The server makes about twenty sends for a small response: the status
-line, three for each header, an end of headers, three for a chunk and a terminator. All are in one callback, and the thread
+The send timeout bounds one send, and not a response. At Zephyr v4.4.2 the server made about twenty sends for a small
+response: the status line, three for each header, an end of headers, three for a chunk and a terminator. Zephyr v4.5.0
+assembles the header block in a 128-byte buffer and sends it with the first chunk, so a small response takes fewer sends
+(read in the source, not measured). All are in one callback, and the thread
 serves nobody else until they finish. So the bound, **for one callback, is the number of sends times the send timeout**,
 and with pieces, the response deadline plus that.
 

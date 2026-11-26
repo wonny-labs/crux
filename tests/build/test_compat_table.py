@@ -147,7 +147,7 @@ class RealManifestTest(unittest.TestCase):
 
     def test_versions_come_from_the_trailing_comments(self):
         row = self.out.splitlines()[2]
-        for version in ("v4.4.2", "v5.9.4-stable", "v1.6.0-stable", "v3.0"):
+        for version in ("v4.5.0", "v5.9.4-stable", "v1.6.0-stable", "v3.0"):
             self.assertIn(f"({version})", row)
 
     def test_the_imported_hal_is_not_given_a_commit(self):

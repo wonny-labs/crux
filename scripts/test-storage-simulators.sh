@@ -115,7 +115,9 @@ python3 -m unittest discover -s "$repo/tests/native/configuration_settings" -p t
 python3 -m unittest discover -s "$repo/tests/native/configuration_settings_file" -p test_prepare.py -v
 
 # Negative control: the same suite on the unpatched upstream backend must fail exactly the
-# cases that characterise its defects and pass the rest.
+# cases that characterise its defects and pass the rest. Zephyr v4.5.0 returns a name write error
+# and a compaction close error itself, so test_name_write_error_is_failure and
+# test_compaction_close_error_is_not_success pass on it and are not in the three controls.
 control="$repo/build/zephyr/settings-file-control"
 (cd "$workspace" && west build -b native_sim/native/64 -d "$control" -p always \
     "$repo/tests/native/configuration_settings_file" -- \
@@ -130,14 +132,12 @@ import sys
 
 expected = {
     'test_a_callback_error_is_returned_by_the_load',
-    'test_compaction_close_error_is_not_success',
     'test_compaction_read_error_keeps_other_records',
     'test_compaction_read_fault_never_loses_a_record',
     'test_each_load_read_fault_preserves_active',
     'test_full_volume_never_acknowledges_a_lost_save',
     'test_interrupted_save_never_yields_a_wrong_value',
     'test_missing_file_with_a_compaction_leftover_is_an_error',
-    'test_name_write_error_is_failure',
     'test_save_scan_error_is_not_success',
     'test_scan_read_error_is_not_missing',
     'test_short_write_is_failure',
@@ -145,7 +145,7 @@ expected = {
 }
 log = open(sys.argv[1], errors='replace').read()
 failed = set(re.findall(r'^ - FAIL - \[configuration_settings_file\.(\w+)\]', log, re.M))
-if failed != expected or 'pass = 13, fail = 13' not in log:
+if failed != expected or 'pass = 15, fail = 11' not in log:
     raise RuntimeError(f'settings-file control differs: unexpected {sorted(failed - expected)}, '
                        f'missing {sorted(expected - failed)}')
 print(f'settings-file control (unpatched backend): {len(failed)} of 26 cases fail as expected')
@@ -244,19 +244,17 @@ python3 - "$lfs_control.run.log" <<'PY'
 import re
 import sys
 
-# The same 12 cases as on Reliance Edge (scripts/test-storage-emmc.sh), for the same reason: the
+# The same 10 cases as on Reliance Edge (scripts/test-storage-emmc.sh), for the same reason: the
 # unpatched backend turns an injected I/O fault into success, a missing key or a lost record. As on
 # Reliance Edge and unlike FatFs, test_full_volume_never_acknowledges_a_lost_save passes: LittleFS
 # answers a write that finds no free block with -ENOSPC, which the unpatched backend returns.
 expected = {
     'test_a_callback_error_is_returned_by_the_load',
-    'test_compaction_close_error_is_not_success',
     'test_compaction_read_error_keeps_other_records',
     'test_compaction_read_fault_never_loses_a_record',
     'test_each_load_read_fault_preserves_active',
     'test_interrupted_save_never_yields_a_wrong_value',
     'test_missing_file_with_a_compaction_leftover_is_an_error',
-    'test_name_write_error_is_failure',
     'test_save_scan_error_is_not_success',
     'test_scan_read_error_is_not_missing',
     'test_short_write_is_failure',
@@ -264,11 +262,11 @@ expected = {
 }
 log = open(sys.argv[1], errors='replace').read()
 failed = set(re.findall(r'^ - FAIL - \[configuration_settings_littlefs\.(\w+)\]', log, re.M))
-if failed != expected or 'pass = 14, fail = 12, skip = 0, total = 26' not in log:
+if failed != expected or 'pass = 16, fail = 10, skip = 0, total = 26' not in log:
     raise RuntimeError(f'settings-littlefs control differs: unexpected {sorted(failed - expected)}, '
                        f'missing {sorted(expected - failed)}')
 print(f'settings-littlefs control (unpatched backend): {len(failed)} of 26 cases fail as expected, '
-      '14 pass')
+      '16 pass')
 PY
 
 # The selection refuses FatFs (owner decision 4 of the configuration persistence spike): a FatFs

@@ -101,10 +101,7 @@ static void callback(const struct device *unused, void *context)
     if (observed_error()) {
         goto done;
     }
-    if (uart_irq_update(dev) < 0) {
-        fault();
-        goto done;
-    }
+    uart_irq_update(dev);
     /* Bounded per invocation; native IRQ is level-triggered or the emulator
      * repeats while pending. A provider overflow is a latched visible fault. */
     for (int i = 0; i < CAPACITY && uart_irq_rx_ready(dev) > 0; ++i) {
@@ -125,14 +122,14 @@ static void callback(const struct device *unused, void *context)
     }
     if (!native.failed && uart_irq_tx_ready(dev) > 0) {
         uint8_t *bytes;
-        uint32_t size = ring_buf_get_claim(&native.tx, &bytes, CAPACITY);
+        uint32_t size = ring_buf_get_ptr(&native.tx, &bytes, 0);
+        size = MIN(size, (uint32_t)CAPACITY);
         if (size != 0) {
             int count = uart_fifo_fill(dev, bytes, (int)size);
             if (count < 0 || (uint32_t)count > size) {
-                ring_buf_get_finish(&native.tx, 0);
                 fault();
             } else {
-                ring_buf_get_finish(&native.tx, (uint32_t)count);
+                ring_buf_consume(&native.tx, (uint32_t)count);
                 if (count > 0) {
                     k_sem_give(&tx_event);
                 }

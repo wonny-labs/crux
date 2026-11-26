@@ -16,7 +16,7 @@
 
 /dts-v1/;
 
-#include <nxp/imxrt/nxp_rt1060.dtsi>
+#include <nxp/imxrt/imxrt10xx/nxp_rt1060.dtsi>
 #include "example_rt1062-pinctrl.dtsi"
 #include <freq.h>
 

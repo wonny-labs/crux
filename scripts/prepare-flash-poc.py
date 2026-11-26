@@ -2,7 +2,7 @@
 import hashlib
 from pathlib import Path
 import re
-NOR_HASH='25733356c1b06bf03178e78431b697ad8736553b63a42dc725a1a5173486c5fa'
+NOR_HASH='9331e05799b447716203cb7ce838f9e6c413f73e3fd3d8ad95f85ae17f2d3cf0'
 def transform_nor(source):
     if hashlib.sha256(source.encode()).hexdigest()!=NOR_HASH:
         raise ValueError('unsupported NOR source')
@@ -31,8 +31,8 @@ def transform_nor(source):
         source=source[:start]+body+source[end:]
     return '#include "flash_poc.h"\n'+source
 
-MEMC_HASH='0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20'
-HAL_HASH='d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a'
+MEMC_HASH='432c578152d8d921a334ca3c4ab927075a4251c8e6a97b6bcd522c3f0e8ca50d'
+HAL_HASH='96af77b8f02eacbf1eee2d8b8fe98b592cbfc6dc0d5d89d5c3c30745ee96d8f9'
 
 # Experimental bounded observation loops, deliberately independent of IRQ clocks.
 def _bounded(source):

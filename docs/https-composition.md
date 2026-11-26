@@ -212,7 +212,7 @@ next client served and a share under 0.5. At `4ed6eb9` it only recorded, and was
 **The fix, test image only.** Zephyr's own TCP reports `POLLHUP` once the peer has closed (`sock_is_eof` in
 `sockets_inet.c`), and the server closes a client on `POLLHUP`. `tests/native/web_https/nsos_rdhup.cmake` builds a copy of
 the offload's host side, `nsos_adapt.c`, that also asks `epoll` for `EPOLLRDHUP` and reports it as `POLLHUP`: three
-edits, each on an anchor that must occur once, after a SHA-256 check of the v4.4.2 file. The West checkout is not
+edits, each on an anchor that must occur once, after a SHA-256 check of the v4.5.0 file. The West checkout is not
 edited, and the plain HTTP image keeps the driver as it is. **This is a `native_sim` limit, not a target one.** It is
 worth offering upstream as a one-line change to the driver's map.
 

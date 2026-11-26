@@ -1,7 +1,7 @@
 /* Two things this test image does at the socket call that the server makes.
  *
  * The server's inactivity timer closes a client with zsock_shutdown(), and the native socket
- * offload at v4.4.2 has no shutdown operation, so there the call fails and the timer does nothing.
+ * offload at v4.5.0 has no shutdown operation, so there the call fails and the timer does nothing.
  * This gives the timer the effect it has on Zephyr's own TCP stack, so that the measurements mean
  * something.
  *
@@ -37,7 +37,7 @@ ssize_t __real_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int fl
 ssize_t __wrap_z_impl_zsock_sendto(int sock, const void *buf, size_t len, int flags,
                                    const struct net_sockaddr *dest_addr, net_socklen_t addrlen);
 
-/* The start of the driver's private struct nsos_socket at v4.4.2, up to the host descriptor. A
+/* The start of the driver's private struct nsos_socket at v4.5.0, up to the host descriptor. A
  * wrong layout makes the host call fail, and the driver's inactivity cases then fail. */
 struct nsos_socket_start {
     int fd;

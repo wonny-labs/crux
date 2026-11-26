@@ -38,7 +38,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 DEFAULT_BUILD = REPOSITORY / "build/zephyr/boot-composition"
 DEFAULT_IMAGE = "zephyr"
 
-# Options that must be y in the bootloader image (Zephyr v4.4.2 BOOTLOADER_image_default.cmake sets them for
+# Options that must be y in the bootloader image (Zephyr v4.5.0 BOOTLOADER_image_default.cmake sets them for
 # SB_CONFIG_MCUBOOT_MODE_RAM_LOAD_WITH_REVERT; MCUboot boot/zephyr/Kconfig defines them).
 BOOTLOADER_REQUIRED = (
     ("CONFIG_BOOT_RAM_LOAD", "y"),

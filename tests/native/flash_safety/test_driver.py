@@ -30,7 +30,7 @@ int main(int argc,char **argv) {
  if(argc!=5)return 2;
  int multiple=atoi(argv[4]);fail_after=multiple==2?16:multiple?2:1;
  int op=atoi(argv[1]); fail_stage=atoi(argv[2]); xip=atoi(argv[3]);
- struct flash_flexspi_nor_data d={.size=8388608,.legacy_poll=true,.config={.flashSize=8192}};
+ struct flash_flexspi_nor_data d={.size=8388608,.legacy_poll=true,.erase_block_size=65536,.config={.flashSize=8192}};
  struct device dev={.data=&d}; uint8_t buf[768]={0}; int ret=0;
  if(!setjmp(terminal)) {
   ret=op==0?flash_flexspi_nor_write(&dev,0,buf,multiple?768:256):

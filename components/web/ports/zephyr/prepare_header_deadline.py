@@ -13,8 +13,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-BASE_SHA256 = "f0d0ce9123bb2b07fd512c04a8f94d8b0142e80c54894adddd83b61e0e1e5150"
-PATCHED_SHA256 = "0aa79d1a411bdf2b29f485fa2c8c0ec563d0d3799e145c85c7b1b516d2fd0124"
+BASE_SHA256 = "db56e2d173caed14e3b5e463b2a3e98bf40944ad6aab1a95f789b9ed04dabb9b"
+PATCHED_SHA256 = "98ef028ab7496ba84a7c48a092d8db8db957a774ffb48a12833c3d83ec44b539"
 RELATIVE_SOURCE = Path("subsys/net/lib/http/http_server_core.c")
 PATCH = Path(__file__).resolve().parents[4] / "patches/zephyr/http-header-deadline.patch"
 

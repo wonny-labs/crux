@@ -103,7 +103,7 @@ class ScriptShape(unittest.TestCase):
 class VariantFiles(unittest.TestCase):
     def test_each_backend_has_a_variant_file_that_selects_it_by_the_pinned_kconfig_choice(self):
         # The choice BOOT_ECDSA_IMPLEMENTATION of boot/zephyr/Kconfig at MCUboot 6d3b3d2c (read on
-        # 15 November 2026): tinycrypt is the default, the other options are these symbols.
+        # 15 November 2026) and 725d63c9 (26 November): tinycrypt is the default, the others are these.
         expected = {
             "mbedtls-legacy.conf": "CONFIG_BOOT_ECDSA_MBEDTLS=y",
             "psa.conf": "CONFIG_BOOT_ECDSA_PSA=y",

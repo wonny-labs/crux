@@ -985,7 +985,7 @@ def case_stalled_reader_split_request_alone():
 def send_dot_split_request(client):
     """A split request whose URL, appended to the old one, folds back to it.
 
-    Zephyr v4.4.2 removes dot segments from the whole URL buffer when headers complete, so
+    Zephyr v4.5.0 removes dot segments from the whole URL buffer when headers complete, so
     `/probe/fail/21` with `/../21` appended becomes `/probe/fail/21` again: same length, same content.
     """
     request = encode("GET", f"/../{SENDS_BEFORE_SECOND_BODY_PIECE}")
