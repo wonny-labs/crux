@@ -1,0 +1,5 @@
+# tests/build cases that take more than 30 seconds on a hosted CI runner. The full and nightly
+# tiers run them in the check build-tests-large; the fast tier leaves them out (docs/ci.md).
+# One unittest id per line: module.Class.method.
+test_management_bench_declaration.BenchGuardBreaks.test_every_guard_refuses_and_every_mutant_is_killed
+test_write_path.RunnerTest.test_required_outcomes_of_the_record_hold

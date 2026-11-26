@@ -2,12 +2,14 @@ name: coverage-advisory
 
 # Advisory test-coverage measurement. It reports how much of the component sources the Host and
 # native_sim tests execute. It has no threshold, is not a required check and uploads nothing
-# outside GitHub. Pull requests do not start it, so their CI time is unchanged.
+# outside GitHub. Pull requests do not start it, so their CI time is unchanged. It is the
+# coverage part of the nightly tier (docs/ci.md): its two jobs run the checks of the jobs
+# coverage-host and coverage-native-sim in scripts/ci/checks.toml.
 # tests/build/test_coverage_workflow.py keeps it advisory.
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 3 * * 0"
+    - cron: "17 2 * * *"
   push:
     branches: [main]
     paths-ignore:
