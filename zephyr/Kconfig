@@ -250,6 +250,8 @@ config CRUX_CLI_CONSOLE_UART_DEDICATED
 
 config CRUX_CLI_CONSOLE_UART_SHARED
     bool "One UART for the console and Logging"
+    # Zephyr's formatter, which the console's backend uses as its UART backend does.
+    select LOG_OUTPUT
     help
       Experimental. Needs CONFIG_CRUX_LOGGING and CONFIG_LOG_BACKEND_UART=n, which the build checks.
       A Crux Logging backend replaces Zephyr's UART backend on the UART of crux-serial0. Until the

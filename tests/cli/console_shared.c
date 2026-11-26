@@ -159,16 +159,14 @@ static void a_full_queue_says_how_much_it_dropped(void)
     /* Two bursts, each ended by the redrawn prompt, so that typing is not starved; the drop line
      * comes after the last surviving line. */
     char expected[4096];
-    char shown[104];
-    snprintf(shown, sizeof(shown), "%.*s\r\n", (int)strlen(line) - 1, line);
-    strcpy(expected, "login: " CLEAR);
+    int used = snprintf(expected, sizeof(expected), "login: " CLEAR);
     for (unsigned index = 0; index < admitted; ++index) {
-        strcat(expected, shown);
-        if (index + 1u == (CRUX_CLI_CONSOLE_LOG_BURST_BYTES + 98u) / 99u) {
-            strcat(expected, "login: " CLEAR);
-        }
+        bool burst_ends = index + 1u == (CRUX_CLI_CONSOLE_LOG_BURST_BYTES + 98u) / 99u;
+        used += snprintf(&expected[used], sizeof(expected) - (size_t)used, "%.*s\r\n%s",
+                         (int)strlen(line) - 1, line, burst_ends ? "login: " CLEAR : "");
     }
-    strcat(expected, "--- 3 log messages dropped ---\r\nlogin: ");
+    (void)snprintf(&expected[used], sizeof(expected) - (size_t)used,
+                   "--- 3 log messages dropped ---\r\nlogin: ");
     CHECK_TEXT(wire()->output, expected);
 }
 
