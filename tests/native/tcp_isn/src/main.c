@@ -45,6 +45,10 @@
 
 #define LISTEN_PORT 4242
 
+/* Longer than the stack keeps a half-open connection with this configuration (prj.conf: 100 ms and
+ * 2 retries, so 350 ms). */
+#define HALF_OPEN_EXPIRY K_SECONDS(1)
+
 static struct net_in_addr my_addr = {{{192, 0, 2, 1}}};
 static struct net_in_addr peer_addr = {{{192, 0, 2, 2}}};
 
@@ -312,6 +316,10 @@ static struct outcome passive(uint16_t peer_port, bool hash_fails)
     uint32_t after;
     bool replied;
 
+    /* A half-open connection of an earlier phase holds a place in the listener's backlog until it
+     * times out, and with the backlog full the stack drops a SYN without an answer. Upstream tcp.c
+     * opens one in every phase, so wait for the earlier ones to end. */
+    k_sleep(HALF_OPEN_EXPIRY);
     want_dport = net_htons(peer_port);
     k_sem_reset(&sent_sem);
     before = uptime_scale();
