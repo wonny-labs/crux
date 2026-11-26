@@ -23,7 +23,7 @@ Applying a change safely remains application policy. A successful update changes
 | Event port of the configuration service | `crux_config_service_security_events`, over `crux_security_event_emit`. The service's own suites keep their recording port. |
 | Security event counts in status | `crux_mgmt_status_security_events`, over `crux_security_event_get_stats`. `crux_mgmt_status_no_security_events` omits them. |
 | Credential store items in status | `crux_mgmt_status_credential`, over `crux_credential_store_get_info`. `crux_mgmt_status_no_credential` omits them, and `crux_mgmt_status_no_security` is both. |
-| Target Configuration provider | None, by decision C6. It waits for #16. |
+| Target Configuration provider | The Settings File provider: its tier is in the `configuration` row of [component readiness](component-readiness.md). A composition that links no provider gets `NOT_SUPPORTED` from every save. |
 | Zephyr module integration, Kconfig | None. The `native_sim` suite compiles the sources directly. |
 | Target or physical runs | None, and out of scope. Target results would be compile only under the current approval. |
 
@@ -249,7 +249,7 @@ This bounds how often status takes locks that control threads also take, and it 
 | --- | --- | --- |
 | #187, web | `crux_mgmt_status_report_json`, or `crux_mgmt_status_next` with `crux_mgmt_status_entry_json` to stream. `crux_config_service_next`, `_read`, `_update`, `_save`. | The configuration routes are in `web/api/openapi.yaml` and built in [web-management-apis.md](web-management-apis.md). `read` gives `type`, which chooses the JSON form. A hidden parameter and a missing one are both `404`, and `ERR_BUSY` is `503` with `Retry-After`. A route that may run a slow validator, and every save, runs on the worker. After an update, the response carries `applied.activation` and no value, and a read follows only for a parameter that is not sensitive. A save's `ERR_STORE` can come with `failed_name` `NULL`, so test the result. A cursor stays on the server: a paged route uses its own opaque token. |
 | #193, CLI over SSH | The same calls through #181's registry, and `crux_mgmt_status_result_name` for an item that failed | `config set` on a sensitive parameter takes its value by prompt, not as an argument. Permitted and refused commands stay the same on serial. |
-| #213, network settings | Its parameters in the composition's table, under a permission no role holds. `crux_config_service_try_read`, `_try_update` and `_save_local`. Its own session check with `crux_access_check`. | Table order puts the check key after the values it covers. `_save_local` saves every marked parameter, so anything else marked is saved with them, and a failure stops there. **A session's `crux_config_service_save` also writes these marks, so it can land part way through the set, between two `_try_update` calls, and leave a mixed set stored.** The check key has to catch that as it catches an interrupted save. `failed_result` of `CRUX_CONFIG_ERR_NOT_SUPPORTED` is the state until #16 decides a provider. `_try_*` polls, so it returns `ERR_BUSY` during any save. |
+| #213, network settings | Its parameters in the composition's table, under a permission no role holds. `crux_config_service_try_read`, `_try_update` and `_save_local`. Its own session check with `crux_access_check`. | Table order puts the check key after the values it covers. `_save_local` saves every marked parameter, so anything else marked is saved with them, and a failure stops there. **A session's `crux_config_service_save` also writes these marks, so it can land part way through the set, between two `_try_update` calls, and leave a mixed set stored.** The check key has to catch that as it catches an interrupted save. `failed_result` of `CRUX_CONFIG_ERR_NOT_SUPPORTED` is the state of a composition that links no provider. `_try_*` polls, so it returns `ERR_BUSY` during any save. |
 
 ## Decisions taken for lack of an answer
 
@@ -283,7 +283,7 @@ Each is open to review, and a changed choice is small while nothing depends on i
 - Saves are per parameter, with no atomicity and no rollback. A save covers every marked parameter, and there is no call to save one set alone. So a session's save also writes marks the application made, which can land part way through a set the application is updating, such as #213's.
 - A session holding `config.save` can learn that a save of something it cannot see failed, though not what, and can cause that save.
 - The service covers scalars and bounded strings, with no arrays or blobs.
-- There is no save provider on the target.
+- The only save provider on a target is the Settings File provider (the `configuration` row of [component readiness](component-readiness.md)). Without it, every save returns `NOT_SUPPORTED`.
 - Validators give no reason for a rejection.
 - Timing of status sources is unmeasured.
 - A list spans several calls, so its items are not one instant.

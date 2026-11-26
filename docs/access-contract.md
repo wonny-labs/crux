@@ -199,7 +199,7 @@ Compile-time defaults in `components/access/src/access_port.h`, each overridable
 | `CRUX_ACCESS_DELAY_FREE_ATTEMPTS` | 5 |
 | `CRUX_ACCESS_DELAY_BASE_MS`, `CRUX_ACCESS_DELAY_CAP_MS` | 1,000 and 60,000 |
 | `CRUX_ACCESS_DELAY_QUIET_MS` | 900,000 |
-| `CRUX_ACCESS_VERIFIER_ITERATIONS` | 10,000, an unmeasured placeholder |
+| `CRUX_ACCESS_VERIFIER_ITERATIONS` | 10,000 PBKDF2-HMAC-SHA256 iterations, an unmeasured default. The product measures login time on its target and sets the value. No Kconfig or CMake option exists, so the product sets `CRUX_ACCESS_VERIFIER_ITERATIONS` as a compile definition on the Access target; the default is in `components/access/src/access_port.h`. OWASP's [Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) recommends 600,000 for PBKDF2-HMAC-SHA256 and tuning the count on the device that verifies to an acceptable login time |
 
 ## Boundary
 
