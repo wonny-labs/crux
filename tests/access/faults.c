@@ -177,6 +177,8 @@ static size_t record_with_key(const uint8_t *good, size_t key_length_at, const u
     return key_length_at + 2u + key_length;
 }
 
+static void expect_skips_reported(size_t skipped, const char *account);
+
 /* A store that an earlier revision saved can hold a P-384 or P-521 key, which is no longer a type
  * Access accepts (#316). A record that holds one in an otherwise good shape loads. */
 static void legacy_key_type_cases(const uint8_t *good, size_t key_length_at)
@@ -200,6 +202,8 @@ static void legacy_key_type_cases(const uint8_t *good, size_t key_length_at)
         crux_access_test_reset();
         access_fake_store_set_record(record, length);
         CHECK(crux_access_init(reference()) == CRUX_ACCESS_OK);
+        /* P-256 is listed. The others are skipped, and each is reported. */
+        expect_skips_reported(index == 0 ? 0 : 1, ADMIN);
         (void)access_test_session(ADMIN, PASSWORD, &access_test_serial);
     }
 }

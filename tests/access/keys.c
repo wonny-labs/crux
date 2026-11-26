@@ -280,6 +280,8 @@ static void key_type_cases(void)
           CRUX_ACCESS_OK);
     used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp256", 4);
     CHECK(used == 104u);
+    CHECK(used == ACCESS_KEY_SUPPORTED_SIZE_MAX);
+    CHECK(sizeof(ed_key) <= ACCESS_KEY_SUPPORTED_SIZE_MAX);
     CHECK(used <= CRUX_ACCESS_KEY_SIZE_MAX);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);

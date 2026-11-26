@@ -92,7 +92,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | Stack | The pending table and record buffer are static, guarded by the change lock | A full table is about 4 KB, and a management worker's stack should not have to hold it |
 | `delay applied` event | Emitted when an attempt is rejected, naming nobody | A rejected attempt was not looked up, and its name may be a mistyped password |
 | When events run | After both locks are released, on every path. They can arrive before a successful init. | AC9. An emit may wait on the event ring, and every check takes the state lock. Tests poll both locks inside the event port. |
-| Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account or a change's target. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
+| Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account, a change's target, or the account of a stored key skipped at init. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
 | No event, by design | A session ended by the per-account cap, a cost upgrade including one whose save fails, an operation that changed nothing, a lost lock, an unsigned key probe unless it is refused as `NOT_READY`, a logout of a reference already ended, and a malformed argument to a check or session query | Nothing was rejected, or the call came from a context where the port cannot run, or it is a caller's programming error. An unsigned probe records nothing, as the proposal says. |
 
 The accepted request AC3 adds rejection events. The identifiers are final in the
@@ -101,7 +101,7 @@ The accepted request AC3 adds rejection events. The identifiers are final in the
 | Port event | Identifier | When |
 | --- | --- | --- |
 | `LOGIN_FAILURE` | `access.login_failed` | Wrong password, unknown name, disabled account, bad name form or password over 128 bytes |
-| `KEY_FAILURE` | `access.key_failed` | A signed request with an unlisted key, or a failed signature |
+| `KEY_FAILURE` | `access.key_failed` | A signed request with an unlisted key, or a failed signature. Also a [stored key skipped](#stored-keys-of-an-unsupported-type) at init, with no channel and `INVALID_ARGUMENT`. |
 | `DELAY_APPLIED` | `access.delayed` | Inside a delay window, on any operation that is delayed |
 | `LOGIN_BUSY` | `access.login_busy` | The channel's verification slot is taken, including for an own password change |
 | `LOGIN_NO_SESSION` | `access.login_no_session` | The session table is full |
@@ -147,11 +147,11 @@ flowchart TD
 
 So the accepted set is the SSH provider's set, not a per-profile set. Access does not ask a provider which types it can verify: that would be a new port in `access_port.h`, and nothing in this change needs one. On an image without SSH, such as the Mbed profile, the added key is stored and no login can use it. That is the same situation as before for a key of any type, and this change does not address it. It is listed as a decision for review below.
 
-**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare. Lowering it is not needed for this change. A record can also hold [skipped keys](#stored-keys-of-an-unsupported-type), such as a P-384 key (136 bytes) or a P-521 key (172 bytes) from an earlier revision, and a stored key longer than the bound makes the record malformed. A lower bound would therefore lock out every account on a store that holds one. It would also change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
+**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare, and the build refuses a value below 104. Lowering it is not needed for this change. A record can also hold [skipped keys](#stored-keys-of-an-unsupported-type), such as a P-384 key (136 bytes) or a P-521 key (172 bytes) from an earlier revision, and a stored key longer than the bound makes the record malformed. A lower bound would therefore lock out every account on a store that holds one. It would also change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
 
 ### Stored keys of an unsupported type
 
-Decided by the owner on 2026-11-26: a stored user key of a type this build does not support no longer makes the store unusable. Before, one P-384 or P-521 key saved by an earlier revision locked out every account.
+Decided by the owner on 2026-11-26: a stored user key of a type this build does not support no longer makes the store unusable.
 
 **Where the boundary lies.** The record frames each key with its own length, so a key's content cannot shift the fields after it. Inside that frame, an SSH public key blob is a type name string followed by data whose form the type defines ([RFC 4253 section 6.6](https://www.rfc-editor.org/rfc/rfc4253#section-6.6)). The decoder sorts each stored key into one of three cases:
 
