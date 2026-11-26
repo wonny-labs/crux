@@ -248,7 +248,7 @@ The sample that these suites cover is in the [samples overview](../samples/READM
 
 ### eMMC simulator on `native_sim`
 
-`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a target. The simulator is a model written from the stack's needs: it has no timing and no wear model, and a process exit is not a power loss. Results show how the stack behaves against that model, not how an eMMC device behaves. `scripts/test-storage-emmc.sh` runs the suites below, except where a row names another runner, and requires the executed cases of each scenario; the `storage` shard of the Zephyr CI workflow runs it, and `scripts/test-file-emmc-compile.sh`, after enabling the `crux-reliance` group.
+`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a target. The simulator is a model written from the stack's needs: it has no timing and no wear model, and a process exit is not a power loss. Results show how the stack behaves against that model, not how an eMMC device behaves. `scripts/test-storage-emmc.sh` runs the suites below, except where a row names another runner, and requires the executed cases of each scenario; the Zephyr CI workflow runs it and `scripts/test-file-emmc-compile.sh`, each after enabling the `crux-reliance` group ([shards](../docs/ci-zephyr-shards.md#shards)).
 
 | Suite | What it shows | Record |
 | --- | --- | --- |

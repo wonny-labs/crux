@@ -21,6 +21,10 @@ on:
         type: choice
         options: [full, fast, nightly]
         default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
 concurrency:
@@ -30,16 +34,20 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
+
 jobs:
   # Each shard runs the checks of its job zephyr-<shard> in scripts/ci/checks.toml.
-  # tests/build/test_zephyr_ci_shards.py keeps the matrix and those jobs equal.
+  # tests/build/test_zephyr_ci_shards.py keeps the matrix and those jobs equal. The longest
+  # shards come first, so that they start first when runners are short (docs/ci-zephyr-shards.md).
   shard:
     name: zephyr ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        shard: [storage, controller, runtime, io]
+        shard: [emmc, runtime, controller, integration, storage, io, system, file]
     env:
       CRUX_WORKSPACE: ${{ github.workspace }}
       CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache

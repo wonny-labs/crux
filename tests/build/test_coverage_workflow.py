@@ -56,7 +56,7 @@ def trigger_block(workflow):
     return lines[start + 1:end]
 
 
-@unittest.skipUnless(WORKFLOW.is_file(), NO_GITHUB)
+@unittest.skipUnless(WORKFLOW.parent.is_dir(), NO_GITHUB)  # a missing coverage.yml fails
 class CoverageWorkflowTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

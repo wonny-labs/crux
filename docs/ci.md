@@ -113,7 +113,7 @@ A post-merge run with no previous commit fails the patch style check, which need
 | Merge to the default branch | `push` to `main` | A build of `main` | `full` | The previous commit (`before`, `GIT_PREVIOUS_SUCCESSFUL_COMMIT`); none for the first Jenkins build of the branch |
 | Merge queue | `merge_group`, which `auto` handles; the workflows list it once a merge queue is enabled | — | `full` | The queue's base commit |
 | Nightly | `schedule`, 02:17 UTC | `cron('H 2 * * *')` on `main`, which sets `CRUX_CI_TRIGGER=timer` | `nightly` | None |
-| By hand | `workflow_dispatch` with the `tier` input | The `TIER` parameter | As chosen | None for GitHub; derived for Jenkins |
+| By hand | `workflow_dispatch` with the `tier` and `base` inputs | The `TIER` and `BASE` parameters | As chosen | `base` or `BASE` when given; otherwise none for GitHub and derived for Jenkins |
 
 `CRUX_CI_DEFAULT_BRANCH` names a default branch other than `main`.
 On GitHub a newer push to a pull request cancels the older run of the same workflow; runs on `main` are never cancelled.
@@ -154,7 +154,7 @@ The `changeset` condition of Jenkins is not used: in a change request build it r
 
 A copy of the repository without `.github/` runs CI through the `Jenkinsfile` only. In such a copy:
 
-- the tests that read `.github/workflows` skip with a reason: the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
+- the tests that read `.github/workflows` skip with a reason when the folder is missing (a single missing workflow fails them): the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
 - the link to `zephyr.yml` in [Zephyr CI shards](ci-zephyr-shards.md) points at a missing file and must be rewritten or removed;
 - the copy gate must check both, because a skip passes.
 
