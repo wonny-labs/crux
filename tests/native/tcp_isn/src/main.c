@@ -80,6 +80,7 @@ struct seen {
 
 static struct net_if *iface;
 static struct seen last_sent;
+static volatile uint16_t want_dport; /* network order */
 static K_SEM_DEFINE(sent_sem, 0, 16);
 
 static int tester_send(const struct device *dev, struct net_pkt *pkt)
@@ -98,6 +99,11 @@ static int tester_send(const struct device *dev, struct net_pkt *pkt)
     }
     net_pkt_cursor_init(pkt);
 
+    /* Only the packet of the attempt under test counts: a half-open connection of an earlier
+     * phase retransmits its SYN|ACK or SYN to another peer port. */
+    if (th.dst_port != want_dport) {
+        return 0;
+    }
     last_sent.flags = th.flags;
     last_sent.seq = sys_get_be32(th.seq);
     last_sent.sport = th.src_port;
@@ -306,6 +312,7 @@ static struct outcome passive(uint16_t peer_port, bool hash_fails)
     uint32_t after;
     bool replied;
 
+    want_dport = net_htons(peer_port);
     k_sem_reset(&sent_sem);
     before = uptime_scale();
     fail_hash = hash_fails;
@@ -337,6 +344,7 @@ static struct outcome active(uint16_t port, bool hash_fails, int *connect_result
 
     zassert_ok(net_context_get(NET_AF_INET, NET_SOCK_STREAM, NET_IPPROTO_TCP, &context),
                "net_context_get");
+    want_dport = net_htons(port);
     k_sem_reset(&sent_sem);
     before = uptime_scale();
     fail_hash = hash_fails;
