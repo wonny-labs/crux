@@ -466,12 +466,13 @@ config CRUX_FILE_DIR_POOL_SIZE
 
 # The USDHC HAL (driver IMX_USDHC) invalidates a read target by whole D-cache lines when a transfer
 # completes, while the driver asks for 4-byte alignment only, so with the SD card selections,
-# Reliance Edge and LittleFS on a block device this default raises it to 32, the line of a Cortex-M7. It is keyed by that driver:
-# a module configdefault comes before a driver's own default, so an unconditional value here would
-# lower a stricter driver default (128 for R-Car). Another SD host keeps its driver's value. With an
-# SD host and a data cache, file_native.c refuses any value below the cache line size, so a board
-# whose driver asks for less sets the value in its board configuration. With an SD host, the Reliance
-# Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
+# Reliance Edge and LittleFS on a block device this default raises it to 32, the line of a
+# Cortex-M7. It is keyed by that driver: a module configdefault comes before a driver's own default,
+# so an unconditional value here would lower a stricter driver default (128 for R-Car). Another SD
+# host keeps its driver's value. With an SD host and a data cache, file_native.c refuses any value
+# below the cache line size, so a board whose driver asks for less sets the value in its board
+# configuration. With an SD host, the Reliance Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT below
+# this value.
 configdefault SDHC_BUFFER_ALIGNMENT
     default 32 if IMX_USDHC && (CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
                                 CRUX_FILE_RELIANCE_EDGE || CRUX_FILE_LITTLEFS_BLK_DEV)

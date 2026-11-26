@@ -14,7 +14,8 @@ A card or an eMMC device maps blocks itself, and its behaviour at a power cut is
 
 ## Model evidence
 
-`scripts/test-storage-simulators.sh` runs the replay of `tests/native/emmc_powercut` on the eMMC simulator, with the MMC cache flush correction, under the models `lost`, `prefix`, `reordered` and `torn`, with and without a device cache.
+`scripts/test-storage-simulators.sh` runs the replay of `tests/native/emmc_powercut` on the eMMC simulator, with the MMC cache flush correction, with and without a device cache.
+The cached profile runs the models `lost`, `prefix`, `reordered` and `torn`; the no-cache profile runs only `prefix` and `torn`.
 
 | Workload | What it does | What every cut must keep |
 | --- | --- | --- |
