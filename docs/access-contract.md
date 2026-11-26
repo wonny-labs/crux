@@ -151,7 +151,7 @@ So the accepted set is the SSH provider's set, not a per-profile set. Access doe
 
 ### Stored keys of an unsupported type
 
-Decided by the owner on 2026-11-26: a stored user key of a type this build does not support no longer makes the store unusable.
+A stored user key of a type this build does not support is skipped, and the store stays usable.
 
 **Where the boundary lies.** The record frames each key with its own length, so a key's content cannot shift the fields after it. Inside that frame, an SSH public key blob is a type name string followed by data whose form the type defines ([RFC 4253 section 6.6](https://www.rfc-editor.org/rfc/rfc4253#section-6.6)). The decoder sorts each stored key into one of three cases:
 
