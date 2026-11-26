@@ -482,7 +482,9 @@ def case_tls_sends_of_a_small_response():
     split = measure_raw("/probe/raw/split")
     joined = measure_raw("/probe/raw/joined")
     nodelay = measure_raw("/probe/raw/nodelay")
-    check(split["sends_per_response"] > joined["sends_per_response"], f"{split} {joined}")
+    # Zephyr v4.5.0 assembles the header block in one buffer and gathers it with the body, so passing
+    # the headers one by one no longer costs more sends than one joined value (at v4.4.2: 21 against 9).
+    check(split["sends_per_response"] == joined["sends_per_response"], f"{split} {joined}")
     results["small_response"] = {"split": split, "joined": joined, "split_with_nodelay": nodelay,
                                  "send_timeout_ms": int(suite.SEND_TIMEOUT_S * 1000)}
 

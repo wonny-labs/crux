@@ -283,6 +283,8 @@ the same five headers and body, over one kept connection, 60 requests each.
 | Headers in one value | 9 | 9 | 49.7 ms | 49.8 ms | 51.6 and 52.8 ms |
 | One by one, with `TCP_NODELAY` on the connection | 21 | 21 | 0.6 ms | 0.8 ms | 0.8 and 1.3 ms |
 
+These figures are from Zephyr v4.4.2. Zephyr v4.5.0 assembles the header block in one buffer and gathers it with the body, so both variants make the same number of sends (3 server sends and 7 TCP sends each on Mbed in CI), and `tls_sends_of_a_small_response` now requires them to be equal. The decision stands, with one reason fewer.
+
 **Decision: do not halve the sends.**
 
 | For halving | Against, and why it decides |
