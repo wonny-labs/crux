@@ -6,7 +6,8 @@ The Zephyr checks run in eight parallel jobs, called shards: the `zephyr-*` jobs
 
 ```mermaid
 flowchart LR
-    event["Push to main, pull request or manual run"] --> filter{"Only docs/** or **.md changed?"}
+    event["Push to main or pull request"] --> filter{"Only docs/** or **.md changed?"}
+    manual["Manual run"] --> shards
     filter -- "Yes" --> skip["Zephyr workflow does not run<br/>Host and link checks still run"]
     filter -- "No" --> shards["eight shards in parallel:<br/>emmc, runtime, controller, integration,<br/>storage, io, system, file"]
     shards --> summary["zephyr<br/>passes only if every shard passed"]
