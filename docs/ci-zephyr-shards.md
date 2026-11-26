@@ -1,6 +1,6 @@
 # Zephyr CI shards
 
-The [`zephyr-software` workflow](../.github/workflows/zephyr.yml) runs its check steps in four parallel jobs, called shards. This page explains how they are arranged, how to add a check, and what was measured when the layout was chosen. The change was made in [PR #248](https://github.com/wonny-labs/crux-pilot/pull/248).
+The Zephyr checks run in four parallel jobs, called shards: the jobs `zephyr-storage`, `zephyr-controller`, `zephyr-runtime` and `zephyr-io` of [`scripts/ci/checks.toml`](../scripts/ci/checks.toml). The [`zephyr-software` workflow](../.github/workflows/zephyr.yml) and the root `Jenkinsfile` run one shard per job. This page explains how they are arranged, where to put a check, and what was measured when the layout was chosen. [Continuous integration](ci.md) says which tier runs which check. The change was made in [PR #248](https://github.com/wonny-labs/crux-pilot/pull/248).
 
 ## Layout
 
@@ -22,7 +22,7 @@ flowchart LR
     io --> summary
 ```
 
-Each shard is a separate runner with its own checkout, Zephyr workspace and SDK. Shards share nothing, and each uploads its own artifact, named `zephyr-<shard>-<run>-<attempt>`. A failing shard does not cancel the others, so one run reports every failing area. Within a shard, the first failing step still stops the steps after it.
+Each shard is a separate runner with its own checkout, Zephyr workspace and SDK. Shards share nothing, and each uploads its own artifact, named `zephyr-<shard>-<run>-<attempt>`. A failing shard does not cancel the others, so one run reports every failing area. Within a shard, the first failing check stops the checks after it. A shard whose tier selects no check skips its set-up and passes.
 
 ## Shards
 
@@ -41,29 +41,31 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 
 ## Add a check
 
-1. Add the step to the `shard` job in `zephyr.yml`.
-2. Give it a condition such as `if: matrix.shard == 'io'`. Prefer the shard whose work is closest, unless that would make it clearly the longest.
-3. Put a step that reads another step's output in the same shard.
-4. Add any new output paths to the upload step.
+Follow [Add a check](ci.md#add-a-check), with the job `zephyr-<shard>`:
+
+1. Prefer the shard whose work is closest, unless that would make it clearly the longest.
+2. Put a check that reads another check's output in the same shard, after it.
+3. Add any new output paths to the upload step of `zephyr.yml`.
 
 `tests/build/test_zephyr_ci_shards.py` runs in Host CI. It fails in these cases:
 
 | Defect | Why it matters |
 | --- | --- |
-| A step that runs a command names an unknown shard | The step would be skipped while the run stays green |
-| A step that runs a command has no shard condition and is not a set-up step | The step would run in all four shards |
-| A shard has no checks | The matrix and the steps have drifted apart |
-| The networking steps are in different shards | The fixture step would not find its library |
+| A step that runs a command is neither a set-up step nor `scripts/ci/run-tier.sh` for the shard's job | The check would run outside the tiers, in all four shards |
+| The matrix and the `zephyr-*` jobs of the map file differ | A job's checks would never run while the run stays green |
+| A Zephyr check has a scope other than `code` | Its documentation rule would differ from the workflow's filter |
+| The networking checks are in different shards | The fixture check would not find its library |
 | Two shards could share an artifact name | The upload would be refused |
 | The summary job accepts anything but `success` | A cancelled or skipped shard would look like a pass |
 | Anything other than documentation skips the workflow | Code changes would go untested |
 | `host.yml` gets a `paths-ignore` filter | Nothing would run the tests that read documentation |
+| A tier workflow lacks `ready_for_review`, the nightly schedule or the manual tier input | A ready pull request or the nightly run would miss the full set |
 
-The test has two limits. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Apart from those, every step that has a `run:` (in any position) or mentions that repository code must name a shard of the matrix, whatever command it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
+`tests/build/test_ci_tiers.py` holds the list of checks of every job, so a deleted check fails it. The shard test cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
 
 ## Documentation-only changes
 
-The workflow does not run when every changed file matches `docs/**` or `**.md`. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and `host.yml` also runs it: that workflow has no such filter and runs `tests/build` for every pull request, skipping its other checks when only documentation changed.
+The workflow does not run when every changed file matches `docs/**` or `**.md`, and the map file gives every Zephyr check the same rule on other CI systems. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and the `host-build-tests` job also runs it: `host.yml` has no such filter, and the tests in `tests/build` run for every change.
 
 `psa-crypto.yml` skips documentation too, except a change to a dependency review record, which its pin check reads.
 

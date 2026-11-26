@@ -11,6 +11,7 @@ This page finds the right page for what you want to do. Start at the [repository
 - [J-Link board route on Linux and WSL2](board-jlink-usbipd.md): attach the probe, `scripts/bootstrap.sh board-host`, the J-Link package, then `west flash` and `west debug` from the Dev Container.
 - [Build and Integration Guide](build.md): Host and Zephyr builds, external CMake applications and provider selection.
 - [Test guide](../tests/README.md): every suite, what it proves, and the checks to run before a pull request.
+- [Continuous integration](ci.md): the fast, full and nightly tiers, the rules that pick their checks, and the entry point that GitHub Actions and Jenkins call.
 
 ## Build a product on Crux
 

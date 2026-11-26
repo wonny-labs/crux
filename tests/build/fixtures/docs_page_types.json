@@ -20,6 +20,7 @@
     "docs/build.md": "how-to",
     "docs/choosing-an-api.md": "reference",
     "docs/ci-zephyr-shards.md": "how-to",
+    "docs/ci.md": "reference",
     "docs/cli-contract.md": "reference",
     "docs/cli-over-ssh.md": "reference",
     "docs/coding-guidelines.md": "reference",

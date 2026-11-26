@@ -61,15 +61,17 @@ class CoverageWorkflowTest(unittest.TestCase):
         cls.workflow = WORKFLOW.read_text()
         cls.triggers = trigger_block(cls.workflow)
 
-    def test_triggers_are_manual_weekly_and_main_push(self):
+    def test_triggers_are_manual_nightly_and_main_push(self):
+        # Coverage belongs to the nightly tier (docs/ci.md), on the schedule of the other workflows.
         events = [line.strip().rstrip(":") for line in self.triggers if re.match(r"  \S", line)]
         self.assertEqual({"workflow_dispatch", "schedule", "push"}, set(events))
         cron = re.findall(r"- cron: \"([^\"]+)\"", "\n".join(self.triggers))
-        self.assertEqual(1, len(cron), "one weekly schedule")
+        self.assertEqual(1, len(cron), "one nightly schedule")
         fields = cron[0].split()
         self.assertEqual(5, len(fields))
-        self.assertNotEqual("*", fields[4], "the schedule names a weekday, so it runs weekly")
-        self.assertEqual(["*", "*"], fields[2:4], "day of month and month stay open: weekly, not monthly")
+        self.assertEqual(["*", "*", "*"], fields[2:], "every day")
+        host_cron = re.findall(r"- cron: \"([^\"]+)\"", HOST.read_text())
+        self.assertEqual(host_cron, cron, "the same nightly time as the other workflows")
         self.assertIn("    branches: [main]", self.triggers)
 
     def test_pull_requests_do_not_start_it(self):
