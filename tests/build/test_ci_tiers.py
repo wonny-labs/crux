@@ -41,47 +41,210 @@ def load_tiers():
 
 tiers = load_tiers()
 
-# The checks of the full tier, by job, in run order. Every CI step that ran a check before the
-# tiers existed is here; tests/build was split into its large cases and the rest. Remove an id only
-# with an approved change that removes the check, and say so in the pull request.
+# The full tier, by job: the job's environment defaults and its checks in run order, each with its
+# commands. Every CI step that ran a check before the tiers existed is here; tests/build was split
+# into its large cases and the rest, and the eMMC check into its storage and File halves, each
+# enabling the Reliance Edge west group itself. A check may move to another job; changing a command
+# or removing an id needs an approved change that says so in the pull request.
 EXPECTED_FULL = {
-    "host": [
-        "host-build-and-test", "host-offline", "host-sanitizers", "access-host", "cli-host",
-        "cli-ssh-thread-sanitizer", "credential-host", "security-event-host", "mgmt-services-host",
-        "web-host", "portable-execution-host", "file-consumers", "file-service-host", "messaging-host",
-        "format", "serial-host", "logging-host", "system-host", "static-analysis", "build-boundaries",
-    ],
-    "host-build-tests": ["build-tests", "build-tests-large", "power-cut-wrapper"],
-    "zephyr-storage": [
-        "patch-style", "storage-simulators", "file-rt1060-compile", "flash-poc-fault-paths",
-        "zephyr-time-evkb", "product-template", "emmc-reliance-edge",
-    ],
-    "zephyr-controller": [
-        "zephyr-smoke", "execution-candidates", "early-controller", "controller-integration",
-        "rt1170-cross-build", "m5-integrated-smoke",
-    ],
-    "zephyr-runtime": [
-        "portable-execution", "reboot-native-sanitizers", "time-busy-wait", "messaging",
-        "consumer-poc-zephyr", "logging-evkb", "system-evkb", "boot-composition",
-    ],
-    "zephyr-io": [
-        "serial-zephyr", "cli-zephyr", "cli-ssh-compile", "gpio-zephyr", "i2c-zephyr", "spi-zephyr",
-        "web-native", "web-assets-native", "networking", "networking-physical-fixture",
-    ],
-    "psa-crypto": [
-        "tf-psa-crypto-host", "tf-psa-crypto-native-sim", "tf-psa-crypto-evkb", "web-evkb-mbedtls",
-        "psa-ports-host", "tls-offload-mbed", "management-composition-mbed", "management-module-mbed",
-        "web-https-mbedtls", "web-session-native", "psa-ports-evkb", "management-image-rt1060-mbed",
-    ],
-    "web-specification": ["management-api-lint", "management-api-lint-controls"],
-    "web-client": ["web-client-install", "web-client-checks", "web-client-audit", "web-client-sbom"],
-    "web-browser": ["web-browser-install", "web-browser-version", "web-browser-tests"],
-    "web-angular": [
-        "angular-sample-build", "angular-web-tools-install", "angular-sample-sources",
-        "angular-shared-browser-cases", "angular-preact-comparison",
-    ],
-    "docs": ["lychee-install", "docs-selection-rules", "docs-links"],
+    "host": {
+        "env": {},
+        "checks": [
+            ("host-build-and-test", "./scripts/bootstrap-host.sh"),
+            ("host-offline", "./scripts/check-host.sh"),
+            ("host-sanitizers", "CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh"),
+            ("access-host", "./scripts/test-access.sh"),
+            ("cli-host", "./scripts/test-cli.sh"),
+            ("cli-ssh-thread-sanitizer", "./tests/ssh/cli/test-thread-sanitizer.sh"),
+            ("credential-host", "./scripts/test-credential.sh"),
+            ("security-event-host", "./scripts/test-security-event.sh"),
+            ("mgmt-services-host", "./scripts/test-mgmt-services.sh"),
+            ("web-host", "./scripts/test-web.sh host"),
+            ("portable-execution-host", "./scripts/test-portable-execution.sh --host-only"),
+            ("file-consumers", """\
+cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build/file-consumers
+ctest --test-dir build/file-consumers --output-on-failure
+"""),
+            ("file-service-host", "./scripts/test-file-service.sh"),
+            ("messaging-host", "./scripts/test-messaging.sh --host-only"),
+            ("format", "./scripts/check-format.sh"),
+            ("serial-host", "./scripts/test-serial.sh --host-only"),
+            ("logging-host", "./scripts/test-logging.sh --host-only"),
+            ("system-host", "./scripts/test-system.sh --host-only"),
+            ("static-analysis", "./scripts/analyze-host.sh"),
+            ("build-boundaries", "./scripts/check-dependencies.sh"),
+        ],
+    },
+    "host-build-tests": {
+        "env": {},
+        "checks": [
+            ("build-tests", "CLANG_TIDY=clang-tidy-18 python3 scripts/ci/run_unittests.py -s tests/build --exclude-from scripts/ci/large-tests.txt"),
+            ("power-cut-wrapper", "python3 -m unittest discover -s tests/power_cut -v"),
+        ],
+    },
+    "host-build-tests-large": {
+        "env": {},
+        "checks": [
+            ("build-tests-large", "CLANG_TIDY=clang-tidy-18 python3 scripts/ci/run_unittests.py -s tests/build --only-from scripts/ci/large-tests.txt"),
+        ],
+    },
+    "zephyr-emmc": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("emmc-reliance-edge", """\
+(cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
+CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
+"""),
+        ],
+    },
+    "zephyr-storage": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("patch-style", """\
+export ZEPHYR_BASE="$CRUX_WORKSPACE/zephyr"
+python3 -m unittest discover -s tests/style -p 'test_patch_style.py' -v
+scripts/ci/check-patch-range.sh
+"""),
+            ("storage-simulators", "scripts/test-storage-simulators.sh"),
+            ("flash-poc-fault-paths", 'ZEPHYR_BASE="$CRUX_WORKSPACE/zephyr" python3 tests/native/flash_safety/test_driver.py'),
+            ("zephyr-time-evkb", 'scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"'),
+        ],
+    },
+    "zephyr-file": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("file-rt1060-compile", "scripts/test-file-rt1060-compile.sh"),
+            ("file-emmc-compile", """\
+(cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
+scripts/test-file-emmc-compile.sh
+"""),
+        ],
+    },
+    "zephyr-controller": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("zephyr-smoke", "scripts/check-zephyr-smoke.sh"),
+            ("execution-candidates", "scripts/test-execution.sh"),
+            ("early-controller", "scripts/test-controller.sh"),
+            ("rt1170-cross-build", "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-m3-rt1170.sh"),
+            ("m5-integrated-smoke", "./scripts/test-m5-integrated-smoke.sh"),
+            ("product-template", 'scripts/test-product-template.sh "$CRUX_BOARD_TARGET"'),
+            ("networking", """\
+scripts/bootstrap-networking-tests.sh
+scripts/test-networking.sh
+"""),
+            ("networking-physical-fixture", "scripts/test-networking-physical.sh"),
+        ],
+    },
+    "zephyr-integration": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("controller-integration", "scripts/test-controller-integration.sh"),
+            ("reboot-native-sanitizers", "scripts/test-reboot-native.sh"),
+            ("time-busy-wait", "scripts/test-time-busy-wait.sh"),
+        ],
+    },
+    "zephyr-runtime": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("portable-execution", "scripts/test-portable-execution.sh"),
+            ("messaging", "scripts/test-messaging.sh"),
+            ("logging-evkb", "./scripts/test-logging.sh"),
+            ("boot-composition", "scripts/test-boot-composition.sh"),
+        ],
+    },
+    "zephyr-system": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("consumer-poc-zephyr", "CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v"),
+            ("system-evkb", "./scripts/test-system.sh"),
+            ("serial-zephyr", "scripts/test-serial.sh"),
+        ],
+    },
+    "zephyr-io": {
+        "env": {"CRUX_BOARD_TARGET": "mimxrt1060_evk@B//qspi"},
+        "checks": [
+            ("cli-zephyr", "scripts/test-cli.sh --zephyr"),
+            ("cli-ssh-compile", "tests/ssh/cli/test-compile.sh"),
+            ("gpio-zephyr", "scripts/test-gpio.sh"),
+            ("i2c-zephyr", "scripts/test-i2c.sh"),
+            ("spi-zephyr", "scripts/test-spi.sh"),
+            ("web-native", "scripts/test-web.sh native"),
+            ("web-assets-native", "scripts/test-web-assets.sh native"),
+        ],
+    },
+    "psa-crypto": {
+        "env": {},
+        "checks": [
+            ("tf-psa-crypto-host", "scripts/test-psa-crypto.sh host tf-psa-crypto"),
+            ("tf-psa-crypto-native-sim", "scripts/test-psa-crypto.sh zephyr tf-psa-crypto"),
+            ("tf-psa-crypto-evkb", "scripts/test-psa-crypto.sh target tf-psa-crypto"),
+            ("psa-ports-host", "scripts/test-native-composition.sh host"),
+            ("tls-offload-mbed", "scripts/test-tls-offload-probe.sh mbed"),
+            ("psa-ports-evkb", "scripts/test-native-composition.sh target-mbed"),
+        ],
+    },
+    "psa-management": {
+        "env": {},
+        "checks": [
+            ("web-evkb-mbedtls", "scripts/test-web.sh target mbedtls"),
+            ("management-composition-mbed", "scripts/test-native-composition.sh mbed"),
+            ("management-module-mbed", "scripts/test-management-module.sh"),
+            ("web-https-mbedtls", "scripts/test-web.sh https mbedtls"),
+            ("web-session-native", "scripts/test-web-session.sh native"),
+            ("management-image-rt1060-mbed", "scripts/test-management-mbed-rt1060.sh build"),
+        ],
+    },
+    "web-specification": {
+        "env": {},
+        "checks": [
+            ("management-api-lint", "scripts/check-management-api.sh"),
+            ("management-api-lint-controls", "python3 -m unittest discover -s tests/management_api -v"),
+        ],
+    },
+    "web-client": {
+        "env": {},
+        "checks": [
+            ("web-client-install", "cd web && npm ci --ignore-scripts --no-audit --no-fund"),
+            ("web-client-checks", "cd web && npm run check"),
+            ("web-client-audit", "cd web && npm run audit:prod"),
+            ("web-client-sbom", "cd web && npm run --silent sbom > crux-web.cdx.json"),
+        ],
+    },
+    "web-browser": {
+        "env": {},
+        "checks": [
+            ("web-browser-install", "cd web && npm ci --ignore-scripts --no-audit --no-fund"),
+            ("web-browser-version", "google-chrome --version"),
+            ("web-browser-tests", "cd web && npm run test:browser"),
+        ],
+    },
+    "web-angular": {
+        "env": {"CRUX_REQUIRE_ANGULAR": "1"},
+        "checks": [
+            ("angular-sample-build", "cd samples/web/angular && npm ci --ignore-scripts --no-audit --no-fund && npm run build"),
+            ("angular-web-tools-install", "cd web && npm ci --ignore-scripts --no-audit --no-fund"),
+            ("angular-sample-sources", "cd web && node tools/check-dom.ts ../samples/web/angular/src"),
+            ("angular-shared-browser-cases", "cd web && npm run test:angular"),
+            ("angular-preact-comparison", """\
+cd web
+npm run build
+node tools/build.ts --entry e2e/fixtures/two-screens.tsx --out build/two-screens
+node tools/compare.ts | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+"""),
+        ],
+    },
+    "docs": {
+        "env": {},
+        "checks": [
+            ("lychee-install", "python3 scripts/check_docs.py --install"),
+            ("docs-selection-rules", "python3 -m unittest discover -s tests/docs -v"),
+            ("docs-links", "python3 scripts/check_docs.py"),
+        ],
+    },
 }
+EXPECTED_IDS = {job: [check_id for check_id, _ in spec["checks"]] for job, spec in EXPECTED_FULL.items()}
 EXPECTED_NIGHTLY_ONLY = {
     "coverage-host": ["coverage-host-run", "coverage-host-report"],
     "coverage-native-sim": ["coverage-native-sim-run", "coverage-native-sim-report"],
@@ -96,6 +259,11 @@ def by_job(checks):
     return result
 
 
+def ids_of(prefix):
+    """Return the ids of the full tier's checks in every job whose name starts with prefix."""
+    return {check_id for job, ids in EXPECTED_IDS.items() if job.startswith(prefix) for check_id in ids}
+
+
 class ManifestTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -105,10 +273,19 @@ class ManifestTest(unittest.TestCase):
         return tiers.plan(self.manifest, tier, changed).checks
 
     def test_the_full_tier_runs_every_recorded_check_in_order(self):
-        self.assertEqual(EXPECTED_FULL, by_job(self.plan("full", None)))
+        self.assertEqual(EXPECTED_IDS, by_job(self.plan("full", None)))
+
+    def test_every_check_keeps_its_commands_and_job_environment(self):
+        actual = {}
+        for check in self.plan("full", None):
+            job = actual.setdefault(check.job, {"env": self.manifest.jobs[check.job].get("env", {}), "checks": []})
+            job["checks"].append((check.id, check.run))
+        for job, spec in EXPECTED_FULL.items():
+            with self.subTest(job=job):
+                self.assertEqual(spec, actual.get(job))
 
     def test_the_nightly_tier_adds_only_coverage_to_the_full_tier(self):
-        expected = {**EXPECTED_FULL, **EXPECTED_NIGHTLY_ONLY}
+        expected = {**EXPECTED_IDS, **EXPECTED_NIGHTLY_ONLY}
         self.assertEqual(expected, by_job(self.plan("nightly", None)))
 
     def test_the_nightly_tier_ignores_the_change(self):
@@ -122,15 +299,21 @@ class ManifestTest(unittest.TestCase):
 
     def test_the_networking_checks_share_one_job_in_order(self):
         # The fixture check reads the Picolibc checkout that the networking check fetches.
-        ids = by_job(self.plan("full", None))["zephyr-io"]
-        self.assertLess(ids.index("networking"), ids.index("networking-physical-fixture"))
         networking = next(c for c in self.manifest.checks if c.id == "networking")
+        ids = by_job(self.plan("full", None))[networking.job]
+        self.assertLess(ids.index("networking"), ids.index("networking-physical-fixture"))
         self.assertIn("scripts/bootstrap-networking-tests.sh", networking.run)
 
     def test_the_optional_west_groups_are_enabled_by_the_last_check_of_their_job(self):
+        # A check that enables an optional west group changes the workspace for every later check
+        # of its runner. scripts/test-boot-composition.sh enables crux-boot itself.
         jobs = by_job(self.plan("full", None))
-        self.assertEqual("emmc-reliance-edge", jobs["zephyr-storage"][-1])
-        self.assertEqual("boot-composition", jobs["zephyr-runtime"][-1])
+        enabling = [c for c in self.manifest.checks
+                    if "manifest.group-filter" in c.run or "scripts/test-boot-composition.sh" in c.run]
+        self.assertEqual({"emmc-reliance-edge", "file-emmc-compile", "boot-composition"}, {c.id for c in enabling})
+        for check in enabling:
+            with self.subTest(check=check.id):
+                self.assertEqual(check.id, jobs[check.job][-1])
 
 
 class FullTierScopeTest(unittest.TestCase):
@@ -155,25 +338,21 @@ class FullTierScopeTest(unittest.TestCase):
         # The host workflow skipped its checks for documentation in pull requests only; a push to
         # main ran them all. The Zephyr, PSA and web workflows kept their path filters on push.
         ids = self.ids(["docs/build.md", "README.md"], "post-merge")
-        host = set(EXPECTED_FULL["host"]) | set(EXPECTED_FULL["host-build-tests"])
-        self.assertEqual(host | {"lychee-install", "docs-selection-rules", "docs-links"}, ids)
+        self.assertEqual(ids_of("host") | {"lychee-install", "docs-selection-rules", "docs-links"}, ids)
         self.assertIn("power-cut-wrapper", ids)
 
-    def test_a_dependency_review_record_also_runs_the_psa_crypto_job(self):
+    def test_a_dependency_review_record_also_runs_the_psa_crypto_jobs(self):
         ids = self.ids(["docs/dependency-review-mbed-tls-4.1.1.md"])
-        self.assertEqual(DOCS_READERS | set(EXPECTED_FULL["psa-crypto"]), ids)
+        self.assertEqual(DOCS_READERS | ids_of("psa-"), ids)
 
     def test_a_source_change_runs_everything_but_the_web_jobs(self):
-        web = {i for job, ids in EXPECTED_FULL.items() if job.startswith("web-") for i in ids}
-        everything = {i for ids in EXPECTED_FULL.values() for i in ids}
-        self.assertEqual(everything - web, self.ids(["components/gpio/src/gpio.c"]))
+        self.assertEqual(ids_of("") - ids_of("web-"), self.ids(["components/gpio/src/gpio.c"]))
 
     def test_a_web_change_runs_the_web_jobs(self):
-        self.assertLessEqual(set(EXPECTED_FULL["web-client"]), self.ids(["web/client/app.tsx"]))
+        self.assertLessEqual(ids_of("web-client"), self.ids(["web/client/app.tsx"]))
 
     def test_an_unknown_change_runs_every_full_check(self):
-        everything = {i for ids in EXPECTED_FULL.values() for i in ids}
-        self.assertEqual(everything, self.ids(None))
+        self.assertEqual(ids_of(""), self.ids(None))
 
     def test_an_empty_change_runs_every_code_check(self):
         self.assertIn("host-build-and-test", self.ids([]))
@@ -266,8 +445,33 @@ class FastTierTest(unittest.TestCase):
 
     def test_a_web_client_change_runs_the_web_jobs(self):
         ids = {c.id for c in self.fast(["web/client/app.tsx"]).checks}
-        self.assertLessEqual(set(EXPECTED_FULL["web-browser"]), ids)
+        self.assertLessEqual(ids_of("web-browser"), ids)
         self.assertIn("web-assets-native", ids)
+
+    def test_static_analysis_runs_after_every_build_it_reads(self):
+        # scripts/analyze-host.sh runs tidy-sources.py --strict on CI, which fails on a listed build
+        # without a compile database. A fast run once selected static-analysis without the checks
+        # that make the consumer builds.
+        producers = {
+            "build/linux/debug": "host-build-and-test", "build/linux/sanitize": "host-sanitizers",
+            "build/file-consumers": "file-consumers", "build/logging-consumer": "logging-host",
+            "build/system-consumer": "system-host", "build/messaging-consumer": "messaging-host",
+            "build/serial-consumer": "serial-host", "build/mgmt-services-consumer": "mgmt-services-host",
+            "build/thread-only": "portable-execution-host", "build/sync-only": "portable-execution-host",
+            "build/execution-firmware-host": "portable-execution-host",
+            "build/execution-runtime-host": "portable-execution-host",
+        }
+        listed = re.findall(r"^build ; (\S+)$", (REPO / "scripts/tidy-sources.conf").read_text(), re.MULTILINE)
+        self.assertEqual(set(producers), set(listed))
+        changes = [[patterns[0].replace("**", "x/y.c")] for patterns in self.manifest.components.values()]
+        for changed in [*changes, None]:
+            ids = [c.id for c in self.fast(changed).checks if c.job == "host"]
+            if "static-analysis" not in ids:
+                continue
+            for build, producer in producers.items():
+                with self.subTest(changed=changed, build=build):
+                    self.assertIn(producer, ids)
+                    self.assertLess(ids.index(producer), ids.index("static-analysis"))
 
     def test_the_fallback_names_its_reason(self):
         self.assertIn("scripts/test-gpio.sh", self.fast(["scripts/test-gpio.sh"]).reason)
@@ -702,12 +906,16 @@ class JenkinsTest(unittest.TestCase):
         workflows = REPO / ".github/workflows"
         cases = {
             "host": workflow_job(workflows / "host.yml", "host"),
-            "host-build-tests": workflow_job(workflows / "host.yml", "host-build-tests"),
-            "zephyr-io": workflow_job(workflows / "zephyr.yml", "shard"),
-            "psa-crypto": workflow_job(workflows / "psa-crypto.yml", "psa-crypto"),
             "coverage-host": workflow_job(workflows / "coverage.yml", "host"),
             "coverage-native-sim": workflow_job(workflows / "coverage.yml", "native-sim"),
         }
+        # The matrix jobs: one workflow job runs each of these map file jobs.
+        matrices = {"host-": ("host.yml", "host-other"), "zephyr-": ("zephyr.yml", "shard"),
+                    "psa-": ("psa-crypto.yml", "psa-crypto")}
+        for job in self.manifest.jobs:
+            for prefix, (workflow, key) in matrices.items():
+                if job.startswith(prefix):
+                    cases[job] = workflow_job(workflows / workflow, key)
         for job, text in cases.items():
             with self.subTest(job=job):
                 self.assertEqual(set(re.findall(PINS, text)), self.jenkins_pins(job))

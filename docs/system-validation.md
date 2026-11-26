@@ -232,7 +232,7 @@ The Host check is `tests/build/test_system_native_sim_watchdog.py`. Two cases of
 `tests/build/test_system_composition.py` (a Zephyr configure for the board and for `native_sim`) and the
 `native_sim` scenario
 [`tests/system/zephyr/native_sim_watchdog`](../tests/system/zephyr/native_sim_watchdog/testcase.yaml)
-are Zephyr checks: `scripts/test-system.sh` runs them in the runtime shard, and the Host check does not.
+are Zephyr checks: `scripts/test-system.sh` runs them in [Zephyr CI](ci-zephyr-shards.md#shards), and the Host check does not.
 
 ## Minimal physical verification proposal — not authorized or performed
 

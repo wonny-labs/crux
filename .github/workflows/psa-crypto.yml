@@ -31,6 +31,10 @@ on:
         type: choice
         options: [full, fast, nightly]
         default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
 concurrency:
@@ -40,9 +44,18 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
+
 jobs:
+  # Each runs one PSA job of scripts/ci/checks.toml.
   psa-crypto:
+    name: ${{ matrix.job }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [psa-management, psa-crypto]
     env:
       CC: clang-18
       CXX: clang++-18
@@ -65,8 +78,8 @@ jobs:
         id: plan
         working-directory: crux-pilot
         run: |
-          scripts/ci/run-tier.sh "$TIER" --job psa-crypto --plan
-          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job psa-crypto --count)" >> "$GITHUB_OUTPUT"
+          scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --count)" >> "$GITHUB_OUTPUT"
 
       - name: Install host packages
         if: steps.plan.outputs.checks != '0'
@@ -97,13 +110,13 @@ jobs:
       - name: Run the checks of this tier
         if: steps.plan.outputs.checks != '0'
         working-directory: crux-pilot
-        run: scripts/ci/run-tier.sh "$TIER" --job psa-crypto
+        run: scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}"
 
       - name: Upload logs and reports
         if: always() && steps.plan.outputs.checks != '0'
         uses: actions/upload-artifact@v4
         with:
-          name: psa-crypto-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ matrix.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             crux-pilot/build/ci/
             crux-pilot/build/psa-crypto/*.txt

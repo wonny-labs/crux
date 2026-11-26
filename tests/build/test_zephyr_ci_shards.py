@@ -13,6 +13,8 @@ import tomllib
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
+# The tests skip only in a copy without the workflow folder; a single missing workflow fails them.
+WORKFLOWS = REPO / ".github/workflows"
 ZEPHYR = REPO / ".github/workflows/zephyr.yml"
 PSA_CRYPTO = REPO / ".github/workflows/psa-crypto.yml"
 HOST = REPO / ".github/workflows/host.yml"
@@ -112,7 +114,13 @@ def load_manifest():
     return tomllib.loads(MANIFEST.read_text())
 
 
-@unittest.skipUnless(ZEPHYR.is_file(), NO_GITHUB)
+def matrix_jobs(text):
+    """Return the map file jobs that a workflow text lists in a `job: [...]` matrix."""
+    return {name for line in re.findall(r"^\s+job: \[(.+)\]$", text, re.MULTILINE)
+            for name in re.findall(r"[a-z][a-z-]*", line)}
+
+
+@unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
 class ZephyrShardsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -248,7 +256,7 @@ class ZephyrShardsTest(unittest.TestCase):
                 self.assertEqual(PSA_PATHS, paths_ignore(psa, event, "paths"))
         self.assertEqual(PSA_PATHS, self.manifest["scopes"]["psa-crypto"])
         for check in self.manifest["check"]:
-            if check["job"] == "psa-crypto":
+            if check["job"].startswith("psa-"):
                 with self.subTest(check=check["id"]):
                     self.assertEqual("psa-crypto", check.get("scope"))
 
@@ -274,13 +282,13 @@ class ZephyrShardsTest(unittest.TestCase):
         # tests/build reads documentation, so one workflow must keep running on such changes.
         host = HOST.read_text()
         self.assertNotIn("paths-ignore", host)
-        self.assertIn('scripts/ci/run-tier.sh "$TIER" --job host-build-tests', host)
+        self.assertIn("host-build-tests", matrix_jobs(host))
         build_tests = next(c for c in self.manifest["check"] if c["id"] == "build-tests")
         self.assertEqual("always", build_tests.get("scope"))
         self.assertIn("-s tests/build", build_tests["run"])
 
 
-@unittest.skipUnless(ZEPHYR.is_file(), NO_GITHUB)
+@unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
 class TierTriggersTest(unittest.TestCase):
     """Every tier workflow starts on the events of the tier model, the same way."""
 
@@ -306,13 +314,28 @@ class TierTriggersTest(unittest.TestCase):
     def test_every_job_of_the_map_file_has_a_runner(self):
         texts = "\n".join(w.read_text() for w in [*TIER_WORKFLOWS, REPO / ".github/workflows/coverage.yml"])
         jenkins = (REPO / "Jenkinsfile").read_text()
+        matrices = matrix_jobs(texts)
         for job in load_manifest()["jobs"]:
             with self.subTest(job=job):
                 if job.startswith("zephyr-"):
                     self.assertIn(job[len("zephyr-"):], re.search(r"shard: \[(.+)\]", texts).group(1))
                 elif not job.startswith("coverage-"):
-                    self.assertIn(f"--job {job}", texts)
+                    self.assertTrue(f"--job {job}" in texts or job in matrices, f"no workflow runs {job}")
                 self.assertIn(job, jenkins)
+
+    def test_a_job_matrix_runs_only_the_job_of_its_entry(self):
+        # In a workflow job with a matrix of map file jobs, a fixed job name would run one job in
+        # every entry while the others never run.
+        for workflow in TIER_WORKFLOWS:
+            for key in re.findall(r"^  ([\w-]+):$", workflow.read_text().split("\njobs:\n", 1)[1], re.MULTILINE):
+                text = "\n".join(job_text(workflow.read_text(), key))
+                if not matrix_jobs(text):
+                    continue
+                with self.subTest(workflow=workflow.name, job=key):
+                    commands = re.findall(r'run-tier\.sh "\$TIER" --job ("\$\{\{[^}]*\}\}"|\S+)', text)
+                    self.assertTrue(commands)
+                    self.assertEqual({'"${{ matrix.job }}"'}, set(commands))
+                    self.assertIn("name: ${{ matrix.job }}-${{ github.run_id }}", text)
 
 
 SYNTHETIC_JOB = """  shard:

@@ -26,6 +26,8 @@ pipeline {
     parameters {
         choice(name: 'TIER', choices: ['auto', 'fast', 'full', 'nightly'],
                description: 'CI tier (docs/ci.md). auto decides from the build.')
+        string(name: 'BASE', defaultValue: '',
+               description: 'Compare the change with this ref or commit (docs/ci.md). Empty: derived from the build.')
     }
     triggers {
         cron(env.BRANCH_NAME == 'main' ? 'H 2 * * *' : '')
@@ -37,6 +39,7 @@ pipeline {
     }
     environment {
         TIER = "${params.TIER ?: 'auto'}"
+        CRUX_CI_BASE = "${params.BASE ?: ''}"
         CRUX_CI_TRIGGER = "${currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ? 'timer' : ''}"
         CRUX_CACHE_DIR = '/opt/crux-cache'
         ZEPHYR_SDK_INSTALL_DIR = '/opt/crux-cache/sdk/zephyr-sdk-1.0.1'
@@ -55,17 +58,37 @@ pipeline {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/host-build-tests/crux-pilot" } }
                     steps { script { runJob('host-build-tests') } }
                 }
+                stage('host-build-tests-large') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/host-build-tests-large/crux-pilot" } }
+                    steps { script { runJob('host-build-tests-large') } }
+                }
+                stage('zephyr-emmc') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-emmc/crux-pilot" } }
+                    steps { script { runJob('zephyr-emmc') } }
+                }
                 stage('zephyr-storage') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-storage/crux-pilot" } }
                     steps { script { runJob('zephyr-storage') } }
+                }
+                stage('zephyr-file') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-file/crux-pilot" } }
+                    steps { script { runJob('zephyr-file') } }
                 }
                 stage('zephyr-controller') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-controller/crux-pilot" } }
                     steps { script { runJob('zephyr-controller') } }
                 }
+                stage('zephyr-integration') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-integration/crux-pilot" } }
+                    steps { script { runJob('zephyr-integration') } }
+                }
                 stage('zephyr-runtime') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-runtime/crux-pilot" } }
                     steps { script { runJob('zephyr-runtime') } }
+                }
+                stage('zephyr-system') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-system/crux-pilot" } }
+                    steps { script { runJob('zephyr-system') } }
                 }
                 stage('zephyr-io') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/zephyr-io/crux-pilot" } }
@@ -74,6 +97,10 @@ pipeline {
                 stage('psa-crypto') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/psa-crypto/crux-pilot" } }
                     steps { script { runJob('psa-crypto') } }
+                }
+                stage('psa-management') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/psa-management/crux-pilot" } }
+                    steps { script { runJob('psa-management') } }
                 }
                 stage('docs') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/docs/crux-pilot" } }
