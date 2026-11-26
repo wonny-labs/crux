@@ -16,6 +16,7 @@ crux_board_canonical() {
     case "$1" in
         'mimxrt1060_evk@B//qspi' | 'mimxrt1060_evk@B/mimxrt1062/qspi') printf 'mimxrt1060_evk@B/mimxrt1062/qspi' ;;
         'mimxrt1170_evk@A//cm7' | 'mimxrt1170_evk@A/mimxrt1176/cm7') printf 'mimxrt1170_evk@A/mimxrt1176/cm7' ;;
+        mimxrt1180_evk//*) printf 'mimxrt1180_evk/mimxrt1189/%s' "${1#mimxrt1180_evk//}" ;;
         *) printf '%s' "$1" ;;
     esac
 }
@@ -28,12 +29,13 @@ crux_board_key() {
 
 # Print the board part of a build folder name, build/zephyr/<purpose>-<tag>. The boards that
 # had folders before the board became an input keep their short names (evkb, rt1170), so CI
-# uploads, bench tools and documents still find them. Any other board uses its key.
+# uploads, bench tools and documents still find them. Any other board uses the key of its full
+# name: mimxrt1180_evk/mimxrt1189/cm33 gives mimxrt1180_evk_mimxrt1189_cm33.
 crux_board_tag() {
     case "$(crux_board_canonical "$1")" in
         'mimxrt1060_evk@B/mimxrt1062/qspi') printf 'evkb' ;;
         'mimxrt1170_evk@A/mimxrt1176/cm7') printf 'rt1170' ;;
-        *) crux_board_key "$1" ;;
+        *) crux_board_key "$(crux_board_canonical "$1")" ;;
     esac
 }
 
@@ -53,10 +55,13 @@ crux_board_require() {
 }
 
 # Print the J-Link device of board $1, as Zephyr's board.cmake passes it to the jlink runner.
+# A dual-core board needs its core in the target; without one this prints nothing and fails.
 crux_board_jlink_device() {
     case "$(crux_board_canonical "$1")" in
         mimxrt1060_evk | mimxrt1060_evk[@/]*) printf 'MIMXRT1062xxx6A' ;;
         mimxrt1170_evk[@/]*/cm7) printf 'MIMXRT1176xxxA_M7' ;;
+        mimxrt1180_evk[@/]*/cm33) printf 'MIMXRT1189xxx8_M33' ;;
+        mimxrt1180_evk[@/]*/cm7) printf 'MIMXRT1189xxx8_M7' ;;
         *) return 1 ;;
     esac
 }

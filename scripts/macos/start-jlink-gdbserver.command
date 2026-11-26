@@ -20,7 +20,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/board.sh"
 board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 device="${CRUX_JLINK_DEVICE:-$(crux_board_jlink_device "$board" || true)}"
 if [[ -z "$device" ]]; then
-    printf 'No J-Link device is known for board %s. Set CRUX_JLINK_DEVICE to its J-Link device name.\n' "$board" >&2
+    printf 'No J-Link device is known for board %s. Name the core in the board target, or set CRUX_JLINK_DEVICE.\n' "$board" >&2
     exit 2
 fi
 
