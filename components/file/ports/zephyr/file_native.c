@@ -346,6 +346,17 @@ crux_file_result_t crux_file_impl_open(crux_file_root_t index, size_t s, const c
         }
     }
 #endif
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    if (fs_rc == -EIO && (flags & FS_O_CREATE) != 0) {
+        /* LittleFS reports a new entry that finds no room as LFS_ERR_NAMETOOLONG, which Zephyr
+         * returns as -EIO. A directory grows by a pair of blocks, so fewer than two free blocks
+         * mean a full volume. */
+        struct fs_statvfs volume;
+        if (fs_statvfs(roots[index], &volume) == 0 && volume.f_bfree < 2) {
+            return CRUX_FILE_ERR_NO_SPACE;
+        }
+    }
+#endif
     return result(fs_rc);
 }
 

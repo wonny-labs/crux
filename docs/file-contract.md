@@ -232,6 +232,7 @@ Every statement of the contract above holds. What differs is the mapping:
 - A name is stored as it is, with no encoding. A name that fails the File name rule, or a directory, is not listed.
 - The destination of a rename is checked first under the File lock, as on FatFs, because LittleFS's own rename replaces an existing file.
 - A full volume gives `CRUX_FILE_ERR_NO_SPACE`, at a write, a sync or the creation of a file.
+  LittleFS reports a creation that finds no room as a name-too-long error, which Zephyr returns as an I/O error: after such an error with fewer than two free blocks, the provider returns NO_SPACE.
 - **A writable handle keeps its first native error.** After a failed write, sync, read, seek or size call on a handle opened with `CRUX_FILE_READ_WRITE` or `CRUX_FILE_CREATE_REPLACE`, every later call on that handle returns the same error without a native call, and `crux_file_close` returns it too.
   The reason: LittleFS closes a file whose write failed without committing it, and reports success.
   Close the handle, open the file again and read its size before retrying.
