@@ -1,8 +1,5 @@
-# Qualification is the revision-B EVKB composition, not the whole board family.
-# Another RT1062 board has no EVK revision; its own revisions are the product's to check.
-if(CONFIG_BOARD_MIMXRT1060_EVK AND NOT BOARD_REVISION STREQUAL "B")
-    message(FATAL_ERROR "Crux Logging unsupported EVKB board revision: ${BOARD_REVISION}; expected B")
-endif()
+# No board, SoC or revision check: the binding selects the UART by devicetree (logging_binding.c),
+# and a board revision that changes the hardware changes its devicetree.
 set(CRUX_LOGGING_PROVIDER zephyr CACHE STRING "Logging provider for this composition")
 if(NOT CRUX_LOGGING_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux Logging unsupported provider: ${CRUX_LOGGING_PROVIDER}")

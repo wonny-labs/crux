@@ -113,8 +113,8 @@ if(CONFIG_CRUX_SYSTEM)
 endif()
 
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
-   CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
+   CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
+   CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
     # The guard of the eMMC flush correction for every File composition on an MMC disk. A File
     # sync is the provider's flush, and without the correction a disk sync does not flush a
     # turned-on eMMC cache, whatever the file system. An image with Reliance Edge is refused by the
@@ -135,7 +135,7 @@ if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-       CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
+       CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
        CONFIG_CRUX_FILE_RELIANCE_EDGE)
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()

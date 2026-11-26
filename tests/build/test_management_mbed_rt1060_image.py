@@ -104,7 +104,7 @@ class Profile(unittest.TestCase):
 
     def test_https_only_and_file_backend_is_a_ram_disk(self):
         self.assertNotIn("CRUX_WEB_PLAIN_HTTP_FOR_TESTS=y", self.conf)
-        self.assertIn("CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK=y", self.conf)
+        self.assertIn("CONFIG_CRUX_FILE_FATFS_RAM_DISK=y", self.conf)
         self.assertIn("CONFIG_DISK_DRIVER_SDMMC=n", self.conf)  # no card driver: nothing to format
         self.assertIn("CONFIG_FS_FATFS_MOUNT_MKFS=n", self.conf)
         self.assertIn("CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY=y", self.conf)

@@ -37,6 +37,13 @@ west build -b <board> -d product-x/build/app product-x/app
 
 The copied `west.yml` follows Crux `main`. Pin it to a SHA once with `python3 crux-pilot/scripts/update-crux-pin.py --manifest product-x/west.yml`, commit it, and keep it current with the pin bot of [Keeping the Crux pin current](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md#keeping-the-crux-pin-current). For each release, copy `RELEASE.md` and fill it in. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux-pilot/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux-pilot`).
 
+## Boards
+
+The application is the same for every board: the board is the `-b` argument of `west build`, and `west config build.board <board>` sets a default for a workspace.
+Put what one board needs in `app/boards/<board>.conf` and `app/boards/<board>.overlay`, where `<board>` is the board target with `/` replaced by `_`, and keep `prj.conf` and feature fragments free of board values.
+Kconfig in this repository depends on generic or `DT_HAS_<compatible>_ENABLED` symbols, as `drivers/sensor/example_temp/Kconfig` does, never on a board or SoC symbol.
+The [porting guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/porting-to-a-new-board.md#board-neutral-conventions) (`docs/porting-to-a-new-board.md` in `crux-pilot`) lists the conventions with their Zephyr references.
+
 ## Zones and the domain include check
 
 The template has two zones, after the three questions of [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md).

@@ -80,7 +80,7 @@ the physical gate is approved for the current task.
   fixture-only `CRUX_EMMC_FLUSH_CONTROL` that bypasses both guards is honoured on `native_sim` only. **Any use of an MMC
   disk needs this option, including by code that is not Crux.** Without it a successful sync can leave data in the
   card's cache.
-- **FatFs on an MMC disk is not a Crux File selection.** `CONFIG_CRUX_FILE_FATFS_RT1060` requires the SDMMC disk, and
+- **FatFs on an MMC disk is not a Crux File selection.** `CONFIG_CRUX_FILE_FATFS_SDMMC` requires the SDMMC disk, and
   nothing selects FatFs for an MMC disk. A project that mounts FatFs on one still needs the flush option, and its
   behaviour on the simulator is covered by the FatFs power-cut replay only, not by the composition.
 - The sample's `prj.conf` names `CONFIG_DISK_DRIVER_MMC=y` and `CONFIG_IMX_USDHC=y`. The flush option depends on the MMC

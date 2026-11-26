@@ -7,47 +7,46 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-/* Selections: Reliance Edge on any board, an RT1060 provider or compile check, or a simulator.
- * The RT1060 ones need the RT1062 SoC; the USDHC, the SD disk and, on the RT1060-EVK only, the
- * Rev B QSPI target are required by zephyr/Kconfig and by the CMake of this port. */
+/* Selections: Reliance Edge on any board, the SD card provider or its compile check, the RAM disk
+ * provider, or a simulator. The board-side facts (the disk node, the disk drivers, FatFs) are
+ * generic Zephyr symbols, required by zephyr/Kconfig and by the CMake of this port. */
 #if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||            \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060) ||                                                      \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) ||                                        \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC) ||                                                       \
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK) ||                                         \
+    defined(CONFIG_CRUX_FILE_FATFS_RAM_DISK)
 #error "The Reliance Edge File provider cannot be combined with another File selection"
 #endif
-#elif defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
-/* The RT1060 provider over a RAM disk: the SoC, and no card driver anywhere in the image. */
-#if defined(CONFIG_CRUX_FILE_FATFS_RT1060) ||                                                      \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_SIMULATOR) || \
+#elif defined(CONFIG_CRUX_FILE_FATFS_RAM_DISK)
+/* The provider over a RAM disk: no card driver, SD host or flash disk anywhere in the image. */
+#if defined(CONFIG_CRUX_FILE_FATFS_SDMMC) ||                                                       \
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_SIMULATOR) ||  \
     defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
-#error "The RT1060 RAM disk File provider cannot be combined with another File selection"
+#error "The RAM disk File provider cannot be combined with another File selection"
 #endif
-#if !defined(CONFIG_SOC_MIMXRT1062) || !defined(CONFIG_FAT_FILESYSTEM_ELM) ||                      \
-    !defined(CONFIG_DISK_DRIVER_RAM) || defined(CONFIG_DISK_DRIVER_SDMMC) ||                       \
-    defined(CONFIG_IMX_USDHC) || defined(CONFIG_DISK_DRIVER_FLASH) ||                              \
-    !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
-    defined(CONFIG_FS_FATFS_MOUNT_MKFS)
+#if !defined(CONFIG_FAT_FILESYSTEM_ELM) || !defined(CONFIG_DISK_DRIVER_RAM) ||                     \
+    !defined(CONFIG_DT_HAS_ZEPHYR_RAM_DISK_ENABLED) || defined(CONFIG_DISK_DRIVER_SDMMC) ||        \
+    defined(CONFIG_SDHC) || defined(CONFIG_DISK_DRIVER_FLASH) || !defined(CONFIG_FS_FATFS_LFN) ||  \
+    !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error                                                                                             \
-    "The RT1060 RAM disk File provider requires the RT1062 SoC, the RAM disk only, no auto-format"
+    "The RAM disk File provider requires the RAM disk as the only disk, no SD host, no auto-format"
 #endif
-#elif defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_FATFS_RT1060)
-#if !defined(CONFIG_SOC_MIMXRT1062) || !defined(CONFIG_FAT_FILESYSTEM_ELM) ||                      \
-    !defined(CONFIG_DISK_DRIVER_SDMMC) || !defined(CONFIG_IMX_USDHC) ||                            \
-    !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
-    defined(CONFIG_FS_FATFS_MOUNT_MKFS)
-#error "RT1060 File selections require the RT1062 SoC and the guarded FatFs/SDHC composition"
+#elif defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_FATFS_SDMMC)
+#if !defined(CONFIG_FAT_FILESYSTEM_ELM) || !defined(CONFIG_DISK_DRIVER_SDMMC) ||                   \
+    !defined(CONFIG_DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED) || !defined(CONFIG_FS_FATFS_LFN) ||          \
+    !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
+#error "SD card File selections require an SD card disk and the guarded FatFs composition"
 #endif
 #elif !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                         \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
 #error "File provider requires an approved simulator composition"
 #endif
 #if defined(CONFIG_SDHC) && defined(CONFIG_DCACHE)
-/* The USDHC HAL invalidates a read target by whole cache lines on completion, so a buffer that
- * shares a line with another object can drop that object's write made during the transfer. The SD
- * layer bounces every buffer that is not aligned to this value. The symbol exists with the SD host
- * driver only, so a selection on a board without one has nothing to check. */
+/* An SD host driver with DMA, such as the USDHC HAL, may invalidate a read target by whole cache
+ * lines on completion, so a buffer that shares a line with another object can drop that object's
+ * write made during the transfer. The SD layer bounces every buffer that is not aligned to this
+ * value. The symbol exists with an SD host driver only, so a selection on a board without one has
+ * nothing to check. */
 _Static_assert(CONFIG_SDHC_BUFFER_ALIGNMENT >= CONFIG_DCACHE_LINE_SIZE,
                "SDHC DMA buffers must be aligned to a whole D-cache line");
 #endif
@@ -55,9 +54,9 @@ _Static_assert(CONFIG_SDHC_BUFFER_ALIGNMENT >= CONFIG_DCACHE_LINE_SIZE,
 #error "File simulator compositions must be mutually exclusive"
 #endif
 /* One selector for every FatFs-specific behaviour, so a compile check builds what runs. */
-#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_RT1060) ||         \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK) ||                                             \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SDMMC) ||          \
+    defined(CONFIG_CRUX_FILE_FATFS_RAM_DISK) ||                                                    \
+    defined(CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK)
 #define CRUX_FILE_NATIVE_FATFS 1
 #endif
 #if defined(CRUX_FILE_NATIVE_FATFS)

@@ -304,70 +304,99 @@ config CRUX_FILE_FATFS_SIMULATOR
       Experimental native simulator composition on a RAM disk, or on a file-backed flash
       disk whose contents outlive the process; does not mount or format a volume.
 
-config CRUX_FILE_FATFS_RT1060
-    bool "Crux File FatFs provider on an RT1062 microSD card"
-    depends on CRUX_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
-    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+# The FatFs providers on a real medium are chosen by generic disk and devicetree facts, never by a SoC
+# or board name: a board that has the disk gets the provider. Board facts (which SD host, which
+# pins, which disk node) belong to the board's devicetree and to boards/<board>.conf and
+# boards/<board>.overlay of the application (docs/porting-to-a-new-board.md).
+config CRUX_FILE_FATFS_SDMMC
+    bool "Crux File FatFs provider on an SD card"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Link the File provider into an image for a board with the RT1062 SoC and an enabled
-      USDHC with an SD disk in its devicetree. On the RT1060-EVK it needs the Rev B QSPI
-      target. Off by default. It mounts and formats nothing by itself; the project
-      composition owns mount order and recovery. Accepted is not qualified: a board other
-      than the RT1060-EVKB is checked for these facts only.
-      Physical-board evidence is narrow: runs of earlier revisions (2 and 3 November 2026) on
-      one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
-      microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
-      reads. The replace-and-rename power-cut loop (microsd-replace-cut) called Zephyr
-      fs_rename directly, and the card-states-stack probe ran create, rename, stat, list and
-      remove through Zephyr fs_* directly (sample sd_probe.c), not crux_file. It qualifies neither the board, the card nor the
-      Settings File backend. The roots, stat, size, rename and listing operations that
-      crux_file gained later (#224) have no physical run.
+      Link the File provider into an image whose devicetree has an enabled zephyr,sdmmc-disk
+      node, on any board and any SD host controller that Zephyr's SD stack drives. Off by
+      default. It mounts and formats nothing by itself; the project composition owns mount
+      order and recovery. Accepted is not qualified: the physical evidence is narrow, one
+      RT1060-EVKB and one microSD card on earlier revisions (docs/component-readiness.md, the
+      microSD row), and covers neither the board, the card nor another SD host.
+
+config CRUX_FILE_FATFS_RAM_DISK
+    bool "Crux File FatFs provider on a RAM disk"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on DT_HAS_ZEPHYR_RAM_DISK_ENABLED
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH && !SDHC
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    help
+      Link the File provider into an image whose only disk is a RAM disk (an enabled
+      zephyr,ram-disk node), on any board, so that no card can be reached by it and nothing
+      persists across a reset. Off by default. It needs the SD card driver, the SD host
+      controller drivers and the flash disk to be absent: a build that has one is refused here
+      and by the provider's CMake. It mounts and formats nothing by itself; the composition owns
+      the mount, and may format a RAM disk because it is memory. No physical-board result exists
+      for this selection.
+
+config CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    bool "Compile-only Crux File FatFs SD card check"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Compile the File implementation of CRUX_FILE_FATFS_SDMMC as an object-only check, on any
+      board whose devicetree has an enabled zephyr,sdmmc-disk node. This does not link or
+      select a target File provider, mount media, format media, or enable runtime File
+      operations.
+
+# Deprecated names of the three selections above. Each keeps an existing prj.conf working: it
+# selects its replacement and DEPRECATED, so Zephyr's Kconfig prints "Deprecated symbol ... is
+# enabled". They have the replacement's dependencies and no SoC or board dependency. They stay
+# through the first tagged Crux release that carries them and are removed in the tagged release
+# after it (docs/file-contract.md#migration-notes).
+config CRUX_FILE_FATFS_RT1060
+    bool "Crux File FatFs provider on an SD card [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    select DEPRECATED
+    select CRUX_FILE_FATFS_SDMMC
+    help
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_SDMMC instead.
 
 config CRUX_FILE_FATFS_RT1060_RAM_DISK
-    bool "Crux File FatFs provider on a RAM disk of an RT1062 board"
-    depends on CRUX_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
-    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
+    bool "Crux File FatFs provider on a RAM disk [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on DT_HAS_ZEPHYR_RAM_DISK_ENABLED
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH && !SDHC
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    select DEPRECATED
+    select CRUX_FILE_FATFS_RAM_DISK
     help
-      Link the File provider into an RT1062 image (on the RT1060-EVK, the Rev B QSPI target)
-      whose only disk is a RAM disk, so that no card can be reached by it and nothing persists
-      across a reset. Off by default. It needs the
-      SD card driver to be absent: a build that has both is refused here and by the provider's
-      CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
-      format a RAM disk because it is memory. Used by the bench image of the integrated
-      management composition (tests/zephyr/management_rt1060_compile, which declares it).
-      No physical-board result exists for this selection.
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_RAM_DISK instead.
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
-    bool "Compile-only Crux File FatFs RT1060 SDHC check"
-    depends on CRUX_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
-    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    bool "Compile-only Crux File FatFs SD card check [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
+    select DEPRECATED
+    select CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
     help
-      Compile the File implementation and RT1062 SDHC/FatFs composition as an
-      object-only check, on any board with the RT1062 SoC and an enabled USDHC with an SD
-      disk (on the RT1060-EVK, the Rev B QSPI target). This does not link or select a
-      target File provider, mount media, format media, or enable runtime File operations.
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK instead.
 
 config CRUX_FILE_RELIANCE_EDGE
     bool "Crux File provider on Reliance Edge"
     depends on CRUX_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
-    depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
-    depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
+    depends on !CRUX_FILE_FATFS_SDMMC && !CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RAM_DISK
     help
       Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
       works on any board that has the file system, and names are stored as they are, with no
@@ -404,17 +433,19 @@ config CRUX_FILE_DIR_POOL_SIZE
       (the build checks it). The Host build has the CMake cache variable
       CRUX_FILE_DIR_POOL_SIZE with the same default.
 
-# The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
-# cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
-# adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
+# An SD host driver with DMA, such as the USDHC HAL, may invalidate a read target by whole D-cache
+# lines when a transfer completes, so the SD card selections and Reliance Edge take line-aligned
+# targets only. 32 bytes is the line of a Cortex-M7; a CPU with a longer line sets the value in its
+# board configuration. With an SD host and a data cache, file_native.c refuses a value below the
+# cache line size. With an SD host, the Reliance Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT
+# below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
+    default 32 if CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
                   CRUX_FILE_RELIANCE_EDGE
 
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    default 32 if CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
 
 config CRUX_MMC_CACHE_FLUSH
     bool "Flush the eMMC cache on disk sync (build-local MMC stack correction)"
