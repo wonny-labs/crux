@@ -78,7 +78,7 @@ REQUIRED = ['CONFIG_DISK_DRIVER_MMC=y', 'CONFIG_MMC_STACK=y', 'CONFIG_CRUX_MMC_C
             'CONFIG_SDHC_BUFFER_ALIGNMENT=32', 'CONFIG_CRUX_FS_RELIANCE_EDGE=y',
             'CONFIG_CRUX_FILE_RELIANCE_EDGE=y']
 UNSET = ['CONFIG_DISK_DRIVER_SDMMC', 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT', 'CONFIG_FAT_FILESYSTEM_ELM',
-         'CONFIG_CRUX_FILE_FATFS_RT1060']
+         'CONFIG_CRUX_FILE_FATFS_RT1060', 'CONFIG_CRUX_FILE_FATFS_SDMMC']
 
 # Each scenario is (name, mount at boot, Configuration on the Settings File backend).
 SCENARIOS = [('crux.sample.boards.mimxrt1060_evk.emmc_file', False, False), ('crux.sample.boards.mimxrt1060_evk.emmc_file.start', True, False),

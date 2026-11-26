@@ -158,27 +158,38 @@ for name, line in wanted.items():
 print(f'RT1060 probe link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
 
-# Negative control: the same check on Rev C and on the hyperflash variant must be refused, not
-# skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
+# The check is selected by devicetree facts, not by board name or revision: Rev C and the hyperflash
+# variant have the same SD card node, so they configure and compile the same File object.
 for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do
-    control="$repo/build/zephyr/file-rt1060-refused-${other//[@\/]/_}"
-    if (cd "$workspace" && west build -p always -b "$other" -d "$control" \
-            "$repo/tests/zephyr/file_fatfs_compile" > "$control.log" 2>&1); then
-        echo "RT1060 File compile check was not refused on $other" >&2
-        exit 1
-    fi
-    # The refusal must come from the guard: Kconfig names the unmet Rev B / QSPI dependency, which
-    # applies on the RT1060-EVK only and is printed as '(!BOARD_MIMXRT1060_EVK || ...) (=n)'.
-    grep -q 'BOARD_REVISION_B)* (=n)\|BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI)* (=n)' <(tr '\n' ' ' < "$control.log") || {
-        echo "RT1060 File compile check was refused on $other without the board guard" >&2
-        exit 1
-    }
-    grep -q 'compile check is not selected' "$control.log" || {
-        echo "RT1060 File compile check failed on $other for another reason" >&2
-        exit 1
-    }
-    echo "RT1060 File compile check refused on $other, as intended"
+    variant="$repo/build/zephyr/file-rt1060-variant-${other//[@\/]/_}"
+    (cd "$workspace" && west build -p always --cmake-only -b "$other" -d "$variant" \
+        "$repo/tests/zephyr/file_fatfs_compile")
+    grep -qx 'CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK=y' "$variant/zephyr/.config"
+    cmake --build "$variant" --target crux_file_target_compile_only
+    echo "SD card File compile check built on $other"
 done
+
+# Negative control: without an enabled zephyr,sdmmc-disk node the check must be refused, not
+# skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
+control="$repo/build/zephyr/file-rt1060-refused-no-sd-disk"
+mkdir -p "$(dirname "$control")"
+printf '&usdhc1 { sdmmc { status = "disabled"; }; };\n' > "$control.overlay"
+if (cd "$workspace" && west build -p always -b "$board" -d "$control" \
+        "$repo/tests/zephyr/file_fatfs_compile" -- -DEXTRA_DTC_OVERLAY_FILE="$control.overlay" \
+        > "$control.log" 2>&1); then
+    echo "SD card File compile check was not refused without an SD card disk node" >&2
+    exit 1
+fi
+# The refusal must come from the devicetree fact: Kconfig names the unmet disk-node dependency.
+grep -q 'DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED[) ]*(=n)' <(tr '\n' ' ' < "$control.log") || {
+    echo "SD card File compile check was refused without the disk-node dependency" >&2
+    exit 1
+}
+grep -q 'compile check is not selected' "$control.log" || {
+    echo "SD card File compile check failed without an SD card disk node for another reason" >&2
+    exit 1
+}
+echo "SD card File compile check refused without an SD card disk node, as intended"
 
 # A board with its own name and the RT1062 SoC: the fictional compile-only fixture
 # (tests/zephyr/board_fixture) must select the same check by SoC and devicetree, and compile the
@@ -186,6 +197,6 @@ done
 fixture="$repo/build/zephyr/file-rt1060-fixture"
 (cd "$workspace" && west build -p always --cmake-only -b crux_rt1062_fixture -d "$fixture" \
     "$repo/tests/zephyr/file_fatfs_compile" -- -DBOARD_ROOT="$repo/tests/zephyr/board_fixture")
-grep -qx 'CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK=y' "$fixture/zephyr/.config"
+grep -qx 'CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK=y' "$fixture/zephyr/.config"
 cmake --build "$fixture" --target crux_file_target_compile_only
 echo "RT1060 File compile check built on the fictional board crux_rt1062_fixture"
