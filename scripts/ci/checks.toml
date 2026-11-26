@@ -139,23 +139,39 @@ web-ui = [
 [jobs.host]
 description = "Linux Host builds, unit tests, sanitizers, static analysis and boundaries"
 [jobs.host-build-tests]
-description = "The Python checks of the build, validation and CI tooling"
+description = "The Python checks of the build, validation and CI tooling, without the large cases"
+[jobs.host-build-tests-large]
+description = "The large cases of the Python tooling tests, listed in scripts/ci/large-tests.txt"
 # The Zephyr jobs build for the board in CRUX_BOARD_TARGET (scripts/lib/board.sh,
 # tests/README.md#board-input); a CI system or a developer may set another.
+[jobs.zephyr-emmc]
+description = "Zephyr eMMC stack, power-cut replay and Reliance Edge on native_sim"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-storage]
-description = "Zephyr storage, File, Time and product template checks"
+description = "Zephyr patch style, storage simulators, Flash fault paths and Time"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
+[jobs.zephyr-file]
+description = "Zephyr File compile and link checks for the RT1060, eMMC included"
 env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-controller]
-description = "Zephyr smoke builds, execution candidates and controller checks"
+description = "Zephyr smoke builds, execution candidates, controller, product template and networking"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
+[jobs.zephyr-integration]
+description = "Zephyr controller integration, reboot sanitizers and Time busy-wait"
 env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-runtime]
-description = "Zephyr portable execution, messaging, Logging, System and boot composition"
+description = "Zephyr portable execution, messaging, Logging and boot composition"
+env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
+[jobs.zephyr-system]
+description = "Zephyr out-of-tree consumer, System and Serial"
 env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.zephyr-io]
-description = "Zephyr Serial, command line, GPIO, I2C, SPI, web and networking"
+description = "Zephyr command line, GPIO, I2C, SPI and web"
 env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 [jobs.psa-crypto]
-description = "TF-PSA-Crypto and the Mbed TLS management composition"
+description = "TF-PSA-Crypto and the PSA ports"
+[jobs.psa-management]
+description = "The Mbed TLS management composition, web and image"
 [jobs.web-specification]
 description = "The management API specification lint"
 [jobs.web-client]
@@ -225,7 +241,7 @@ fast = ["security-event"]
 id = "mgmt-services-host"
 job = "host"
 run = "./scripts/test-mgmt-services.sh"
-fast = ["mgmt-services"]
+fast = "always"
 
 [[check]]
 id = "web-host"
@@ -237,7 +253,7 @@ fast = ["web"]
 id = "portable-execution-host"
 job = "host"
 run = "./scripts/test-portable-execution.sh --host-only"
-fast = ["execution"]
+fast = "always"
 
 [[check]]
 id = "file-consumers"
@@ -247,7 +263,7 @@ cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE
 cmake --build build/file-consumers
 ctest --test-dir build/file-consumers --output-on-failure
 """
-fast = ["file"]
+fast = "always"
 
 [[check]]
 id = "file-service-host"
@@ -259,7 +275,7 @@ fast = ["file", "file-service"]
 id = "messaging-host"
 job = "host"
 run = "./scripts/test-messaging.sh --host-only"
-fast = ["messaging", "execution"]
+fast = "always"
 
 [[check]]
 id = "format"
@@ -271,20 +287,23 @@ fast = "always"
 id = "serial-host"
 job = "host"
 run = "./scripts/test-serial.sh --host-only"
-fast = ["serial"]
+fast = "always"
 
 [[check]]
 id = "logging-host"
 job = "host"
 run = "./scripts/test-logging.sh --host-only"
-fast = ["logging"]
+fast = "always"
 
 [[check]]
 id = "system-host"
 job = "host"
 run = "./scripts/test-system.sh --host-only"
-fast = ["system"]
+fast = "always"
 
+# static-analysis reads the compile databases of the consumer builds that scripts/tidy-sources.conf
+# lists, so the checks that make them run in the fast tier too: portable-execution-host,
+# file-consumers, messaging-host, serial-host, logging-host, system-host and mgmt-services-host.
 [[check]]
 id = "static-analysis"
 job = "host"
@@ -308,17 +327,36 @@ scope = "always"
 fast = "always"
 
 [[check]]
-id = "build-tests-large"
-job = "host-build-tests"
-run = "CLANG_TIDY=clang-tidy-18 python3 scripts/ci/run_unittests.py -s tests/build --only-from scripts/ci/large-tests.txt"
-scope = "always"
-fast = ["repository-tests"]
-
-[[check]]
 id = "power-cut-wrapper"
 job = "host-build-tests"
 run = "python3 -m unittest discover -s tests/power_cut -v"
 fast = "always"
+
+# --- host-build-tests-large ---------------------------------------------------------------------
+
+[[check]]
+id = "build-tests-large"
+job = "host-build-tests-large"
+run = "CLANG_TIDY=clang-tidy-18 python3 scripts/ci/run_unittests.py -s tests/build --only-from scripts/ci/large-tests.txt"
+scope = "always"
+fast = ["repository-tests"]
+
+# --- zephyr-emmc --------------------------------------------------------------------------------
+
+# The GPLv2 Reliance Edge source is the optional west group crux-reliance, which
+# bootstrap-zephyr.sh does not enable, so this check and file-emmc-compile enable the group
+# themselves. Each is the last check of its job, so that no earlier check runs with the group
+# enabled. Images that link the source are test images: nothing here is uploaded as a named
+# zephyr.elf or zephyr.bin, and the link check writes outside the twister-* directories that the
+# evidence collection matches.
+[[check]]
+id = "emmc-reliance-edge"
+job = "zephyr-emmc"
+scope = "not-docs"
+run = """
+(cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
+CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
+"""
 
 # --- zephyr-storage -----------------------------------------------------------------------------
 
@@ -340,13 +378,6 @@ scope = "not-docs"
 run = "scripts/test-storage-simulators.sh"
 fast = ["file"]
 
-[[check]]
-id = "file-rt1060-compile"
-job = "zephyr-storage"
-scope = "not-docs"
-run = "scripts/test-file-rt1060-compile.sh"
-fast = ["file"]
-
 # Uses the already-fetched pinned sources and host C compiler.
 [[check]]
 id = "flash-poc-fault-paths"
@@ -360,24 +391,22 @@ job = "zephyr-storage"
 scope = "not-docs"
 run = "scripts/test-zephyr-time.sh \"$CRUX_BOARD_TARGET\""
 
-[[check]]
-id = "product-template"
-job = "zephyr-storage"
-scope = "not-docs"
-run = "scripts/test-product-template.sh \"$CRUX_BOARD_TARGET\""
+# --- zephyr-file --------------------------------------------------------------------------------
 
-# The GPLv2 Reliance Edge source is the optional west group crux-reliance, which
-# bootstrap-zephyr.sh does not enable, so this check enables the group itself. It is the last
-# storage check, so that no earlier check runs with the group enabled. Images that link the source
-# are test images: nothing here is uploaded as a named zephyr.elf or zephyr.bin, and the link
-# check writes outside the twister-* directories that the evidence collection matches.
 [[check]]
-id = "emmc-reliance-edge"
-job = "zephyr-storage"
+id = "file-rt1060-compile"
+job = "zephyr-file"
+scope = "not-docs"
+run = "scripts/test-file-rt1060-compile.sh"
+fast = ["file"]
+
+# The second half of the former emmc-reliance-edge check: see that check for the west group.
+[[check]]
+id = "file-emmc-compile"
+job = "zephyr-file"
 scope = "not-docs"
 run = """
 (cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
-CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
 scripts/test-file-emmc-compile.sh
 """
 
@@ -405,13 +434,6 @@ run = "scripts/test-controller.sh"
 fast = ["controller"]
 
 [[check]]
-id = "controller-integration"
-job = "zephyr-controller"
-scope = "not-docs"
-run = "scripts/test-controller-integration.sh"
-fast = ["controller", "networking"]
-
-[[check]]
 id = "rt1170-cross-build"
 job = "zephyr-controller"
 scope = "not-docs"
@@ -425,6 +447,53 @@ scope = "not-docs"
 run = "./scripts/test-m5-integrated-smoke.sh"
 fast = ["controller"]
 
+[[check]]
+id = "product-template"
+job = "zephyr-controller"
+scope = "not-docs"
+run = "scripts/test-product-template.sh \"$CRUX_BOARD_TARGET\""
+
+# scripts/test-networking-physical.sh reads the Picolibc checkout that
+# scripts/bootstrap-networking-tests.sh fetches, so both stay in this job, in this order.
+[[check]]
+id = "networking"
+job = "zephyr-controller"
+scope = "not-docs"
+run = """
+scripts/bootstrap-networking-tests.sh
+scripts/test-networking.sh
+"""
+fast = ["networking"]
+
+[[check]]
+id = "networking-physical-fixture"
+job = "zephyr-controller"
+scope = "not-docs"
+run = "scripts/test-networking-physical.sh"
+fast = ["networking"]
+
+# --- zephyr-integration -------------------------------------------------------------------------
+
+[[check]]
+id = "controller-integration"
+job = "zephyr-integration"
+scope = "not-docs"
+run = "scripts/test-controller-integration.sh"
+fast = ["controller", "networking"]
+
+[[check]]
+id = "reboot-native-sanitizers"
+job = "zephyr-integration"
+scope = "not-docs"
+run = "scripts/test-reboot-native.sh"
+fast = ["reboot"]
+
+[[check]]
+id = "time-busy-wait"
+job = "zephyr-integration"
+scope = "not-docs"
+run = "scripts/test-time-busy-wait.sh"
+
 # --- zephyr-runtime -----------------------------------------------------------------------------
 
 [[check]]
@@ -435,32 +504,11 @@ run = "scripts/test-portable-execution.sh"
 fast = ["execution"]
 
 [[check]]
-id = "reboot-native-sanitizers"
-job = "zephyr-runtime"
-scope = "not-docs"
-run = "scripts/test-reboot-native.sh"
-fast = ["reboot"]
-
-[[check]]
-id = "time-busy-wait"
-job = "zephyr-runtime"
-scope = "not-docs"
-run = "scripts/test-time-busy-wait.sh"
-
-[[check]]
 id = "messaging"
 job = "zephyr-runtime"
 scope = "not-docs"
 run = "scripts/test-messaging.sh"
 fast = ["messaging", "execution"]
-
-# Runs the consumer's own levels from a copy outside this tree: Twister, a console oracle on
-# native_sim and a controlled defect. No hardware.
-[[check]]
-id = "consumer-poc-zephyr"
-job = "zephyr-runtime"
-scope = "not-docs"
-run = "CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v"
 
 [[check]]
 id = "logging-evkb"
@@ -468,13 +516,6 @@ job = "zephyr-runtime"
 scope = "not-docs"
 run = "./scripts/test-logging.sh"
 fast = ["logging"]
-
-[[check]]
-id = "system-evkb"
-job = "zephyr-runtime"
-scope = "not-docs"
-run = "./scripts/test-system.sh"
-fast = ["system"]
 
 # MCUboot is the optional west group crux-boot, and bootstrap-zephyr.sh runs a plain west update,
 # so the script enables the group itself. It is the last runtime check, so that no earlier check
@@ -486,14 +527,31 @@ job = "zephyr-runtime"
 scope = "not-docs"
 run = "scripts/test-boot-composition.sh"
 
-# --- zephyr-io ----------------------------------------------------------------------------------
+# --- zephyr-system ------------------------------------------------------------------------------
+
+# Runs the consumer's own levels from a copy outside this tree: Twister, a console oracle on
+# native_sim and a controlled defect. No hardware.
+[[check]]
+id = "consumer-poc-zephyr"
+job = "zephyr-system"
+scope = "not-docs"
+run = "CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v"
+
+[[check]]
+id = "system-evkb"
+job = "zephyr-system"
+scope = "not-docs"
+run = "./scripts/test-system.sh"
+fast = ["system"]
 
 [[check]]
 id = "serial-zephyr"
-job = "zephyr-io"
+job = "zephyr-system"
 scope = "not-docs"
 run = "scripts/test-serial.sh"
 fast = ["serial"]
+
+# --- zephyr-io ----------------------------------------------------------------------------------
 
 [[check]]
 id = "cli-zephyr"
@@ -544,25 +602,6 @@ scope = "not-docs"
 run = "scripts/test-web-assets.sh native"
 fast = ["web", "web-ui"]
 
-# scripts/test-networking-physical.sh reads the Picolibc checkout that
-# scripts/bootstrap-networking-tests.sh fetches, so both stay in this job, in this order.
-[[check]]
-id = "networking"
-job = "zephyr-io"
-scope = "not-docs"
-run = """
-scripts/bootstrap-networking-tests.sh
-scripts/test-networking.sh
-"""
-fast = ["networking"]
-
-[[check]]
-id = "networking-physical-fixture"
-job = "zephyr-io"
-scope = "not-docs"
-run = "scripts/test-networking-physical.sh"
-fast = ["networking"]
-
 # --- psa-crypto ---------------------------------------------------------------------------------
 # A default job must not select the GPL stacks, so wolfPSA does not run here: see
 # docs/psa-crypto-qualification.md.
@@ -586,13 +625,6 @@ run = "scripts/test-psa-crypto.sh target tf-psa-crypto"
 scope = "psa-crypto"
 
 [[check]]
-id = "web-evkb-mbedtls"
-job = "psa-crypto"
-run = "scripts/test-web.sh target mbedtls"
-scope = "psa-crypto"
-fast = ["web"]
-
-[[check]]
 id = "psa-ports-host"
 job = "psa-crypto"
 run = "scripts/test-native-composition.sh host"
@@ -605,42 +637,52 @@ run = "scripts/test-tls-offload-probe.sh mbed"
 scope = "psa-crypto"
 
 [[check]]
-id = "management-composition-mbed"
+id = "psa-ports-evkb"
 job = "psa-crypto"
+run = "scripts/test-native-composition.sh target-mbed"
+scope = "psa-crypto"
+
+# --- psa-management -----------------------------------------------------------------------------
+# The same rule as psa-crypto: no GPL stack.
+
+[[check]]
+id = "web-evkb-mbedtls"
+job = "psa-management"
+run = "scripts/test-web.sh target mbedtls"
+scope = "psa-crypto"
+fast = ["web"]
+
+[[check]]
+id = "management-composition-mbed"
+job = "psa-management"
 run = "scripts/test-native-composition.sh mbed"
 scope = "psa-crypto"
 fast = ["mgmt-services"]
 
 [[check]]
 id = "management-module-mbed"
-job = "psa-crypto"
+job = "psa-management"
 run = "scripts/test-management-module.sh"
 scope = "psa-crypto"
 fast = ["mgmt-services"]
 
 [[check]]
 id = "web-https-mbedtls"
-job = "psa-crypto"
+job = "psa-management"
 run = "scripts/test-web.sh https mbedtls"
 scope = "psa-crypto"
 fast = ["web"]
 
 [[check]]
 id = "web-session-native"
-job = "psa-crypto"
+job = "psa-management"
 run = "scripts/test-web-session.sh native"
 scope = "psa-crypto"
 fast = ["web"]
 
 [[check]]
-id = "psa-ports-evkb"
-job = "psa-crypto"
-run = "scripts/test-native-composition.sh target-mbed"
-scope = "psa-crypto"
-
-[[check]]
 id = "management-image-rt1060-mbed"
-job = "psa-crypto"
+job = "psa-management"
 run = "scripts/test-management-mbed-rt1060.sh build"
 scope = "psa-crypto"
 

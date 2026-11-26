@@ -24,9 +24,9 @@ fi
 
 # The Python tools of each job, as pinned in the GitHub workflows.
 case "$job" in
-    host | host-build-tests) tools="cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pyyaml==6.0.3" ;;
+    host | host-*) tools="cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pyyaml==6.0.3" ;;
     zephyr-*) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0 clang-format==18.1.8" ;;
-    psa-crypto) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0" ;;
+    psa-*) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0" ;;
     coverage-host) tools="cmake==3.28.4 ninja==1.11.1 gcovr==8.3" ;;
     coverage-native-sim) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0 gcovr==8.3" ;;
     docs | web-*) tools="" ;;
@@ -55,7 +55,7 @@ case "$job" in
     zephyr-* | coverage-native-sim)
         scripts/bootstrap-zephyr.sh --install-sdk
         ;;
-    psa-crypto)
+    psa-*)
         (cd "$CRUX_WORKSPACE" && west init -l "$repo" && west config manifest.project-filter -- +mbedtls,+tf-psa-crypto)
         scripts/bootstrap-zephyr.sh --install-sdk
         ;;
