@@ -27,25 +27,29 @@ class SystemCompositionTest(unittest.TestCase):
             'task_fallback': ('', 'CONFIG_TASK_WDT=y\nCONFIG_TASK_WDT_HW_FALLBACK=y\n', 'conflicts with native owner CONFIG_TASK_WDT_HW_FALLBACK'),
             'evkb_missing': ('/ { aliases { /delete-property/ crux-watchdog0; }; };', '', 'requires explicit crux-watchdog0'),
             'evkb_disabled': ('&wdog0 { status = "disabled"; };', '', 'watchdog must be enabled'),
-            'evkb_wrong': ('/ { aliases { crux-watchdog0 = &wdog1; }; };\n&wdog1 { status = "okay"; };', '', 'requires the qualified RT1060 WDOG1'),
+            # The watchdog is chosen by devicetree and its code by compatible: WDOG2, another nxp,imx-wdog
+            # node, builds; a node of another driver is refused.
+            'evkb_wdog2': ('/ { aliases { crux-watchdog0 = &wdog1; }; };\n&wdog1 { status = "okay"; };', '', None),
+            'evkb_other_driver': ('/ { aliases { crux-watchdog0 = &other_wdt; }; '
+                                  'other_wdt: other-wdt { compatible = "test,watchdog"; status = "okay"; }; };', '',
+                                  'Crux System unsupported watchdog driver'),
             # ADR-0005: the native_sim test watchdog is refused on the board (the component's configure error,
             # with the binding's #error as the second line) and does not bypass the existing native checks.
             'evkb_native_sim_watchdog': ('', 'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG=y\n',
                                          'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG is a native_sim test setting'),
             'sim_watchdog_no_watchdog': ('', 'CONFIG_CRUX_SYSTEM_NATIVE_SIM_WATCHDOG=y\nCONFIG_WATCHDOG=n\n',
                                          'requires CONFIG_WATCHDOG=y'),
-            'evkb_revision': ('', '', 'unsupported EVKB board revision'),
-            # A custom board with an i.MX RT1062 and its own board name: accepted by SoC and
-            # devicetree (WDOG1 at 0x400b8000); the qualification asserts still refuse the rest.
+            # No board revision check: Rev C of the EVK builds, by its devicetree like any board.
+            'evk_revision_c': ('', '', None),
+            # A custom board with an i.MX RT1062 and its own board name: accepted by devicetree, as
+            # every board is.
             'custom_positive': ('', '', None),
             'custom_missing': ('/ { aliases { /delete-property/ crux-watchdog0; }; };', '',
                                'requires explicit crux-watchdog0'),
             'custom_disabled': ('&wdog0 { status = "disabled"; };', '', 'watchdog must be enabled'),
-            'custom_wrong': ('/ { aliases { crux-watchdog0 = &wdog1; }; };\n&wdog1 { status = "okay"; };', '',
-                             'requires the qualified RT1060 WDOG1'),
-            # Another SoC with the same watchdog block and address stays refused.
-            'other_soc': ('/ { aliases { crux-watchdog0 = &wdog0; }; };\n&wdog0 { status = "okay"; };', '',
-                          'Crux System unsupported SoC or watchdog resource'),
+            'custom_wdog2': ('/ { aliases { crux-watchdog0 = &wdog1; }; };\n&wdog1 { status = "okay"; };', '', None),
+            # Another SoC with the same watchdog block builds: no SoC or board name is checked.
+            'other_soc': ('/ { aliases { crux-watchdog0 = &wdog0; }; };\n&wdog0 { status = "okay"; };', '', None),
         }
         selected = os.environ.get('CRUX_SYSTEM_COMPOSITION_CASE')
         if selected and selected not in cases:
@@ -59,7 +63,7 @@ class SystemCompositionTest(unittest.TestCase):
                 (case / 'case.overlay').write_text(overlay)
                 (case / 'case.conf').write_text(config)
                 custom = name.startswith('custom_')
-                target = name.startswith('evkb_') or custom or name == 'other_soc'
+                target = name.startswith(('evkb_', 'evk_')) or custom or name == 'other_soc'
                 modules = [str(REPO)]
                 if target:
                     modules += subprocess.check_output(
@@ -68,7 +72,7 @@ class SystemCompositionTest(unittest.TestCase):
                 board = 'mimxrt1060_evk@B//qspi' if target else 'native_sim/native/64'
                 build = root / ('evkb-build' if target else 'native-build')
                 extra = []
-                if name == 'evkb_revision':
+                if name == 'evk_revision_c':
                     board = 'mimxrt1060_evk@C//qspi'
                     build = root / 'revision-build'
                 elif custom:

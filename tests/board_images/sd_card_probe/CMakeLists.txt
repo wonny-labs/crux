@@ -4,8 +4,8 @@ list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_sd_card_probe C)
 # An unsatisfied Kconfig dependency only warns, which would build an image without the provider.
-if(NOT CONFIG_CRUX_FILE_FATFS_RT1060)
-  message(FATAL_ERROR "The RT1060 File provider is not selected: it requires the Rev B QSPI board")
+if(NOT CONFIG_CRUX_FILE_FATFS_SDMMC)
+  message(FATAL_ERROR "The SD card File provider is not selected: it requires an enabled zephyr,sdmmc-disk node and the SD card disk driver")
 endif()
 target_sources(app PRIVATE main.c sd_probe.c ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/sd_card_file/sd_storage.c
   ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/sd_card_file/sd_file_check.c)

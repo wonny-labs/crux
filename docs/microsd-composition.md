@@ -35,17 +35,16 @@ checked; FatFs fails an unmount only if the volume was not mounted) and leaves t
 component unbound, so a later `sd_storage_start()` can succeed. The Settings File backend
 is not part of this sequence; its target provider is a separate decision.
 
-Selection: `CONFIG_CRUX_FILE_FATFS_RT1060` links the File provider into an EVKB Rev B image.
-It is off by default and requires the RT1062 SoC, an enabled `nxp,imx-usdhc` node with a
-`zephyr,sdmmc-disk` child, and the guarded FatFs/SDHC configuration (Kconfig, the File port CMake
-and a C `#error` for the SoC; the testcase and sample CMake turn an unsatisfied dependency into an
-error because Kconfig only warns). On the RT1060-EVK it also requires the Rev B QSPI target
-(`BOARD_REVISION_B` and `BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI`, in Kconfig and the File port
-CMake), so Rev C and the hyperflash variant are refused. Since the owner's decision of
-2026-11-16 a board with another name and the RT1062 SoC can select it; that is accepted, not
+Selection: `CONFIG_CRUX_FILE_FATFS_SDMMC` links the File provider into the image.
+It is off by default and requires an enabled `zephyr,sdmmc-disk` node, the SD card disk driver
+and the guarded FatFs configuration (Kconfig, the File port CMake and a C `#error`; the testcase
+and sample CMake turn an unsatisfied dependency into an error because Kconfig only warns). It names
+no SoC, board or revision, so any board with the disk node can select it; that is accepted, not
 qualified: the evidence below is one RT1060-EVKB and one card, and the selection compiles on a
-fictional test board only (`tests/zephyr/board_fixture`). The older
-`CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` object-only check remains.
+fictional test board only (`tests/zephyr/board_fixture`). The object-only check is
+`CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK`. The earlier names, `CONFIG_CRUX_FILE_FATFS_RT1060`
+and `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK`, are deprecated aliases
+([migration notes](file-contract.md#migration-notes)).
 `CONFIG_SAMPLE_SD_START` (off by default) makes the sample image run the mount sequence at
 boot.
 
@@ -88,7 +87,7 @@ transfer completes, so a buffer sharing a line with another object could lose th
 made during the transfer. No failing caller was found: the Crux File component serialises on one
 lock, and the hardware samples read into stack buffers owned by the blocked thread. The FatFs sector
 window in the static `FATFS` object was also a read target in those images, and no link map was
-inspected for what shared its last line. The two RT1060 File selections now set `SDHC_BUFFER_ALIGNMENT` and `FS_FATFS_WINDOW_ALIGNMENT` to 32
+inspected for what shared its last line. The two SD card File selections (`CRUX_FILE_FATFS_SDMMC` and its compile check) set `FS_FATFS_WINDOW_ALIGNMENT` to 32, and with the USDHC driver `SDHC_BUFFER_ALIGNMENT` too,
 (`zephyr/Kconfig`), which sends every target that is not line-aligned through the SD layer's bounce
 buffer, and a compile-time check in `file_native.c` refuses a smaller value. The sizes above and
 every physical result below predate this change and ran with the Zephyr defaults (SDHC alignment

@@ -65,7 +65,7 @@ crux_status_t crux_watchdog_impl_start(uint32_t timeout_ms)
     }
     const struct wdt_timeout_cfg cfg = {
         .window = {.min = 0, .max = timeout_ms}, .callback = NULL, .flags = WDT_FLAG_RESET_SOC};
-    /* Pinned RT1060 driver has exactly channel zero. Any other return is
+    /* The pinned nxp,imx-wdog driver has exactly channel zero. Any other return is
      * uncertain installation; common code quarantines, never disables/retries. */
     if (wdt_install_timeout(device, &cfg) != 0) {
         return CRUX_ERR_IO;

@@ -46,9 +46,10 @@ DEBUG source ceiling, visible severity, a native line boundary and the common Cr
 processing, UART TEXT output, autostart, drop-new, no capacity wait, no runtime
 native filter or extra backend. An explicit single enabled chosen log UART is
 required. Native_sim uses a dedicated UART emulator separate from its harness
-Console. The approved revision-B EVKB LPUART1 profile (the EVKB accepts no other log UART),
-and any other RT1062 board under the same conditions (any enabled LPUART, accepted by SoC and
-devicetree), compiles UART_CONSOLE as the
+Console. On any board the log UART is the enabled node that the devicetree chooses, of a reviewed
+UART driver selected by compatible (`nxp,lpuart`); no board, SoC or revision is checked. The
+EVKB composition chooses LPUART1.
+An image whose log UART is also the Console compiles UART_CONSOLE as the
 pinned backend's prerequisite but disables direct Console stdout, input and
 subsystem helpers, early Console and Shell; printk routes through native Logging.
 Build checks reject other Console-sharing configurations. See validation evidence
