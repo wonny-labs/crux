@@ -9,6 +9,9 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 for configuration in normal missing-rtc; do
     build="$repo/build/zephyr/controller-$configuration"
     extra=()
@@ -22,6 +25,6 @@ for configuration in normal missing-rtc; do
         --native-sim --log "$build/scenario.log"
 done
 # Build only: no debugger, serial transport, programming or reset.
-(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/controller-evkb" "$repo/tests/time_periodic/zephyr" -- \
+(cd "$workspace" && west build -p always -b "$board" \
+    -d "$repo/build/zephyr/controller-$(crux_board_tag "$board")" "$repo/tests/time_periodic/zephyr" -- \
     -DZEPHYR_EXTRA_MODULES="$repo")

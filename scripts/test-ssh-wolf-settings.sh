@@ -37,7 +37,12 @@ workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 output="${CRUX_SSH_WOLF_OUTPUT:-$repo/build/zephyr/ssh-wolf-settings}"
 jobs="${CRUX_SSH_WOLF_JOBS:-3}"
 probe="$repo/tests/zephyr/ssh_wolf_probe"
-board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+if [[ "$run_target" == true || "$run_controls" == true ]]; then
+    crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
+fi
 native_board='native_sim/native/64'
 zephyr_revision=dccb09599635bdff17633fa7e9dab014b91dce90
 

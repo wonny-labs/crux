@@ -30,6 +30,22 @@ Run these in the Dev Container, from the repository root. Choose the ones that f
 
 `scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. CI runs most of these checks; the workflow files under `.github/workflows/` define what it covers, and its Zephyr part skips a pull request that changes only documentation. Some runners named in [Component readiness](../docs/component-readiness.md) run locally only. Push the branch to a draft pull request to see the CI results, and say in the pull request which checks you did not run.
 
+## Board input
+
+The Zephyr scripts take the board from `CRUX_BOARD_TARGET`, a `west build -b` board target such as `mimxrt1060_evk@B//qspi`. It does for these scripts what west's `build.board` option does for `west build` ([Setting a Default Board](https://docs.zephyrproject.org/latest/develop/west/build-flash-debug.html#setting-a-default-board)). Unset, each script builds the board it always built. `scripts/lib/board.sh` holds the rules.
+
+| Scripts | Board |
+| --- | --- |
+| `test-time-periodic.sh`, `test-time-busy-wait.sh`, `test-execution.sh`, `test-portable-execution.sh`, `test-m5-integrated-smoke.sh`, `test-serial.sh`, `test-logging.sh`, `test-system.sh`; `test-zephyr-time.sh`, which also takes it as its argument | `CRUX_BOARD_TARGET`, default `mimxrt1060_evk@B//qspi`. The application decides whether it supports the board: one without an overlay for it fails at configuration. These scripts list the NXP HAL modules, so a board of another vendor also needs its HAL module added |
+| `check-zephyr-smoke.sh` | `CRUX_BOARD_TARGET`; without it the board build is skipped |
+| `build-target.sh`, `build-debug-target.sh`, `test-product-template.sh` | Their argument (CI passes `CRUX_BOARD_TARGET`) |
+| `test-integration-probe-rt1170.sh` | RT1170-EVK Rev A CM7 only |
+| `test-networking.sh`, `test-networking-physical.sh`, `test-controller-integration.sh`, `test-flash-safety-check.sh`, `test-boot-composition.sh`, `test-file-rt1060-compile.sh`, `test-file-emmc-compile.sh`, `test-storage-emmc.sh`, `test-management-mbed-rt1060.sh`, and the target modes of `test-web.sh`, `test-psa-crypto.sh`, `test-native-composition.sh`, `test-ssh-provider.sh`, `test-ssh-wolf-settings.sh` and `test-ssh-sftp-compile.sh` | RT1060-EVKB Rev B only |
+| VS Code **Board:** tasks and profiles | `crux.board`, `crux.boardKey` and `crux.jlinkDevice` in `.vscode/settings.json`, default the RT1060-EVKB Rev B ([build guide](../docs/build.md#native_sim-and-the-board-in-vs-code)) |
+| `test-gpio.sh`, `test-i2c.sh`, `test-spi.sh` | Every board with an overlay in the test; `CRUX_BOARD_TARGET` is not read |
+
+A one-board script given another board stops with one line before it builds. The board-generic scripts build in `build/zephyr/<purpose>-<board>`, as west's `build.dir-fmt` names folders after `{board}` ([west configuration](https://docs.zephyrproject.org/latest/develop/west/build-flash-debug.html#configuration-options)). `<board>` is `evkb` for the RT1060-EVKB Rev B and `rt1170` for the RT1170-EVK Rev A CM7, the names these folders already had, and for any other board its full target with every run of other characters replaced by `_`, such as `mimxrt1180_evk_mimxrt1189_cm33` for `mimxrt1180_evk/mimxrt1189/cm33` or `mimxrt1180_evk//cm33`. A board with more than one core needs the core in the target, as `west build` does. `build-target.sh` and `build-debug-target.sh` use `build/zephyr/<board target with _>`.
+
 ## Host: `time/` and `controller/`
 
 GoogleTest/CTest exercises the C17 Time implementation, calendar conversion and the portable command handler against the controlled host backend. The C++ tests include the public C headers and call the C17 implementation; the build does not recompile production `.c` sources as C++. The controller Host tests cover portable scheduling, readiness, freshness, recovery and joint owner-health logic. CTest applies a 30-second limit to each Time host test.

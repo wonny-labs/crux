@@ -23,6 +23,9 @@ if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     exit 2
 fi
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+crux_board_require "$(crux_board_target 'mimxrt1060_evk@B/mimxrt1062/qspi')" 'mimxrt1060_evk@B/mimxrt1062/qspi'
 board='mimxrt1060_evk@B/mimxrt1062/qspi'
 # The name does not start with twister-, so the CI step that collects Twister evidence does not
 # match this directory: it holds the map of an image that links GPLv2 source.

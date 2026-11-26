@@ -7,8 +7,10 @@
       "command": "bash",
       "args": [
         "-c",
-        "app=${1%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $1; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec scripts/build-debug-target.sh mimxrt1060_evk@B//qspi --app \"$app\"",
+        "key=$(printf %s \"$1\" | sed -E 's/[^A-Za-z0-9_.-]+/_/g'); [ -n \"$2\" ] && [ \"$2\" = \"$key\" ] || { echo \"Set crux.boardKey to $key in .vscode/settings.json.\" >&2; exit 1; }; app=${3%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $3; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec scripts/build-debug-target.sh \"$1\" --app \"$app\"",
         "bash",
+        "${config:crux.board}",
+        "${config:crux.boardKey}",
         "${input:sample}"
       ],
       "options": {
@@ -28,7 +30,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "grep -qsx 1366 /sys/bus/usb/devices/*/idVendor || { echo 'No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> (Getting started, section 7).' >&2; exit 1; }; exec west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink"
+        "grep -qsx 1366 /sys/bus/usb/devices/*/idVendor || { echo 'No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> (Getting started, section 7).' >&2; exit 1; }; exec west flash -d build/zephyr/${config:crux.boardKey}--current -r jlink"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -47,7 +49,9 @@
       "command": "bash",
       "args": [
         "-c",
-        "rm -rf -- build/zephyr/mimxrt1060_evk_B_qspi build/zephyr/mimxrt1060_evk_B_qspi--*"
+        "[ -n \"$1\" ] || { echo 'Set crux.boardKey in .vscode/settings.json.' >&2; exit 1; }; rm -rf -- \"build/zephyr/$1\" \"build/zephyr/$1\"--*",
+        "bash",
+        "${config:crux.boardKey}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

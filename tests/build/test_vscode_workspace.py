@@ -42,7 +42,12 @@ NATIVE_SIM_GDB_SCRIPT = VSCODE / "native_sim_debug.py"
 PROBE_MESSAGE = ("No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> "
                  "(Getting started, section 7).")
 USB_DEVICES = "/sys/bus/usb/devices"
-FLASH_COMMAND = "exec west flash -d build/zephyr/mimxrt1060_evk_B_qspi--current -r jlink"
+FLASH_COMMAND = "exec west flash -d build/zephyr/${config:crux.boardKey}--current -r jlink"
+# The board of the Board tasks and profiles: workspace settings, defaulting to the RT1060-EVKB Rev B.
+BOARD_SETTINGS = {"crux.board": "mimxrt1060_evk@B//qspi", "crux.boardKey": "mimxrt1060_evk_B_qspi",
+                  "crux.jlinkDevice": "MIMXRT1062xxx6A"}
+RT1180_SETTINGS = {"crux.board": "mimxrt1180_evk/mimxrt1189/cm33",
+                   "crux.boardKey": "mimxrt1180_evk_mimxrt1189_cm33", "crux.jlinkDevice": "MIMXRT1189xxx8_M33"}
 NATIVE_SIM_DATABASE = "build/native_sim"
 DEFAULT_DATABASE = "build/clangd"
 # GCC options that Zephyr adds to native_sim builds and that clang rejects or ignores.
@@ -56,6 +61,12 @@ DATED = ("docs/evidence/", "docs/history/", "docs/plans/", "docs/superpowers/", 
 
 def load(path):
     return json.loads(path.read_text())
+
+
+def with_settings(text, settings=None):
+    """Replace ${config:Name} as VS Code does, from settings.json unless settings are given."""
+    values = settings if settings is not None else load(VSCODE / "settings.json")
+    return re.sub(r"\$\{config:([^}]+)\}", lambda match: values[match.group(1)], text)
 
 
 class TasksTest(unittest.TestCase):
@@ -124,7 +135,7 @@ class TasksTest(unittest.TestCase):
         (stubs / "west").write_text(f'#!/bin/sh\necho "west $*" >> "{log}"\n')
         (stubs / "west").chmod(0o755)
         task = self.tasks["Board: Flash"]
-        arguments = [a.replace(USB_DEVICES, str(devices)) for a in task["args"]]
+        arguments = [with_settings(a).replace(USB_DEVICES, str(devices)) for a in task["args"]]
         env = dict(os.environ, PATH=f"{stubs}:{os.environ['PATH']}")
         result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True,
                                 env=env)
@@ -168,7 +179,7 @@ class TasksTest(unittest.TestCase):
         self.assertEqual(set(re.findall(r"\$\{input:([^}]+)\}", json.dumps(self.document["tasks"]))),
                          {"sample"})
 
-    def run_build_task(self, label, entered):
+    def run_build_task(self, label, entered, settings=None):
         # Run a build task as VS Code would, in a tree with two samples, with stub west and build script.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -185,8 +196,8 @@ class TasksTest(unittest.TestCase):
                 stub.write_text(f'#!/bin/sh\necho "{name} $*" >> "{log}"\n')
                 stub.chmod(0o755)
             task = self.tasks[label]
-            arguments = [a.replace("${workspaceFolder}", str(root)).replace("${input:sample}", entered)
-                         for a in task["args"]]
+            arguments = [with_settings(a, settings).replace("${workspaceFolder}", str(root))
+                         .replace("${input:sample}", entered) for a in task["args"]]
             env = dict(os.environ, PATH=f"{stubs}:{os.environ['PATH']}")
             result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True,
                                     env=env)
@@ -216,6 +227,25 @@ class TasksTest(unittest.TestCase):
                     self.assertEqual((result.stdout + result.stderr).splitlines(),
                                      [f"No Zephyr application at {entered}; enter samples/<name>/zephyr."])
                     self.assertEqual(calls, [])
+
+    def test_board_build_takes_the_board_from_the_settings(self):
+        # A qualified target with a core, as the dual-core MIMXRT1180-EVK needs.
+        result, calls = self.run_build_task("Board: Build", "samples/hello_crux/zephyr", RT1180_SETTINGS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, ["build-debug-target.sh mimxrt1180_evk/mimxrt1189/cm33 --app "
+                                 "samples/hello_crux/zephyr"])
+
+    def test_board_build_refuses_a_board_key_that_does_not_match_the_board(self):
+        # The profiles and Board: Clean find the build through crux.boardKey, so a stale key would
+        # debug or delete another board's build.
+        for key in ("mimxrt1060_evk_B_qspi", ""):
+            with self.subTest(key=key):
+                settings = dict(RT1180_SETTINGS, **{"crux.boardKey": key})
+                result, calls = self.run_build_task("Board: Build", "samples/hello_crux/zephyr", settings)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual((result.stdout + result.stderr).splitlines(),
+                                 ["Set crux.boardKey to mimxrt1180_evk_mimxrt1189_cm33 in .vscode/settings.json."])
+                self.assertEqual(calls, [])
 
     def test_native_sim_build_reuses_one_build_folder(self):
         # -p auto makes the folder pristine when the sample or the board differs from the cached one
@@ -305,7 +335,7 @@ class TasksTest(unittest.TestCase):
 
     def run_clean(self, label, root):
         task = self.tasks[label]
-        arguments = [a.replace("${workspaceFolder}", str(root)) for a in task["args"]]
+        arguments = [with_settings(a).replace("${workspaceFolder}", str(root)) for a in task["args"]]
         result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -333,6 +363,20 @@ class TasksTest(unittest.TestCase):
                 self.assertTrue((root / "build" / name).is_dir(), name)
             # Nothing left to clean is not an error.
             self.run_clean("Board: Clean", root)
+
+    def test_board_clean_without_a_board_key_removes_nothing(self):
+        task = self.tasks["Board: Clean"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_build_tree(root)
+            before = sorted(p.name for p in (root / "build/zephyr").iterdir())
+            arguments = [with_settings(a, dict(BOARD_SETTINGS, **{"crux.boardKey": ""}))
+                         for a in task["args"]]
+            result = subprocess.run([task["command"], *arguments], cwd=root, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((result.stdout + result.stderr).splitlines(),
+                             ["Set crux.boardKey in .vscode/settings.json."])
+            self.assertEqual(sorted(p.name for p in (root / "build/zephyr").iterdir()), before)
 
     def test_native_sim_clean_removes_only_its_build(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -486,6 +530,20 @@ class ContainerTest(unittest.TestCase):
         self.assertIn("llvm-vs-code-extensions.vscode-clangd", extensions)
         # The clangd extension warns while cpptools IntelliSense is on and offers this setting.
         self.assertEqual(load(VSCODE / "settings.json")["C_Cpp.intelliSenseEngine"], "disabled")
+
+    def test_board_settings_default_to_the_rt1060_evkb(self):
+        settings = load(VSCODE / "settings.json")
+        self.assertEqual({key: settings[key] for key in BOARD_SETTINGS}, BOARD_SETTINGS)
+        # The key is the board target as scripts/build-debug-target.sh names its build folder.
+        self.assertEqual(re.sub(r"[^A-Za-z0-9_.-]+", "_", settings["crux.board"]), settings["crux.boardKey"])
+
+    def test_board_tasks_and_profiles_name_no_board_of_their_own(self):
+        tasks = json.dumps([t for t in load(VSCODE / "tasks.json")["tasks"] if t["label"].startswith("Board:")])
+        profiles = json.dumps([c for c in load(VSCODE / "launch.json")["configurations"]
+                               if c["name"].startswith("Board:")])
+        for text in (tasks, profiles):
+            self.assertNotRegex(text, r"mimxrt1060|MIMXRT1062")
+            self.assertTrue(set(re.findall(r"\$\{config:([^}]+)\}", text)) <= set(BOARD_SETTINGS))
 
     def test_cmake_tools_debug_stops_at_main(self):
         # cmake.debugConfig passes cppdbg attributes to the CMake Tools Debug command.
