@@ -1,5 +1,6 @@
 name: web
 
+# A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
 on:
   push:
     branches: [main]
@@ -8,15 +9,26 @@ on:
       - "samples/web/**"
       - "tests/management_api/**"
       - "scripts/check-management-api.sh"
+      - "scripts/ci/**"
       - ".github/workflows/web.yml"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "web/**"
       - "samples/web/**"
       - "tests/management_api/**"
       - "scripts/check-management-api.sh"
+      - "scripts/ci/**"
       - ".github/workflows/web.yml"
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (docs/ci.md)"
+        type: choice
+        options: [full, fast, nightly]
+        default: full
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
 concurrency:
@@ -26,6 +38,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  TIER: ${{ inputs.tier || 'auto' }}
+
 jobs:
   specification:
     runs-on: ubuntu-24.04
@@ -34,33 +49,40 @@ jobs:
       CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/api/lint/package.json
-      - name: Lint the management API specification
-        run: scripts/check-management-api.sh
-      - name: Check that the lint rejects broken copies
-        run: python3 -m unittest discover -s tests/management_api -v
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job web-specification
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-specification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
 
   client:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/package.json
-      - name: Install the locked tools, with lifecycle scripts off
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Run the web checks and unit tests
-        run: npm run check
-      - name: Audit production packages
-        run: npm run audit:prod
-      - name: Record the production packages as CycloneDX
-        run: npm run --silent sbom > crux-web.cdx.json
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job web-client
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-client-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: crux-web-sbom
@@ -70,22 +92,24 @@ jobs:
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: web
     env:
       CRUX_SCREENSHOTS: ${{ github.workspace }}/screenshots
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/package.json
-      - name: Install the locked tools, with lifecycle scripts off
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Show the browser that the tests use
-        run: google-chrome --version
-      - name: Run the browser tests on the mock
-        run: npm run test:browser
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job web-browser
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -102,34 +126,22 @@ jobs:
   angular:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      CRUX_REQUIRE_ANGULAR: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: samples/web/angular/package.json
-      - name: Build the Angular sample from its own lockfile
-        working-directory: samples/web/angular
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
-      - name: Install the locked web tools
-        working-directory: web
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Check the sample's sources
-        working-directory: web
-        run: node tools/check-dom.ts ../samples/web/angular/src
-      - name: Run the shared browser cases on the sample
-        working-directory: web
-        run: npm run test:angular
-      - name: Record the comparison with the Preact example
-        working-directory: web
-        run: |
-          set -o pipefail
-          npm run build
-          node tools/build.ts --entry e2e/fixtures/two-screens.tsx --out build/two-screens
-          node tools/compare.ts | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job web-angular
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-angular-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ failure() }}
         with:

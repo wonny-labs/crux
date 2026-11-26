@@ -4,10 +4,11 @@ The composition is MCUboot RAM load with revert on the RT1060-EVK Rev B (build o
 board-level files live in `zephyr/boot/boards/<board>/` (owner decision of 9 November 2026,
 option B; docs/boot-composition.md). These rules read files only and use the standard library,
 because `host.yml` runs this directory without west or PyYAML. The build itself runs in
-`scripts/test-boot-composition.sh`, wired into the `runtime` shard of `zephyr.yml`.
+`scripts/test-boot-composition.sh`, a check of the `zephyr-runtime` job in `scripts/ci/checks.toml`.
 """
 from pathlib import Path
 import re
+import tomllib
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -17,6 +18,7 @@ TRIAL = REPO / "docs/evidence/boot-update/trial-inputs"
 PAGE = REPO / "docs/boot-composition.md"
 SCRIPT = REPO / "scripts/test-boot-composition.sh"
 ZEPHYR_WORKFLOW = REPO / ".github/workflows/zephyr.yml"
+CI_CHECKS = REPO / "scripts/ci/checks.toml"
 # The files of the argument set and the trial inputs of #141 build A that they were taken from.
 FILES = {
     "mcuboot.conf": "build-a-mcuboot.conf",
@@ -123,11 +125,12 @@ class BuildCheckTest(unittest.TestCase):
         self.assertNotIn("-name .config", self.code)
 
     def test_the_runtime_shard_runs_the_script(self):
-        text = read(ZEPHYR_WORKFLOW)
-        match = re.search(r"- name: [^\n]*\n(?:(?!      - ).*\n)*?.*scripts/test-boot-composition\.sh", text)
-        self.assertIsNotNone(match, "zephyr.yml does not run scripts/test-boot-composition.sh")
-        step = match.group(0)
-        self.assertIn("if: matrix.shard == 'runtime'", step)
+        checks = tomllib.loads(read(CI_CHECKS))["check"]
+        runs = [c for c in checks if "scripts/test-boot-composition.sh" in c["run"]]
+        self.assertEqual(1, len(runs), "scripts/ci/checks.toml must run scripts/test-boot-composition.sh once")
+        self.assertEqual("zephyr-runtime", runs[0]["job"])
+        if ZEPHYR_WORKFLOW.is_file():  # a copy without .github/ runs the job through the Jenkinsfile
+            self.assertIn("runtime", read(ZEPHYR_WORKFLOW).split("shard: [", 1)[1].split("]", 1)[0])
 
 class BuildCheckWiringTest(unittest.TestCase):
     """The board-free checks that read the build output are called by the composition script.

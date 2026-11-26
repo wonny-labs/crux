@@ -28,7 +28,7 @@ Run these in the Dev Container, from the repository root. Choose the ones that f
 | Documentation | `python3 scripts/check_docs.py` (Python 3.11 or later; the first run needs `python3 scripts/check_docs.py --install` for the pinned link checker) |
 | Zephyr changes | `scripts/check-zephyr-smoke.sh`, and the `scripts/test-<component>.sh` of the component you changed (see the sections below) |
 
-`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. CI runs most of these checks; the workflow files under `.github/workflows/` define what it covers, and its Zephyr part skips a pull request that changes only documentation. Some runners named in [Component readiness](../docs/component-readiness.md) run locally only. Push the branch to a draft pull request to see the CI results, and say in the pull request which checks you did not run.
+`scripts/check-host.sh` needs one earlier run of `scripts/bootstrap-host.sh`, because it works without network access. The container has 2 CPUs and 4 GiB, so full Zephyr suites are slow there. CI runs most of these checks; [`scripts/ci/checks.toml`](../scripts/ci/checks.toml) lists them and [Continuous integration](../docs/ci.md) says which tier runs each. Some runners named in [Component readiness](../docs/component-readiness.md) run locally only. Push the branch to a draft pull request to see the fast tier's results, mark it ready for the full tier, and say in the pull request which checks you did not run.
 
 ## Board input
 

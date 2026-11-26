@@ -330,7 +330,8 @@ class CiProposalTest(unittest.TestCase):
 
     def test_no_workflow_runs_the_reproducibility_check(self):
         # The task is a proposal, not a heavy job: the check stays out of every workflow.
-        for workflow in (REPO / ".github/workflows").glob("*.yml"):
+        for workflow in [*(REPO / ".github/workflows").glob("*.yml"), REPO / "scripts/ci/checks.toml",
+                         REPO / "Jenkinsfile"]:
             self.assertNotIn("check_boot_reproducibility", workflow.read_text(encoding="utf-8"), workflow.name)
         for script in (REPO / "scripts").glob("*"):
             if script.is_file():

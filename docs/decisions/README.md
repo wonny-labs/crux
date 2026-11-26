@@ -14,6 +14,7 @@ A decision record holds one platform-wide decision that stays in force: its cont
 | [0006](0006-cryptographic-dependency-policy.md) | How Crux handles its cryptographic dependencies over time | Accepted, 14 November 2026, as recommended (Q1 to Q8) |
 | [0007](0007-west-flash-and-debug-for-people-and-automation.md) | Zephyr's west flash and west debug for people and automation | Accepted, 21 November 2026, with conditions W1 to W3 |
 | [0008](0008-versioning-and-release-rules.md) | Crux versioning and release rules | Accepted, 25 November 2026, as recommended (O2 to O8) |
+| [0009](0009-tiered-ci.md) | Tiered CI for Crux and its product repositories | Proposed |
 
 ## Convention
 
