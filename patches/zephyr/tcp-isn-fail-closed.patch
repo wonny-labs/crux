@@ -1,0 +1,76 @@
+--- a/subsys/net/ip/tcp.c
++++ b/subsys/net/ip/tcp.c
+@@ -2598,7 +2598,7 @@
+ 	status = psa_hash_compute(PSA_ALG_SHA_256, buf, len, hash, sizeof(hash), &hash_len);
+ 	if (status != PSA_SUCCESS) {
+ 		if (!failure_logged) {
+-			NET_ERR("Cannot compute TCP ISN hash (%d), using random ISN", status);
++			NET_ERR("Cannot compute TCP ISN hash (%d), connection refused", status);
+ 			failure_logged = true;
+ 		}
+ 
+@@ -2682,15 +2682,29 @@
+ 
+ #endif /* CONFIG_NET_TCP_ISN_RFC6528 */
+ 
+-static uint32_t tcp_init_isn(struct net_sockaddr *saddr, struct net_sockaddr *daddr)
++/* Crux: with RFC 6528, a missing key or a failed hash returns the error and the caller refuses the
++ * connection, instead of falling back to sys_rand32_get(), which is not cryptographically secure.
++ * The key is read again at the next attempt. The sequence number is not written on an error.
++ */
++static int tcp_init_isn(struct net_sockaddr *saddr, struct net_sockaddr *daddr, uint32_t *isn)
+ {
+-	uint32_t isn = 0U;
++	if (IS_ENABLED(CONFIG_NET_TCP_ISN_RFC6528)) {
++		uint32_t hash = 0U;
++		int ret = tcp_isn_hash_addr(saddr, daddr, &hash);
+ 
+-	if (IS_ENABLED(CONFIG_NET_TCP_ISN_RFC6528) && tcp_isn_hash_addr(saddr, daddr, &isn) == 0) {
+-		return seq_scale(isn);
++		if (ret == 0) {
++			*isn = seq_scale(hash);
++			return 0;
++		}
++
++		if (ret != -EAFNOSUPPORT) {
++			return ret;
++		}
+ 	}
+ 
+-	return sys_rand32_get();
++	*isn = sys_rand32_get();
++
++	return 0;
+ }
+ 
+ /* Create a new tcp connection, as a part of it, create and register
+@@ -2784,7 +2798,14 @@
+ 	}
+ 
+ 	if (!IS_ENABLED(CONFIG_NET_TEST)) {
+-		conn->seq = tcp_init_isn(local_addr, &context->remote);
++		ret = tcp_init_isn(local_addr, &context->remote, &conn->seq);
++		if (ret < 0) {
++			/* Crux: refused as a failed bind is, with a RST to the peer. */
++			NET_ERR("[%p] No initial sequence number (%d), connection refused", conn, ret);
++			net_context_put(context);
++			conn = NULL;
++			goto err;
++		}
+ 	}
+ 
+ 	conn->isn = conn->seq;
+@@ -4338,7 +4359,12 @@
+ 	}
+ 
+ 	if (!IS_ENABLED(CONFIG_NET_TEST)) {
+-		conn->seq = tcp_init_isn(&conn->src.sa, &conn->dst.sa);
++		ret = tcp_init_isn(&conn->src.sa, &conn->dst.sa, &conn->seq);
++		if (ret < 0) {
++			/* Crux: no SYN is sent, and the caller gets the error. */
++			NET_ERR("[%p] No initial sequence number (%d), connect refused", conn, ret);
++			goto out;
++		}
+ 	}
+ 
+ 	NET_DBG("[%p] src: %s, dst: %s", conn,

@@ -179,6 +179,7 @@ scripts/test-networking.sh
         "checks": [
             ("tf-psa-crypto-host", "scripts/test-psa-crypto.sh host tf-psa-crypto"),
             ("tf-psa-crypto-native-sim", "scripts/test-psa-crypto.sh zephyr tf-psa-crypto"),
+            ("tcp-isn-native-sim", "scripts/test-tcp-isn.sh"),
             ("tf-psa-crypto-evkb", "scripts/test-psa-crypto.sh target tf-psa-crypto"),
             ("psa-ports-host", "scripts/test-native-composition.sh host"),
             ("tls-offload-mbed", "scripts/test-tls-offload-probe.sh mbed"),
