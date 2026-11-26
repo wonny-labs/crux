@@ -26,7 +26,7 @@ A simulated watchdog is not hardware evidence: a pass says that a product calls 
 directory to a temporary directory **outside** the repository, builds it with `west build -b native_sim/native/64`
 and `-DZEPHYR_EXTRA_MODULES=<repo>` as `scripts/test-product-template.sh` does, applies `check_build.py`, runs the
 image until its last line, builds it again with the symbol off, and then applies each variant. `scripts/test-system.sh`
-calls it, so the Zephyr runtime shard runs it. No hardware, programming, reset or board is involved.
+calls it, so [Zephyr CI](../../docs/ci-zephyr-shards.md#shards) runs it. No hardware, programming, reset or board is involved.
 
 ## Use it from outside the repository
 
