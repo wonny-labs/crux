@@ -307,7 +307,9 @@ static const access_account_t *account_listing_key(const char *user, const uint8
     }
     for (size_t index = 0; index < account->key_count; ++index) {
         const access_key_t *candidate = &account->keys[index];
-        if (candidate->length == key_length && memcmp(candidate->bytes, key, key_length) == 0) {
+        /* A stored key of an unsupported type is never listed, whatever the provider offers. */
+        if (candidate->usable && candidate->length == key_length &&
+            memcmp(candidate->bytes, key, key_length) == 0) {
             return account;
         }
     }

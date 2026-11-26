@@ -13,8 +13,11 @@ _Static_assert(CRUX_ACCESS_SESSIONS_PER_ACCOUNT >= 1, "an account must be able t
 _Static_assert(CRUX_ACCESS_VERIFIER_ITERATIONS >= 1, "a verifier needs at least one iteration");
 _Static_assert(CRUX_ACCESS_KEYS_PER_ACCOUNT >= 1 && CRUX_ACCESS_KEYS_PER_ACCOUNT <= 255,
                "the record holds an 8-bit key count");
-_Static_assert(CRUX_ACCESS_KEY_SIZE_MAX >= 1 && CRUX_ACCESS_KEY_SIZE_MAX <= 65535,
-               "the record holds a 16-bit key length");
+_Static_assert(CRUX_ACCESS_KEY_SIZE_MAX <= 65535, "the record holds a 16-bit key length");
+/* The largest supported key blob: ECDSA P-256, at 4 + 19 + 4 + 8 + 4 + 65 bytes. */
+#define ACCESS_KEY_SUPPORTED_SIZE_MAX 104u
+_Static_assert(CRUX_ACCESS_KEY_SIZE_MAX >= ACCESS_KEY_SUPPORTED_SIZE_MAX,
+               "the key size must hold every supported key type");
 _Static_assert(CRUX_ACCESS_SOURCE_BUCKETS >= 1 && CRUX_ACCESS_NAME_BUCKETS >= 1,
                "delay state needs at least one bucket of each kind");
 _Static_assert(CRUX_ACCESS_DELAY_QUIET_MS > CRUX_ACCESS_DELAY_CAP_MS,
@@ -25,8 +28,12 @@ _Static_assert(CRUX_ACCESS_DELAY_QUIET_MS > CRUX_ACCESS_DELAY_CAP_MS,
 /* Reclaiming can end every session at one login, each with an event. */
 #define ACCESS_EXPIRED_EVENTS_MAX ((size_t)CRUX_ACCESS_SESSION_MAX)
 
+/* usable is false for a stored key of a type this build does not support. Such a key never
+ * authenticates, and a save writes its bytes back unchanged. The flag itself is not in the record:
+ * decoding sets it, and adding a key sets it true. A key that nothing set cannot authenticate. */
 typedef struct {
     size_t length;
+    bool usable;
     uint8_t bytes[CRUX_ACCESS_KEY_SIZE_MAX];
 } access_key_t;
 
@@ -171,7 +178,9 @@ void crux_access_delay_record_failure(access_delay_buckets_t buckets, uint64_t n
  * form only. The provider checks the point when it verifies a signature. */
 bool crux_access_key_acceptable(const uint8_t *key, size_t length);
 
-/* Account table encoding. Decoding fails closed on anything malformed. */
+/* Account table encoding. Decoding fails closed on anything malformed. A key of a type this build
+ * does not support is not malformed if its type name is a valid SSH name (RFC 4251 section 6): it
+ * decodes with usable false. A supported type in any other form is malformed. */
 size_t crux_access_record_encode(const access_table_t *table, uint8_t *record, size_t capacity);
 bool crux_access_record_decode(const uint8_t *record, size_t length, access_table_t *table);
 

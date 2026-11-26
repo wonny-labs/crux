@@ -40,7 +40,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | Changing one's own password | Takes the session and no name, because the account is the session's | A name could only disagree with the session |
 | Listing more accounts than fit | Fills the buffer, and returns `OK` with the total count | The caller can size a buffer by passing zero capacity |
 | Name and permission sizes | `CRUX_ACCESS_NAME_SIZE` is 32 for users and roles, and `CRUX_ACCESS_PERMISSION_MAX` is 63 | The proposal bounds user names only, and requires rejecting an over-long name |
-| Public key size and type | `CRUX_ACCESS_KEY_SIZE_MAX`, default 192 bytes. A key is an SSH public key blob of type `ssh-ed25519` or `ecdsa-sha2-nistp256`, the two user key types that the SSH provider offers. Any other type or form, ECDSA on P-384 and P-521 included, is `INVALID_ARGUMENT`, and a stored record holding one is malformed ([what that does to an existing store](#user-key-types-issue-316)). | The owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316), 2026-11-14, option A: Access accepts only what SSH offers, so that an account never holds a key that no login can use. The size holds the largest accepted blob, P-256, at 104 bytes, and its default stays 192 for the reason given in [User key types](#user-key-types-issue-316). Size alone would not refuse a small RSA key, or a P-384 or P-521 blob, which fit. The core checks the blob's form, and the provider checks the key itself when it verifies a signature. |
+| Public key size and type | `CRUX_ACCESS_KEY_SIZE_MAX`, default 192 bytes. A key is an SSH public key blob of type `ssh-ed25519` or `ecdsa-sha2-nistp256`, the two user key types that the SSH provider offers. Any other type or form, ECDSA on P-384 and P-521 included, is `INVALID_ARGUMENT`. A stored key of another type is skipped, not malformed ([stored keys of an unsupported type](#stored-keys-of-an-unsupported-type)). | The owner's decision on [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316), 2026-11-14, option A: Access accepts only what SSH offers, so that an account never holds a key that no login can use. The size holds the largest accepted blob, P-256, at 104 bytes, and its default stays 192 for the reason given in [User key types](#user-key-types-issue-316). Size alone would not refuse a small RSA key, or a P-384 or P-521 blob, which fit. The core checks the blob's form, and the provider checks the key itself when it verifies a signature. |
 | Querying a permission without a denial | `crux_access_permitted` answers as `crux_access_check` does, and false during a forced change. It emits no event, refreshes no timer, touches no storage and changes no state, so an expired session stays for the next operation to end and report. | AC1. Hiding items through a check would emit a denial per hidden item. |
 | Where a session came from | `crux_access_session_origin` copies the channel, source and source length, with unused source bytes zero. The channel is 1 for serial, 2 for web and 3 for SSH. It has the same lack of side effects as `crux_access_permitted`. | AC4 and AC7. A service holds only a session, and its records carry a channel and source. The adapter's channel type is not reachable from the public header, so the values are stated. |
 | Result of a repeated `crux_access_init` | `CRUX_ACCESS_ERR_ALREADY_EXISTS`, and nothing changes | Changing a policy under live sessions has no safe meaning |
@@ -58,7 +58,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | What `EMPTY` means | A started store holds no account record, because device keys can exist first. A blank or reformatted medium reads as `EMPTY` only if the store can start on it. A blank card on the microSD composition fails at mount and reads `UNUSABLE`. | AC6. Limit A7 stands, and widens under the credential store's S6. |
 | What a failed save promises | RAM is unchanged, and so is the active image except under the credential store's S7. Stored bytes can change, and a failed save can win at the next boot if the store cannot then invalidate it. | AC8 |
 | Retrying init after `UNUSABLE` | Refused without reading the store again | Otherwise a blank medium inserted while running would read as `EMPTY`, which the proposal forbids |
-| A record the store calls `VALID` that cannot be decoded | Treated as `UNUSABLE` | Fail closed, including an unknown verifier algorithm or a zero iteration count |
+| A record the store calls `VALID` that cannot be decoded | Treated as `UNUSABLE` | Fail closed, including an unknown verifier algorithm or a zero iteration count. A well-formed user key of an unsupported type is not a decoding failure: it is [skipped](#stored-keys-of-an-unsupported-type). |
 | Random, keyed hash or derivation failure | `NOT_READY`, counted as no failure | No guess was evaluated. **This widens `NOT_READY`, whose proposed comment lists only three causes.** |
 | Password over 128 bytes at login | `DENIED`, counted as no failure, with a login failure event that names nobody | "Denied without verification". No guess was evaluated. |
 | Setting a password over 128 bytes | Always `PASSWORD_REJECTED`, whatever the product rule says | Login denies it, so such an account could never log in |
@@ -92,7 +92,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | Stack | The pending table and record buffer are static, guarded by the change lock | A full table is about 4 KB, and a management worker's stack should not have to hold it |
 | `delay applied` event | Emitted when an attempt is rejected, naming nobody | A rejected attempt was not looked up, and its name may be a mistyped password |
 | When events run | After both locks are released, on every path. They can arrive before a successful init. | AC9. An emit may wait on the event ring, and every check takes the state lock. Tests poll both locks inside the event port. |
-| Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account or a change's target. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
+| Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account, a change's target, or the account of a stored key skipped at init. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
 | No event, by design | A session ended by the per-account cap, a cost upgrade including one whose save fails, an operation that changed nothing, a lost lock, an unsigned key probe unless it is refused as `NOT_READY`, a logout of a reference already ended, and a malformed argument to a check or session query | Nothing was rejected, or the call came from a context where the port cannot run, or it is a caller's programming error. An unsigned probe records nothing, as the proposal says. |
 
 The accepted request AC3 adds rejection events. The identifiers are final in the
@@ -101,7 +101,7 @@ The accepted request AC3 adds rejection events. The identifiers are final in the
 | Port event | Identifier | When |
 | --- | --- | --- |
 | `LOGIN_FAILURE` | `access.login_failed` | Wrong password, unknown name, disabled account, bad name form or password over 128 bytes |
-| `KEY_FAILURE` | `access.key_failed` | A signed request with an unlisted key, or a failed signature |
+| `KEY_FAILURE` | `access.key_failed` | A signed request with an unlisted key, or a failed signature. Also a [stored key skipped](#stored-keys-of-an-unsupported-type) at init, with no channel and `INVALID_ARGUMENT`. |
 | `DELAY_APPLIED` | `access.delayed` | Inside a delay window, on any operation that is delayed |
 | `LOGIN_BUSY` | `access.login_busy` | The channel's verification slot is taken, including for an own password change |
 | `LOGIN_NO_SESSION` | `access.login_no_session` | The session table is full |
@@ -132,23 +132,11 @@ flowchart TD
     add["crux_access_account_add_key(blob)"] --> form{"Type name, curve name,<br/>point size and form match<br/>ssh-ed25519 or P-256?"}
     form -->|"no, including any P-384 or P-521 blob"| refuse["INVALID_ARGUMENT<br/>nothing stored"]
     form -->|yes| store["Listed on the account"]
-    boot["crux_access_init reads the stored record"] --> decode{"Every key in the record<br/>passes the same check?"}
-    decode -->|yes| ready["Table loaded"]
-    decode -->|"no: an earlier revision stored a P-384 or P-521 key"| unusable["Treated as UNUSABLE<br/>init returns NOT_READY"]
+    boot["crux_access_init reads the stored record"] --> decode{"Each stored key"}
+    decode -->|"ssh-ed25519 or P-256 in its exact form"| usable["Listed"]
+    decode -->|"another valid type name,<br/>such as P-384 or P-521 from an earlier revision"| skipped["Skipped and reported<br/>never authenticates, saved back unchanged"]
+    decode -->|"anything else"| unusable["Record malformed: UNUSABLE<br/>init returns NOT_READY"]
 ```
-
-**A store that holds a removed type.** The record decoder runs the same check on every stored key, so a record saved by an earlier revision with a P-384 or P-521 key is malformed as a whole, as the table above already said. The effects, from the [existing malformed-record rule](#choices-the-proposal-left-open) (the row "A record the store calls `VALID` that cannot be decoded"), which this change does not alter:
-
-| What | Result | Test |
-| --- | --- | --- |
-| `crux_access_init` | `NOT_READY`, and the store counts as `UNUSABLE` until the next reset | `malformed_record_cases` in `tests/access/faults.c` |
-| Logins, by password or by key, on every channel | `NOT_READY`: **every account is locked out, not only the one with the key** | The same case |
-| Provisioning | `DENIED`, because a store that cannot be read is not an empty one | The same case |
-| Removing the key through Access | Not possible: Access is not ready | |
-| The stored bytes | Not modified. A save never ran. | |
-| Recovery | The documents show whole-store recovery only: the credential store has an internal erase that no Crux code calls, and recovery uses a card reader ([credential store](credential-store.md)), after which provisioning starts again. They show no way to rewrite only the accounts record. Running the earlier revision, removing the key and upgrading also works. | |
-
-This is the one consequence that a reader should weigh. It follows from fail-closed decoding, and it means that an upgrade over a store with such a key does not degrade to "that key is ignored", it stops Access. No Crux release exists, and Access has no Zephyr composition outside `tests/`, so a store of this kind can only come from a bench or a test image. A tolerant decoder that dropped the key, and said so with an event, would be a separate decision: it changes what a "valid" record may hold and rewrites data on the next save. It is recorded as a [decision for review](#decisions-for-review-issue-316).
 
 **Which profile can verify which type.** Access never verifies a key signature. It compares the blob byte for byte (`crux_access_key_is_authorised`), and its PSA ports (`components/access/ports/psa/access_psa.c`) hold only derivation, random and HMAC, so the choice of TLS/PSA profile does not change what `crux_access_account_add_key` accepts. The signature is verified by the SSH provider, which exists on the Wolf profile only.
 
@@ -159,14 +147,43 @@ This is the one consequence that a reader should weigh. It follows from fail-clo
 
 So the accepted set is the SSH provider's set, not a per-profile set. Access does not ask a provider which types it can verify: that would be a new port in `access_port.h`, and nothing in this change needs one. On an image without SSH, such as the Mbed profile, the added key is stored and no login can use it. That is the same situation as before for a key of any type, and this change does not address it. It is listed as a decision for review below.
 
-**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare. Lowering it is not needed for this change. Any value of 104 or more keeps every decodable record readable, because records are variable length and every key a record can hold is now Ed25519 (51 bytes) or P-256 (104 bytes). It would, however, change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
+**The size bound.** `CRUX_ACCESS_KEY_SIZE_MAX` stays 192. The largest accepted blob is now P-256 at 104 bytes, so the bound has room to spare, and the build refuses a value below 104. Lowering it is not needed for this change. A record can also hold [skipped keys](#stored-keys-of-an-unsupported-type), such as a P-384 key (136 bytes) or a P-521 key (172 bytes) from an earlier revision, and a stored key longer than the bound makes the record malformed. A lower bound would therefore lock out every account on a store that holds one. It would also change `CRUX_ACCESS_RECORD_SIZE_MAX` (4,060 bytes at the default bounds, see the [credential store](credential-store.md) limits table) and the RAM of every account, and a product that sets the macro is unaffected by the default. A lower default is left to a separate change.
+
+### Stored keys of an unsupported type
+
+A stored user key of a type this build does not support is skipped, and the store stays usable.
+
+**Where the boundary lies.** The record frames each key with its own length, so a key's content cannot shift the fields after it. Inside that frame, an SSH public key blob is a type name string followed by data whose form the type defines ([RFC 4253 section 6.6](https://www.rfc-editor.org/rfc/rfc4253#section-6.6)). The decoder sorts each stored key into one of three cases:
+
+| Stored key | Result |
+| --- | --- |
+| Type name `ssh-ed25519` or `ecdsa-sha2-nistp256`, in exactly the form `crux_access_account_add_key` accepts | Listed |
+| A type string that fits in the key, holding a valid SSH name ([RFC 4251 section 6](https://www.rfc-editor.org/rfc/rfc4251#section-6): 1 to 64 printable US-ASCII characters, no comma; the placement of `@` is not checked) that is not one of those two | **Skipped.** The data after the name is not examined. |
+| Anything else: a key length of zero or over `CRUX_ACCESS_KEY_SIZE_MAX`, fewer than 4 bytes, a type string longer than the key, an empty or invalid name, or a supported name in any other form, such as a P-256 key with a compressed point | Malformed: the store is `UNUSABLE`, as before |
+
+Every other field keeps the fail-closed rule: truncation, trailing bytes, the header, names, flags, the verifier, a key count over the bound and duplicate names. Detecting a changed byte is the store's integrity check. A flipped bit that leaves a valid name of another type, in a record the store still reports as `VALID`, is skipped like any unsupported type, which can only narrow access.
+
+**What a skipped key does.**
+
+| What | Result | Test (`tests/access/faults.c`) |
+| --- | --- | --- |
+| `crux_access_init` | `OK`. Every other account and key works. | `unsupported_key_tolerated_cases` |
+| Report | One `KEY_FAILURE` event (`access.key_failed`) per skipped key during `crux_access_init`, naming its account, with no channel and the result `INVALID_ARGUMENT` (event result `invalid`). A client's key failure always has a channel and the result `DENIED`. No new event kind or public interface. | The same |
+| Authentication | Never. The pre-check and `crux_access_login_verified` do not list it, even if a provider offers the identical blob. | The same |
+| Saving the table | Every save writes it back byte for byte, so a build that supports the type can use it again | `unsupported_key_write_back_cases` |
+| `crux_access_account_list` | Counted in `key_count` | The same |
+| Key table | It holds a slot, so an account can be full | The same |
+| Removing it | `crux_access_account_remove_key` with its exact bytes, which narrows access | The same |
+| Adding it again | `INVALID_ARGUMENT`, as for any unsupported type | `tests/access/keys.c` |
+
+The record version stays 1: a record that holds a skipped key is still a valid version 1 record, and an earlier revision reads it as it did before.
 
 ### Decisions for review (Issue #316)
 
 | # | Decision taken for lack of an answer | Recommendation | Impact if the owner decides otherwise |
 | --- | --- | --- | --- |
-| 1 | A stored record holding P-384 or P-521 stays malformed, so the whole store is unusable after an upgrade (above) | Keep, while no release exists. If a release carries Access before this is revisited, add a tolerant decoder that drops the key and emits an event | A separate change in `access_record.c`, with a record-version or event decision |
-| 2 | `CRUX_ACCESS_KEY_SIZE_MAX` stays 192 | Keep for this change. A default of 104 or more would still read every decodable record, and would lower `CRUX_ACCESS_RECORD_SIZE_MAX` and per-account RAM | A separate change to the default, with the RAM saving measured |
+| 1 | A stored P-384 or P-521 key | Decided 2026-11-26: [skipped and kept](#stored-keys-of-an-unsupported-type) | |
+| 2 | `CRUX_ACCESS_KEY_SIZE_MAX` stays 192 | Keep. A default below 172 bytes would make a store holding a skipped P-521 key unusable, although it would lower `CRUX_ACCESS_RECORD_SIZE_MAX` and per-account RAM | A separate change to the default, with the RAM saving measured and old stores considered |
 | 3 | Access does not depend on the profile: Ed25519 and P-256 blobs are accepted on the Mbed profile too, where no SSH provider exists to use them | Keep. A capability port would be a new private interface for no consumer | A provider declaration read by `crux_access_key_acceptable` |
 
 ## Declared limits
@@ -230,6 +247,6 @@ Access sources, and the boundary check. The root build also runs the suites as `
 | `tests/access/accounts.c` | Each operation, session ending rules, forced change, last administrator including concurrent changes, save failure, power loss, a login during a save, a check that does not wait on a save or derivation |
 | `tests/access/security.c` | Equal treatment of unknown and disabled names, table-filling probe, delay rules, guessing bound, collisions, flooding, serial independence, verification slots, races with a login, cost upgrade |
 | `tests/access/keys.c` | Key types (Ed25519 and P-256 accepted, P-384 and P-521 refused as `INVALID_ARGUMENT` although they fit the size bound) and malformed blobs, signed and unsigned attempts, failed signatures, provider-verified login |
-| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation of a record and a chosen set of field corruptions, a stored record holding a P-384 or P-521 key, 64-bit time, provider failures, lock failure including around the first account's save, concurrent logins |
+| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation of a record and a chosen set of field corruptions, stored keys of unsupported types (skipped, reported, saved back) and the boundary to malformed keys, 64-bit time, provider failures, lock failure including around the first account's save, concurrent logins |
 | `tests/access/secrets.c` | Known password and key values absent from every event type, and no plain password on the medium |
 | `tests/access/events.c` | Each rejection path produces its event with its fields, every event runs with no lock held, and the two silent queries emit nothing |
