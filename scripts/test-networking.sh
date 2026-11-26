@@ -7,6 +7,10 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
 : "${CRUX_CACHE_DIR:?Set CRUX_CACHE_DIR}"
 pico="${CRUX_PICOLIBC_MODULE:-$CRUX_CACHE_DIR/networking/picolibc}"
 if [[ ! -f "$pico/zephyr/module.yml" ]]; then
@@ -39,7 +43,7 @@ cat "$repo/build/zephyr/networking-native-pico/scenario.log"
 grep -q 'PROJECT EXECUTION SUCCESSFUL' "$repo/build/zephyr/networking-native-pico/scenario.log"
 # Build-only target qualification; never invokes flash/debug/serial commands.
 modules="$repo;$workspace/modules/hal/cmsis;$workspace/modules/hal/cmsis_6;$workspace/modules/hal/nxp"
-(cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
+(cd "$workspace" && west build -b "$board" \
     -d "$repo/build/zephyr/networking-evkb" "$repo/samples/networking/echo_client/zephyr" -- \
     -DZEPHYR_MODULES="$modules" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay")

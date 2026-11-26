@@ -18,11 +18,15 @@ fi
 unset DTC_OVERLAY_FILE EXTRA_DTC_OVERLAY_FILE OVERLAY_CONFIG CONF_FILE BOARD_ROOT
 
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board='mimxrt1170_evk@A/mimxrt1176/cm7'
+crux_board_require "$(crux_board_target "$board")" "$board"
 configuration="$repo/tests/board_images/integration_probe/device_health_probe.conf"
 
 # Build only. This does not program, reset or debug a physical board.
 (cd "$workspace" && west build -p always \
-    -b 'mimxrt1170_evk@A/mimxrt1176/cm7' \
+    -b "$board" \
     -d "$repo/build/zephyr/rt1170-evk-a1-m3" \
     "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \

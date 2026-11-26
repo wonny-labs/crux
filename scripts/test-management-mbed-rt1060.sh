@@ -27,6 +27,8 @@ case "$mode" in static | build | all) ;; *)
 esac
 
 repo="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
     exit 1
@@ -46,6 +48,7 @@ run_build() {
     local out="${CRUX_MBED_MGMT_OUTPUT:-$repo/build/management-mbed-rt1060}"
     local jobs="${CRUX_MBED_MGMT_JOBS:-4}"
     local board='mimxrt1060_evk@B//qspi'
+    crux_board_require "$(crux_board_target "$board")" "$board"
     local sample="$repo/samples/boards/nxp/mimxrt1060_evk/web_management"
     local default="$out/default" test_build="$out/test-form"
     mkdir -p "$out"

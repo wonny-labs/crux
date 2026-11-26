@@ -13,6 +13,10 @@ ctest --test-dir "$repo/build/system-consumer" --output-on-failure \
 if [[ "$mode" == --host-only ]]; then exit 0; fi
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+build="$repo/build/zephyr/system-$(crux_board_tag "$board")"
 CRUX_WORKSPACE="$workspace" CRUX_SYSTEM_COMPOSITION_TESTS=1 python3 "$repo/tests/build/test_system_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/system/zephyr" -T "$repo/tests/system_consumer/zephyr" \
@@ -22,14 +26,13 @@ CRUX_WORKSPACE="$workspace" "$repo/scripts/test-consumer-system.sh"
 mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
 modules+=("$repo")
 modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
-(cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/system-evkb" "$repo/tests/system_consumer/zephyr" -- \
+(cd "$workspace" && west build -b "$board" \
+    -d "$build" "$repo/tests/system_consumer/zephyr" -- \
     -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # Build only: no programming, reset, feed, clear or hardware access.
 
 # Whole-image accounting; keep all six operations linked without invoking them.
 evidence="$repo/build/system-resource-evidence"
-build="$repo/build/zephyr/system-evkb"
 mkdir -p "$evidence"
 sdk="${ZEPHYR_SDK_INSTALL_DIR:-$(sed -n 's/^ZEPHYR_SDK_INSTALL_DIR:INTERNAL=//p' "$build/CMakeCache.txt")}"
 cross="$sdk/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi"

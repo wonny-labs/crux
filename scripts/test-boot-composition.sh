@@ -20,7 +20,10 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 python="${CRUX_PYTHON:-python3}"
-board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
 files="$repo/zephyr/boot/boards/mimxrt1060_evk_mimxrt1062_qspi_B"
 app="$repo/tests/boot_fixture/zephyr"
 image="$(basename "$app")"

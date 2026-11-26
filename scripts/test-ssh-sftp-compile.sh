@@ -12,6 +12,10 @@ fi
 
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
 settings_output="${CRUX_SSH_WOLF_OUTPUT:-$repo/build/zephyr/ssh-wolf-settings}"
 patched_zephyr="${CRUX_SSH_ZEPHYR_WOLF:-$settings_output/zephyr-wolf}"
 output="${CRUX_SSH_SFTP_COMPILE_OUTPUT:-$repo/build/zephyr/ssh-sftp-compile}"
@@ -39,5 +43,5 @@ compile() { # directory, Zephyr tree, board, extra arguments
 
 mkdir -p "$output"
 [[ -d "$patched_zephyr" ]] || { printf 'Run scripts/test-ssh-wolf-settings.sh --target first.\n' >&2; exit 2; }
-compile "$output/target" "$patched_zephyr" 'mimxrt1060_evk@B//qspi'
+compile "$output/target" "$patched_zephyr" "$board"
 compile "$output/native" "$workspace/zephyr" 'native_sim/native/64' "-DEXTRA_CONF_FILE=$probe/native_sim.conf"

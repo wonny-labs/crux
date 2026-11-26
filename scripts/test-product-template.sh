@@ -5,14 +5,16 @@ if [[ "$(uname -s)" != Linux ]]; then
     printf 'Zephyr firmware builds are configured for Linux only; reopen this repository in the Dev Container.\n' >&2
     exit 2
 fi
-if [[ $# -ne 1 || -z "${1:-}" ]]; then
-    printf 'Usage: %s <validated-board-target>\n' "$0" >&2
+if [[ $# -gt 1 ]]; then
+    printf 'Usage: %s [board-target]\n' "$0" >&2
     exit 2
 fi
 
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
-board="$1"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="${1:-$(crux_board_target 'mimxrt1060_evk@B//qspi')}"
 build="$repo/build/zephyr/product-template"
 if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     printf 'Run scripts/bootstrap-zephyr.sh before building the product template.\n' >&2
