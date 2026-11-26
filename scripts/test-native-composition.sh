@@ -73,7 +73,7 @@ run_host() {
 # the composition's CMake function, with the settings of a board.
 check_refusals() { # Host build directory, for the provider's headers
     local psa_include="$cache_dir/cmake/tf_psa_crypto-src" source guarded log="$out/refusals.log" cc="${CC:-gcc}"
-    local includes=("-I$psa_include/include" "-I$psa_include/drivers/builtin/include"
+    local includes=("-I$psa_include/include" "-I$psa_include/drivers/builtin/include" "-I$psa_include/dispatch/include"
         "-I$repo/components/base/include" "-I$repo/components/file/include"
         "-I$repo/components/access/include" "-I$repo/components/access/adapter" "-I$repo/components/access/src"
         "-I$repo/components/credential/include" "-I$repo/components/credential/adapter"

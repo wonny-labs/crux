@@ -156,10 +156,11 @@ crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *c
         return CRUX_ERR_IO;
     }
 
+    /* irq_update is optional from Zephyr v4.5.0: uart_irq_update() skips a driver without it. */
     const struct uart_driver_api *api = dev->api;
     if (!api->configure || !api->config_get || !api->irq_callback_set || !api->fifo_fill ||
         !api->fifo_read || !api->irq_tx_enable || !api->irq_tx_disable || !api->irq_rx_enable ||
-        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready || !api->irq_update) {
+        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (uart_config_get(dev, &native.saved) != 0) {
