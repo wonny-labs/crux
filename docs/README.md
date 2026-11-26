@@ -106,4 +106,4 @@ Open an [issue](https://github.com/wonny-labs/crux-pilot/issues) for a missing c
 
 ## Status and limits
 
-Crux is not production-qualified, not an installable SDK, and has no release tag. Per-component evidence is in [Component readiness](component-readiness.md). The [README](../README.md#status-and-limits) states the limits in short.
+Crux is not production-qualified, not an installable SDK, and has no release or tag: products pin a source revision. Per-component evidence is in [Component readiness](component-readiness.md).

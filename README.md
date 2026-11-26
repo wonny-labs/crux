@@ -1,8 +1,10 @@
 # Crux
 
-**Crux** is a reusable embedded software platform for Zephyr firmware products, such as controllers. It gives a product tested platform services in portable C, a Zephyr module and build tooling, so that product code stays separate from operating-system and board details.
+**Crux** is a reusable embedded software platform for firmware products, such as controllers. It gives a product tested platform services in portable C, a Zephyr module and build tooling, so that product code stays separate from operating-system and board details. It runs on Zephyr today; an Embedded Linux integration is expected, with no date set ([ADR-0003](docs/decisions/0003-p9-result-services-keep-narrow-thread-sync.md)).
 
-Crux is for teams that build Zephyr firmware products: application developers who compose a product on Crux, and platform contributors who extend Crux itself.
+Crux is for teams that build firmware products on it: application developers who compose a product on Crux, and platform contributors who extend Crux itself.
+
+Crux is in development, not production-qualified and has no release yet; [Component readiness](docs/component-readiness.md) gives the state of each component.
 
 ## What it provides
 
@@ -38,10 +40,6 @@ Next: the [Tutorial](docs/tutorial.md).
 | Add remote management or secure boot | [Secure management in a product](docs/management-in-a-product.md) and the [boot overview](docs/boot-overview.md) |
 | Run the tests before a pull request | [Test guide](tests/README.md) |
 | Find any other page by task | [Documentation map](docs/README.md) |
-
-## Status and limits
-
-Crux is in development and not production-qualified. There is no release or tag yet: products pin a source revision. The [documentation map](docs/README.md#status-and-limits) gives the details.
 
 ## Contributing
 
