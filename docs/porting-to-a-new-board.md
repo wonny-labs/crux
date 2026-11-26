@@ -68,7 +68,7 @@ State of the template: its own build is E3 on the RT1060 target, and nothing ran
 
 Crux and a product built on it keep one application for every board.
 The board is an input of the build, and everything that differs between boards lives in files named after the board.
-Crux itself follows these rules: no Crux Kconfig symbol, Kconfig dependency or Zephyr port names a board, SoC or revision (`tests/build/test_board_neutral_zephyr.py` checks it).
+Crux itself follows these rules: no Crux Kconfig symbol, Kconfig dependency or Zephyr port names a board, SoC or revision, except the old File selection names that the [File migration notes](file-contract.md#migration-notes) list and the test-only selections of the `native_sim` simulator (`tests/build/test_board_neutral_zephyr.py` checks it).
 
 | Convention | Kind | Zephyr reference |
 | --- | --- | --- |

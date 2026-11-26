@@ -16,7 +16,7 @@ export ZEPHYR_BASE="$workspace/zephyr"
 board='mimxrt1060_evk@B/mimxrt1062/qspi'
 output="${CRUX_FILE_RT1060_OUTPUT:-$repo/build/zephyr/twister-file-rt1060}"
 
-# Compile only: the File sources and the RT1060 FatFs/SDHC composition become an unlinked object.
+# Compile only: the File sources and the SD card FatFs composition become an unlinked object.
 # Nothing is linked into a runnable File provider and no board is programmed or reset.
 (cd "$workspace" && west twister -p "$board" -T "$repo/tests/zephyr/file_fatfs_compile" \
     --build-only -O "$output" --inline-logs)
@@ -192,7 +192,7 @@ grep -q 'compile check is not selected' "$control.log" || {
 echo "SD card File compile check refused without an SD card disk node, as intended"
 
 # A board with its own name and the RT1062 SoC: the fictional compile-only fixture
-# (tests/zephyr/board_fixture) must select the same check by SoC and devicetree, and compile the
+# (tests/zephyr/board_fixture) must select the same check by devicetree, and compile the
 # File object. Only that object is built: nothing is linked, and the fixture is never programmed.
 fixture="$repo/build/zephyr/file-rt1060-fixture"
 (cd "$workspace" && west build -p always --cmake-only -b crux_rt1062_fixture -d "$fixture" \

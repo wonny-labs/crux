@@ -300,8 +300,13 @@ config DISK_DRIVER_FLASH
     bool "flash disk"
 config SDHC
     bool "sdhc"
+config IMX_USDHC
+    bool "usdhc"
+config RCAR_MMC
+    bool "rcar"
 config SDHC_BUFFER_ALIGNMENT
     int "align"
+    default 128 if RCAR_MMC
     default 4
 config DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     bool "dt sd"
@@ -311,7 +316,7 @@ config BOARD_NATIVE_SIM
     bool "native_sim"
 """
 FATFS = ("CRUX_MODULE", "FILE_SYSTEM", "FAT_FILESYSTEM_ELM", "FS_FATFS_LFN", "FS_FATFS_REENTRANT")
-SD_CARD = FATFS + ("DISK_DRIVER_SDMMC", "DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED", "SDHC")
+SD_CARD = FATFS + ("DISK_DRIVER_SDMMC", "DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED", "SDHC", "IMX_USDHC")
 RAM_DISK = FATFS + ("DISK_DRIVER_RAM", "DT_HAS_ZEPHYR_RAM_DISK_ENABLED")
 
 
@@ -349,6 +354,16 @@ class KconfigEvaluationTest(unittest.TestCase):
         self.assertEqual(self.value(kconf, "CRUX_FILE_FATFS_RAM_DISK"), "y")
         kconf = self.kconf(*SD_CARD, "CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK")
         self.assertEqual(self.value(kconf, "CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK"), "y")
+
+    def test_the_buffer_alignment_default_is_keyed_by_the_usdhc_driver(self):
+        # A module configdefault comes before the driver's default, so it must not lower a stricter one.
+        other_host = tuple(f for f in SD_CARD if f != "IMX_USDHC")
+        kconf = self.kconf(*other_host, "RCAR_MMC", "CRUX_FILE_FATFS_SDMMC")
+        self.assertEqual(self.value(kconf, "SDHC_BUFFER_ALIGNMENT"), "128")
+        kconf = self.kconf(*other_host, "CRUX_FILE_FATFS_SDMMC")
+        self.assertEqual(self.value(kconf, "SDHC_BUFFER_ALIGNMENT"), "4")
+        kconf = self.kconf(*SD_CARD, "RCAR_MMC")
+        self.assertEqual(self.value(kconf, "SDHC_BUFFER_ALIGNMENT"), "128")
 
     def test_an_alias_selects_its_replacement_and_deprecated(self):
         for old, new in DEPRECATED_ALIASES.items():

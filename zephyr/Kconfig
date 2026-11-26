@@ -433,15 +433,17 @@ config CRUX_FILE_DIR_POOL_SIZE
       (the build checks it). The Host build has the CMake cache variable
       CRUX_FILE_DIR_POOL_SIZE with the same default.
 
-# An SD host driver with DMA, such as the USDHC HAL, may invalidate a read target by whole D-cache
-# lines when a transfer completes, so the SD card selections and Reliance Edge take line-aligned
-# targets only. 32 bytes is the line of a Cortex-M7; a CPU with a longer line sets the value in its
-# board configuration. With an SD host and a data cache, file_native.c refuses a value below the
-# cache line size. With an SD host, the Reliance Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT
-# below this value.
+# The USDHC HAL (driver IMX_USDHC) invalidates a read target by whole D-cache lines when a transfer
+# completes, while the driver asks for 4-byte alignment only, so with the SD card selections and
+# Reliance Edge this default raises it to 32, the line of a Cortex-M7. It is keyed by that driver:
+# a module configdefault comes before a driver's own default, so an unconditional value here would
+# lower a stricter driver default (128 for R-Car). Another SD host keeps its driver's value. With an
+# SD host and a data cache, file_native.c refuses any value below the cache line size, so a board
+# whose driver asks for less sets the value in its board configuration. With an SD host, the Reliance
+# Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
-                  CRUX_FILE_RELIANCE_EDGE
+    default 32 if IMX_USDHC && (CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
+                                CRUX_FILE_RELIANCE_EDGE)
 
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT

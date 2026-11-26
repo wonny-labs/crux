@@ -213,7 +213,7 @@ These are limits of the current code that a product whose board has another UART
 - **Logging has one shape.** It requires deferred mode with the UART backend, autostart and text output (`components/logging/ports/zephyr/CMakeLists.txt:8-13`) and refuses the other log backends, including RTT, network, file and semihost, and several other options (`CMakeLists.txt:15-25`). The binding accepts only the `native_sim` UART emulator or an enabled `nxp,lpuart` node, on any board, at 115200 baud, 8N1, no flow control (`components/logging/ports/zephyr/logging_binding.c`).
   Another UART driver stops the build with a failed assertion.
 - **System needs one watchdog driver.** `native_sim`, or any board whose `crux-watchdog0` alias selects an enabled `nxp,imx-wdog` node; a node of another driver stops with `Crux System unsupported watchdog driver` (`components/system/ports/zephyr/system_binding.c`).
-- **Status and Reboot need System.** `CONFIG_CRUX_MGMT_STATUS` and `CONFIG_CRUX_REBOOT` both state in their Kconfig help that they need Crux System (`zephyr/Kconfig:657-659` and `zephyr/Kconfig:745-747`), and the configuration refuses an image without it (`zephyr/CMakeLists.txt:215-219` and `:242-245`), so they inherit the System limits above.
+- **Status and Reboot need System.** `CONFIG_CRUX_MGMT_STATUS` and `CONFIG_CRUX_REBOOT` both state in their Kconfig help that they need Crux System (`zephyr/Kconfig`, `config CRUX_MGMT_STATUS` and `config CRUX_REBOOT`), and the configuration refuses an image without it (`zephyr/CMakeLists.txt`, the `CONFIG_CRUX_MGMT_STATUS` and `CONFIG_CRUX_REBOOT` blocks), so they inherit the System limits above.
 
 ## Routes
 
