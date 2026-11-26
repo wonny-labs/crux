@@ -448,6 +448,31 @@ class FastTierTest(unittest.TestCase):
         self.assertLessEqual(ids_of("web-browser"), ids)
         self.assertIn("web-assets-native", ids)
 
+    def test_static_analysis_runs_after_every_build_it_reads(self):
+        # scripts/analyze-host.sh runs tidy-sources.py --strict on CI, which fails on a listed build
+        # without a compile database. A fast run once selected static-analysis without the checks
+        # that make the consumer builds.
+        producers = {
+            "build/linux/debug": "host-build-and-test", "build/linux/sanitize": "host-sanitizers",
+            "build/file-consumers": "file-consumers", "build/logging-consumer": "logging-host",
+            "build/system-consumer": "system-host", "build/messaging-consumer": "messaging-host",
+            "build/serial-consumer": "serial-host", "build/mgmt-services-consumer": "mgmt-services-host",
+            "build/thread-only": "portable-execution-host", "build/sync-only": "portable-execution-host",
+            "build/execution-firmware-host": "portable-execution-host",
+            "build/execution-runtime-host": "portable-execution-host",
+        }
+        listed = re.findall(r"^build ; (\S+)$", (REPO / "scripts/tidy-sources.conf").read_text(), re.MULTILINE)
+        self.assertEqual(set(producers), set(listed))
+        changes = [[patterns[0].replace("**", "x/y.c")] for patterns in self.manifest.components.values()]
+        for changed in [*changes, None]:
+            ids = [c.id for c in self.fast(changed).checks if c.job == "host"]
+            if "static-analysis" not in ids:
+                continue
+            for build, producer in producers.items():
+                with self.subTest(changed=changed, build=build):
+                    self.assertIn(producer, ids)
+                    self.assertLess(ids.index(producer), ids.index("static-analysis"))
+
     def test_the_fallback_names_its_reason(self):
         self.assertIn("scripts/test-gpio.sh", self.fast(["scripts/test-gpio.sh"]).reason)
         self.assertIn("new_area/source.c", self.fast(["new_area/source.c"]).reason)

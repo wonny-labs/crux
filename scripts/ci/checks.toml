@@ -241,7 +241,7 @@ fast = ["security-event"]
 id = "mgmt-services-host"
 job = "host"
 run = "./scripts/test-mgmt-services.sh"
-fast = ["mgmt-services"]
+fast = "always"
 
 [[check]]
 id = "web-host"
@@ -253,7 +253,7 @@ fast = ["web"]
 id = "portable-execution-host"
 job = "host"
 run = "./scripts/test-portable-execution.sh --host-only"
-fast = ["execution"]
+fast = "always"
 
 [[check]]
 id = "file-consumers"
@@ -263,7 +263,7 @@ cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE
 cmake --build build/file-consumers
 ctest --test-dir build/file-consumers --output-on-failure
 """
-fast = ["file"]
+fast = "always"
 
 [[check]]
 id = "file-service-host"
@@ -275,7 +275,7 @@ fast = ["file", "file-service"]
 id = "messaging-host"
 job = "host"
 run = "./scripts/test-messaging.sh --host-only"
-fast = ["messaging", "execution"]
+fast = "always"
 
 [[check]]
 id = "format"
@@ -287,20 +287,23 @@ fast = "always"
 id = "serial-host"
 job = "host"
 run = "./scripts/test-serial.sh --host-only"
-fast = ["serial"]
+fast = "always"
 
 [[check]]
 id = "logging-host"
 job = "host"
 run = "./scripts/test-logging.sh --host-only"
-fast = ["logging"]
+fast = "always"
 
 [[check]]
 id = "system-host"
 job = "host"
 run = "./scripts/test-system.sh --host-only"
-fast = ["system"]
+fast = "always"
 
+# static-analysis reads the compile databases of the consumer builds that scripts/tidy-sources.conf
+# lists, so the checks that make them run in the fast tier too: portable-execution-host,
+# file-consumers, messaging-host, serial-host, logging-host, system-host and mgmt-services-host.
 [[check]]
 id = "static-analysis"
 job = "host"

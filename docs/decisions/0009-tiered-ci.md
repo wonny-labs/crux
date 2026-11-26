@@ -116,6 +116,27 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 
 **Recommendation: a**, as [Continuous integration](../ci.md#use-in-a-product-repository) describes.
 
+### T10: shortening the tiers
+
+The full tier took as long as its slowest job: `zephyr-storage`, 30.5 minutes at `be60bc65`, of which one check, `emmc-reliance-edge`, took 9.2 to 14.8 minutes in three runs. Set-up took 0.4 to 0.6 minutes in a Host job and 2.0 to 2.6 in a Zephyr or PSA job. The owner's targets (26 November 2026): fast tier below 10 minutes per job, full tier 15 minutes, 20 at most, by industry-standard methods only.
+
+| Option | Label and source | Result |
+| --- | --- | --- |
+| **a. More jobs, balanced by measured check time: eight Zephyr shards, three Host and two PSA jobs** | Standard: a job matrix ([GitHub matrix](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations)) and parallel stages ([Jenkins](https://www.jenkins.io/doc/book/pipeline/syntax/#parallel)); Zephyr's own pull request CI spreads Twister over a matrix of shards ([twister.yaml](https://github.com/zephyrproject-rtos/zephyr/blob/main/.github/workflows/twister.yaml)) | Applied. No command changes; `emmc-reliance-edge` is cut at its script boundary into two checks in two shards, as `tests/build` was cut in T4 |
+| b. Twister `--subset` over one test plan | Documented option ([Twister](https://docs.zephyrproject.org/latest/develop/twister/index.html)); Zephyr's CI uses it | Not applied: Crux runs many small Twister and `west build` calls inside its check scripts, not one plan; sharding by check gives the same balance without changing a command |
+| c. Twister `-j 4` | Documented option (Twister) | Not applied: measured with no clear gain ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
+| d. Twister integration mode (`--integration`) | Documented option (Twister) | Not applied: it builds fewer platforms, which removes configurations from the full tier (R2) |
+| e. ccache for Zephyr builds | Documented option: Zephyr's build uses ccache when it is installed ([`USE_CCACHE`](https://docs.zephyrproject.org/latest/build/cmake-ref/variable/USE_CCACHE.html)) | Not applied: measured with no gain, since 34 to 54% of compiler calls were cacheable and configuring, linking and running dominate ([Zephyr CI shards](../ci-zephyr-shards.md#options-measured-and-not-adopted)) |
+| f. `actions/cache` for west modules (`west update --path-cache`) keyed on `west.yml` | Documented options ([dependency caching](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching), [west update](https://docs.zephyrproject.org/latest/develop/west/built-in.html#west-update)) | Not applied now: it saves at most the module fetch, about one minute of a Zephyr job, and the slowest job after a, `host`, fetches no west modules (T8) |
+| g. Cache the Zephyr SDK or pip downloads | Documented options (dependency caching; `actions/setup-python` `cache: pip`) | Not applied: a restored SDK skips the installer's checks (T8); the pip step takes 0.1 minutes |
+| h. Move long gating suites to nightly | Project choice | Rejected: no check leaves the full tier (R2, R3) |
+| i. Count a component's Kconfig, `.conf` and overlay files as its own in the fast tier | Standard in kind: path rules per component (R5) | Rejected for now: not provably safe (T3) |
+| j. Run several checks of one job at the same time | Custom scheduler | Rejected: checks share build folders, and the owner excluded custom schedulers |
+| **k. A `base` input for a manual run** | Standard: `workflow_dispatch` inputs ([events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)) and Jenkins parameters | Applied, so that the fast tier can be measured by hand |
+| l. The two sanitizer checks in a Host job of their own | Standard, as a | Tried and withdrawn: `web-host` failed there, because `scripts/test-web.sh` runs every Web test of the `host-sanitize` tree but builds only some of them, and in the `host` job `host-sanitizers` builds the rest first. Making `test-web.sh` build what it runs would change a check script; it is left to the owner and would take the `host` job from about 13 to about 10 minutes |
+
+**Recommendation: a and k.** Measured on hosted runners at `a704189d`: the slowest job is `host` (13.3 minutes), then `psa-management` (12.6) and the `controller` shard (12.0); each workflow took 12.7 to 14.1 minutes from creation to end, against 31.3 for the Zephyr workflow at `be60bc65` ([Zephyr CI shards](../ci-zephyr-shards.md#measurements)). Limit: GitHub's free plan runs at most 20 jobs at once ([limits](https://docs.github.com/en/actions/reference/limits)); a full run of a code change uses 15 jobs, 19 with the web jobs, so two runs at once queue some jobs. f is the next step if a Zephyr job sets the wall time again.
+
 ## Decisions
 
 T1 to T9 as recommended, accepted by the owner on 26 November 2026. T10 as recommended, with its pull request.
