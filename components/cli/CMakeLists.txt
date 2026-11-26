@@ -39,8 +39,7 @@ target_link_libraries(crux_cli INTERFACE crux_cli_api crux_cli_core)
 
 # The serial console, for the composition that owns the console thread. Not a project's target.
 if(CRUX_BUILD_SERIAL AND CRUX_BUILD_THREAD)
-    add_library(crux_cli_console STATIC
-        console/cli_console.c console/cli_console_serial.c console/cli_console_log.c)
+    add_library(crux_cli_console STATIC console/cli_console.c console/cli_console_serial.c)
     target_include_directories(crux_cli_console PUBLIC console PRIVATE src)
     target_link_libraries(crux_cli_console
         PUBLIC crux_cli_adapter crux::cli crux::serial

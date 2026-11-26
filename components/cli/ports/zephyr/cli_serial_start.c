@@ -4,7 +4,8 @@
  * <crux/serial.h> nor <crux/thread.h>. The thread is a placed service worker (ADR-0002 P3): its
  * entry calls the placement first, so that it runs at CONFIG_CRUX_CLI_CONSOLE_PRIORITY, and each
  * pass of its loop reports progress. Under CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console also
- * prints the log text of the Logging backend in cli_console_log_backend.c, which shares its UART.
+ * prints the log text of the Logging backend in
+ * components/logging/ports/zephyr/logging_console_backend.c, which shares its UART.
  */
 #include "cli_console.h"
 #include "cli_internal.h"
@@ -16,7 +17,10 @@
 #include "service_priority.h"
 #endif
 #ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
-#include "cli_console_log_zephyr.h"
+#include "logging_console.h"
+
+_Static_assert(CRUX_LOGGING_CONSOLE_TEXT_MAX == CRUX_CLI_CONSOLE_LOG_TEXT_MAX,
+               "a log entry must fit the console's buffer");
 #endif
 
 /* The one logical port that the Zephyr Serial binding supports: crux-serial0. */
@@ -26,6 +30,11 @@ static crux_cli_context_t console_context;
 static crux_cli_console_config_t console_config;
 static crux_thread_t console_thread;
 static bool console_started;
+#ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
+/* The queue of the Logging backend that shares the UART. The console attaches it before each open,
+ * so log text stops going straight to the UART, and prints it between reads. */
+static crux_cli_console_log_t console_log;
+#endif
 
 #ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
 /* The console's progress, once per pass of its loop (<crux/service_priority_zephyr.h>). */
@@ -41,11 +50,6 @@ static void console_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_CLI_CONSOLE);
 #endif
     (void)argument;
-#ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
-    /* From here on log text goes to the console's queue, not straight to the UART, which the
-     * console is about to open. */
-    crux_cli_console_log_attach();
-#endif
     /* It returns only for a bad argument, which the start has already refused. */
     (void)crux_cli_console_run(&console_context, &console_config);
 }
@@ -72,7 +76,10 @@ crux_cli_result_t crux_cli_serial_start(const crux_cli_serial_config_t *config)
     console_config.serial.parity = CRUX_SERIAL_PARITY_NONE;
     console_config.setup_role = config->setup_role;
 #ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
-    console_config.log = &crux_cli_console_log_source;
+    console_log.next = crux_logging_console.next;
+    console_log.attach = crux_logging_console.attach;
+    console_log.source = NULL;
+    console_config.log = &console_log;
 #endif
 #ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
     console_config.progress = console_progress;

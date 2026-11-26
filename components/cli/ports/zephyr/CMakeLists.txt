@@ -47,14 +47,15 @@ if(CONFIG_CRUX_CLI_CONSOLE)
     target_link_libraries(crux_cli_zephyr PRIVATE crux::security_event crux_service_priority_placement)
     zephyr_append_cmake_library(crux_cli_zephyr)
 endif()
-# The console and Logging on one UART (Experimental): the console's Logging backend and its queue. A Kconfig
+# The console and Logging on one UART (Experimental). Logging builds the backend and its queue
+# (components/logging/ports/zephyr/logging_console_backend.c); the start reads its private header. A Kconfig
 # dependency would only warn and build the dedicated mode, so a missing Logging is refused here.
 if(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
     if(NOT CONFIG_CRUX_LOGGING)
         message(FATAL_ERROR "CONFIG_CRUX_CLI_CONSOLE_UART_SHARED needs CONFIG_CRUX_LOGGING: the console "
                             "shares its UART with Crux Logging")
     endif()
-    target_sources(crux_cli_zephyr PRIVATE ../../console/cli_console_log.c cli_console_log_backend.c)
+    target_include_directories(crux_cli_zephyr PRIVATE "${CRUX_CLI_COMPONENT_DIR}/../logging/ports/zephyr")
 endif()
 
 add_library(crux_cli INTERFACE)

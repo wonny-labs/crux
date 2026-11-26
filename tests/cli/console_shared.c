@@ -3,21 +3,23 @@
  * input, the input line is cleared and redrawn around it, a secret is never redrawn, command output
  * is never interleaved, a full queue says how much it dropped, and every pass reports progress. */
 #include "cli_console.h"
-#include "cli_console_log.h"
+#include "logging_console_queue.h"
+
 #include "cli_session_test.h"
 #include "fake_serial.h"
+#include <stdint.h>
 
 #define PASSWORD "correct-horse-password"
 #define CLEAR "\r\x1b[K"
 
-static uint8_t storage[CRUX_CLI_LOG_QUEUE_MIN];
-static crux_cli_log_queue_t queue;
+static uint8_t storage[CRUX_LOG_QUEUE_MIN];
+static crux_log_queue_t queue;
 static crux_cli_console_state_t state;
 static unsigned progress_calls;
 
 static size_t next_entry(void *source, char *text, size_t capacity)
 {
-    return crux_cli_log_queue_get(source, text, capacity);
+    return crux_log_queue_get(source, text, capacity);
 }
 
 static void count_progress(void)
@@ -25,7 +27,18 @@ static void count_progress(void)
     progress_calls += 1;
 }
 
-static const crux_cli_console_log_t log_source = {next_entry, &queue};
+/* The opens that had happened at each attach. */
+static unsigned attaches;
+static unsigned opens_at_attach;
+
+static void attach(void *source)
+{
+    (void)source;
+    attaches += 1;
+    opens_at_attach = cli_fake_serial.open_calls;
+}
+
+static const crux_cli_console_log_t log_source = {next_entry, attach, &queue};
 static const crux_cli_console_config_t config = {
     0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", &log_source, count_progress};
 
@@ -36,7 +49,7 @@ static cli_fake_t *wire(void)
 
 static void queue_text(const char *text)
 {
-    CHECK(crux_cli_log_queue_put(&queue, text, strlen(text)));
+    CHECK(crux_log_queue_put(&queue, text, strlen(text)));
 }
 
 /* A command whose service logs while it runs: the line must wait for the next prompt. */
@@ -61,8 +74,10 @@ static void begin(void)
     cli_test_begin_table(table, sizeof(table) / sizeof(table[0]));
     cli_fake_serial_reset();
     memset(&state, 0, sizeof(state));
-    CHECK(crux_cli_log_queue_init(&queue, storage, sizeof(storage)));
+    CHECK(crux_log_queue_init(&queue, storage, sizeof(storage)));
     progress_calls = 0;
+    attaches = 0;
+    opens_at_attach = UINT32_MAX;
 }
 
 static crux_cli_result_t cycle(void)
@@ -86,6 +101,9 @@ static void logs_at_the_login_prompt(void)
     CHECK_TEXT(wire()->output, "login: " CLEAR "boot line\r\nlogin: alice\r\npassword: \r\n"
                                "> logout\r\nlogin: ");
     CHECK(cli_fake_access.logout_calls == 1);
+    /* The source stopped writing to the UART before the console opened it. */
+    CHECK(attaches == 1u);
+    CHECK(opens_at_attach == 0u);
     /* Every read reports progress at least once. */
     CHECK(progress_calls >= strlen("alice\r" PASSWORD "\rlogout\r"));
 }
@@ -149,10 +167,10 @@ static void a_full_queue_says_how_much_it_dropped(void)
     line[sizeof(line) - 2u] = '\n';
     line[sizeof(line) - 1u] = '\0';
     unsigned admitted = 0;
-    while (crux_cli_log_queue_put(&queue, line, strlen(line))) {
+    while (crux_log_queue_put(&queue, line, strlen(line))) {
         admitted += 1;
     }
-    crux_cli_log_queue_add_dropped(&queue, 2u);
+    crux_log_queue_add_dropped(&queue, 2u);
     CHECK(admitted == 10u);
     cli_fake_input_timeouts(wire(), 3);
     CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
@@ -181,6 +199,13 @@ static void a_failed_write_of_log_text_ends_the_cycle(void)
     CHECK(cli_fake_serial.close_calls == 1);
     CHECK(cli_fake_event_count_of(CRUX_CLI_EVENT_CONSOLE_ERROR) == 1);
     CHECK(cli_fake_access.login_calls == 0);
+    /* The next cycle attaches again before it opens again. */
+    cli_fake_output_clear(wire());
+    wire()->write_fail_after = SIZE_MAX;
+    CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(attaches == 2u);
+    CHECK(opens_at_attach == 1u);
+    CHECK(cli_fake_serial.open_calls == 2u);
 }
 
 static void a_dedicated_console_takes_no_log_text(void)

@@ -214,7 +214,7 @@ A product chooses with the Kconfig choice `CRUX_CLI_CONSOLE_UART`:
 | Symbol | Behaviour |
 | --- | --- |
 | `CRUX_CLI_CONSOLE_UART_DEDICATED` (default) | The console owns the UART of `crux-serial0` alone. Logging uses Zephyr's UART backend on the UART that `zephyr,log-uart` names, which must be another one. |
-| `CRUX_CLI_CONSOLE_UART_SHARED` | One UART. A Crux Logging backend replaces Zephyr's UART backend on the UART of `crux-serial0`. It needs `CONFIG_CRUX_LOGGING` and `CONFIG_LOG_BACKEND_UART=n`, and the UART's `current-speed` must equal `CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE`; the build refuses anything else. `zephyr,log-uart` is optional, and when chosen it names `crux-serial0`. |
+| `CRUX_CLI_CONSOLE_UART_SHARED` | One UART. A Crux Logging backend replaces Zephyr's UART backend on the UART of `crux-serial0`, and the console prints what it queues. It needs `CONFIG_CRUX_LOGGING` and `CONFIG_LOG_BACKEND_UART=n`, and the UART's `current-speed` must equal `CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE`; the build refuses anything else. `zephyr,log-uart` is optional, and when chosen it names `crux-serial0`. |
 
 In the shared mode, which follows the multiplexing of Zephyr's shell log backend without the Zephyr shell:
 
@@ -223,7 +223,7 @@ In the shared mode, which follows the multiplexing of Zephyr's shell log backend
 - **The console prints log text only while it waits for input**: it clears the input line (`CR`, `ESC [K`), writes up to about 512 bytes of log text, and redraws the prompt and the typed text. Typed input is read first. A secret is never redrawn, because it is never echoed: at a password prompt only the prompt comes back. Command output is never interleaved, because no read happens while a command prints; log text waits for the next prompt. While the console is idle at a prompt, a line waits at most 100 ms.
 - **Log text can appear before login**, at the login prompt. That is the same physical-access exposure as a separate log UART.
 
-Limits: a line longer than a prompt and `CRUX_CLI_LINE_MAX` is not redrawn, and the log text starts on a new line instead. After a panic, if the product's fatal error handler lets the system go on, console output and panic output can interleave. Locks, ISR context and the panic path are described at the top of `components/cli/ports/zephyr/cli_console_log_backend.c`. Tests: `tests/cli/console_log.c` and `tests/cli/console_shared.c` on the Host, and the fixture `tests/native/cli_console/shared` on `native_sim`, with the refusals, from `tests/native/cli_console/run.sh`. No EVKB build of the shared mode exists yet.
+Limits: a line longer than a prompt and `CRUX_CLI_LINE_MAX` is not redrawn, and the log text starts on a new line instead. After a panic, if the product's fatal error handler lets the system go on, console output and panic output can interleave. Locks, ISR context and the panic path are described at the top of `components/logging/ports/zephyr/logging_console_backend.c`. Tests: `tests/cli/console_log.c` and `tests/cli/console_shared.c` on the Host, and the fixture `tests/native/cli_console/shared` on `native_sim`, with the refusals, from `tests/native/cli_console/run.sh`. No EVKB build of the shared mode exists yet.
 
 ## What #193 uses
 

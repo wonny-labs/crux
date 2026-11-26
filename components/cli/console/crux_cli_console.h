@@ -25,7 +25,12 @@ typedef struct {
      * is none. Called on the console's thread. It must not wait.
      */
     size_t (*next)(void *source, char *text, size_t capacity);
-    void *source; /**< Passed unchanged to next. */
+    /**
+     * NULL, or called on the console's thread before each open of the port, so that the source
+     * stops writing to the UART by itself before the console takes it over.
+     */
+    void (*attach)(void *source);
+    void *source; /**< Passed unchanged to next and attach. */
 } crux_cli_console_log_t;
 
 /** The console's settings, as the composition configured them. */

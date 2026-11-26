@@ -8,7 +8,6 @@
  */
 #include "cli_console.h"
 
-#include "cli_console_log.h"
 #include "cli_internal.h"
 
 #include <crux/thread.h>
@@ -25,7 +24,7 @@ typedef struct {
     crux_cli_line_ends_t line_ends;
     const crux_cli_console_config_t *config;
     console_line_t line;
-    char entry[CRUX_CLI_LOG_ENTRY_MAX];
+    char entry[CRUX_CLI_CONSOLE_LOG_TEXT_MAX];
 } console_transport_t;
 
 static const crux_access_session_t no_session = {0};
@@ -208,6 +207,9 @@ crux_cli_result_t crux_cli_console_cycle(crux_cli_console_state_t *state,
         if (state->open) {
             return CRUX_CLI_ERR_OUTPUT;
         }
+    }
+    if (config->log != NULL && config->log->attach != NULL) {
+        config->log->attach(config->log->source);
     }
     if (crux_serial_open(config->port, &config->serial, &state->serial) != CRUX_OK) {
         report_console_error();

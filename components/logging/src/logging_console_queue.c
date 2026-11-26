@@ -1,4 +1,4 @@
-#include "cli_console_log.h"
+#include "logging_console_queue.h"
 
 #include <string.h>
 
@@ -9,18 +9,18 @@
 /* "--- 4294967295 log messages dropped ---\n" and a spare byte. */
 #define DROP_LINE_MAX 48u
 
-_Static_assert(CRUX_CLI_LOG_ENTRY_MAX <= 0xFFFFu, "an entry's length must fit its header");
-_Static_assert(CRUX_CLI_LOG_QUEUE_MIN >= 2u * ENTRY_HEADER + DROP_LINE_MAX + CRUX_CLI_LOG_ENTRY_MAX,
+_Static_assert(CRUX_LOG_QUEUE_ENTRY_MAX <= 0xFFFFu, "an entry's length must fit its header");
+_Static_assert(CRUX_LOG_QUEUE_MIN >= 2u * ENTRY_HEADER + DROP_LINE_MAX + CRUX_LOG_QUEUE_ENTRY_MAX,
                "the smallest queue must hold the drop line and a longest entry");
 
-void crux_cli_log_stage_begin(crux_cli_log_stage_t *stage)
+void crux_log_stage_begin(crux_log_stage_t *stage)
 {
     stage->length = 0;
     stage->truncated = false;
     stage->started = false;
 }
 
-void crux_cli_log_stage_append(crux_cli_log_stage_t *stage, const void *data, size_t length)
+void crux_log_stage_append(crux_log_stage_t *stage, const void *data, size_t length)
 {
     const unsigned char *bytes = data;
     for (size_t index = 0; index < length; ++index) {
@@ -33,7 +33,7 @@ void crux_cli_log_stage_append(crux_cli_log_stage_t *stage, const void *data, si
             byte = '?';
         }
         /* The last bytes are kept for the line end or the cut mark. */
-        if (stage->length >= CRUX_CLI_LOG_ENTRY_MAX - CUT_MARK_LENGTH) {
+        if (stage->length >= CRUX_LOG_QUEUE_ENTRY_MAX - CUT_MARK_LENGTH) {
             stage->truncated = true;
             return;
         }
@@ -42,7 +42,7 @@ void crux_cli_log_stage_append(crux_cli_log_stage_t *stage, const void *data, si
     }
 }
 
-size_t crux_cli_log_stage_finish(crux_cli_log_stage_t *stage)
+size_t crux_log_stage_finish(crux_log_stage_t *stage)
 {
     if (!stage->started) {
         return 0;
@@ -57,9 +57,9 @@ size_t crux_cli_log_stage_finish(crux_cli_log_stage_t *stage)
     return stage->length;
 }
 
-bool crux_cli_log_queue_init(crux_cli_log_queue_t *queue, void *storage, size_t capacity)
+bool crux_log_queue_init(crux_log_queue_t *queue, void *storage, size_t capacity)
 {
-    if (queue == NULL || storage == NULL || capacity < CRUX_CLI_LOG_QUEUE_MIN) {
+    if (queue == NULL || storage == NULL || capacity < CRUX_LOG_QUEUE_MIN) {
         return false;
     }
     queue->storage = storage;
@@ -70,12 +70,12 @@ bool crux_cli_log_queue_init(crux_cli_log_queue_t *queue, void *storage, size_t 
     return true;
 }
 
-static size_t free_bytes(const crux_cli_log_queue_t *queue)
+static size_t free_bytes(const crux_log_queue_t *queue)
 {
     return queue->capacity - queue->used;
 }
 
-static void ring_write(crux_cli_log_queue_t *queue, const void *data, size_t length)
+static void ring_write(crux_log_queue_t *queue, const void *data, size_t length)
 {
     size_t tail = (queue->head + queue->used) % queue->capacity;
     size_t first = queue->capacity - tail < length ? queue->capacity - tail : length;
@@ -84,7 +84,7 @@ static void ring_write(crux_cli_log_queue_t *queue, const void *data, size_t len
     queue->used += length;
 }
 
-static void ring_read(crux_cli_log_queue_t *queue, void *data, size_t length)
+static void ring_read(crux_log_queue_t *queue, void *data, size_t length)
 {
     size_t first = queue->capacity - queue->head < length ? queue->capacity - queue->head : length;
     memcpy(data, &queue->storage[queue->head], first);
@@ -93,7 +93,7 @@ static void ring_read(crux_cli_log_queue_t *queue, void *data, size_t length)
     queue->used -= length;
 }
 
-static void write_entry(crux_cli_log_queue_t *queue, const char *text, size_t length)
+static void write_entry(crux_log_queue_t *queue, const char *text, size_t length)
 {
     const uint8_t header[ENTRY_HEADER] = {(uint8_t)(length & 0xFFu), (uint8_t)(length >> 8u)};
     ring_write(queue, header, sizeof(header));
@@ -122,15 +122,15 @@ static size_t format_drop_line(char *text, uint32_t count)
     return length + sizeof(end) - 1u;
 }
 
-void crux_cli_log_queue_add_dropped(crux_cli_log_queue_t *queue, uint32_t count)
+void crux_log_queue_add_dropped(crux_log_queue_t *queue, uint32_t count)
 {
     queue->dropped = count > UINT32_MAX - queue->dropped ? UINT32_MAX : queue->dropped + count;
 }
 
-bool crux_cli_log_queue_put(crux_cli_log_queue_t *queue, const char *text, size_t length)
+bool crux_log_queue_put(crux_log_queue_t *queue, const char *text, size_t length)
 {
-    if (length == 0 || length > CRUX_CLI_LOG_ENTRY_MAX) {
-        crux_cli_log_queue_add_dropped(queue, 1u);
+    if (length == 0 || length > CRUX_LOG_QUEUE_ENTRY_MAX) {
+        crux_log_queue_add_dropped(queue, 1u);
         return false;
     }
     size_t needed = ENTRY_HEADER + length;
@@ -141,7 +141,7 @@ bool crux_cli_log_queue_put(crux_cli_log_queue_t *queue, const char *text, size_
         needed += ENTRY_HEADER + drop_length;
     }
     if (free_bytes(queue) < needed) {
-        crux_cli_log_queue_add_dropped(queue, 1u);
+        crux_log_queue_add_dropped(queue, 1u);
         return false;
     }
     if (drop_length > 0) {
@@ -152,9 +152,9 @@ bool crux_cli_log_queue_put(crux_cli_log_queue_t *queue, const char *text, size_
     return true;
 }
 
-size_t crux_cli_log_queue_get(crux_cli_log_queue_t *queue, char *text, size_t capacity)
+size_t crux_log_queue_get(crux_log_queue_t *queue, char *text, size_t capacity)
 {
-    if (capacity < CRUX_CLI_LOG_ENTRY_MAX) {
+    if (capacity < CRUX_LOG_QUEUE_ENTRY_MAX) {
         return 0;
     }
     if (queue->used >= ENTRY_HEADER) {

@@ -23,6 +23,8 @@
 #ifndef CRUX_CLI_CONSOLE_LOG_BURST_BYTES
 #define CRUX_CLI_CONSOLE_LOG_BURST_BYTES 512u
 #endif
+/* The buffer for one entry of log text: the longest entry that a log source hands out. */
+#define CRUX_CLI_CONSOLE_LOG_TEXT_MAX 512u
 /* The input line kept for a redraw: a prompt and a longest line. A longer one is not redrawn. */
 #define CRUX_CLI_CONSOLE_REDRAW_MAX (CRUX_CLI_LINE_MAX + 64u)
 
