@@ -209,7 +209,10 @@ int main(void)
     printk("PROBE ready\n");
 
     while (true) {
-        int ready = zsock_poll(slots, ARRAY_SIZE(slots), -1);
+        /* On Zephyr v4.5.0 a client that sent only a FIN keeps the poll busy inside the TLS layer
+         * until something else is ready, so the sweep needs a bounded poll to get control back. The
+         * driver's no-sweep mode keeps the unbounded poll that a server like Zephyr's uses. */
+        int ready = zsock_poll(slots, ARRAY_SIZE(slots), sweep_on_empty_poll ? 200 : -1);
 
         if (ready < 0) {
             printk("PROBE poll errno=%d\n", errno);
@@ -225,7 +228,7 @@ int main(void)
          */
         if (ready == 0) {
             if (++empty_polls == 1) {
-                printk("PROBE poll returned 0 with no timeout\n");
+                printk("PROBE poll returned 0\n");
             }
             if (sweep_on_empty_poll) {
                 for (int i = SLOT_CLIENT; i < (int)ARRAY_SIZE(slots); ++i) {

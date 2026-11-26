@@ -65,8 +65,12 @@ class BenchDeclaration(unittest.TestCase):
         self.assertIn(f"result_sha256={tls_file['sha256']}", script)
         self.assertIn(patched["marker_file"], script)
         self.assertIn(tls_file["path"], script)
-        west = (ROOT / "west.yml").read_text()
-        self.assertIn(f"revision: {patched['zephyr_pin']}", west)
+        # The bench is the wolfSSL line, and the recorded first freeze holds this pin. From Zephyr v4.5.0
+        # that line keeps its own Zephyr, v4.4.2, because wolfSSL/osp has no 4.5 TLS socket patch
+        # (patches/zephyr/README.md), so the line's scripts name the declared pin, not west.yml.
+        # scripts/prepare-wolf-tls-zephyr.sh still reads west.yml, so it refuses a copy until the line moves.
+        for name in ("scripts/test-ssh-wolf-settings.sh", "scripts/test-web.sh"):
+            self.assertIn(f"zephyr_revision={patched['zephyr_pin']}", (ROOT / name).read_text())
 
     def test_the_fail_closed_initial_sequence_number_patch_matches_its_script_and_its_file(self):
         """Row C11, D-c: the second patch of the build-local copy. The declaration, the script, the patch file and the
