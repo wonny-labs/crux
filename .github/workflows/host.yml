@@ -15,6 +15,10 @@ on:
         type: choice
         options: [full, fast, nightly]
         default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
 concurrency:
@@ -23,6 +27,9 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
 
 jobs:
   host:
@@ -61,8 +68,6 @@ jobs:
           name: host-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             build/ci/
-            build/linux/sanitize/ctest-junit.xml
-            build/linux/sanitize/Testing/Temporary/LastTest.log
             build/linux/debug/samples/controller/host/controller.log
             build/linux/debug/ctest-junit.xml
             build/linux/debug/Testing/Temporary/LastTest.log
@@ -83,8 +88,14 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-  host-build-tests:
+  # The other Host jobs of scripts/ci/checks.toml, one runner each.
+  host-other:
+    name: ${{ matrix.job }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [host-build-tests-large, host-build-tests, host-sanitize]
     env:
       CC: clang-18
       CXX: clang++-18
@@ -98,8 +109,8 @@ jobs:
       - name: Plan the checks of this tier
         id: plan
         run: |
-          scripts/ci/run-tier.sh "$TIER" --job host-build-tests --plan
-          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job host-build-tests --count)" >> "$GITHUB_OUTPUT"
+          scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --count)" >> "$GITHUB_OUTPUT"
       - name: Install host tools
         if: steps.plan.outputs.checks != '0'
         run: |
@@ -109,14 +120,23 @@ jobs:
           "${RUNNER_TEMP}/crux-tools/bin/pip" install \
             cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pyyaml==6.0.3
           echo "${RUNNER_TEMP}/crux-tools/bin" >> "$GITHUB_PATH"
+      # The sanitizer checks configure with FETCHCONTENT_FULLY_DISCONNECTED=ON and read googletest
+      # from CRUX_CACHE_DIR. In the host job the first step of scripts/bootstrap-host.sh fetches it;
+      # this is that step alone.
+      - name: Fetch the Host test sources
+        if: steps.plan.outputs.checks != '0' && matrix.job == 'host-sanitize'
+        run: cmake --preset host-debug -S .
       - name: Run the checks of this tier
         if: steps.plan.outputs.checks != '0'
-        run: scripts/ci/run-tier.sh "$TIER" --job host-build-tests
+        run: scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}"
       - name: Upload the check reports
         if: always() && steps.plan.outputs.checks != '0'
         uses: actions/upload-artifact@v4
         with:
-          name: host-build-tests-${{ github.run_id }}-${{ github.run_attempt }}
-          path: build/ci/
+          name: ${{ matrix.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/ci/
+            build/linux/sanitize/ctest-junit.xml
+            build/linux/sanitize/Testing/Temporary/LastTest.log
           retention-days: 14
           if-no-files-found: warn

@@ -29,6 +29,10 @@ on:
         type: choice
         options: [full, fast, nightly]
         default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
 concurrency:
@@ -40,6 +44,7 @@ permissions:
 
 env:
   TIER: ${{ inputs.tier || 'auto' }}
+  CRUX_CI_BASE: ${{ inputs.base }}
 
 jobs:
   specification:
