@@ -95,6 +95,7 @@ networking = [
   "tests/networking_zephyr/**",
   "tests/networking_physical/**",
   "tests/networking_physical_native/**",
+  "tests/native/tcp_isn/**",
 ]
 reboot = ["components/reboot/**", "tests/reboot/**"]
 repository-tests = ["tests/build/**", "tests/power_cut/**", "tests/docs/**", "tests/style/**"]
@@ -578,6 +579,15 @@ id = "tf-psa-crypto-native-sim"
 job = "psa-crypto"
 run = "scripts/test-psa-crypto.sh zephyr tf-psa-crypto"
 scope = "psa-crypto"
+
+# The fail-closed TCP initial sequence number of default images (patches/zephyr/README.md), with its
+# negative control on upstream tcp.c. It needs the Mbed TLS modules for the PSA hash.
+[[check]]
+id = "tcp-isn-native-sim"
+job = "psa-crypto"
+run = "scripts/test-tcp-isn.sh"
+scope = "psa-crypto"
+fast = ["networking"]
 
 [[check]]
 id = "tf-psa-crypto-evkb"

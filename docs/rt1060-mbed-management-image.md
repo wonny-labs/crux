@@ -135,7 +135,7 @@ If the TRNG is not available, the image prints the refusal line and starts nothi
 | --- | --- | --- |
 | Runs | **Refuses to start**, by `CRUX_BENCH_RUN_REFUSED` | Runs |
 | Guards | Declaration, three guard levels, frozen Zephyr copy, manifest, UART report | None of them. Plain checks of the configuration. |
-| Zephyr | A patched copy (TLS socket patch and the TCP sequence number fail-closed patch) | The stock Zephyr of the workspace. **The TCP initial sequence number has no fail-closed patch here**: with a failed entropy source Zephyr's keyed sequence number is not guaranteed. No listener exists before the first random read passes, which narrows this and does not remove it. |
+| Zephyr | A patched copy (TLS socket patch and the TCP sequence number fail-closed patch) | The stock Zephyr of the workspace, with Crux's build-local single-file corrections. One of them is the [TCP initial sequence number](../patches/zephyr/README.md#default-images-at-the-pin): when the key read or the hash fails, a new connection is refused instead of getting a number from `sys_rand32_get()`. `scripts/test-management-mbed-rt1060.sh build` checks that the image generated it. |
 | Programming path | Profile and driver of `tests/target/` (not registered) | The team's own |
 | Listener address | Bound to one address by a setting | Every address of one interface that holds one IPv4 address |
 | First account | A password file, as plaintext, under the bench declaration | The same mechanism, as a test form that is off by default |

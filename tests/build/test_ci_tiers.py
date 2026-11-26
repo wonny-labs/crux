@@ -69,9 +69,10 @@ EXPECTED_FULL = {
         "web-native", "web-assets-native", "networking", "networking-physical-fixture",
     ],
     "psa-crypto": [
-        "tf-psa-crypto-host", "tf-psa-crypto-native-sim", "tf-psa-crypto-evkb", "web-evkb-mbedtls",
-        "psa-ports-host", "tls-offload-mbed", "management-composition-mbed", "management-module-mbed",
-        "web-https-mbedtls", "web-session-native", "psa-ports-evkb", "management-image-rt1060-mbed",
+        "tf-psa-crypto-host", "tf-psa-crypto-native-sim", "tcp-isn-native-sim", "tf-psa-crypto-evkb",
+        "web-evkb-mbedtls", "psa-ports-host", "tls-offload-mbed", "management-composition-mbed",
+        "management-module-mbed", "web-https-mbedtls", "web-session-native", "psa-ports-evkb",
+        "management-image-rt1060-mbed",
     ],
     "web-specification": ["management-api-lint", "management-api-lint-controls"],
     "web-client": ["web-client-install", "web-client-checks", "web-client-audit", "web-client-sbom"],

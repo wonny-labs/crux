@@ -61,7 +61,7 @@ run_build() {
     for line in CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS=y CONFIG_MBEDTLS=y CONFIG_ENTROPY_MCUX_TRNG=y \
         CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY=y CONFIG_CRUX_ACCESS=y CONFIG_CRUX_WEB=y CONFIG_CRUX_WEB_SESSION=y \
         CONFIG_CRUX_WEB_MANAGEMENT=y CONFIG_CRUX_TLS_CERTIFICATE=y CONFIG_CRUX_REBOOT=y CONFIG_CRUX_LOGGING=y \
-        CONFIG_CRUX_FILE_FATFS_RAM_DISK=y; do
+        CONFIG_CRUX_FILE_FATFS_RAM_DISK=y CONFIG_NET_NATIVE_TCP=y CONFIG_NET_TCP_ISN_RFC6528=y; do
         grep -qx "$line" "$config" || fail "the resolved configuration lacks $line"
     done
     local absent
@@ -73,6 +73,9 @@ run_build() {
     # The fail-closed copy of Zephyr's Mbed TLS entropy glue was generated.
     find "$default" -path '*crux-mbedtls/zephyr_entropy.c' | grep -q . ||
         fail 'the fail-closed entropy source was not generated'
+    # The TCP stack whose initial sequence number fails closed (patches/zephyr/README.md) was generated.
+    find "$default" -path '*crux-tcp-isn/tcp.c' | grep -q . ||
+        fail 'the fail-closed TCP source was not generated'
 
     local nm
     nm="$(sed -n 's/^CMAKE_NM:[A-Z]*=//p' "$default/CMakeCache.txt")"
