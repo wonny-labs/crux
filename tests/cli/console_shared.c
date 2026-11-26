@@ -27,9 +27,12 @@ static void count_progress(void)
     progress_calls += 1;
 }
 
-/* The opens that had happened at each attach. */
+/* The opens that had happened at each attach, and the opens and closes at each detach. */
 static unsigned attaches;
 static unsigned opens_at_attach;
+static unsigned detaches;
+static unsigned opens_at_detach;
+static unsigned closes_at_detach;
 
 static void attach(void *source)
 {
@@ -38,7 +41,15 @@ static void attach(void *source)
     opens_at_attach = cli_fake_serial.open_calls;
 }
 
-static const crux_cli_console_log_t log_source = {next_entry, attach, &queue};
+static void detach(void *source)
+{
+    (void)source;
+    detaches += 1;
+    opens_at_detach = cli_fake_serial.open_calls;
+    closes_at_detach = cli_fake_serial.close_calls;
+}
+
+static const crux_cli_console_log_t log_source = {next_entry, attach, detach, &queue};
 static const crux_cli_console_config_t config = {
     0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", &log_source, count_progress};
 
@@ -78,6 +89,9 @@ static void begin(void)
     progress_calls = 0;
     attaches = 0;
     opens_at_attach = UINT32_MAX;
+    detaches = 0;
+    opens_at_detach = UINT32_MAX;
+    closes_at_detach = UINT32_MAX;
 }
 
 static crux_cli_result_t cycle(void)
@@ -101,9 +115,12 @@ static void logs_at_the_login_prompt(void)
     CHECK_TEXT(wire()->output, "login: " CLEAR "boot line\r\nlogin: alice\r\npassword: \r\n"
                                "> logout\r\nlogin: ");
     CHECK(cli_fake_access.logout_calls == 1);
-    /* The source stopped writing to the UART before the console opened it. */
+    /* The source stopped writing to the UART before the console opened it, and wrote by itself
+     * again once the console had closed it. */
     CHECK(attaches == 1u);
     CHECK(opens_at_attach == 0u);
+    CHECK(detaches == 1u);
+    CHECK(closes_at_detach == 1u);
     /* Every read reports progress at least once. */
     CHECK(progress_calls >= strlen("alice\r" PASSWORD "\rlogout\r"));
 }
@@ -208,6 +225,45 @@ static void a_failed_write_of_log_text_ends_the_cycle(void)
     CHECK(cli_fake_serial.open_calls == 2u);
 }
 
+static void a_failed_open_gives_the_uart_back_to_the_source(void)
+{
+    /* A port that will not open, as with a quarantined binding: log text must not wait in the
+     * queue, unseen, through the pause and every later attempt. */
+    begin();
+    queue_text("while the console is down\n");
+    cli_fake_serial.open_result = CRUX_ERR_IO;
+    CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(attaches == 1u);
+    CHECK(detaches == 1u);
+    CHECK(opens_at_detach == 1u);
+    CHECK(cli_fake_serial.close_calls == 0u);
+    CHECK(!state.open);
+    CHECK(cli_fake_event_count_of(CRUX_CLI_EVENT_CONSOLE_ERROR) == 1);
+    /* Each attempt attaches before it opens and detaches after it fails. */
+    CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(attaches == 2u);
+    CHECK(opens_at_attach == 1u);
+    CHECK(detaches == 2u);
+    CHECK(opens_at_detach == 2u);
+}
+
+static void a_close_that_keeps_the_handle_keeps_the_source_attached(void)
+{
+    /* The port is still open, so the source must not write to the UART by itself. */
+    begin();
+    cli_fake_serial.close_busy_count = 1;
+    cli_fake_input_timeouts(wire(), 1);
+    CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(state.open);
+    CHECK(detaches == 0u);
+    /* The next cycle closes it, and attaches and opens again; the detach follows that close. */
+    CHECK(cycle() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(!state.open);
+    CHECK(attaches == 2u);
+    CHECK(detaches == 1u);
+    CHECK(closes_at_detach == 3u);
+}
+
 static void a_dedicated_console_takes_no_log_text(void)
 {
     /* Without a log source the console reads as before: one read per wait, and no clearing. */
@@ -232,6 +288,8 @@ int main(void)
     command_output_is_never_interleaved();
     a_full_queue_says_how_much_it_dropped();
     a_failed_write_of_log_text_ends_the_cycle();
+    a_failed_open_gives_the_uart_back_to_the_source();
+    a_close_that_keeps_the_handle_keeps_the_source_attached();
     a_dedicated_console_takes_no_log_text();
     return cli_test_finish("cli console shared");
 }

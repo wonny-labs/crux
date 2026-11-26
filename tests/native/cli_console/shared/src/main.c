@@ -3,8 +3,9 @@
  * Experimental), and the progress hook of the Crux service threads. Text written before the console
  * starts goes out directly; at a prompt a log line clears the input line and the line is redrawn;
  * at a password prompt the typed bytes are never redrawn; a burst reports its drops; the console
- * and the security event drain report progress at least once a second; after a panic log text goes
- * straight out. Test only: the entropy is test-only. Public headers only.
+ * and the security event drain report progress at least once a second; a panic writes the text that
+ * waits in the console's queue first, and later log text goes straight out. Test only: the entropy
+ * is test-only. Public headers only.
  */
 #include <crux/access.h>
 #include <crux/cli.h>
@@ -213,9 +214,29 @@ ZTEST(cli_console_shared, test_04_the_console_and_the_drain_report_progress)
     zassert_equal(atomic_get(&reports[CRUX_SERVICE_THREAD_WEB_SESSION_WORKER]), 0);
 }
 
-ZTEST(cli_console_shared, test_05_after_a_panic_log_text_goes_straight_out)
+ZTEST(cli_console_shared, test_05_a_panic_writes_the_queued_text_first)
 {
+    /* The console and the log thread are idle at the prompt. */
+    settle();
+    /* With the scheduler locked neither the console nor the log thread runs. This thread hands the
+     * message to the backends itself, as the log thread would, so it waits in the console's queue,
+     * which nothing drains until the panic. The test's own checks come after the unlock. */
+    k_sched_lock();
+    crux_status_t queued = crux_log_write(CRUX_LOG_INFO, "shared", "queued before the panic");
+    while (log_process()) {
+    }
+    uint32_t unprocessed = log_buffered_cnt();
+    drain();
+    bool written_early = strstr(capture, "queued before the panic") != NULL;
     log_panic();
-    zassert_equal(crux_log_write(CRUX_LOG_ERROR, "shared", "after the panic"), CRUX_OK);
+    crux_status_t direct = crux_log_write(CRUX_LOG_ERROR, "shared", "after the panic");
+    k_sched_unlock();
+    zassert_equal(queued, CRUX_OK);
+    zassert_equal(direct, CRUX_OK);
+    zassert_equal(unprocessed, 0u, "the backend did not take the message before the panic");
+    zassert_false(written_early, "the message went straight out instead of to the queue");
+    /* In this order: the queued line, written by the panic, and then the later line. Had the panic
+     * left the queue, the console would print the queued line after the later one. */
+    expect("shared: queued before the panic\r\n");
     expect("shared: after the panic\r\n");
 }

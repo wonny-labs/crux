@@ -250,28 +250,23 @@ config CRUX_CLI_CONSOLE_UART_DEDICATED
 
 config CRUX_CLI_CONSOLE_UART_SHARED
     bool "One UART for the console and Logging"
-    # Zephyr's formatter, which the console's backend uses as its UART backend does.
-    select LOG_OUTPUT
+    select CRUX_LOGGING_CONSOLE_BACKEND
     help
       Experimental. Needs CONFIG_CRUX_LOGGING and CONFIG_LOG_BACKEND_UART=n, which the build checks.
       A Crux Logging backend replaces Zephyr's UART backend on the UART of crux-serial0. Until the
-      console's thread starts, and after a panic, it writes each message directly. In between it
-      queues finished messages (drop new, with a count), and the console prints them only while it
-      waits for input: it clears the input line, writes the log text and redraws the prompt and the
-      typed text, never a password. Log text can therefore appear before login. The UART's
-      current-speed must equal CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE.
+      console's thread starts, while the console has no port open, and after a panic, it writes
+      each message directly. In between it queues finished messages
+      (CONFIG_CRUX_LOGGING_CONSOLE_QUEUE_BYTES, drop new, with a count), and the console prints them
+      only while it waits for input: it clears the input line, writes the log text and redraws the
+      prompt and the typed text, never a password. Log text can therefore appear before login.
+
+      The devicetree current-speed of the crux-serial0 UART must equal
+      CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE (default 115200), and the build refuses another rate,
+      because direct output goes at the devicetree's rate. The rate bounds the log text: an idle
+      console writes about 512 bytes of it per 100 ms wait, which at 115200 is about 3.5 kB/s; a
+      faster sustained rate fills the queue, and the rest is dropped and counted.
 
 endchoice
-
-config CRUX_CLI_CONSOLE_LOG_QUEUE_BYTES
-    int "Bytes of log text queued for a console that shares its UART"
-    default 2048
-    range 1024 65536
-    depends on CRUX_CLI_CONSOLE_UART_SHARED
-    help
-      Static memory for messages that wait for the console. A message that does not fit is dropped
-      and counted, and the console prints "--- N log messages dropped ---" in its place.
-
 config CRUX_DEVELOPMENT_IMAGE
     bool "Mark this image as a development image"
     depends on CRUX_MODULE
@@ -298,6 +293,26 @@ config CRUX_LOGGING
     depends on CRUX_MODULE
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
+
+config CRUX_LOGGING_CONSOLE_BACKEND
+    bool
+    # Zephyr's formatter, which the backend uses as Zephyr's UART backend does.
+    select LOG_OUTPUT
+    help
+      Selected by CONFIG_CRUX_CLI_CONSOLE_UART_SHARED. Crux Logging builds the backend of a console
+      that shares its UART (components/logging/ports/zephyr/logging_console_backend.c) in place of
+      Zephyr's UART backend. Owned by Logging, so that Logging reads no command line symbol.
+
+config CRUX_LOGGING_CONSOLE_QUEUE_BYTES
+    int "Bytes of log text queued for a console that shares its UART"
+    default 2048
+    range 1024 65536
+    depends on CRUX_LOGGING_CONSOLE_BACKEND
+    help
+      Static memory for messages that wait for the console. A message that does not fit is dropped
+      and counted, and the console prints "--- N log messages dropped ---" in its place. When the
+      console's port fails, the backend writes the whole queue directly while the log thread waits:
+      2048 bytes take about 180 ms at 115200 baud.
 
 config CRUX_GPIO
     bool "Crux synchronous GPIO line"

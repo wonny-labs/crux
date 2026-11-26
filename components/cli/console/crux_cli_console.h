@@ -30,7 +30,14 @@ typedef struct {
      * stops writing to the UART by itself before the console takes it over.
      */
     void (*attach)(void *source);
-    void *source; /**< Passed unchanged to next and attach. */
+    /**
+     * NULL, or called on the console's thread when, after an attach, it has no port open: the open
+     * failed, or the port was closed after a failure. The source writes to the UART by itself
+     * again, so that log text is not held while the console is down. A close that keeps the
+     * handle (CRUX_ERR_BUSY) is not followed by a detach.
+     */
+    void (*detach)(void *source);
+    void *source; /**< Passed unchanged to next, attach and detach. */
 } crux_cli_console_log_t;
 
 /** The console's settings, as the composition configured them. */

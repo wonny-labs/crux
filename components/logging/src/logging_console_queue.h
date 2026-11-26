@@ -1,10 +1,10 @@
 /* Private to Logging: the log text of a console that shares its UART with Logging
- * (CONFIG_CRUX_CLI_CONSOLE_UART_SHARED).
+ * (CONFIG_CRUX_LOGGING_CONSOLE_BACKEND, which CONFIG_CRUX_CLI_CONSOLE_UART_SHARED selects).
  *
  * A Logging backend formats each message into a stage and puts it in a bounded queue; the console
  * thread takes entries out between its reads and prints them. Portable, so that it is tested on the
- * Host. It holds no lock of its own: the caller holds one lock around each queue call, and the
- * stage belongs to the one thread that formats. It never waits and never allocates.
+ * Host. It holds no lock of its own: the caller holds one lock around each queue call, and uses
+ * the stage for one message at a time. It never waits and never allocates.
  *
  * Drop policy: drop new. An entry that does not fit is dropped and counted, and nothing already
  * queued is touched. The count becomes one line, "--- N log messages dropped ---", in the queue's

@@ -114,4 +114,5 @@ refuse_shared() { # name expected-text extra-conf...
 }
 refuse_shared shared-with-uart-backend 'requires CONFIG_LOG_BACKEND_UART=n' CONFIG_LOG_BACKEND_UART=y
 refuse_shared shared-without-logging 'CONFIG_CRUX_CLI_CONSOLE_UART_SHARED needs CONFIG_CRUX_LOGGING' CONFIG_CRUX_LOGGING=n
-printf "ok: a shared console beside Zephyr's UART backend, and one without Crux Logging, are both refused\n"
+refuse_shared shared-other-rate 'CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE (9600) differs' CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE=9600
+printf "ok: a shared console beside Zephyr's UART backend, one without Crux Logging, and one at another rate than its UART are refused\n"

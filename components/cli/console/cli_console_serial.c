@@ -186,6 +186,15 @@ static void report_console_error(void)
     crux_cli_port_event(&event);
 }
 
+/* The port is not open, and will not be until the next attach: the log source writes by itself,
+ * so that log text is not held during the pause before the next attempt. */
+static void detach_log(const crux_cli_console_config_t *config)
+{
+    if (config->log != NULL && config->log->detach != NULL) {
+        config->log->detach(config->log->source);
+    }
+}
+
 /* Close keeps the handle on BUSY, and consumes it otherwise, even on a native failure. */
 static void close_port(crux_cli_console_state_t *state)
 {
@@ -212,6 +221,7 @@ crux_cli_result_t crux_cli_console_cycle(crux_cli_console_state_t *state,
         config->log->attach(config->log->source);
     }
     if (crux_serial_open(config->port, &config->serial, &state->serial) != CRUX_OK) {
+        detach_log(config);
         report_console_error();
         return CRUX_CLI_ERR_OUTPUT;
     }
@@ -222,6 +232,9 @@ crux_cli_result_t crux_cli_console_cycle(crux_cli_console_state_t *state,
     crux_cli_result_t result = crux_cli_console_serve(context, &io, config->setup_role);
     report_console_error();
     close_port(state);
+    if (!state->open) {
+        detach_log(config);
+    }
     return result;
 }
 

@@ -6,9 +6,9 @@ if(NOT CRUX_LOGGING_PROVIDER STREQUAL "zephyr")
 endif()
 
 # Two backend shapes. By default the native UART backend owns a UART of its own. With
-# CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console's backend (logging_console_backend.c) replaces it, on the
-# console's UART, and the native UART backend must be off.
-if(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
+# CONFIG_CRUX_LOGGING_CONSOLE_BACKEND, which CONFIG_CRUX_CLI_CONSOLE_UART_SHARED selects, the console's backend
+# (logging_console_backend.c) replaces it, on the console's UART, and the native UART backend must be off.
+if(CONFIG_CRUX_LOGGING_CONSOLE_BACKEND)
     if(CONFIG_LOG_BACKEND_UART)
         message(FATAL_ERROR "Crux Logging shared with the console requires CONFIG_LOG_BACKEND_UART=n: "
                             "the console's backend replaces it")
@@ -48,7 +48,7 @@ add_library(crux_logging_zephyr STATIC ../../src/logging.c logging_zephyr.c logg
 target_include_directories(crux_logging_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_logging_zephyr PRIVATE crux_logging_api zephyr_interface)
 zephyr_append_cmake_library(crux_logging_zephyr)
-if(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
+if(CONFIG_CRUX_LOGGING_CONSOLE_BACKEND)
     target_sources(crux_logging_zephyr PRIVATE logging_console_backend.c ../../src/logging_console_queue.c)
 endif()
 target_compile_options(crux_logging_zephyr PRIVATE -Wall -Wextra -Werror)

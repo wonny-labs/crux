@@ -168,7 +168,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_CLI_CONSOLE_BAUD_RATE` | 115200 | Baud rate of the console, 8N1. Read by `crux_cli_serial_start()` | Module |
 | `CRUX_CLI_CONSOLE_PRIORITY` | 6 | Priority of the console thread (ADR-0002 P3). It also runs the password verification of a login | Module |
 | `CRUX_CLI_CONSOLE_UART` | `CRUX_CLI_CONSOLE_UART_DEDICATED` | `CRUX_CLI_CONSOLE_UART_SHARED` puts the console and Crux Logging on one UART; it needs `CRUX_LOGGING` and `LOG_BACKEND_UART=n` ([shared mode](cli-contract.md#console-and-logging-on-one-uart)) | Module |
-| `CRUX_CLI_CONSOLE_LOG_QUEUE_BYTES` | 2048 | Log text queued for the console in the shared mode; a message that does not fit is dropped and counted | Module |
+| `CRUX_LOGGING_CONSOLE_QUEUE_BYTES` | 2048 | Log text queued for the console in the shared mode (Logging's symbol, which the shared mode turns on); a message that does not fit is dropped and counted | Module |
 | `CRUX_SSH` | off | The wolfSSH provider and the access adapter. Needs wolfSSH, IPv4 and sockets, and **refuses the Mbed profile**. Its adapter also needs the security event core at link time: `CRUX_ACCESS` selects it, and `CRUX_SSH` does not. A dependency that is not met only warns in Zephyr, so the symbol silently becomes `n`: check it in your CMake. | Module |
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |

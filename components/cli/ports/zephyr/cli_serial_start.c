@@ -19,6 +19,8 @@
 #ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
 #include "logging_console.h"
 
+/* The rate check of the shared UART is in this directory's CMakeLists.txt, because this source
+ * includes no Zephyr header. */
 _Static_assert(CRUX_LOGGING_CONSOLE_TEXT_MAX == CRUX_CLI_CONSOLE_LOG_TEXT_MAX,
                "a log entry must fit the console's buffer");
 #endif
@@ -32,7 +34,8 @@ static crux_thread_t console_thread;
 static bool console_started;
 #ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
 /* The queue of the Logging backend that shares the UART. The console attaches it before each open,
- * so log text stops going straight to the UART, and prints it between reads. */
+ * so log text stops going straight to the UART, prints it between reads, and detaches it while no
+ * port is open. */
 static crux_cli_console_log_t console_log;
 #endif
 
@@ -78,6 +81,7 @@ crux_cli_result_t crux_cli_serial_start(const crux_cli_serial_config_t *config)
 #ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
     console_log.next = crux_logging_console.next;
     console_log.attach = crux_logging_console.attach;
+    console_log.detach = crux_logging_console.detach;
     console_log.source = NULL;
     console_config.log = &console_log;
 #endif
