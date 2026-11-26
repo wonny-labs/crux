@@ -8,7 +8,7 @@ The reasons and the options considered are in [ADR-0009](decisions/0009-tiered-c
 
 | Tier | Runs | Checks | Purpose |
 | --- | --- | --- | --- |
-| `fast` | On every push to a branch or a draft change request | The quick checks of every change (format, static analysis, Host build and unit tests, the Python tooling tests, documentation links, Zephyr smoke builds and patch style) plus the checks of the components that the change touches | Feedback within minutes while a change is developed |
+| `fast` | On every push to a draft change request, and on every Jenkins branch build | The quick checks of every change (format, static analysis, Host build and unit tests, the Python tooling tests, documentation links, Zephyr smoke builds and patch style) plus the checks of the components that the change touches | Feedback within minutes while a change is developed |
 | `full` | On a change request that is ready for review, on every push to it, and after a merge to the default branch | Every check that the change can affect | The gate before merge |
 | `nightly` | Once a day on the default branch | Every full check whatever the change, plus advisory coverage | Catch what path rules and merge order can miss |
 
@@ -45,7 +45,7 @@ An advisory check runs after a failure too, and its own failure prints a warning
 | 2 | A usage or map file error |
 
 Each job writes `build/ci/<job>.junit.xml`, with one test case per check, and each check's output to `build/ci/logs/<job>/<check>.log`.
-Both CI systems archive `build/ci/`.
+Every GitHub job that runs the entry point uploads `build/ci/`, and the Jenkinsfile archives it.
 A check sees `CRUX_CI_TIER`, `CRUX_CI_EVENT`, `CRUX_CI_JOB` and, when the change is known, `CRUX_CI_DIFF_BASE`, the commit the change was compared with.
 
 ## Map file
@@ -65,7 +65,7 @@ A check sees `CRUX_CI_TIER`, `CRUX_CI_EVENT`, `CRUX_CI_JOB` and, when the change
 | `id` | A unique name |
 | `job` | The job that runs it |
 | `run` | The shell commands |
-| `scope` | The changes that need it in the full tier: `code` (the default) for every change that is not documentation only, `always` for every change, or the name of a scope |
+| `scope` | The changes that need it in the full tier: `code` (the default), `always` for every change, or the name of a scope in `[scopes]` |
 | `fast` | `"always"`, or the list of components whose changes select it in the fast tier; without it the check runs in the full tier only |
 | `tiers` | `["full"]` (the default) or `["nightly"]` for a nightly-only check |
 | `advisory` | `true` for a check whose failure must not fail the job |
@@ -74,8 +74,12 @@ Patterns follow the GitHub Actions path filter syntax: `**` matches across folde
 
 ## Selection rules
 
-**Full.** A check runs when its scope matches the change.
-A change whose every file is documentation (`docs/**` or any `*.md`) runs only the checks with scope `always`.
+**Full.** A check runs when its scope matches the change:
+
+- `code` runs for every change, except a documentation-only change (every file in `docs/**` or any `*.md`) while it is developed: in a change request, a branch build or a local run. After a merge it runs.
+- `always` runs for every change.
+- A named scope runs when a changed file matches its patterns, on every event. The Zephyr jobs use `not-docs`, the same filter as their GitHub workflow; the PSA and web jobs use the paths of their workflows.
+
 A change that is unknown runs every full check.
 
 **Fast.** The fast tier falls back to the full tier, and prints why, when any of these holds:
@@ -89,6 +93,7 @@ Otherwise the fast tier runs the full tier's checks that have `fast = "always"` 
 It never runs a check that the full tier would not run for the same change.
 
 **Nightly.** Every check of the full and nightly tiers, whatever the change.
+On GitHub the coverage checks run in `coverage.yml`, which calls the coverage scripts directly with its own report steps; the map file lists the same commands for other CI systems, and `tests/build/test_ci_tiers.py` keeps them equal.
 
 ### Comparison base
 
@@ -119,6 +124,7 @@ On Jenkins a newer build of a branch or change request aborts the older one, exc
 The full tier must pass on a change before it merges.
 On GitHub a draft pull request cannot be merged, and a pull request that is ready runs the full tier on every push and when it is marked ready.
 Nothing in the repository settings enforces the rule: required status checks or a merge queue would, and choosing them is the owner's decision.
+Until then a ready pull request can be merged while its full run is still pending or after it failed, an administrator can merge past any check, and a merge does not rerun the full tier on the merged result before it lands (a merge queue would).
 A workflow skipped by its path filter reports no status, so a required check needs a workflow that always reports, as the `zephyr` summary job does when every shard ran.
 
 ## Jenkins
@@ -140,7 +146,17 @@ The Jenkinsfile has not run on a Jenkins server. These points are unverified:
 - whether a Multibranch checkout fetches the target branch for `git merge-base`;
 - the ownership of the `crux-ci-cache` volume for the agent's user.
 
+Every stage builds the image and checks the repository out even when its job has nothing selected; `run-job.sh` then returns before the set-up. The nightly build runs both coverage jobs every day, about 5 minutes of Host and an hour or more of `native_sim` agent time.
+
 The `changeset` condition of Jenkins is not used: in a change request build it reports the commits since the last build, not the change against the target ([JENKINS-54285](https://issues.jenkins.io/browse/JENKINS-54285)).
+
+### Copies without .github/
+
+A copy of the repository without `.github/` runs CI through the `Jenkinsfile` only. In such a copy:
+
+- the tests that read `.github/workflows` skip with a reason: the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
+- the link to `zephyr.yml` in [Zephyr CI shards](ci-zephyr-shards.md) points at a missing file and must be rewritten or removed;
+- the copy gate must check both, because a skip passes.
 
 ## Add a check
 
@@ -171,6 +187,7 @@ Taking a check out of the full tier, as Twister's quarantine list does for a tes
 
 Another CI system is added by one thin configuration file that calls `scripts/ci/run-tier.sh fast|full|nightly` (or `auto`, after adding the system's variables to `ci_context` in `tiers.py`) once per job.
 Run it on that system before relying on it.
+Bitbucket Pipelines, for example, would be one `bitbucket-pipelines.yml`; none is set up.
 
 ## Use in a product repository
 

@@ -129,7 +129,8 @@ class BuildCheckTest(unittest.TestCase):
         runs = [c for c in checks if "scripts/test-boot-composition.sh" in c["run"]]
         self.assertEqual(1, len(runs), "scripts/ci/checks.toml must run scripts/test-boot-composition.sh once")
         self.assertEqual("zephyr-runtime", runs[0]["job"])
-        self.assertIn("runtime", read(ZEPHYR_WORKFLOW).split("shard: [", 1)[1].split("]", 1)[0])
+        if ZEPHYR_WORKFLOW.is_file():  # a copy without .github/ runs the job through the Jenkinsfile
+            self.assertIn("runtime", read(ZEPHYR_WORKFLOW).split("shard: [", 1)[1].split("]", 1)[0])
 
 class BuildCheckWiringTest(unittest.TestCase):
     """The board-free checks that read the build output are called by the composition script.

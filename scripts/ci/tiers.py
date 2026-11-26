@@ -168,6 +168,11 @@ def load_manifest(path):
 
 # --- selection ----------------------------------------------------------------------------------
 
+# The events of a change under development. Only these apply the documentation-only rule of the
+# `code` scope; a post-merge, scheduled or manual run keeps every `code` check.
+DEVELOPMENT_EVENTS = ("change-request", "branch", "local")
+
+
 def _in_scope(check, files, docs_only):
     if files is None or check.scope == "always":
         return True
@@ -176,8 +181,8 @@ def _in_scope(check, files, docs_only):
     return any(matches(path, check.scope) for path in files)
 
 
-def _full(manifest, files):
-    docs_only = files is not None and is_docs_only(files, manifest.docs)
+def _full(manifest, files, event):
+    docs_only = files is not None and event in DEVELOPMENT_EVENTS and is_docs_only(files, manifest.docs)
     return [c for c in manifest.checks if "full" in c.tiers and _in_scope(c, files, docs_only)]
 
 
@@ -205,11 +210,15 @@ def components_of(manifest, files):
     return {name for path in files for name, patterns in manifest.components.items() if matches(path, patterns)}
 
 
-def plan(manifest, tier, files):
-    """Select the checks of a tier for a change (a list of paths, or None when unknown)."""
+def plan(manifest, tier, files, event="change-request"):
+    """Select the checks of a tier for a change (a list of paths, or None when unknown).
+
+    `event` is the CI event of ci_context(); the documentation-only rule of the `code` scope
+    applies only to the events in DEVELOPMENT_EVENTS.
+    """
     if tier == "nightly":
         return Plan(tier, [c for c in manifest.checks])
-    full = _full(manifest, files)
+    full = _full(manifest, files, event)
     if tier == "full":
         return Plan(tier, full)
     reason = _unsure(manifest, files)
@@ -428,7 +437,7 @@ def main(argv=None):
         if args.check:
             selected = Plan(tier, [c for c in manifest.checks if c.id in args.check])
         else:
-            selected = plan(manifest, tier, change.files)
+            selected = plan(manifest, tier, change.files, event)
         jobs = args.job or list(manifest.jobs)
         checks = [c for c in selected.checks if c.job in jobs]
     except (ManifestError, UsageError) as error:

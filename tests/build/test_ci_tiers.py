@@ -27,6 +27,8 @@ import xml.etree.ElementTree as ET
 REPO = Path(__file__).resolve().parents[2]
 TIERS_PATH = REPO / "scripts/ci/tiers.py"
 MANIFEST = REPO / "scripts/ci/checks.toml"
+WORKFLOWS = REPO / ".github/workflows"
+NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 
 
 def load_tiers():
@@ -138,11 +140,24 @@ class FullTierScopeTest(unittest.TestCase):
     def setUpClass(cls):
         cls.manifest = tiers.load_manifest(MANIFEST)
 
-    def ids(self, changed):
-        return {c.id for c in tiers.plan(self.manifest, "full", changed).checks}
+    def ids(self, changed, event="change-request"):
+        return {c.id for c in tiers.plan(self.manifest, "full", changed, event).checks}
 
     def test_a_documentation_change_runs_only_the_checks_that_read_documentation(self):
         self.assertEqual(DOCS_READERS, self.ids(["docs/build.md", "tests/README.md"]))
+
+    def test_a_documentation_change_on_a_branch_or_locally_is_documentation_only_too(self):
+        for event in ("branch", "local"):
+            with self.subTest(event=event):
+                self.assertEqual(DOCS_READERS, self.ids(["docs/build.md"], event))
+
+    def test_a_documentation_push_to_the_default_branch_runs_every_host_check(self):
+        # The host workflow skipped its checks for documentation in pull requests only; a push to
+        # main ran them all. The Zephyr, PSA and web workflows kept their path filters on push.
+        ids = self.ids(["docs/build.md", "README.md"], "post-merge")
+        host = set(EXPECTED_FULL["host"]) | set(EXPECTED_FULL["host-build-tests"])
+        self.assertEqual(host | {"lychee-install", "docs-selection-rules", "docs-links"}, ids)
+        self.assertIn("power-cut-wrapper", ids)
 
     def test_a_dependency_review_record_also_runs_the_psa_crypto_job(self):
         ids = self.ids(["docs/dependency-review-mbed-tls-4.1.1.md"])
@@ -682,6 +697,7 @@ class JenkinsTest(unittest.TestCase):
         self.assertEqual(["scripts/ci/jenkins/run-job.sh ${job}"], commands)
         self.assertIn('exec scripts/ci/run-tier.sh "$tier" --job "$job"', self.run_job)
 
+    @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
     def test_the_tools_match_the_github_workflows(self):
         workflows = REPO / ".github/workflows"
         cases = {
@@ -696,6 +712,7 @@ class JenkinsTest(unittest.TestCase):
             with self.subTest(job=job):
                 self.assertEqual(set(re.findall(PINS, text)), self.jenkins_pins(job))
 
+    @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
     def test_the_coverage_workflow_runs_the_nightly_coverage_checks(self):
         coverage = (REPO / ".github/workflows/coverage.yml").read_text()
         for job, ids in EXPECTED_NIGHTLY_ONLY.items():
@@ -703,6 +720,7 @@ class JenkinsTest(unittest.TestCase):
                 with self.subTest(check=check.id):
                     self.assertIn(check.run, coverage)
 
+    @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
     def test_no_github_workflow_runs_the_jenkins_files(self):
         for workflow in (REPO / ".github/workflows").glob("*.yml"):
             with self.subTest(workflow=workflow.name):

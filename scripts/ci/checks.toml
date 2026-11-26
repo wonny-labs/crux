@@ -117,11 +117,15 @@ web = [
 web-ui = ["web/**", "samples/web/**", "tests/management_api/**"]
 
 # Scopes name the changes that a check needs in the full tier:
-#   code    (the default) every change except one that is documentation only
+#   code    (the default) every change, except one that is documentation only while it is
+#           developed (a change request, a branch build or a local run); after a merge it runs
 #   always  every change, documentation only included
-#   a list  path patterns; a later pattern starting with ! removes earlier matches
+#   a name  a list below: path patterns, on every event; a later pattern starting with ! removes
+#           earlier matches
 # With no known change (a manual or nightly run) every check runs.
 [scopes]
+# The workflow filter of the Zephyr jobs: documentation alone never starts them.
+not-docs = ["**", "!docs/**", "!**.md"]
 psa-crypto = ["**", "!docs/**", "!**.md", "docs/dependency-review-*.md"]
 web-ui = [
   "web/**",
@@ -321,6 +325,7 @@ fast = "always"
 [[check]]
 id = "patch-style"
 job = "zephyr-storage"
+scope = "not-docs"
 run = """
 export ZEPHYR_BASE="$CRUX_WORKSPACE/zephyr"
 python3 -m unittest discover -s tests/style -p 'test_patch_style.py' -v
@@ -331,12 +336,14 @@ fast = "always"
 [[check]]
 id = "storage-simulators"
 job = "zephyr-storage"
+scope = "not-docs"
 run = "scripts/test-storage-simulators.sh"
 fast = ["file"]
 
 [[check]]
 id = "file-rt1060-compile"
 job = "zephyr-storage"
+scope = "not-docs"
 run = "scripts/test-file-rt1060-compile.sh"
 fast = ["file"]
 
@@ -344,16 +351,19 @@ fast = ["file"]
 [[check]]
 id = "flash-poc-fault-paths"
 job = "zephyr-storage"
+scope = "not-docs"
 run = "ZEPHYR_BASE=\"$CRUX_WORKSPACE/zephyr\" python3 tests/native/flash_safety/test_driver.py"
 
 [[check]]
 id = "zephyr-time-evkb"
 job = "zephyr-storage"
+scope = "not-docs"
 run = "scripts/test-zephyr-time.sh \"$CRUX_BOARD_TARGET\""
 
 [[check]]
 id = "product-template"
 job = "zephyr-storage"
+scope = "not-docs"
 run = "scripts/test-product-template.sh \"$CRUX_BOARD_TARGET\""
 
 # The GPLv2 Reliance Edge source is the optional west group crux-reliance, which
@@ -364,6 +374,7 @@ run = "scripts/test-product-template.sh \"$CRUX_BOARD_TARGET\""
 [[check]]
 id = "emmc-reliance-edge"
 job = "zephyr-storage"
+scope = "not-docs"
 run = """
 (cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
 CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
@@ -375,36 +386,42 @@ scripts/test-file-emmc-compile.sh
 [[check]]
 id = "zephyr-smoke"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "scripts/check-zephyr-smoke.sh"
 fast = "always"
 
 [[check]]
 id = "execution-candidates"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "scripts/test-execution.sh"
 fast = ["execution", "controller"]
 
 [[check]]
 id = "early-controller"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "scripts/test-controller.sh"
 fast = ["controller"]
 
 [[check]]
 id = "controller-integration"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "scripts/test-controller-integration.sh"
 fast = ["controller", "networking"]
 
 [[check]]
 id = "rt1170-cross-build"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-m3-rt1170.sh"
 fast = ["controller"]
 
 [[check]]
 id = "m5-integrated-smoke"
 job = "zephyr-controller"
+scope = "not-docs"
 run = "./scripts/test-m5-integrated-smoke.sh"
 fast = ["controller"]
 
@@ -413,23 +430,27 @@ fast = ["controller"]
 [[check]]
 id = "portable-execution"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "scripts/test-portable-execution.sh"
 fast = ["execution"]
 
 [[check]]
 id = "reboot-native-sanitizers"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "scripts/test-reboot-native.sh"
 fast = ["reboot"]
 
 [[check]]
 id = "time-busy-wait"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "scripts/test-time-busy-wait.sh"
 
 [[check]]
 id = "messaging"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "scripts/test-messaging.sh"
 fast = ["messaging", "execution"]
 
@@ -438,17 +459,20 @@ fast = ["messaging", "execution"]
 [[check]]
 id = "consumer-poc-zephyr"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v"
 
 [[check]]
 id = "logging-evkb"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "./scripts/test-logging.sh"
 fast = ["logging"]
 
 [[check]]
 id = "system-evkb"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "./scripts/test-system.sh"
 fast = ["system"]
 
@@ -459,6 +483,7 @@ fast = ["system"]
 [[check]]
 id = "boot-composition"
 job = "zephyr-runtime"
+scope = "not-docs"
 run = "scripts/test-boot-composition.sh"
 
 # --- zephyr-io ----------------------------------------------------------------------------------
@@ -466,48 +491,56 @@ run = "scripts/test-boot-composition.sh"
 [[check]]
 id = "serial-zephyr"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-serial.sh"
 fast = ["serial"]
 
 [[check]]
 id = "cli-zephyr"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-cli.sh --zephyr"
 fast = ["cli"]
 
 [[check]]
 id = "cli-ssh-compile"
 job = "zephyr-io"
+scope = "not-docs"
 run = "tests/ssh/cli/test-compile.sh"
 fast = ["cli"]
 
 [[check]]
 id = "gpio-zephyr"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-gpio.sh"
 fast = ["gpio"]
 
 [[check]]
 id = "i2c-zephyr"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-i2c.sh"
 fast = ["i2c"]
 
 [[check]]
 id = "spi-zephyr"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-spi.sh"
 fast = ["spi"]
 
 [[check]]
 id = "web-native"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-web.sh native"
 fast = ["web"]
 
 [[check]]
 id = "web-assets-native"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-web-assets.sh native"
 fast = ["web", "web-ui"]
 
@@ -516,6 +549,7 @@ fast = ["web", "web-ui"]
 [[check]]
 id = "networking"
 job = "zephyr-io"
+scope = "not-docs"
 run = """
 scripts/bootstrap-networking-tests.sh
 scripts/test-networking.sh
@@ -525,6 +559,7 @@ fast = ["networking"]
 [[check]]
 id = "networking-physical-fixture"
 job = "zephyr-io"
+scope = "not-docs"
 run = "scripts/test-networking-physical.sh"
 fast = ["networking"]
 

@@ -53,7 +53,7 @@ Follow [Add a check](ci.md#add-a-check), with the job `zephyr-<shard>`:
 | --- | --- |
 | A step that runs a command is neither a set-up step nor `scripts/ci/run-tier.sh` for the shard's job | The check would run outside the tiers, in all four shards |
 | The matrix and the `zephyr-*` jobs of the map file differ | A job's checks would never run while the run stays green |
-| A Zephyr check has a scope other than `code` | Its documentation rule would differ from the workflow's filter |
+| A Zephyr check has a scope other than `not-docs`, or `not-docs` differs from the workflow's filter | Its documentation rule would differ on other CI systems |
 | The networking checks are in different shards | The fixture check would not find its library |
 | Two shards could share an artifact name | The upload would be refused |
 | The summary job accepts anything but `success` | A cancelled or skipped shard would look like a pass |

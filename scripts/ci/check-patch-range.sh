@@ -8,7 +8,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 base=${CRUX_CI_DIFF_BASE:-}
 if [[ -z "$base" ]]; then
     if [[ "${CRUX_CI_EVENT:-}" == post-merge ]]; then
-        printf 'Missing previous push SHA for complete patch-style comparison. See docs/ci.md#comparison-base.\n' >&2
+        printf 'Missing previous push SHA for complete patch-style comparison. Rerun with CRUX_CI_BASE set to the previous commit of the branch. See docs/ci.md#comparison-base.\n' >&2
         exit 2
     fi
     base=HEAD^

@@ -26,6 +26,7 @@ REPO = Path(__file__).resolve().parents[2]
 PRESETS = REPO / "CMakePresets.json"
 HOST = REPO / ".github/workflows/host.yml"
 MANIFEST = REPO / "scripts/ci/checks.toml"
+NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 
 
 def step_text(workflow, title):
@@ -54,9 +55,10 @@ class SanitizePresetTest(unittest.TestCase):
 class HostWorkflowTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.workflow = HOST.read_text()
+        cls.workflow = HOST.read_text() if HOST.is_file() else ""
         cls.checks = checks()
 
+    @unittest.skipUnless(HOST.is_file(), NO_GITHUB)
     def test_the_python_tools_include_pyyaml_and_west(self):
         installs = re.findall(r"- name: Install host tools\n(?:        .*\n)+", self.workflow)
         self.assertEqual(2, len(installs), "one install in each host job")
@@ -80,6 +82,7 @@ PLAN_STEP = "Plan the checks of this tier"
 PLANNED = "steps.plan.outputs.checks != '0'"
 
 
+@unittest.skipUnless(HOST.is_file(), NO_GITHUB)
 class HostTierStepsTest(unittest.TestCase):
     def test_only_the_plan_runs_before_the_tier_is_known(self):
         workflow = HOST.read_text()

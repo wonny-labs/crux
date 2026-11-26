@@ -20,6 +20,7 @@ WEB = REPO / ".github/workflows/web.yml"
 DOCS = REPO / ".github/workflows/docs.yml"
 MANIFEST = REPO / "scripts/ci/checks.toml"
 TIER_WORKFLOWS = [HOST, ZEPHYR, PSA_CRYPTO, WEB, DOCS]
+NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 DOCS_ONLY = ["docs/**", "**.md"]
 PSA_SCRIPT = REPO / "scripts" / "test-psa-crypto.sh"
 # Later patterns win: everything but documentation, plus the records that the pin check reads.
@@ -111,6 +112,7 @@ def load_manifest():
     return tomllib.loads(MANIFEST.read_text())
 
 
+@unittest.skipUnless(ZEPHYR.is_file(), NO_GITHUB)
 class ZephyrShardsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -183,12 +185,13 @@ class ZephyrShardsTest(unittest.TestCase):
     def test_only_documentation_skips_the_workflow(self):
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "push"))
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "pull_request"))
-        # The map file applies the same rule to the Zephyr checks on every CI system.
+        # The map file applies the same filter to the Zephyr checks, on every event and CI system.
         self.assertEqual(DOCS_ONLY, self.manifest["selection"]["docs"])
+        self.assertEqual(["**"] + [f"!{p}" for p in DOCS_ONLY], self.manifest["scopes"]["not-docs"])
         for check in self.manifest["check"]:
             if check["job"].startswith("zephyr-"):
                 with self.subTest(check=check["id"]):
-                    self.assertEqual("code", check.get("scope", "code"))
+                    self.assertEqual("not-docs", check.get("scope"))
 
     def step_using(self, action):
         matches = [s for s in self.steps if f"uses: {action}" in s["text"]]
@@ -277,6 +280,7 @@ class ZephyrShardsTest(unittest.TestCase):
         self.assertIn("-s tests/build", build_tests["run"])
 
 
+@unittest.skipUnless(ZEPHYR.is_file(), NO_GITHUB)
 class TierTriggersTest(unittest.TestCase):
     """Every tier workflow starts on the events of the tier model, the same way."""
 

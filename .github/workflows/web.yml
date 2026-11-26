@@ -56,6 +56,13 @@ jobs:
           node-version-file: web/api/lint/package.json
       - name: Run the checks of this tier
         run: scripts/ci/run-tier.sh "$TIER" --job web-specification
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-specification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
 
   client:
     runs-on: ubuntu-24.04
@@ -69,6 +76,13 @@ jobs:
           node-version-file: web/package.json
       - name: Run the checks of this tier
         run: scripts/ci/run-tier.sh "$TIER" --job web-client
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-client-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: crux-web-sbom
@@ -89,6 +103,13 @@ jobs:
           node-version-file: web/package.json
       - name: Run the checks of this tier
         run: scripts/ci/run-tier.sh "$TIER" --job web-browser
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -114,6 +135,13 @@ jobs:
           node-version-file: samples/web/angular/package.json
       - name: Run the checks of this tier
         run: scripts/ci/run-tier.sh "$TIER" --job web-angular
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-angular-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ failure() }}
         with:

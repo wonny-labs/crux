@@ -13,6 +13,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO / ".github/workflows/coverage.yml"
 HOST = REPO / ".github/workflows/host.yml"
+NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 SCRIPTS = [REPO / "scripts/coverage-host.sh", REPO / "scripts/coverage-native-sim.sh"]
 JOBS = ("host", "native-sim")
 # Only GitHub's own actions may run; nothing here can upload to another service.
@@ -55,6 +56,7 @@ def trigger_block(workflow):
     return lines[start + 1:end]
 
 
+@unittest.skipUnless(WORKFLOW.is_file(), NO_GITHUB)
 class CoverageWorkflowTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
