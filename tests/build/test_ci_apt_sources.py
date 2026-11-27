@@ -104,6 +104,9 @@ class WorkflowAptSourceTest(unittest.TestCase):
             updates += len(UPDATE.findall(text))
             with self.subTest(workflow=name):
                 self.assertEqual([], unguarded_updates(text))
+                # An update outside a step the parser sees would go unchecked.
+                in_steps = sum(len(UPDATE.findall("\n".join(s["lines"]))) for s in steps(text))
+                self.assertEqual(len(UPDATE.findall(text)), in_steps)
         # host (2), zephyr (1), coverage (2) and psa-crypto (1): a rule that sees none checks nothing.
         self.assertEqual(6, updates)
 

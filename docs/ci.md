@@ -154,7 +154,7 @@ The `changeset` condition of Jenkins is not used: in a change request build it r
 
 A copy of the repository without `.github/` runs CI through the `Jenkinsfile` only. In such a copy:
 
-- the tests that read `.github/workflows` skip with a reason when the folder is missing (a single missing workflow fails them): the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
+- the tests that read `.github/workflows` skip with a reason when the folder is missing (a single missing workflow fails them): the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py`, the workflow part of `test_ci_apt_sources.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
 - the link to `zephyr.yml` in [Zephyr CI shards](ci-zephyr-shards.md) points at a missing file and must be rewritten or removed;
 - the copy gate must check both, because a skip passes.
 
