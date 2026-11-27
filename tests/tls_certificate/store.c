@@ -176,6 +176,7 @@ static uint8_t slot_after[CRUX_CREDENTIAL_SLOT_BYTES];
 static void test_account_erase_keeps_the_identity(void)
 {
     for (int installed = 0; installed <= 1; ++installed) {
+        crux_tls_certificate_test_reset();
         fresh_medium();
         crux_tls_certificate_start_t how;
         CHECK(crux_tls_certificate_start(&options, &how) == CRUX_TLS_CERTIFICATE_OK);
@@ -262,6 +263,7 @@ static void test_require_existing_identity(void)
     CHECK(strcmp(fingerprint, first.fingerprint_text) == 0);
 
     /* An unusable store is still NOT_READY, as without the setting. */
+    crux_tls_certificate_test_reset();
     fresh_medium();
     CHECK(crux_credential_erase() == CRUX_CREDENTIAL_OK);
     CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);

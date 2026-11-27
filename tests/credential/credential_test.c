@@ -187,6 +187,7 @@ bool test_slot_records(size_t slot, uint32_t *records)
     return true;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): every helper takes the slot first.
 bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data,
                      size_t length)
 {
