@@ -5,25 +5,22 @@ name: psa-crypto
 # default workflow must not select the GPL stacks, so wolfPSA does not run here: see
 # docs/psa-crypto-qualification.md. It takes only the two Apache-2.0 option projects by name.
 
-# Documentation changes do not run it, except to a review record that the pin check reads.
+# Documentation changes select none of its checks, except a review record that the pin check reads
+# (scope psa-crypto in scripts/ci/checks.toml).
 # A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
+# ci.yml calls it for pull requests, merges and the nightly tier, and its ci-gate job needs it
+# (docs/ci.md#merge-gate). It can also run alone by hand.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "**"
-      - "!docs/**"
-      - "!**.md"
-      - "docs/dependency-review-*.md"
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - "**"
-      - "!docs/**"
-      - "!**.md"
-      - "docs/dependency-review-*.md"
-  schedule:
-    - cron: "17 2 * * *"
+  workflow_call:
+    inputs:
+      tier:
+        description: "Tier to run; empty runs the tier of the event (docs/ci.md)"
+        type: string
+        default: ""
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       tier:
@@ -35,11 +32,6 @@ on:
         description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
         type: string
         default: ""
-
-# Supersede only older runs for this PR and workflow. Main/manual runs are unique.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

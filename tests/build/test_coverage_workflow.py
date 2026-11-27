@@ -13,6 +13,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO / ".github/workflows/coverage.yml"
 HOST = REPO / ".github/workflows/host.yml"
+CI = REPO / ".github/workflows/ci.yml"
 NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 SCRIPTS = [REPO / "scripts/coverage-host.sh", REPO / "scripts/coverage-native-sim.sh"]
 JOBS = ("host", "native-sim")
@@ -72,8 +73,8 @@ class CoverageWorkflowTest(unittest.TestCase):
         fields = cron[0].split()
         self.assertEqual(5, len(fields))
         self.assertEqual(["*", "*", "*"], fields[2:], "every day")
-        host_cron = re.findall(r"- cron: \"([^\"]+)\"", HOST.read_text())
-        self.assertEqual(host_cron, cron, "the same nightly time as the other workflows")
+        nightly = re.findall(r"- cron: \"([^\"]+)\"", CI.read_text())
+        self.assertEqual(nightly, cron, "the same nightly time as the other workflows")
         self.assertIn("    branches: [main]", self.triggers)
 
     def test_pull_requests_do_not_start_it(self):

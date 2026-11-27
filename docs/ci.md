@@ -78,7 +78,7 @@ Patterns follow the GitHub Actions path filter syntax: `**` matches across folde
 
 - `code` runs for every change, except a documentation-only change (every file in `docs/**` or any `*.md`) while it is developed: in a change request, a branch build or a local run. After a merge it runs.
 - `always` runs for every change.
-- A named scope runs when a changed file matches its patterns, on every event. The Zephyr jobs use `not-docs`, the same filter as their GitHub workflow; the PSA and web jobs use the paths of their workflows.
+- A named scope runs when a changed file matches its patterns, on every event. The Zephyr jobs use `not-docs`, the PSA jobs `psa-crypto` and the web jobs `web-ui`. The GitHub workflows have no path filters: these scopes are the only path rules.
 
 A change that is unknown runs every full check.
 
@@ -116,16 +116,43 @@ A post-merge run with no previous commit fails the patch style check, which need
 | By hand | `workflow_dispatch` with the `tier` and `base` inputs | The `TIER` and `BASE` parameters | As chosen | `base` or `BASE` when given; otherwise none for GitHub and derived for Jenkins |
 
 `CRUX_CI_DEFAULT_BRANCH` names a default branch other than `main`.
-On GitHub a newer push to a pull request cancels the older run of the same workflow; runs on `main` are never cancelled.
+On GitHub a newer push to a pull request cancels its older run of `ci.yml`; runs on `main` are never cancelled.
 On Jenkins a newer build of a branch or change request aborts the older one, except on `main`.
 
 ## Merge rule
 
 The full tier must pass on a change before it merges.
 On GitHub a draft pull request cannot be merged, and a pull request that is ready runs the full tier on every push and when it is marked ready.
-Nothing in the repository settings enforces the rule: required status checks or a merge queue would, and choosing them is the owner's decision.
-Until then a ready pull request can be merged while its full run is still pending or after it failed, an administrator can merge past any check, and a merge does not rerun the full tier on the merged result before it lands (a merge queue would).
-A workflow skipped by its path filter reports no status, so a required check needs a workflow that always reports, as the `zephyr` summary job does when every shard ran.
+The check `ci-gate` reports whether it passed ([Merge gate](#merge-gate)); a repository rule that requires it enforces the merge rule, and choosing that rule is the owner's decision.
+Until such a rule exists a ready pull request can be merged while its full run is still pending or after it failed.
+Even with it, an administrator can change or bypass the rule, and a merge does not rerun the full tier on the merged result before it lands (a merge queue would).
+
+## Merge gate
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the only workflow that pull requests, merges to `main` and the nightly schedule start.
+It calls `docs.yml`, `host.yml`, `zephyr.yml`, `psa-crypto.yml` and `web.yml` as reusable workflows, and its last job, `ci-gate`, needs all of them.
+Each called workflow can still run alone by hand.
+
+- `ci-gate` passes only when every called job concluded `success`; a failed, cancelled or skipped job fails it ([`scripts/ci/ci_gate.py`](../scripts/ci/ci_gate.py)). It runs with `always()`, so it also reports when a job before it failed or the run was cancelled.
+- Every job runs for every change. A job whose tier selected no check skips its steps after the plan and succeeds, so the [selection rules](#selection-rules) replace path filters, which would leave a required check pending.
+- A fast run, from a draft pull request or a manual run with tier `fast`, reports the gate as `ci-gate (fast)`. Only a full or nightly run reports `ci-gate`, so a draft's pass never satisfies a rule that requires `ci-gate` on the same commit.
+- A called job's check name starts with the name of the job that calls it, for example `zephyr / zephyr io`.
+- [`tests/build/test_ci_gate.py`](../tests/build/test_ci_gate.py) fails when another workflow runs for pull requests, a called workflow is not called or not needed by `ci-gate`, a called job gains a condition or a path filter returns.
+
+| Part | Basis |
+| --- | --- |
+| Required status checks and auto-merge | Standard GitHub features: [troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), [automatically merging a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) |
+| One workflow calling the others | Standard: [reusing workflow configurations](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations) |
+| A job with `needs` and `always()` as the only required check | Documented building blocks ([workflow syntax, `needs`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)); one aggregate check is this project's choice |
+| Another name for fast runs | Project-specific: a job name may use the `github` and `inputs` contexts ([contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)) |
+
+Limits:
+
+- A pull request can change `ci.yml` itself and so its own gate, as with any check that a workflow reports; review of `.github/` changes is the guard.
+- When a ready pull request is turned into a draft and back without a new commit, the earlier full run's `ci-gate` stays on that commit while the new run works. Which of two same-named checks GitHub uses is not documented.
+- A pull request opened before `ci.yml` existed reports no `ci-gate` until it gets a new commit or is rebased.
+
+To enforce the gate, a ruleset on the default branch requires the status check `ci-gate` from GitHub Actions. Auto-merge then waits for it.
 
 ## Jenkins
 
@@ -154,7 +181,7 @@ The `changeset` condition of Jenkins is not used: in a change request build it r
 
 A copy of the repository without `.github/` runs CI through the `Jenkinsfile` only. In such a copy:
 
-- the tests that read `.github/workflows` skip with a reason when the folder is missing (a single missing workflow fails them): the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, `test_coverage_workflow.py`, the workflow part of `test_ci_apt_sources.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
+- the tests that read `.github/workflows` skip with a reason when the folder is missing (a single missing workflow fails them): the workflow parts of `tests/build/test_ci_tiers.py` (`JenkinsTest`), `test_zephyr_ci_shards.py`, `test_ci_wiring.py`, the workflow part of `test_ci_gate.py`, `test_coverage_workflow.py`, the workflow part of `test_ci_apt_sources.py` and the matrix part of `test_boot_composition.py`; the map file and Jenkinsfile parts still run;
 - the link to `zephyr.yml` in [Zephyr CI shards](ci-zephyr-shards.md) points at a missing file and must be rewritten or removed;
 - the copy gate must check both, because a skip passes.
 
@@ -166,6 +193,7 @@ A copy of the repository without `.github/` runs CI through the `Jenkinsfile` on
 4. Add new output paths to the job's upload step in its GitHub workflow.
 
 A new job also needs a runner in each CI system: a matrix entry or job in a GitHub workflow, a stage in the `Jenkinsfile`, and its tools in `run-job.sh`.
+A new GitHub workflow is called from `ci.yml` and added to the `needs` of `ci-gate`.
 `tests/build/test_ci_tiers.py` and `tests/build/test_zephyr_ci_shards.py` fail when a check or job is missing on either side.
 Removing a check from the full tier needs an approved change.
 

@@ -1,27 +1,19 @@
 name: web
 
 # A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
+# ci.yml calls it for pull requests, merges and the nightly tier, and its ci-gate job needs it
+# (docs/ci.md#merge-gate). It can also run alone by hand.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web/**"
-      - "samples/web/**"
-      - "tests/management_api/**"
-      - "scripts/check-management-api.sh"
-      - "scripts/ci/**"
-      - ".github/workflows/web.yml"
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - "web/**"
-      - "samples/web/**"
-      - "tests/management_api/**"
-      - "scripts/check-management-api.sh"
-      - "scripts/ci/**"
-      - ".github/workflows/web.yml"
-  schedule:
-    - cron: "17 2 * * *"
+  workflow_call:
+    inputs:
+      tier:
+        description: "Tier to run; empty runs the tier of the event (docs/ci.md)"
+        type: string
+        default: ""
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       tier:
@@ -34,11 +26,6 @@ on:
         type: string
         default: ""
 
-# Supersede only older runs for this PR and workflow. Main/manual runs are unique.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 permissions:
   contents: read
 
@@ -46,6 +33,8 @@ env:
   TIER: ${{ inputs.tier || 'auto' }}
   CRUX_CI_BASE: ${{ inputs.base }}
 
+# Every job runs for every change; a job whose tier selected no check skips its steps after the
+# plan and still succeeds, so the ci-gate job never waits for it.
 jobs:
   specification:
     runs-on: ubuntu-24.04
@@ -56,13 +45,20 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+      - name: Plan the checks of this tier
+        id: plan
+        run: |
+          scripts/ci/run-tier.sh "$TIER" --job web-specification --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job web-specification --count)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.plan.outputs.checks != '0'
         with:
           node-version-file: web/api/lint/package.json
       - name: Run the checks of this tier
+        if: steps.plan.outputs.checks != '0'
         run: scripts/ci/run-tier.sh "$TIER" --job web-specification
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && steps.plan.outputs.checks != '0'
         with:
           name: web-specification-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/ci/
@@ -76,19 +72,27 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+      - name: Plan the checks of this tier
+        id: plan
+        run: |
+          scripts/ci/run-tier.sh "$TIER" --job web-client --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job web-client --count)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.plan.outputs.checks != '0'
         with:
           node-version-file: web/package.json
       - name: Run the checks of this tier
+        if: steps.plan.outputs.checks != '0'
         run: scripts/ci/run-tier.sh "$TIER" --job web-client
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && steps.plan.outputs.checks != '0'
         with:
           name: web-client-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/ci/
           retention-days: 14
           if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.plan.outputs.checks != '0'
         with:
           name: crux-web-sbom
           path: web/crux-web.cdx.json
@@ -103,26 +107,33 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+      - name: Plan the checks of this tier
+        id: plan
+        run: |
+          scripts/ci/run-tier.sh "$TIER" --job web-browser --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job web-browser --count)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.plan.outputs.checks != '0'
         with:
           node-version-file: web/package.json
       - name: Run the checks of this tier
+        if: steps.plan.outputs.checks != '0'
         run: scripts/ci/run-tier.sh "$TIER" --job web-browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && steps.plan.outputs.checks != '0'
         with:
           name: web-browser-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/ci/
           retention-days: 14
           if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.plan.outputs.checks != '0' }}
         with:
           name: crux-web-screenshots
           path: screenshots
           if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.plan.outputs.checks != '0' }}
         with:
           name: crux-web-failures
           path: web/build/e2e-failures
@@ -135,20 +146,27 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+      - name: Plan the checks of this tier
+        id: plan
+        run: |
+          scripts/ci/run-tier.sh "$TIER" --job web-angular --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job web-angular --count)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.plan.outputs.checks != '0'
         with:
           node-version-file: samples/web/angular/package.json
       - name: Run the checks of this tier
+        if: steps.plan.outputs.checks != '0'
         run: scripts/ci/run-tier.sh "$TIER" --job web-angular
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && steps.plan.outputs.checks != '0'
         with:
           name: web-angular-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/ci/
           retention-days: 14
           if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.plan.outputs.checks != '0' }}
         with:
           name: crux-angular-failures
           path: web/build/e2e-failures
