@@ -50,4 +50,15 @@ crux_file_result_t crux_file_impl_dir_close(size_t dir_slot);
 void crux_file_record_cleanup_error(crux_file_result_t error);
 /* Whether two bound paths are equal or one holds the other, comparing text only. */
 bool crux_file_paths_overlap(const char *a, const char *b);
+/*
+ * Root byte limits (docs/file-contract.md#root-byte-limits), enforced by the common layer.
+ * A provider's limited binding binds the root first, then calls crux_file_limit_root with the unit
+ * of its volume, and unbinds the root again when that fails. The call lists the root through the
+ * provider under the File lock and needs a free listing slot. A max_bytes of 0 removes a limit,
+ * for a provider whose binding can start again, such as the test fake.
+ */
+crux_file_result_t crux_file_limit_root(crux_file_root_t root, uint64_t max_bytes, uint64_t unit);
+/* What a file of this size counts against a limit: its size rounded up to the unit, at least one
+ * unit, saturating at UINT64_MAX. A unit of 0 counts as 1. */
+uint64_t crux_file_limit_charge(uint64_t size, uint64_t unit);
 #endif

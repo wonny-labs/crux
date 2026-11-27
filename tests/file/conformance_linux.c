@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 
 static char root_paths[2][64];
@@ -55,6 +56,27 @@ static void add_foreign_files(crux_file_root_t root)
     assert(symlink("/etc/passwd", path) == 0);
 }
 
+static void add_sized_file(const char *directory, const char *name, size_t size)
+{
+    char path[256];
+    static const char zeros[2 * CRUX_FILE_CONFORMANCE_UNIT_MAX + 1];
+    assert(size <= sizeof(zeros));
+    assert(snprintf(path, sizeof(path), "%s/%s", directory, name) > 0);
+    int fd = open(path, O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
+    assert(fd >= 0);
+    assert(write(fd, zeros, size) == (ssize_t)size);
+    assert(close(fd) == 0);
+}
+
+static void add_seed(const char *path, uint64_t unit)
+{
+    char sub[256];
+    add_sized_file(path, "seed", (size_t)(2 * unit + 1));
+    add_sized_file(path, "has space", (size_t)unit);
+    assert(snprintf(sub, sizeof(sub), "%s/sub", path) > 0);
+    assert(mkdir(sub, 0700) == 0);
+}
+
 int main(void)
 {
     char base[] = "/tmp/crux-file-roots-XXXXXX";
@@ -86,6 +108,16 @@ int main(void)
     assert(crux_file_linux_bind(root_paths[1]) == CRUX_FILE_ERR_INVALID_STATE);
 
     assert(mkdir(child, 0700) == 0);
+    char limited[64], seeded[64];
+    assert(snprintf(limited, sizeof(limited), "%s/limited", base) > 0);
+    assert(mkdir(limited, 0700) == 0);
+    assert(snprintf(seeded, sizeof(seeded), "%s/seeded", base) > 0);
+    assert(mkdir(seeded, 0700) == 0);
+    /* The provider counts in the f_frsize of the volume. */
+    struct statvfs volume;
+    assert(statvfs(limited, &volume) == 0);
+    assert(volume.f_frsize >= 1 && volume.f_frsize <= CRUX_FILE_CONFORMANCE_UNIT_MAX);
+
     const crux_file_conformance_env_t env = {
         .add_directory = add_directory,
         .add_foreign_files = add_foreign_files,
@@ -95,6 +127,11 @@ int main(void)
         .path_0_child = child,
         .path_free = free_path,
         .path_0_prefix = prefix_of_0,
+        .bind_root_limited = crux_file_linux_bind_root_limited,
+        .limit_unit = volume.f_frsize,
+        .path_limited = limited,
+        .path_seeded = seeded,
+        .add_seed = add_seed,
     };
 
     size_t descriptors = descriptor_count();
@@ -104,6 +141,15 @@ int main(void)
     crux_file_conformance_rename(&env);
     crux_file_conformance_listing(&env);
     assert(descriptor_count() == descriptors);
+    /* Two roots more stay bound, each with one retained descriptor. */
+    crux_file_conformance_limit(&env);
+    assert(descriptor_count() == descriptors + 2);
+    /* A limited bind that fails after opening the directory keeps no descriptor. */
+    assert(crux_file_linux_bind_root_limited(6, base, 1) == CRUX_FILE_ERR_INVALID_STATE);
+    char missing[80];
+    assert(snprintf(missing, sizeof(missing), "%s/missing", base) > 0);
+    assert(crux_file_linux_bind_root_limited(6, missing, 1) == CRUX_FILE_ERR_NOT_FOUND);
+    assert(descriptor_count() == descriptors + 2);
 
     /* A link is not a regular file to stat or rename, and a link is an occupied destination. */
     crux_file_info_t info;

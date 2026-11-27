@@ -21,7 +21,9 @@ USES = """
 crux_file_result_t (*bind_default)(const char *) = crux_file_zephyr_bind;
 crux_file_result_t (*bind_root)(crux_file_root_t, const char *) = crux_file_zephyr_bind_root;
 crux_file_result_t (*last_error)(void) = crux_file_zephyr_last_cleanup_error;
-int main(void) { return bind_default && bind_root && last_error ? 0 : 1; }
+crux_file_result_t (*bind_limited)(crux_file_root_t, const char *, uint64_t) =
+    crux_file_zephyr_bind_root_limited;
+int main(void) { return bind_default && bind_root && last_error && bind_limited ? 0 : 1; }
 """
 
 
@@ -55,7 +57,7 @@ class PublicHeader(unittest.TestCase):
 
     def test_the_private_header_declares_nothing_a_second_time(self):
         text = (PORT / 'file_native.h').read_text()
-        self.assertNotRegex(text, r'crux_file_zephyr_(bind|bind_root|last_cleanup_error)\s*\(')
+        self.assertNotRegex(text, r'crux_file_zephyr_(bind|bind_root|bind_root_limited|last_cleanup_error)\s*\(')
         self.assertRegex(text, r'#include\s+"include/crux/file_zephyr\.h"')
 
     def test_the_public_path_is_unique_across_components(self):

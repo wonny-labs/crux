@@ -70,6 +70,14 @@ A product that wants a strict boundary for its application code needs a composit
 | A product repository builds against the target | not done; the first product consumer is the evaluation of this interface | open |
 | Any run on a board | none | not authorised and not part of this change |
 
+## The root byte limit
+
+Status: **Experimental**, software only. The project owner approved a per-root byte limit that reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units on 27 November 2026; a volume free-space reserve and a product-side partition were not adopted.
+
+`<crux/file_zephyr.h>` gains one function, `crux_file_zephyr_bind_root_limited(root, path, max_bytes)`, and the Linux provider's `file_linux.h` gains its counterpart `crux_file_linux_bind_root_limited`. They bind a root as `crux_file_zephyr_bind_root` and `crux_file_linux_bind_root` do and set the limit in the same call, so a root never runs without its limit once File calls start. Their rules are in [Root byte limits](file-contract.md#root-byte-limits). This is the first function in the header that did not exist before the header was published; it binds and configures a root, which [rule 4](composition-interfaces.md#the-six-rules) allows, and the behaviour it adds is the limit described in the contract.
+
+`tests/build/test_file_zephyr_public.py` compiles the declaration on the Host. The other tests are listed in the [test guide](../tests/README.md#portable-file-software-slice). No board has run it.
+
 ## The Reliance Edge file system type
 
 Status: **Experimental**, software only, for [Issue #510](https://github.com/wonny-labs/crux-pilot/issues/510). The project owner approved the recommendation in the Crux Pilot chat on 17 November 2026: a public constant, not a mount wrapper.

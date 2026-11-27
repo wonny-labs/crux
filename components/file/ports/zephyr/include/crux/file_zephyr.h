@@ -59,6 +59,26 @@ crux_file_result_t crux_file_zephyr_bind(const char *root);
 crux_file_result_t crux_file_zephyr_bind_root(crux_file_root_t root, const char *path);
 
 /**
+ * Bind one root index with a byte limit on its files. Experimental.
+ *
+ * File refuses a write or a create that would take the files of the root above max_bytes with
+ * CRUX_FILE_ERR_NO_SPACE, and writes nothing then. Each file counts its size rounded up to the
+ * f_frsize that fs_statvfs() reports for the path, and at least one such unit. The binding lists
+ * the root once to count what is there; files that the listing skips are not counted. The limit
+ * reserves no space on the volume, and writes made outside File are counted only at the next
+ * binding. docs/file-contract.md, "Root byte limits", has the full rules.
+ *
+ * @param root Root index below the provider's root limit.
+ * @param path Same rules as for crux_file_zephyr_bind().
+ * @param max_bytes The limit in bytes, above zero.
+ * @return As for crux_file_zephyr_bind_root(); CRUX_FILE_ERR_INVALID_ARGUMENT for a max_bytes of
+ *         zero; CRUX_FILE_ERR_NO_RESOURCES when no listing handle is free; otherwise the result of
+ *         fs_statvfs() or of the listing. On any error the root stays unbound.
+ */
+crux_file_result_t crux_file_zephyr_bind_root_limited(crux_file_root_t root, const char *path,
+                                                      uint64_t max_bytes);
+
+/**
  * The result of the last cleanup that failed while a File call was already returning another
  * error, for example closing a file after a failed create-and-replace open. The call still
  * returns its first error. Diagnostic only: read it after the failing call has returned.

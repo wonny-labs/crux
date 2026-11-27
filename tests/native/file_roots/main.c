@@ -59,7 +59,34 @@ static void add_foreign_files(crux_file_root_t root)
     raw_file(root, "f2e2e");   /* Decodes to "..". */
 }
 
-static const crux_file_conformance_env_t env = {
+/* A native file of size bytes of zeros at path. */
+static void sized_file(const char *path, size_t size)
+{
+    static const uint8_t zeros[256];
+    struct fs_file_t file;
+    fs_file_t_init(&file);
+    zassert_ok(fs_open(&file, path, FS_O_CREATE | FS_O_WRITE), "%s", path);
+    for (size_t done = 0; done < size;) {
+        size_t chunk = MIN(sizeof(zeros), size - done);
+        zassert_equal(fs_write(&file, zeros, chunk), (ssize_t)chunk);
+        done += chunk;
+    }
+    zassert_ok(fs_close(&file));
+}
+
+static void add_seed(const char *path, uint64_t unit)
+{
+    char native[160];
+    /* "seed" in the provider's encoding: "f" and the hex of its bytes. */
+    zassert_true(snprintf(native, sizeof(native), "%s/f73656564", path) < sizeof(native));
+    sized_file(native, (size_t)(2 * unit + 1));
+    zassert_true(snprintf(native, sizeof(native), "%s/notes.txt", path) < sizeof(native));
+    sized_file(native, (size_t)unit);
+    zassert_true(snprintf(native, sizeof(native), "%s/sub", path) < sizeof(native));
+    zassert_ok(fs_mkdir(native));
+}
+
+static crux_file_conformance_env_t env = {
     .add_directory = add_directory,
     .add_foreign_files = add_foreign_files,
     .bind_root = crux_file_zephyr_bind_root,
@@ -68,6 +95,10 @@ static const crux_file_conformance_env_t env = {
     .path_0_child = "/RAM:/a/inner",
     .path_free = "/RAM:/free",
     .path_0_prefix = "/RAM:/a2",
+    .bind_root_limited = crux_file_zephyr_bind_root_limited,
+    .path_limited = "/RAM:/limited",
+    .path_seeded = "/RAM:/seeded",
+    .add_seed = add_seed,
 };
 
 static void *setup(void)
@@ -79,6 +110,12 @@ static void *setup(void)
     zassert_ok(fs_mkdir("/RAM:/b"));
     zassert_ok(fs_mkdir("/RAM:/free"));
     zassert_ok(fs_mkdir("/RAM:/a2"));
+    zassert_ok(fs_mkdir("/RAM:/limited"));
+    zassert_ok(fs_mkdir("/RAM:/seeded"));
+    /* The provider counts in the cluster size, which FatFs reports as f_frsize. */
+    struct fs_statvfs volume;
+    zassert_ok(fs_statvfs("/RAM:", &volume));
+    env.limit_unit = volume.f_frsize;
     zassert_equal(crux_file_zephyr_bind("/RAM:/a"), CRUX_FILE_OK, "the original bind is root 0");
     zassert_equal(crux_file_zephyr_bind_root(1, "/RAM:/b"), CRUX_FILE_OK);
     return NULL;
@@ -92,6 +129,7 @@ ZTEST(file_roots, test_conformance_on_fatfs)
     crux_file_conformance_size();
     crux_file_conformance_rename(&env);
     crux_file_conformance_listing(&env);
+    crux_file_conformance_limit(&env);
     crux_file_conformance_binding(&env);
 }
 

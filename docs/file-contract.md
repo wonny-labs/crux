@@ -136,7 +136,8 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   symbolic link in a composition's paths is not caught. An unbound or out-of-range root
   returns NOT_READY, after argument checks. `CRUX_FILE_ROOTS_MAX` is a build setting, default 8.
   The conflict rule compares the root and the name together. Roots separate names. They are
-  not a security sandbox, as for the name rule above.
+  not a security sandbox, as for the name rule above. A root can carry a byte limit
+  ([Root byte limits](#root-byte-limits)).
 - **Stat.** Regular files only: a directory or a Linux symbolic link is NOT_FOUND. The size is
   what the provider last recorded, so a file with an open writer may report an older size.
 - **Size.** A handle's current size, which includes unsynced writes and leaves the position
@@ -169,6 +170,60 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   because a listing is not a snapshot and it holds no file open.
 - **Pool size.** `CRUX_FILE_POOL_SIZE` is also a public compile definition of `crux::file`, so
   that a consumer can size what it leaves free at build time.
+
+### Root byte limits
+
+Status: Experimental, Host and `native_sim` only. The owner approved the per-root byte limit that
+reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units, on 27 November 2026.
+
+A limit keeps one root's files from taking a shared volume, so that other roots, Configuration and
+the credential store can still save. The composition sets it when it binds the root:
+
+| Provider | Binding | Unit |
+| --- | --- | --- |
+| Zephyr (FatFs, LittleFS on a block device, Reliance Edge) | `crux_file_zephyr_bind_root_limited(root, path, max_bytes)` in `<crux/file_zephyr.h>` | `f_frsize` of `fs_statvfs()`: the FatFs cluster, the LittleFS block, the Reliance Edge block |
+| Linux Host | `crux_file_linux_bind_root_limited(root, path, max_bytes)` in `file_linux.h` | `f_frsize` of `fstatvfs()` |
+| `crux_file_fake` | `crux_file_fake_bind_root_limited(root, path, max_bytes, unit)` | The given unit |
+
+- **Binding.** The rules of the unlimited binding apply, and a `max_bytes` of 0 is INVALID_ARGUMENT.
+  The binding lists the root once and needs a free listing handle (NO_RESOURCES otherwise). A
+  failure of the volume query or of the listing returns its result. On any error the root stays
+  unbound. The limited functions bind once per index like the others; there is no way to change a
+  limit later.
+- **What counts.** Each file that a listing of the root reports counts its size rounded up to the
+  unit, and at least one unit, so an empty file costs one unit. Files that the listing skips
+  (foreign names, subdirectories, links) count nothing. Sums saturate at `UINT64_MAX` and never wrap.
+- **What is refused.** A write that would take the count above `max_bytes` returns
+  `CRUX_FILE_ERR_NO_SPACE` with zero transferred and reaches no provider: the whole write is
+  refused, never cut to a part that fits. A write that stays inside the file's last counted unit,
+  or overwrites, is accepted at the limit. A `CREATE_REPLACE` open of a new name that would pass the
+  limit returns NO_SPACE before any provider call. Truncating an existing file by `CREATE_REPLACE`,
+  reading and opening with `CRUX_FILE_READ` are never refused by the limit.
+- **What gives space back.** A remove, and the truncation of `CREATE_REPLACE`. A rename keeps the
+  count. A binding that finds the root above its limit is accepted, and then only writes that do
+  not grow the count succeed until removes or truncations bring it under.
+- **Order of checks.** The limit check of an open follows the conflict and pool checks. A writer's
+  open on a limited root first reads the file's size with a provider stat, and a remove does the
+  same, so these calls make one more provider call than on an unlimited root and return a failed
+  stat's result. Readers and unlimited roots make no extra call.
+- **Concurrency.** The check, the provider write and the new count happen under the File lock, so
+  callers on the same root cannot pass the limit together.
+- **After a failure.** The common layer counts from a handle's own size and position. After a failed
+  write it reads the size again, and when that fails too, the furthest end the write could reach
+  counts. After a failed read, write or seek the position is unknown until the next successful
+  seek: a write then counts as if it started at the end of the file, so it can be refused although
+  it would only overwrite. A failed open or remove counts what a stat finds afterwards. Each of
+  these errs towards counting more.
+- **Power loss and restart.** The count lives in memory only and is made again at each binding from
+  what the file system reports, so after a power cut it follows what reached the medium.
+- **Limits of the limit.** It is not free space: it reserves nothing on the volume, and the sum of
+  the limits may exceed the volume. Size it below the free space that the composition plans for,
+  with room for file system metadata, which the unit rounding approximates but does not measure.
+  Writes made outside File, by another process or a native client, count only at the next binding.
+
+The pattern is a directory-tree quota, as the XFS project quota is
+([`xfs_quota(8)`](https://man7.org/linux/man-pages/man8/xfs_quota.8.html)), with Crux's own
+counting and error.
 
 The `crux_file_fake` test library is an in-memory provider behind the same private port, for
 tests of code built on File. It injects faults and cuts power at a chosen mutation, under a
@@ -410,7 +465,7 @@ The FatFs and LittleFS block-device providers both call `fs_statvfs` internally,
 refused create on a full volume to NO_SPACE, and neither returns the value
 (`crux_file_impl_open` in `components/file/ports/zephyr/file_native.c`).
 The file service's area counters are limits that it enforces, not free space on the medium
-([File service](file-service-contract.md#capacity)). A public volume-information call would be a
+([File service](file-service-contract.md#capacity)), and so is a [root byte limit](#root-byte-limits). A public volume-information call would be a
 new Experimental function and an owner decision under [AGENTS.md](../AGENTS.md), and this section
 promises none. A product that needs the figure now can call Zephyr's `fs_statvfs()` on its mount
 point in its own adapter, outside File's lock and tests. That call is not verified with a File

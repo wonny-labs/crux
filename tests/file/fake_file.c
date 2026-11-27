@@ -120,7 +120,31 @@ crux_file_result_t crux_file_fake_bind_root(crux_file_root_t root, const char *p
     }
     memcpy(s->paths[root], path, strlen(path) + 1u);
     s->bound[root] = true;
-    return CRUX_FILE_OK;
+    /* A binding here can start again after a reset, so it forgets the limit of the last one. */
+    return crux_file_limit_root(root, 0, 0);
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in fake_file.h, called by tests
+crux_file_result_t crux_file_fake_bind_root_limited(crux_file_root_t root, const char *path,
+                                                    uint64_t max_bytes, uint64_t unit)
+{
+    if (max_bytes == 0) {
+        return CRUX_FILE_ERR_INVALID_ARGUMENT;
+    }
+    crux_file_result_t result = crux_file_fake_bind_root(root, path);
+    if (result != CRUX_FILE_OK) {
+        return result;
+    }
+    result = crux_file_limit_root(root, max_bytes, unit);
+    if (result != CRUX_FILE_OK) {
+        fake()->bound[root] = false;
+    }
+    return result;
+}
+
+void crux_file_fake_unbind_all(void)
+{
+    memset(fake()->bound, 0, sizeof(fake()->bound));
 }
 
 static size_t find(crux_file_root_t root, const char *name)
@@ -167,6 +191,19 @@ void crux_file_fake_add_raw(crux_file_root_t root, const char *raw_name)
     if (add(root, raw_name, false, true) == FAKE_ENTRIES) {
         abort();
     }
+}
+
+void crux_file_fake_add_file(crux_file_root_t root, const char *name, size_t size)
+{
+    size_t index = add(root, name, false, true);
+    if (index == FAKE_ENTRIES || size > CRUX_FILE_FAKE_FILE_BYTES) {
+        abort();
+    }
+    entry_t *entry = &fake()->entries[index];
+    memset(entry->data, 0, size);
+    memset(entry->medium, 0, size);
+    entry->size = size;
+    entry->medium_size = size;
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in fake_file.h, called by tests
