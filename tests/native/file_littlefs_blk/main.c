@@ -24,6 +24,8 @@
 #define MOUNT_POINT "/lfs"
 #define ROOT_A MOUNT_POINT "/a"
 #define ROOT_B MOUNT_POINT "/b"
+#define APP_ROOT MOUNT_POINT "/app"
+#define APP_ROOT_INDEX ((crux_file_root_t)6)
 #define SECTOR 512
 #define SECTORS 2048
 
@@ -78,6 +80,9 @@ static void *setup(void)
     zassert_ok(fs_mkdir(MOUNT_POINT "/free"));
     zassert_ok(fs_mkdir(MOUNT_POINT "/a2"));
     zassert_ok(fs_mkdir(MOUNT_POINT "/settings"));
+    zassert_ok(fs_mkdir(MOUNT_POINT "/limited"));
+    zassert_ok(fs_mkdir(MOUNT_POINT "/seeded"));
+    zassert_ok(fs_mkdir(APP_ROOT));
     zassert_equal(crux_file_zephyr_bind(ROOT_A), CRUX_FILE_OK, "the original bind is root 0");
     zassert_equal(crux_file_zephyr_bind_root(1, ROOT_B), CRUX_FILE_OK);
     zassert_equal(crux_config_zephyr_init(), CRUX_CONFIG_OK);
@@ -154,6 +159,36 @@ static void add_foreign_files(crux_file_root_t root)
     raw_file(root, name);
 }
 
+/* A native file of size bytes of zeros at path. */
+static void sized_file(const char *path, size_t size)
+{
+    static const uint8_t zeros[SECTOR];
+    struct fs_file_t file;
+
+    fs_file_t_init(&file);
+    zassert_ok(fs_open(&file, path, FS_O_CREATE | FS_O_WRITE), "%s", path);
+    for (size_t done = 0; done < size;) {
+        size_t chunk = MIN(sizeof(zeros), size - done);
+
+        zassert_equal(fs_write(&file, zeros, chunk), (ssize_t)chunk);
+        done += chunk;
+    }
+    zassert_ok(fs_close(&file));
+}
+
+static void add_seed(const char *path, uint64_t unit)
+{
+    char native[160];
+
+    zassert_true(snprintf(native, sizeof(native), "%s/seed", path) < (int)sizeof(native));
+    sized_file(native, (size_t)(2 * unit + 1));
+    zassert_true(snprintf(native, sizeof(native), "%s/with space", path) < (int)sizeof(native));
+    sized_file(native, (size_t)unit);
+    zassert_true(snprintf(native, sizeof(native), "%s/sub", path) < (int)sizeof(native));
+    zassert_ok(fs_mkdir(native));
+}
+
+/* LittleFS reports its block, one sector here, as f_frsize. */
 static const crux_file_conformance_env_t env = {
     .add_directory = add_directory,
     .add_foreign_files = add_foreign_files,
@@ -163,6 +198,11 @@ static const crux_file_conformance_env_t env = {
     .path_0_child = ROOT_A "/inner",
     .path_free = MOUNT_POINT "/free",
     .path_0_prefix = MOUNT_POINT "/a2",
+    .bind_root_limited = crux_file_zephyr_bind_root_limited,
+    .limit_unit = SECTOR,
+    .path_limited = MOUNT_POINT "/limited",
+    .path_seeded = MOUNT_POINT "/seeded",
+    .add_seed = add_seed,
 };
 
 /* One case, because the conformance sequence leaves entries that its later steps expect. */
@@ -173,6 +213,7 @@ ZTEST(file_littlefs_blk, test_conformance_of_the_additions)
     crux_file_conformance_size();
     crux_file_conformance_rename(&env);
     crux_file_conformance_listing(&env);
+    crux_file_conformance_limit(&env);
     crux_file_conformance_binding(&env);
 }
 
@@ -475,6 +516,64 @@ ZTEST(file_littlefs_blk, test_configuration_saves_on_the_same_volume)
     zassert_equal(value.data.u32, 42);
     expect_file("cfg", "a File of the same name");
     zassert_ok(fs_stat(CONFIG_SETTINGS_FILE_PATH, &entry));
+}
+
+/*
+ * An application root with a byte limit on the shared volume: when its files reach the limit, a
+ * write there gets CRUX_FILE_ERR_NO_SPACE, and a Configuration save and a File write in another
+ * root still succeed. tests/native/credential_littlefs shows the same for the credential store.
+ */
+ZTEST(file_littlefs_blk, test_a_full_limited_root_leaves_room_for_configuration_and_other_roots)
+{
+    static const uint8_t chunk[SECTOR] = {[0 ... SECTOR - 1] = 0x6c};
+    static const crux_config_spec_t spec = {
+        .key = "limit",
+        .schema_version = 1,
+        .default_value = {.type = CRUX_CONFIG_U32, .data.u32 = 1},
+    };
+    crux_config_param_t param = {0};
+    crux_config_value_t value = {.type = CRUX_CONFIG_U32, .data.u32 = 2};
+    crux_file_t *file = NULL;
+    crux_file_result_t rc = CRUX_FILE_OK;
+    struct fs_statvfs volume;
+    uint64_t size = 0;
+    size_t count = 0;
+    unsigned chunks = 0;
+
+    zassert_ok(fs_statvfs(MOUNT_POINT, &volume));
+    zassert_equal(volume.f_frsize, SECTOR, "the limit counts in LittleFS blocks");
+    zassert_equal(crux_file_zephyr_bind_root_limited(APP_ROOT_INDEX, APP_ROOT, 64 * SECTOR),
+                  CRUX_FILE_OK);
+    zassert_equal(crux_file_open_at(APP_ROOT_INDEX, "log", CRUX_FILE_CREATE_REPLACE, &file),
+                  CRUX_FILE_OK);
+    for (; chunks < SECTORS && rc == CRUX_FILE_OK; chunks++) {
+        rc = crux_file_write(file, chunk, sizeof(chunk), &count);
+        if (rc == CRUX_FILE_OK) {
+            rc = crux_file_sync(file);
+        }
+    }
+    zassert_equal(rc, CRUX_FILE_ERR_NO_SPACE, "the limit gave %d", rc);
+    zassert_equal(count, 0, "a refused write moves nothing");
+    zassert_equal(chunks, 65, "64 sectors fit and the 65th write is refused");
+    zassert_equal(crux_file_size(file, &size), CRUX_FILE_OK, "the handle stays usable");
+    zassert_equal(size, 64 * SECTOR);
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK, "a refused write is not a native error");
+
+    zassert_ok(fs_statvfs(MOUNT_POINT, &volume));
+    zassert_true(volume.f_bfree > 2, "the limit leaves the volume with free blocks");
+    zassert_equal(crux_config_init(&param, &spec), CRUX_CONFIG_OK);
+    zassert_equal(crux_config_update(&param, &value), CRUX_CONFIG_OK);
+    zassert_equal(crux_config_save(&param), CRUX_CONFIG_OK);
+    write_file("account", "saved in another root");
+    expect_file("account", "saved in another root");
+
+    /* A remove gives the space back. */
+    zassert_equal(crux_file_remove_at(APP_ROOT_INDEX, "log"), CRUX_FILE_OK);
+    zassert_equal(crux_file_open_at(APP_ROOT_INDEX, "log", CRUX_FILE_CREATE_REPLACE, &file),
+                  CRUX_FILE_OK);
+    zassert_equal(crux_file_write(file, chunk, sizeof(chunk), &count), CRUX_FILE_OK);
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove_at(APP_ROOT_INDEX, "log"), CRUX_FILE_OK);
 }
 
 /*

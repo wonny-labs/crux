@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 
 _Static_assert(sizeof(off_t) >= sizeof(int64_t), "Host requires 64-bit offsets");
@@ -79,6 +80,30 @@ crux_file_result_t crux_file_linux_bind_root(crux_file_root_t root, const char *
     roots[root].fd = fd;
     roots[root].bound = true;
     return CRUX_FILE_OK;
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in file_linux.h
+crux_file_result_t crux_file_linux_bind_root_limited(crux_file_root_t root, const char *r,
+                                                     uint64_t max_bytes)
+{
+    if (max_bytes == 0) {
+        return CRUX_FILE_ERR_INVALID_ARGUMENT;
+    }
+    crux_file_result_t result = crux_file_linux_bind_root(root, r);
+    if (result != CRUX_FILE_OK) {
+        return result;
+    }
+
+    struct statvfs volume;
+    result = fstatvfs(roots[root].fd, &volume) == 0
+                 ? crux_file_limit_root(root, max_bytes, volume.f_frsize)
+                 : crux_file_linux_error(errno);
+    if (result != CRUX_FILE_OK) {
+        roots[root].bound = false;
+        (void)close(roots[root].fd);
+        roots[root].fd = -1;
+    }
+    return result;
 }
 
 crux_file_result_t crux_file_linux_bind(const char *r)

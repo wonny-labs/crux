@@ -1079,8 +1079,9 @@ ZTEST_SUITE(file_reliance, NULL, NULL, before, after, NULL);
  */
 static void rebuild_volume(void)
 {
-    const char *const directories[] = {"/MMC:/a",    "/MMC:/a/inner", "/MMC:/b",
-                                       "/MMC:/free", "/MMC:/a2",      "/MMC:/settings"};
+    const char *const directories[] = {"/MMC:/a",       "/MMC:/a/inner", "/MMC:/b",
+                                       "/MMC:/free",    "/MMC:/a2",      "/MMC:/settings",
+                                       "/MMC:/limited", "/MMC:/seeded"};
 
     zassert_ok(fs_mkfs(CRUX_FS_RELIANCE_EDGE, (uintptr_t)DISK, NULL, 0));
     zassert_ok(fs_mount(&mnt));
@@ -1121,7 +1122,36 @@ static void add_foreign_files(crux_file_root_t root)
     raw_file(root, "a:b");
 }
 
-static const crux_file_conformance_env_t env = {
+/* A native file of size bytes of zeros at path. */
+static void sized_file(const char *path, size_t size)
+{
+    static const uint8_t zeros[SECTOR_BYTES];
+    struct fs_file_t raw;
+
+    fs_file_t_init(&raw);
+    zassert_ok(fs_open(&raw, path, FS_O_CREATE | FS_O_WRITE), "%s", path);
+    for (size_t done = 0; done < size;) {
+        size_t chunk = MIN(sizeof(zeros), size - done);
+
+        zassert_equal(fs_write(&raw, zeros, chunk), (ssize_t)chunk);
+        done += chunk;
+    }
+    zassert_ok(fs_close(&raw));
+}
+
+static void add_seed(const char *path, uint64_t unit)
+{
+    char native[96];
+
+    zassert_true(snprintk(native, sizeof(native), "%s/seed", path) < (int)sizeof(native));
+    sized_file(native, (size_t)(2 * unit + 1));
+    zassert_true(snprintk(native, sizeof(native), "%s/with space", path) < (int)sizeof(native));
+    sized_file(native, (size_t)unit);
+    zassert_true(snprintk(native, sizeof(native), "%s/sub", path) < (int)sizeof(native));
+    zassert_ok(fs_mkdir(native));
+}
+
+static crux_file_conformance_env_t env = {
     .add_directory = add_directory,
     .add_foreign_files = add_foreign_files,
     .bind_root = crux_file_zephyr_bind_root,
@@ -1130,6 +1160,10 @@ static const crux_file_conformance_env_t env = {
     .path_0_child = "/MMC:/a/inner",
     .path_free = "/MMC:/free",
     .path_0_prefix = "/MMC:/a2",
+    .bind_root_limited = crux_file_zephyr_bind_root_limited,
+    .path_limited = "/MMC:/limited",
+    .path_seeded = "/MMC:/seeded",
+    .add_seed = add_seed,
 };
 
 static void *file_setup(void)
@@ -1668,11 +1702,18 @@ ZTEST(file_reliance_file, test_removing_a_missing_file_reports_not_found)
 /* One case, because the conformance sequence leaves entries that its later steps expect. */
 ZTEST(file_reliance_file, test_conformance_on_reliance_edge)
 {
+    struct fs_statvfs volume;
+
+    /* The limit counts in the block size, which Reliance Edge reports as f_frsize. */
+    zassert_ok(fs_statvfs("/MMC:", &volume));
+    zassert_equal(volume.f_frsize, BLOCK_BYTES);
+    env.limit_unit = volume.f_frsize;
     crux_file_conformance_roots(&env);
     crux_file_conformance_stat(&env);
     crux_file_conformance_size();
     crux_file_conformance_rename(&env);
     crux_file_conformance_listing(&env);
+    crux_file_conformance_limit(&env);
     crux_file_conformance_binding(&env);
 }
 

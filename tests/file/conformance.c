@@ -354,3 +354,144 @@ void crux_file_conformance_binding(const crux_file_conformance_env_t *env)
     expect_absent(0, "bound");
     CHECK(crux_file_remove_at(UNBOUND_ROOT, "bound") == CRUX_FILE_OK);
 }
+
+#define LIMITED_ROOT ((crux_file_root_t)4)
+#define SEEDED_ROOT ((crux_file_root_t)5)
+
+static uint8_t limit_data[3 * CRUX_FILE_CONFORMANCE_UNIT_MAX + 2];
+
+/* One write call of length bytes, which must give the expected result and move all or nothing. */
+static void limited_write(crux_file_t *file, uint64_t length, crux_file_result_t expected)
+{
+    size_t count = 99;
+    CHECK(length <= sizeof(limit_data));
+    CHECK(crux_file_write(file, limit_data, (size_t)length, &count) == expected);
+    CHECK(count == (expected == CRUX_FILE_OK ? (size_t)length : 0u));
+}
+
+static void expect_size(crux_file_t *file, uint64_t expected)
+{
+    uint64_t size = 0;
+    CHECK(crux_file_size(file, &size) == CRUX_FILE_OK);
+    CHECK(size == expected);
+}
+
+static void create_refused(crux_file_root_t root, const char *name)
+{
+    crux_file_t *file = NULL;
+    CHECK(crux_file_open_at(root, name, CRUX_FILE_CREATE_REPLACE, &file) == CRUX_FILE_ERR_NO_SPACE);
+    CHECK(file == NULL);
+    expect_absent(root, name);
+}
+
+void crux_file_conformance_limit(const crux_file_conformance_env_t *env)
+{
+    const uint64_t u = env->limit_unit;
+    crux_file_t *a = NULL;
+    crux_file_t *b = NULL;
+    crux_file_t *c = NULL;
+    crux_file_info_t info;
+    CHECK(u >= 1 && u <= CRUX_FILE_CONFORMANCE_UNIT_MAX);
+    memset(limit_data, 'L', sizeof(limit_data));
+
+    /* Argument checks, then the binding rules of an unlimited root. A refused bind leaves the root
+     * unbound. */
+    CHECK(env->bind_root_limited(LIMITED_ROOT, env->path_limited, 0) ==
+          CRUX_FILE_ERR_INVALID_ARGUMENT);
+    CHECK(env->bind_root_limited(LIMITED_ROOT, NULL, 4 * u) == CRUX_FILE_ERR_INVALID_ARGUMENT);
+    CHECK(env->bind_root_limited(CRUX_FILE_ROOTS_MAX, env->path_limited, 4 * u) ==
+          CRUX_FILE_ERR_INVALID_ARGUMENT);
+    CHECK(env->bind_root_limited(LIMITED_ROOT, env->path_0, 4 * u) == CRUX_FILE_ERR_INVALID_STATE);
+    CHECK(env->bind_root_limited(0, env->path_limited, 4 * u) == CRUX_FILE_ERR_INVALID_STATE);
+    CHECK(crux_file_stat(LIMITED_ROOT, "a", &info) == CRUX_FILE_ERR_NOT_READY);
+    CHECK(env->bind_root_limited(LIMITED_ROOT, env->path_limited, 4 * u) == CRUX_FILE_OK);
+    CHECK(env->bind_root_limited(LIMITED_ROOT, env->path_limited, 4 * u) ==
+          CRUX_FILE_ERR_INVALID_STATE);
+    CHECK(env->bind_root(LIMITED_ROOT, env->path_limited) == CRUX_FILE_ERR_INVALID_STATE);
+
+    /* A file counts its size rounded up to the unit, and at least one unit: a holds 1 unit, then
+     * 3, and b brings the root to its limit of 4. */
+    CHECK(crux_file_open_at(LIMITED_ROOT, "a", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    limited_write(a, 3 * u, CRUX_FILE_OK);
+    CHECK(crux_file_open_at(LIMITED_ROOT, "b", CRUX_FILE_CREATE_REPLACE, &b) == CRUX_FILE_OK);
+    limited_write(b, 1, CRUX_FILE_OK);
+
+    /* At the limit, growth is refused and writes nothing, and the handle stays usable. A seek past
+     * the end is refused as on any root. */
+    limited_write(b, u, CRUX_FILE_ERR_NO_SPACE);
+    expect_size(b, 1);
+    create_refused(LIMITED_ROOT, "c");
+    CHECK(crux_file_seek(b, 2) == CRUX_FILE_ERR_OUT_OF_RANGE);
+
+    /* Overwriting and growing inside the last unit take no new space. */
+    CHECK(crux_file_seek(b, 0) == CRUX_FILE_OK);
+    limited_write(b, u, CRUX_FILE_OK);
+    expect_size(b, u);
+    limited_write(b, 1, CRUX_FILE_ERR_NO_SPACE);
+    CHECK(crux_file_seek(a, 0) == CRUX_FILE_OK);
+    limited_write(a, 3 * u, CRUX_FILE_OK);
+    limited_write(a, 1, CRUX_FILE_ERR_NO_SPACE);
+    CHECK(crux_file_seek(a, 3 * u - 1) == CRUX_FILE_OK);
+    limited_write(a, 2, CRUX_FILE_ERR_NO_SPACE);
+    limited_write(a, 1, CRUX_FILE_OK);
+    expect_size(a, 3 * u);
+    CHECK(crux_file_sync(a) == CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    CHECK(crux_file_close(&b) == CRUX_FILE_OK);
+    CHECK(crux_file_stat(LIMITED_ROOT, "b", &info) == CRUX_FILE_OK && info.size == u);
+
+    /* A reader takes nothing. A rename keeps the count, so the root is still full. */
+    CHECK(crux_file_open_at(LIMITED_ROOT, "a", CRUX_FILE_READ, &a) == CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    CHECK(crux_file_rename(LIMITED_ROOT, "a", "d") == CRUX_FILE_OK);
+    create_refused(LIMITED_ROOT, "c");
+
+    /* CREATE_REPLACE truncates d to one unit, which leaves 2 units for c. */
+    CHECK(crux_file_open_at(LIMITED_ROOT, "d", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    CHECK(crux_file_open_at(LIMITED_ROOT, "c", CRUX_FILE_CREATE_REPLACE, &c) == CRUX_FILE_OK);
+    limited_write(c, u + 1, CRUX_FILE_OK);
+    limited_write(c, u, CRUX_FILE_ERR_NO_SPACE);
+    CHECK(crux_file_close(&c) == CRUX_FILE_OK);
+    create_refused(LIMITED_ROOT, "e");
+
+    /* A remove gives the space back, and READ_WRITE grows an existing file from its size. */
+    CHECK(crux_file_remove_at(LIMITED_ROOT, "c") == CRUX_FILE_OK);
+    CHECK(crux_file_open_at(LIMITED_ROOT, "d", CRUX_FILE_READ_WRITE, &a) == CRUX_FILE_OK);
+    limited_write(a, 3 * u, CRUX_FILE_OK);
+    limited_write(a, 1, CRUX_FILE_ERR_NO_SPACE);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    CHECK(crux_file_remove_at(LIMITED_ROOT, "d") == CRUX_FILE_OK);
+    CHECK(crux_file_open_at(LIMITED_ROOT, "e", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    limited_write(a, 3 * u, CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    create_refused(LIMITED_ROOT, "f");
+
+    /* Another root is not limited. */
+    CHECK(crux_file_open_at(1, "big", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    limited_write(a, 3 * u + 2, CRUX_FILE_OK);
+    limited_write(a, 3 * u + 2, CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    CHECK(crux_file_remove_at(1, "big") == CRUX_FILE_OK);
+
+    CHECK(crux_file_remove_at(LIMITED_ROOT, "b") == CRUX_FILE_OK);
+    CHECK(crux_file_remove_at(LIMITED_ROOT, "e") == CRUX_FILE_OK);
+
+    /* The binding counts the File files that are there, 3 units for the seed, and nothing for the
+     * foreign file or the subdirectory. */
+    env->add_seed(env->path_seeded, u);
+    CHECK(env->bind_root_limited(SEEDED_ROOT, env->path_seeded, 4 * u) == CRUX_FILE_OK);
+    CHECK(crux_file_stat(SEEDED_ROOT, "seed", &info) == CRUX_FILE_OK && info.size == 2 * u + 1);
+    CHECK(crux_file_open_at(SEEDED_ROOT, "x", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    limited_write(a, u, CRUX_FILE_OK);
+    limited_write(a, 1, CRUX_FILE_ERR_NO_SPACE);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    create_refused(SEEDED_ROOT, "y");
+    CHECK(crux_file_remove_at(SEEDED_ROOT, "seed") == CRUX_FILE_OK);
+    CHECK(crux_file_open_at(SEEDED_ROOT, "y", CRUX_FILE_CREATE_REPLACE, &a) == CRUX_FILE_OK);
+    limited_write(a, 3 * u, CRUX_FILE_OK);
+    CHECK(crux_file_close(&a) == CRUX_FILE_OK);
+    create_refused(SEEDED_ROOT, "z");
+    CHECK(crux_file_remove_at(SEEDED_ROOT, "x") == CRUX_FILE_OK);
+    CHECK(crux_file_remove_at(SEEDED_ROOT, "y") == CRUX_FILE_OK);
+}

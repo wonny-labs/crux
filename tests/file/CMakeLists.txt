@@ -76,7 +76,19 @@ add_executable(file_fake_faults fake_faults_test.c)
 target_link_libraries(file_fake_faults PRIVATE crux_file_fake)
 target_compile_definitions(file_fake_faults PRIVATE _DEFAULT_SOURCE)
 
-foreach(test IN ITEMS file_conformance_linux file_conformance_fake file_fake_faults)
+# Root byte limits: the cases of the fake provider, and concurrent callers on the Linux provider.
+add_executable(file_limit limit_test.c)
+target_link_libraries(file_limit PRIVATE crux_file_fake)
+target_include_directories(file_limit PRIVATE ../../components/file/src)
+target_compile_definitions(file_limit PRIVATE _DEFAULT_SOURCE)
+
+add_executable(file_limit_linux limit_linux_test.c)
+target_link_libraries(file_limit_linux PRIVATE crux::file Threads::Threads)
+target_include_directories(file_limit_linux PRIVATE ../../components/file/ports/linux)
+target_compile_definitions(file_limit_linux PRIVATE _POSIX_C_SOURCE=200809L)
+
+foreach(test IN ITEMS file_conformance_linux file_conformance_fake file_fake_faults file_limit
+        file_limit_linux)
     target_compile_options(${test} PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME File.${test} COMMAND ${test})
     set_tests_properties(File.${test} PROPERTIES TIMEOUT 20)

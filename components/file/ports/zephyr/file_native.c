@@ -226,6 +226,26 @@ crux_file_result_t crux_file_zephyr_bind_root(crux_file_root_t index, const char
     return CRUX_FILE_OK;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in crux/file_zephyr.h
+crux_file_result_t crux_file_zephyr_bind_root_limited(crux_file_root_t index, const char *r,
+                                                      uint64_t max_bytes)
+{
+    if (max_bytes == 0) {
+        return CRUX_FILE_ERR_INVALID_ARGUMENT;
+    }
+    crux_file_result_t rc = crux_file_zephyr_bind_root(index, r);
+    if (rc != CRUX_FILE_OK) {
+        return rc;
+    }
+    struct fs_statvfs volume;
+    int fs_rc = fs_statvfs(r, &volume);
+    rc = fs_rc == 0 ? crux_file_limit_root(index, max_bytes, volume.f_frsize) : result(fs_rc);
+    if (rc != CRUX_FILE_OK) {
+        roots[index][0] = '\0';
+    }
+    return rc;
+}
+
 crux_file_result_t crux_file_zephyr_bind(const char *r)
 {
     return crux_file_zephyr_bind_root(CRUX_FILE_ROOT_DEFAULT, r);
