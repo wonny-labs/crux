@@ -33,7 +33,7 @@ Shell, UART Logging, management and Bluetooth owners at build time. Only native_
 UART emulators and, on any board, enabled nodes of a reviewed UART driver selected by
 compatible (`nxp,lpuart`) are admitted; no board, SoC or revision is checked, and a board
 accepted this way is not qualified. UART sharing is
-unsupported and is not required for network qualification. `CRUX_SERIAL_PROVIDER` defaults to `host`
+unsupported and is not required by the platform validation plan. `CRUX_SERIAL_PROVIDER` defaults to `host`
 or `zephyr` in the respective native composition; other or empty selections fail
 configuration. Host dynamic TTY binding remains a runtime bootstrap responsibility.
 Direct unregistered native clients violate this composition rule.

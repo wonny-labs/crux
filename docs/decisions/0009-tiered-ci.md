@@ -61,7 +61,7 @@ Each requirement is labelled **standard** (the documented practice of the cited 
 | b. Run only the owned components' checks and ignore unowned files | Faster | A change in an unmapped place runs nothing relevant |
 | c. Derive dependencies from the build (CMake or Kconfig graphs) | Precise | A large tool to build and maintain; wrong edges select too little |
 
-**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates. A text search at `62ed69f1` found 39 references from files outside a component to one of the 85 configuration files under that component's tests (some only by a shared file name), among them `tests/controller_probe/testcase.yaml` using the I2C and SPI `native_sim` overlays and the RT1060 web management sample using `tests/zephyr/web_compile/mbedtls.conf`, so counting those files as their component's own would select too little.
+**Recommendation: a.** The list errs towards the full tier: a component's Kconfig, `.conf` or overlay change escalates too. Narrowing it is a later change, backed by measured fallback rates. A text search at `62ed69f1` found 39 references from files outside a component to one of the 85 configuration files under that component's tests (some only by a shared file name), among them `tests/controller_m3/testcase.yaml` using the I2C and SPI `native_sim` overlays and the RT1060 web management sample using `tests/zephyr/web_compile/mbedtls.conf`, so counting those files as their component's own would select too little.
 
 ### T4: large tests
 

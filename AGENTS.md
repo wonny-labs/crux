@@ -10,7 +10,7 @@ Read the following before planning or changing code:
 - [README.md](README.md) for workspace setup, build commands and supported developer workflows.
 - Applicable GitHub issues, recorded technical decisions, component contracts, tests and implementation evidence in this repository.
 
-The initial implementation plan in `docs/plans/initial-implementation-plan.md` and its acceptance identifiers are historical milestones, separate from the current platform roadmap. Use current GitHub issues, pull requests and milestone records for delivery status.
+The initial implementation plan in `docs/plans/initial-implementation-plan.md` and its M0–M5 acceptance identifiers are historical milestones, separate from the current platform roadmap. Use current GitHub issues, pull requests and milestone records for delivery status.
 Consult `docs/implementation-status.md` and `docs/baseline.md` for their recorded
 historical verification evidence. Historical results do not authorise unrelated work or prove a current roadmap milestone complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
 

@@ -8,7 +8,7 @@ TDD outline; hardware, merge and issue closure remain excluded.
 
 Issue #29 needs one small, independently consumable diagnostic capability for a
 reference controller and a separate runtime-shaped consumer. Follow the merged
-network qualification plan, current native-free boundary and component ownership rules.
+platform validation plan, current native-free boundary and component ownership rules.
 
 Starting `main`: `6a5814501197b995b96e2e2661ad3730270247b9`, the squash merge
 of PR #58. Serial's approved public contract and static resource checks are part

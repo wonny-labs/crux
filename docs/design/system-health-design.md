@@ -9,7 +9,7 @@ and TDD outline. Hardware operation, merge and Issue closure remain excluded.
 Issue #30 needs portable controller lifecycle mechanisms and an independent
 runtime-shaped consumer. Start from main `bf048c1`, the squash of Logging #61;
 its Git tree equals the software-qualified `bf6706f` tree. Reuse the component
-architecture and the network qualification validation allocation, which the current Goal
+architecture and the platform validation plan's allocation, which the current Goal
 explicitly adopts despite the historical plan's retained Proposed heading.
 
 Existing `controller_health_observe`, joint freshness and `controller_readiness`

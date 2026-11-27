@@ -221,7 +221,7 @@ What exists for a board, exactly:
 | Client audit ([#195](https://github.com/wonny-labs/crux/issues/195)) | Needs WinSCP defaults, an algorithm audit and board figures | None recorded; the issue states scope and criteria only ([#195](https://github.com/wonny-labs/crux/issues/195)) | Open |
 | Not built | `GET /api/v1/events`, web file transfer ([#188](https://github.com/wonny-labs/crux/issues/188)), a browser console ([#204](https://github.com/wonny-labs/crux/issues/204)), firmware upload over HTTPS or SFTP ([#191](https://github.com/wonny-labs/crux/issues/191), [#196](https://github.com/wonny-labs/crux/issues/196)), persisting a configuration or network change | none recorded ([product guide](management-in-a-product.md#what-you-get-and-what-is-not-built)) | Open |
 
-The contract issues of milestone M10 (#177 to #182) and the web issues of M11 (#184 to #190) are still open although their code is merged. This guide did not check each one's remaining acceptance criteria: read the issue before treating its component as complete.
+The contract issues of the management services work (#177 to #182) and the web issues of HTTPS web management (#184 to #190) are still open although their code is merged. This guide did not check each one's remaining acceptance criteria: read the issue before treating its component as complete.
 
 ## What a reviewer should not assume
 

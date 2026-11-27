@@ -98,7 +98,7 @@ At start, before any client can call:
 - `CRUX_FILE_SERVICE_TEMP_SLOTS` limits allocation only, and it cannot exceed 32. Recovery covers all 32 names, so that lowering the setting strands no file. Any other name beginning `.crux-` stays hidden and counted, and start leaves it alone.
 - Each kept temporary and each failed commit holds a name in the reservation table until a reset or a host repair. The table is shared by every area. When held names fill it, at `CRUX_FILE_SERVICE_RESERVATIONS` and 8 by default, a new writer, remove or rename in any area gets `ERR_NO_RESOURCES`, in spite of the rule that one area's trouble does not stop the others. A writer of a held name still gets `ERR_BUSY`, and readers are unaffected. If the table is full at start, the area that needed it returns `ERR_IO`.
 - The service keeps its own copy of the File name rule, so that `resolve` touches no storage. A test holds the two together on every byte value and on the length bound.
-- The File lock is global and held across each storage call, so one slow card write delays other File callers. No operation promises a time bound, and a dedicated timing measurement covers this.
+- The File lock is global and held across each storage call, so one slow card write delays other File callers. No operation promises a time bound. Measuring it is planned management services work and has not been done.
 - The SFTP adapter, its `SETSTAT` handling and the recorded WinSCP runs are not part of this work. They are in [the SFTP design](sftp-design.md).
 
 ## Validation

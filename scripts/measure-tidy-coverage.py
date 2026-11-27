@@ -44,7 +44,7 @@ NOT_COMPILED_RULES = (
         r"(^|/)(ports/zephyr|zephyr|zephyr_[a-z_]+|[a-z0-9_]+_zephyr|evkb|native_sim)(/|$)"
         r"|^tests/(native|zephyr)/|^tests/support/emmc_sim/"
         r"|^samples/(storage_[a-z_]+|flash_safety_poc|product_template)/"
-        r"|^tests/(controller_integrated|controller_probe|controller_network|controller_network_stack|integrated_smoke"
+        r"|^tests/(controller_integrated|controller_m3|controller_probe|controller_network|controller_network_stack|m5_integrated"
         r"|networking_physical|networking_physical_native|gpio_physical|psa_entropy)/"
         r"|^tests/external_application/main\.c$|^tests/execution/src/native\.c$"
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
@@ -491,8 +491,9 @@ class SelfTest(unittest.TestCase):
                 ("samples/networking/zephyr/main.c", "samples/networking/echo_client/zephyr/src/main.c"),
                 ("samples/time/src/main.c", "samples/time/shell/zephyr/src/main.c"),
                 ("samples/time/src/time_shell.c", "samples/time/shell/zephyr/src/time_shell.c"),
-                ("tests/controller_probe/src/main.c", "tests/controller_probe/src/fault_gpio.c"),
-                ("tests/integrated_smoke/zephyr/main.c", "tests/controller_network/src/main.c")):
+                ("tests/controller_m3/src/main.c", "tests/probe_device_health/src/main.c"),
+                ("tests/controller_m3/src/main.c", "tests/controller_probe/src/main.c"),
+                ("tests/m5_integrated/src/main.c", "tests/integrated_smoke/src/main.c")):
             with self.subTest(old=old):
                 self.assertEqual(classify_not_compiled(old), zephyr)
                 self.assertEqual(classify_not_compiled(new), zephyr)

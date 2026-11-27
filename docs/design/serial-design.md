@@ -3,7 +3,7 @@
 **Status: approved for software implementation by the user on 24 October 2026**
 with an explicit approval of the design and plan, to be implemented as proposed, covering design/plan
 commit `d9e39ab`. Issue #27; baseline `98f05104ad2bc915e4da93ab9e8732e850c140c5`.
-The [network qualification plan](../m5-pilot-validation-plan.md), existing component contracts,
+The [platform validation plan](../m5-pilot-validation-plan.md), existing component contracts,
 AGENTS.md and CONTRIBUTING.md govern scope. No hardware, merge or closure authority.
 
 ## Need, alternatives and recommendation

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-# Historical entry point; the maintained controller integration runner is renamed.
+# Alias of test-controller-integration.sh under the name used downstream.
 exec "$(dirname "${BASH_SOURCE[0]}")/test-controller-integration.sh" "$@"
