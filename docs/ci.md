@@ -135,6 +135,7 @@ Each called workflow can still run alone by hand.
 
 - `ci-gate` passes only when every called job concluded `success`; a failed, cancelled or skipped job fails it ([`scripts/ci/ci_gate.py`](../scripts/ci/ci_gate.py)). It runs with `always()`, so it also reports when a job before it failed or the run was cancelled.
 - Every job runs for every change. A job whose tier selected no check skips its steps after the plan and succeeds, so the [selection rules](#selection-rules) replace path filters, which would leave a required check pending.
+- A called workflow reports `success` to `ci-gate` when one of its own jobs is skipped by a condition, so no job in a called workflow has one, except the Zephyr summary's `always()`.
 - A fast run, from a draft pull request or a manual run with tier `fast`, reports the gate as `ci-gate (fast)`. Only a full or nightly run reports `ci-gate`, so a draft's pass never satisfies a rule that requires `ci-gate` on the same commit.
 - A called job's check name starts with the name of the job that calls it, for example `zephyr / zephyr io`.
 - [`tests/build/test_ci_gate.py`](../tests/build/test_ci_gate.py) fails when another workflow runs for pull requests, a called workflow is not called or not needed by `ci-gate`, a called job gains a condition or a path filter returns.
