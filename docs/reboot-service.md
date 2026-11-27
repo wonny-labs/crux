@@ -250,8 +250,8 @@ and the first of them is a save that is accepted after the last poll.
 
 A product may have to act only when the restart is about to happen, for example to write a retained marker that tells the next
 boot that the restart was requested. Counting policy calls cannot find that moment: a job can end without the second check, and
-a request made while another is pending adds no call. The calling thread can, so the product runs the worker on a thread of its
-own:
+a request made while another is pending usually adds no call. The calling thread can, so the product runs the worker on a thread
+of its own:
 
 1. State the policy with `CRUX_REBOOT_POLICY_CALLBACK`. Always-allow calls nothing, so a product that never refuses registers a
    callback that returns true.
@@ -277,16 +277,18 @@ own:
 | Allowed, and the reset works | Made | Does not return | The next boot reads it, then clears it |
 | Allowed, and the reset hangs | Made | Does not return | Written. A later watchdog or operator reset may keep it: read it with the reset cause |
 
-A request made while another is pending calls no policy, and the pending job's second check decides. A refusal at the request
-starts no job. The marker write follows the callback's rules, quick and with no call into the service, which a write to retained
-memory meets. The callback must also keep what it judged from changing after it allows, because nothing asks again.
+A request made while another is pending calls no policy, and the pending job's second check decides. If that job ends while the
+request is being accepted, the request starts a new job with no first check; the new job's second check still comes before any
+reset, so the steps above hold. A refusal at the request starts no job. The marker write follows the callback's rules, quick
+and with no call into the service, which a write to retained memory meets. The callback must also keep what it judged from
+changing after it allows, because nothing asks again.
 
 **Supervision on Zephyr.** The product thread reports no passes to
 [the progress function](composition-interfaces.md#the-service-thread-progress), but each step of the settle wait inside
 `crux_reboot_work_once()` reports `CRUX_SERVICE_THREAD_REBOOT_WORKER` on it. Supervise the thread with a channel of the
 product's own, fed from its loop and, on that identifier, from the progress function, because the wait can outlast a short
-channel period. The 1 s delay before the wait makes no report, so the period must exceed the loop's pause plus that delay, with
-a margin.
+channel period. Before the wait, a call can spend up to 1 s on the state's lock and then sleeps for 1 s with no report, so the
+period must exceed the loop's pause plus those 2 s, with a margin.
 
 ## Routes
 

@@ -45,7 +45,7 @@ typedef enum {
 } crux_service_thread_t;
 
 /**
- * A progress report. Called on the reporting service thread, possibly on several threads at once.
+ * A progress report. Called on the reporting thread, possibly on several threads at once.
  * It must return quickly: no wait, no lock that a Crux service may hold, and no call into a Crux
  * service. Feeding a task watchdog channel is the intended work.
  * @param thread The thread that passed through its loop.
