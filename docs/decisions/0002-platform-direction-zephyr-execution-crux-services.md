@@ -82,7 +82,7 @@ None of these is part of this ADR. Each is its own reviewed change, and a change
 3. Per-service priority Kconfig, by test-driven development.
 4. `CONTRIBUTING.md:45` (protected).
 5. #174: the slim-Sync fix or the third alternative, after the spike.
-6. D10 phase 1 with Build B', the probe and the spike, in the repository outside `crux-pilot`.
+6. D10 phase 1 with Build B', the probe and the spike, in the repository outside `crux`.
 7. The runtime port's agreement on native locks and its timer wait. Proposed owner: the runtime port's owner.
 8. P9's decision, after the runs, by the rule proposed in P9 and approved with it.
 

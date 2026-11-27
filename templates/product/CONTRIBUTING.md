@@ -1,23 +1,23 @@
 # Contributing to <PRODUCT>
 
-> **Template.** Copy this file to the root of a product repository as `CONTRIBUTING.md`, replace `<PRODUCT>`, `<product>` and every other `<placeholder>`, decide the open choices in the last section, and delete this note. It is adapted from the practices of Crux's own `CONTRIBUTING.md` and `AGENTS.md`, and it is a starting point: the product owns its copy and may change any rule. Crux does not enforce this file in a product repository, and the copy in `crux-pilot` is a separate, protected file.
+> **Template.** Copy this file to the root of a product repository as `CONTRIBUTING.md`, replace `<PRODUCT>`, `<product>` and every other `<placeholder>`, decide the open choices in the last section, and delete this note. It is adapted from the practices of Crux's own `CONTRIBUTING.md` and `AGENTS.md`, and it is a starting point: the product owns its copy and may change any rule. Crux does not enforce this file in a product repository, and the copy in `crux` is a separate, protected file.
 
 ## Purpose and scope
 
 This guide says how changes to <PRODUCT> are made, checked and reviewed. It applies to source code, devicetree, Kconfig, board definitions, drivers, tests, documentation, build configuration and CI workflows in this repository. Where it is silent, follow the approved issue and the decisions recorded in this repository. A recorded decision stays in force until a new one replaces it, and it is not asked again unless new evidence changes it.
 
-<PRODUCT> builds on Crux and on Zephyr. The code rules for adapters, devicetree, Kconfig and drivers are in Crux's [Zephyr and driver code in a product repository](https://github.com/wonny-labs/crux-pilot/blob/main/docs/coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository). The checks that run from this repository's root are in [style/README.md](style/README.md).
+<PRODUCT> builds on Crux and on Zephyr. The code rules for adapters, devicetree, Kconfig and drivers are in Crux's [Zephyr and driver code in a product repository](https://github.com/wonny-labs/crux/blob/main/docs/coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository). The checks that run from this repository's root are in [style/README.md](style/README.md).
 
 ## Making changes
 
 - Keep each change to one coherent purpose. Separate unrelated changes where that helps review and testing.
-- Keep the three layers apart: product logic in `domain/` as plain C, Zephyr code in the adapters and drivers, and Crux services behind a port the product owns. [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md) says where each kind of code goes.
+- Keep the three layers apart: product logic in `domain/` as plain C, Zephyr code in the adapters and drivers, and Crux services behind a port the product owns. [Choosing an API](https://github.com/wonny-labs/crux/blob/main/docs/choosing-an-api.md) says where each kind of code goes.
 - Reuse Zephyr's drivers and subsystems before writing a driver or a wrapper. Do not add a layer for a capability that has one consumer.
 - Name product code with the product's own prefix: `<product>_` for functions and types, `<PRODUCT>_` for macros and enum constants, `CONFIG_<PRODUCT>_` for Kconfig symbols. Never use `crux_`, `CRUX_` or `CONFIG_CRUX_`: Crux reserves them. Do not rename Zephyr, vendor or third-party identifiers.
 - Add or change tests with the behaviour. The default is to write the test first and see it fail for the right reason. When that is impractical, the pull request says why and gives other verification. Change an existing assertion only when the approved behaviour changes. Never weaken or delete a test to make a check pass.
 - A new file carries an `SPDX-License-Identifier` line. Use original work and appropriately licensed upstream material only. Record the source and licence of third-party code. Do not add employer-owned or other confidential code, documents, credentials or restricted assets. Keep secrets and personal paths out of the repository.
-- A change of the Crux or Zephyr revision in `west.yml` is its own pull request and records the result of `west crux-pins` (see the Crux [Product Composition Guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md)).
-- A driver, with its binding, Kconfig and tests, is reviewed against Crux's [driver review checklist](https://github.com/wonny-labs/crux-pilot/blob/main/docs/driver-review-checklist.md). Copy its list into the pull request.
+- A change of the Crux or Zephyr revision in `west.yml` is its own pull request and records the result of `west crux-pins` (see the Crux [Product Composition Guide](https://github.com/wonny-labs/crux/blob/main/docs/product-composition.md)).
+- A driver, with its binding, Kconfig and tests, is reviewed against Crux's [driver review checklist](https://github.com/wonny-labs/crux/blob/main/docs/driver-review-checklist.md). Copy its list into the pull request.
 
 ## Commit messages
 

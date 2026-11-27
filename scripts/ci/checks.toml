@@ -61,10 +61,10 @@ cli = [
 controller = [
   "tests/controller/**",
   "tests/controller_integrated/**",
-  "tests/controller_m3/**",
+  "tests/controller_probe/**",
   "tests/controller_network/**",
   "tests/controller_network_stack/**",
-  "tests/m5_integrated/**",
+  "tests/integrated_smoke/**",
 ]
 credential = ["components/credential/**", "tests/credential/**", "tests/credential_consumer/**"]
 execution = [
@@ -440,14 +440,14 @@ fast = ["controller"]
 id = "rt1170-cross-build"
 job = "zephyr-controller"
 scope = "not-docs"
-run = "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-m3-rt1170.sh"
+run = "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-controller-probe-rt1170.sh"
 fast = ["controller"]
 
 [[check]]
-id = "m5-integrated-smoke"
+id = "integrated-smoke"
 job = "zephyr-controller"
 scope = "not-docs"
-run = "./scripts/test-m5-integrated-smoke.sh"
+run = "./scripts/test-integrated-smoke.sh"
 fast = ["controller"]
 
 [[check]]

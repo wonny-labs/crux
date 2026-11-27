@@ -52,7 +52,7 @@ header setup are required. Set paths for your workspace:
 ```sh
 export ZEPHYR_BASE=/path/to/workspace/zephyr
 export ZEPHYR_TOOLCHAIN_VARIANT=host
-CRUX=/path/to/workspace/crux-pilot
+CRUX=/path/to/workspace/crux
 python3 "$CRUX/tests/native/nvs_startup/test_prepare.py"
 
 # Expected RED: two controls pass, six fault cases fail; exit nonzero.

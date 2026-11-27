@@ -7,9 +7,9 @@
 
 | Field | Value |
 | --- | --- |
-| Issue | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB and RT1170-EVK" |
+| Issue | [#141](https://github.com/wonny-labs/crux/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB and RT1170-EVK" |
 | Status | **Draft. Desk results and build-only trial results.** Stages 0 to 4 and 7 are desk results. Stages 5, 6 and 8 record the A1 trial builds of 2 November 2026 for RT1060-EVKB (cross-compilation only, results archive SHA-256 `8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed`). Stage 7 (RT1170-EVK Rev A1) is a desk study only. No RT1170 build was run. No hardware or fuse operation was performed. Nothing in this record is adopted except the owner decisions listed under [Approvals](#approvals) and [Owner decisions needed](#owner-decisions-needed), which include the acceptance of 7 November 2026 for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15) and independent review 2 (verdict PASS, optional findings N1 to N5). Stages 5, 6 and 8 were added after review 2 and have not had an independent review. |
-| Target | Primary target and the only board for physical validation: RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. Secondary, desk and build-only: RT1170-EVK Rev A1, `mimxrt1170_evk@A/mimxrt1176/cm7` (owner decision of 2 November 2026). RT1170 hardware verification is deferred and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155). |
+| Target | Primary target and the only board for physical validation: RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. Secondary, desk and build-only: RT1170-EVK Rev A1, `mimxrt1170_evk@A/mimxrt1176/cm7` (owner decision of 2 November 2026). RT1170 hardware verification is deferred and tracked in [#155](https://github.com/wonny-labs/crux/issues/155). |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. |
 | crux-pilot read | `f67e22a` (Stages 0, 3 and 4) and `f57ff22` (Stage 2, after #147 merged). The trial builds of Stages 5 and 8 used `1d6ac4f`, an older ancestor of `f57ff22` (see [Stage 5](evidence/boot-update/stage5-trial-builds.md#1-inputs-and-provenance)). |
 | Plan | [Pre-M8 investigation plan](plans/pre-m8-investigation-plan.md) |
@@ -24,7 +24,7 @@ RT1060-EVKB Rev B before any implementation is planned. Its results inform the p
 milestones M8 "Boot platform foundation and verified boot" and M9 "Secure
 firmware update and recovery". It does not meet any M8 or M9 criterion.
 RT1170-EVK Rev A1 is a secondary, desk and build-only item, and its hardware
-verification is deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155).
+verification is deferred to [#155](https://github.com/wonny-labs/crux/issues/155).
 
 | #141 scope item | Covered by | State in this draft |
 | --- | --- | --- |
@@ -277,7 +277,7 @@ the [storage assessment](storage-configuration-assessment.md) records 4 KiB
 sectors and 64 KiB erase blocks for this NOR. The LinkServer Flash algorithm
 used on this board detected the 8 MiB device as 128 sectors of 64 KiB and wrote
 in 64 KiB sectors
-([#14 comment of 30 October 2026](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6530776373)).
+([#14 comment of 30 October 2026](https://github.com/wonny-labs/crux/issues/14#issuecomment-6530776373)).
 This does not show that 4 KiB erase is unavailable. Recommendation, supported
 by Stage 6: keep partition boundaries 64 KiB aligned until the erase size the
 update path relies on is measured on the board. The upstream partition
@@ -450,7 +450,7 @@ Source: [stage2-matrix.md](evidence/boot-update/stage2-matrix.md) section 6.
 On 2 November 2026 the owner returned RT1170-EVK Rev A1 to #141 as scope item
 5, desk and build-only. RT1060-EVKB Rev B remains the primary target and the
 only board for physical validation. RT1170 hardware verification is deferred
-and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155).
+and tracked in [#155](https://github.com/wonny-labs/crux/issues/155).
 Evidence: [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md).
 Stage 7 is a first-draft desk study. Its key layout, boot header, sample target
 and OTFAD claims were re-read at the pins when this record was assembled and
@@ -564,7 +564,7 @@ what was accepted. Acceptance is an owner decision. It is not an implementation.
 | 13 | Rank 1 needs either application code that marks the inactive slot for test, or images signed with trailer magic (imgtool `--pad`). Which one should the trial and M8 use? | **Accepted by the owner on 2 November 2026:** M8 test images are signed with `--pad` and placed with development tools. The application-driven update path is designed in M9, where application code that marks the inactive slot is preferred. Basis: both options are stock on source. Padding makes every written higher-version image a test request (Inference). A padded binary is the full slot size, so the network transfer, the SDRAM buffer and the NOR write become 3 MiB per update on RT1060, while the hex output is sparse (imgtool `image.py`:432-454). RAM load with revert does not imply `MCUBOOT_GENERATE_CONFIRMED_IMAGE`, unlike direct-XIP with revert, so confirmed images must be enabled explicitly (Zephyr `modules/Kconfig.mcuboot`:270-290 and 312). (True at v4.4.0 only: at v4.4.2 RAM load with revert implies it, see the erratum under the Status table.) Build evidence (Stage 5 section 9): the trial sysbuild signed both applications without `--pad` and without `--confirm`, and `MCUBOOT_GENERATE_CONFIRMED_IMAGE` is not set (the v4.4.0 trial; see the erratum under the Status table). The unpadded signed application is 33,032 B against a 3 MiB padded image. This is build evidence of the default only, not a hardware result. | Independent review 1, F1. Independent review 2, N2. Stage 2 decision 7. Stage 5 section 9. |
 | 14 | Extend A1 (the Stage 5 approval) to an RT1170 sysbuild configure and bootloader cross-build for rank 1 and rank 2 in the Dev Container | Done: the owner extended A1 on 2 November 2026. The RT1170 builds have not been run yet. | Stage 7 section 6 |
 | 15 | Which RT1170 items, if any, #155 should cover first when hardware work is planned | Owner choice | Stage 7 section 6 |
-| 16 | How to treat the #22 data-closure failure found in the MCUboot write path of both modes: record it as an open blocker for any bootloader write on hardware, or open a scope to remediate it (for example placing the FlexSPI configuration object in RAM, as the #22 PoC did for the application), with a decision on whether that is a Crux composition change or an upstream change | **Accepted by the owner on 2 November 2026:** record it as a blocker for bootloader writes on hardware. The remediation is a separate scope, tracked in [#165](https://github.com/wonny-labs/crux-pilot/issues/165) (not started). Its scope must be decided before any M8 hardware step that lets the bootloader write NOR. | Stage 6 section 3 |
+| 16 | How to treat the #22 data-closure failure found in the MCUboot write path of both modes: record it as an open blocker for any bootloader write on hardware, or open a scope to remediate it (for example placing the FlexSPI configuration object in RAM, as the #22 PoC did for the application), with a decision on whether that is a Crux composition change or an upstream change | **Accepted by the owner on 2 November 2026:** record it as a blocker for bootloader writes on hardware. The remediation is a separate scope, tracked in [#165](https://github.com/wonny-labs/crux/issues/165) (not started). Its scope must be decided before any M8 hardware step that lets the bootloader write NOR. | Stage 6 section 3 |
 | 17 | Use of the `storage` region (kept without owner, removed, or moved to microSD) and whether to reduce the 3 MiB slots | **Accepted by the owner on 2 November 2026:** keep `storage` declared with no owner and no writer in M8. Keep 3 MiB slots until a whole-slot erase has been timed on the board. Partition boundaries stay 64 KiB aligned. | Stage 6 sections 1.4 and 1.5 |
 | 18 | Where the fixed development key for later board tests lives, whether the trial key is deleted, and whether the development public key may be committed (plan section 9, item 10) | **Accepted by the owner on 2 November 2026:** delete the trial key from the shared volume now that both builds are done. Generate a new key in a directory that is not shared when a hardware test is approved. Commit only the public key, at that point. The deletion is done by the owner on the local machine and is Not verified here. | Stage 8 sections 3 and 5 |
 

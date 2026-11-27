@@ -1,0 +1,23 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+    controller_fault_gpio: fault-gpio {
+        compatible = "vnd,controller-fault-gpio";
+        gpio-controller;
+        #gpio-cells = <2>;
+        status = "disabled";
+    };
+    aliases {
+        sw0 = &controller_button;
+    };
+    controller_inputs {
+        compatible = "gpio-keys";
+        controller_button: button {
+            gpios = <&gpio0 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+        };
+    };
+};
+
+&gpio0 {
+    ngpios = <2>;
+};

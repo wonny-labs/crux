@@ -115,10 +115,10 @@
     "docs/status-configuration-services.md": "reference",
     "docs/storage-configuration-assessment.md": "record",
     "docs/storage-pilot-software-handoff.md": "record",
-    "docs/superpowers/specs/2026-10-24-logging-design.md": "reference",
-    "docs/superpowers/specs/2026-10-24-serial-design.md": "reference",
-    "docs/superpowers/specs/2026-10-24-system-health-design.md": "reference",
-    "docs/superpowers/specs/2026-10-25-time-redesign.md": "reference",
+    "docs/design/logging-design.md": "reference",
+    "docs/design/serial-design.md": "reference",
+    "docs/design/system-health-design.md": "reference",
+    "docs/design/time-design.md": "reference",
     "docs/system-validation.md": "record",
     "docs/test-foundation-proposal.md": "record",
     "docs/thread-sync.md": "reference",
@@ -370,14 +370,14 @@
     "docs/status-configuration-services.md": {
       "provenance": 3
     },
-    "docs/superpowers/specs/2026-10-24-logging-design.md": {
+    "docs/design/logging-design.md": {
       "provenance": 2
     },
-    "docs/superpowers/specs/2026-10-24-serial-design.md": {
+    "docs/design/serial-design.md": {
       "history": 1,
       "provenance": 1
     },
-    "docs/superpowers/specs/2026-10-24-system-health-design.md": {
+    "docs/design/system-health-design.md": {
       "history": 1,
       "provenance": 1
     },

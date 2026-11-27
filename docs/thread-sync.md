@@ -255,7 +255,7 @@ Sync keeps its slot metadata with atomics and has no metadata lock. It used to t
 private kernel mutex in every call, and `crux_mutex_unlock` released the native mutex
 inside it. On Zephyr, releasing that metadata mutex restored the priority saved when it
 was taken, so a holder kept an inherited priority after unlock.
-[Draft PR #174](https://github.com/wonny-labs/crux-pilot/pull/174) locked the scheduler
+[Draft PR #174](https://github.com/wonny-labs/crux/pull/174) locked the scheduler
 instead; the owner chose on 13 November 2026 to remove the lock (decision P6
 of the platform direction review), with the pools unchanged.
 
@@ -381,11 +381,11 @@ worst-case stack headroom, fairness, bounded inversion or stuck-worker recovery.
 
 | Record | Meaning |
 | --- | --- |
-| [PR #36](https://github.com/wonny-labs/crux-pilot/pull/36), [archived validation](history/execution-validation.md) and [retained evidence](evidence/m5-execution/README.md) | Original combined Execution implementation, qualification revisions, failures, follow-up corrections and measurements; results apply only to those inputs |
-| [PR #52](https://github.com/wonny-labs/crux-pilot/pull/52), reviewed HEAD `210a7cdd`, merged as `2b33fbcd50e3fc3ff77b955791e36aaa32b5f554` | Thread/Sync separation, current ownership and independent consumer evidence |
-| [Pre-cleanup snapshot](https://github.com/wonny-labs/crux-pilot/tree/ab3a7f545d62b619a09801fccde8d6d22792c396/docs) | Original document paths/content before this consolidation; archived files link to their exact original versions |
+| [PR #36](https://github.com/wonny-labs/crux/pull/36), [archived validation](history/execution-validation.md) and [retained evidence](evidence/m5-execution/README.md) | Original combined Execution implementation, qualification revisions, failures, follow-up corrections and measurements; results apply only to those inputs |
+| [PR #52](https://github.com/wonny-labs/crux/pull/52), reviewed HEAD `210a7cdd`, merged as `2b33fbcd50e3fc3ff77b955791e36aaa32b5f554` | Thread/Sync separation, current ownership and independent consumer evidence |
+| [Pre-cleanup snapshot](https://github.com/wonny-labs/crux/tree/ab3a7f545d62b619a09801fccde8d6d22792c396/docs) | Original document paths/content before this consolidation; archived files link to their exact original versions |
 
 Historical Issue #24/#25 dependency statements and earlier test totals are retained
 with their original revisions, not asserted as current issue status. This document
-adds no new runtime test result or physical qualification. Historical M2 measurements
+adds no new runtime test result or physical qualification. Historical measurements of the first physical verification of the reference controller
 and simulated/cross-build evidence do not satisfy a later physical acceptance gate.

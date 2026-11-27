@@ -1,6 +1,6 @@
 # One `native_sim` image with HTTPS, the command line over SSH and SFTP
 
-Status: merged in [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313), the first part of [Issue #197](https://github.com/wonny-labs/crux-pilot/issues/197). It is
+Status: merged in [PR #313](https://github.com/wonny-labs/crux/pull/313), the first part of [Issue #197](https://github.com/wonny-labs/crux/issues/197). It is
 the integration that [the wolfSSH provider](ssh-wolf-provider.md#decisions-for-review) (decision 25) and
 [the command line over SSH](cli-over-ssh.md) left open: the provider beside the TLS socket backend and wolfPSA in one image, selected by a
 Kconfig symbol, on the real Access core and the real PSA providers. It authorises no hardware operation, and **nothing here ran on a

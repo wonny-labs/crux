@@ -27,7 +27,7 @@ The shards were balanced by the measured time of each check. Times are whole job
 | `emmc` | eMMC stack, power-cut replay and Reliance Edge on `native_sim` | 10.2, 9.7 |
 | `storage` | Patch style, storage simulators, Flash PoC fault paths, Time and EVKB build | 10.0, 8.8 |
 | `file` | File RT1060 compile, File eMMC link check | 9.5, 8.1 |
-| `controller` | Smoke builds, execution candidates, early controller, RT1170 cross-build, M5 integrated smoke, product template, networking, networking physical fixture | 13.8, 12.0 |
+| `controller` | Smoke builds, execution candidates, early controller, RT1170 cross-build, integrated smoke, product template, networking, networking physical fixture | 13.8, 12.0 |
 | `integration` | Controller integration, reboot sanitizers, Time busy-wait | 12.8, 10.3 |
 | `runtime` | Portable execution, messaging, Logging, boot composition | 13.6, 9.8 |
 | `system` | Out-of-tree consumer, System, Serial | 13.3, 9.6 |
@@ -79,7 +79,7 @@ All runs used GitHub-hosted `ubuntu-24.04` runners. Times are in minutes.
 
 `emmc-reliance-edge` took 9.2 to 14.8 minutes in three four-shard runs, which alone set the old `storage` shard's length. As a check of its own shard, its storage half took 7.3 and 7.6 minutes.
 
-Package downloads once set the length of slow runs. In two four-shard runs the `io` job spent 4.8 and 7.7 minutes installing packages, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) then added a cache for them. Each shard restores the packages, `scripts/verify-apt-cache.py` removes every file whose SHA-256 differs from the signed index, and apt downloads whatever is missing. In the hosted runs after that change the install step took 0.1 to 0.3 minutes in every job and downloaded nothing. A typical run was not shorter (16.2 to 17.6 minutes against 14.1 to 16.4 in runs without a slow download), so the gain is that a run no longer waits on the mirror.
+Package downloads once set the length of slow runs. In two four-shard runs the `io` job spent 4.8 and 7.7 minutes installing packages, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux/pull/261) then added a cache for them. Each shard restores the packages, `scripts/verify-apt-cache.py` removes every file whose SHA-256 differs from the signed index, and apt downloads whatever is missing. In the hosted runs after that change the install step took 0.1 to 0.3 minutes in every job and downloaded nothing. A typical run was not shorter (16.2 to 17.6 minutes against 14.1 to 16.4 in runs without a slow download), so the gain is that a run no longer waits on the mirror.
 
 Another stall seen once: the `io` job took 6.2 minutes to fetch the Zephyr workspace in a `-j 4` run.
 

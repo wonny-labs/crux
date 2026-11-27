@@ -41,7 +41,7 @@ adds ASan/UBSan. The Host program is `build/linux/debug/samples/controller/host/
 
 ### Run on `native_sim`
 
-From the repository root (`/workspace/crux-pilot` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
+From the repository root (`/workspace/crux` in the Dev Container), after `scripts/bootstrap-zephyr.sh`:
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/time_periodic tests/time_periodic/zephyr -t run

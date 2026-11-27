@@ -1,8 +1,8 @@
 # Credential and key store
 
-Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) for Issue #178, on Host with test-only protection, and gate #183 has passed. Issue #178 stays open. A device-ID PSA provider runs on `native_sim` in [the management composition](native-management-composition.md). The decisions and reasoning are in the
+Status: merged in [PR #235](https://github.com/wonny-labs/crux/pull/235) for Issue #178, on Host with test-only protection, and gate #183 has passed. Issue #178 stays open. A device-ID PSA provider runs on `native_sim` in [the management composition](native-management-composition.md). The decisions and reasoning are in the
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
-accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
+accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux/pull/209#issuecomment-6616400894).
 
 Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
 state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
@@ -215,7 +215,7 @@ Each of these was taken without the owner, who was unavailable. The narrower, sa
 
 | # | Decision | Why |
 | --- | --- | --- |
-| 5 | A key record has a fixed form, stated above, and `crux_credential_key_parse` splits it. `crux_credential_write` refuses a malformed key record. | Consumers need the type, because `key_ensure` keeps an existing key of any type. M11 and M12 convert to the form their stack wants. |
+| 5 | A key record has a fixed form, stated above, and `crux_credential_key_parse` splits it. `crux_credential_write` refuses a malformed key record. | Consumers need the type, because `key_ensure` keeps an existing key of any type. HTTPS and SSH management convert to the form their stacks want. |
 | 6 | Record limits of 8,192, 4,096 and 101 B, in the adapter header | So a consumer can size a buffer at build time |
 | 7 | A first save over a full-size pending slot still writes the real header last. The proposal says such a slot is "written in place", and this is in place. | A plain in-place write would put the real header down first, so a cut would read as corrupt, and with no valid slot that is `UNUSABLE`, not "old". `first save over a pending slot` walks this. |
 | 8 | A failed second write also tries the pending header. The proposal requires it of the first write. | One path, and a torn slot would otherwise report `slot_invalid` at each boot until the next save |
@@ -232,7 +232,7 @@ Each of these was taken without the owner, who was unavailable. The narrower, sa
 | 19 | A save at the last generation is refused with `ERR_STORE` | The next value would wrap and lose to every older image |
 | 20 | Events run under the store lock, and never under the info lock, so an event may read the state | The gate's lock table allows the ring lock under the store lock. Unlike Access's state lock, nothing fast waits on the store lock. |
 | 21 | A failed second write produces `save_failed`, and `key_generated` waits until both slots hold the key: when a retry of `key_ensure`, or the repair at start, finishes the write | The caller was told not to use the key until then, and the event must exist once it is used |
-| 22 | `crux_credential_write` can store a well-formed key record, and replacing a key that way also produces `key_replaced` | The proposal's test table asks for a write of each record, and the design says that a host key change is always recorded. Nothing in Crux calls it for a key: M11 and M12 generate theirs. |
+| 22 | `crux_credential_write` can store a well-formed key record, and replacing a key that way also produces `key_replaced` | The proposal's test table asks for a write of each record, and the design says that a host key change is always recorded. Nothing in Crux calls it for a key: HTTPS and SSH management generate theirs. |
 | 23 | Swapped slots read normally. The image is not bound to its directory. | A swap is the same two images, so old-or-new still holds |
 | 24 | The boundary rule is a new module instead of a change to `cmake/CruxAccessBoundary.cmake` | Avoids conflict with #210, which is still open. Merging the two is a small follow-up. |
 | 25 | The File fake gained `crux_file_fake_write_through`, `crux_file_fake_drop_writes` and `crux_file_fake_remove_medium`, in `tests/file` | The proposal asks for a cut at each sector and byte, and the fake had one cut per File operation. Its default is unchanged. |

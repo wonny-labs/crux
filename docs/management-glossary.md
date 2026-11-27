@@ -56,7 +56,7 @@ The terms of the HTTPS web, SSH command line and SFTP documents, with the one me
 | **Declared TLS configuration** | TLS 1.3 only, with `TLS_AES_128_GCM_SHA256` |
 | **Device certificate**, **test certificate** | The certificate the TLS certificate model makes for a device, and the declared certificate of the `native_sim` images, whose key is public and which must never ship |
 | **Trust on first use** | The procedure of comparing a fingerprint by hand at the first connection: [TLS certificate](tls-certificate.md#the-first-connection) |
-| **#280 late first read** | On the Wolf profile a new connection's first request is read up to about 1 s late: [Issue #280](https://github.com/wonny-labs/crux-pilot/issues/280). Earlier records, and the comments of `tests/native/web_https/https_driver.py`, `tests/native/management_services/e2e/server_checks.py` and `web/e2e/native-cases.ts`, call it W1. The decisions W1 to W18 of the [frontend foundation design](plans/web-frontend-foundation-design.md) are a different list. |
+| **#280 late first read** | On the Wolf profile a new connection's first request is read up to about 1 s late: [Issue #280](https://github.com/wonny-labs/crux/issues/280). Earlier records, and the comments of `tests/native/web_https/https_driver.py`, `tests/native/management_services/e2e/server_checks.py` and `web/e2e/native-cases.ts`, call it W1. The decisions W1 to W18 of the [frontend foundation design](plans/web-frontend-foundation-design.md) are a different list. |
 
 ## SSH and SFTP
 

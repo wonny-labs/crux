@@ -1,6 +1,6 @@
 # Platform M1 target and maintenance readiness
 
-This record closes the assessment scope of [issue #2](https://github.com/wonny-labs/crux-pilot/issues/2)
+This record closes the assessment scope of [issue #2](https://github.com/wonny-labs/crux/issues/2)
 for **Engineering and target foundation** in the current Platform Development Plan, reviewed at
 `crux-platform` commit `7d2287bdb5a252ee5e1fc51c7142813ba37800d6`.
 It is separate from the historical Time Pilot M0–M5. Assessment date: 2026-10-17.
@@ -15,8 +15,8 @@ CMake 3.28.4, Ninja 1.11.1 and the existing pinned CMSIS/NXP HAL manifest.
 See [baseline input identities](baseline.md#selected-pinned-inputs).
 
 Clean `main` source `bd0def0e92274be2d7e744d97ce16aef7c757aef` passed
-[Host CI](https://github.com/wonny-labs/crux-pilot/actions/runs/39067354154) (27/27) and
-[Zephyr CI](https://github.com/wonny-labs/crux-pilot/actions/runs/39067353907) (4/4,
+[Host CI](https://github.com/wonny-labs/crux/actions/runs/39067354154) (27/27) and
+[Zephyr CI](https://github.com/wonny-labs/crux/actions/runs/39067353907) (4/4,
 native_sim and EVKB sample builds). The downloaded manifest's 19 artefact/report hashes
 and sizes matched. ELF `362ccac5…a9ab889` and BIN `4f8632b2…de764a` match the image in
 [physical Time evidence](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17).

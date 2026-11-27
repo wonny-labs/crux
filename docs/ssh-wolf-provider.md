@@ -1,10 +1,10 @@
 # The wolfSSH provider
 
-Status: merged in [PR #265](https://github.com/wonny-labs/crux-pilot/pull/265) and [PR #292](https://github.com/wonny-labs/crux-pilot/pull/292) for Issue #192. It implements [the SSH provider contract](ssh-provider-contract.md) and the
+Status: merged in [PR #265](https://github.com/wonny-labs/crux/pull/265) and [PR #292](https://github.com/wonny-labs/crux/pull/292) for Issue #192. It implements [the SSH provider contract](ssh-provider-contract.md) and the
 [CLI and file transfer design](plans/secure-management-cli-sftp-design.md), and does not repeat them. It authorises no
 hardware operation. Every run recorded here is on `native_sim` or is a compile for RT1060-EVKB. No board was operated.
 The real command line and SFTP entry points run on this provider in [the integrated image](ssh-integrated-image.md) of
-[PR #313](https://github.com/wonny-labs/crux-pilot/pull/313), which is the image to read for a product's composition.
+[PR #313](https://github.com/wonny-labs/crux/pull/313), which is the image to read for a product's composition.
 
 A second change under #192 closes what the first left open: the checks on what a client sends moved into a module that the
 Host tests, with fuzzing and mutants, and the host key now comes from the credential store on its PSA ports in a `native_sim`
@@ -426,7 +426,7 @@ For the owner to judge. Each line was checked against the source at this revisio
 
 **Deliberately not built (decided):** a counter or event for refusals before a callback stays unemitted, and the
 [event contract](security-event-contract.md#from-the-ssh-adapter-port) marks the case as reserved until the provider can report it. This is the owner's
-decision of 2026-11-14 on [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), option B, and it is not a gap left open. Until then the only trace of a crafted client is
+decision of 2026-11-14 on [Issue #317](https://github.com/wonny-labs/crux/issues/317), option B, and it is not a gap left open. Until then the only trace of a crafted client is
 `ssh.auth_limit`, when its refusals reach the limit.
 
 ## Findings

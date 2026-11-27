@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install what Crux needs, and skip what is already installed. The Dev Container runs it after
-# it is created (postCreateCommand); run it again by hand at any time, from /workspace/crux-pilot:
+# it is created (postCreateCommand); run it again by hand at any time, from /workspace/crux:
 #
 #   scripts/bootstrap.sh [--keep-going] [all|host|zephyr|status]
 #   scripts/bootstrap.sh board-host      # on the Linux host of a board user, outside the container

@@ -1,0 +1,25 @@
+common:
+  harness: ztest
+  platform_allow:
+    - native_sim/native/64
+  integration_platforms:
+    - native_sim/native/64
+  tags:
+    - crux
+    - gpio
+    - health
+tests:
+  crux.controller.gpio_health:
+    extra_args:
+      - DTC_OVERLAY_FILE=boards/native_sim.overlay
+      - CT_GPIO_SCENARIO=emulated
+  crux.controller.missing_gpio:
+    extra_args:
+      - DTC_OVERLAY_FILE=boards/native_sim.overlay
+      - CT_GPIO_SCENARIO=missing
+      - EXTRA_DTC_OVERLAY_FILE=boards/missing_button.overlay
+  crux.controller.read_error:
+    extra_args:
+      - DTC_OVERLAY_FILE=boards/native_sim.overlay
+      - CT_GPIO_SCENARIO=fault
+      - EXTRA_DTC_OVERLAY_FILE=boards/fault_gpio.overlay

@@ -1,6 +1,6 @@
 # Status, configuration and account web APIs
 
-Status: merged in [PR #281](https://github.com/wonny-labs/crux-pilot/pull/281) for Issue #187. Nothing here has run on a board. #187's own suites are Host only, and
+Status: merged in [PR #281](https://github.com/wonny-labs/crux/pull/281) for Issue #187. Nothing here has run on a board. #187's own suites are Host only, and
 [the services image](native-composition-242.md) of #242 serves these routes over HTTPS on `native_sim`. Host and `native_sim` results are interim results, and physical evidence stays
 tracked apart.
 
@@ -271,7 +271,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | clang-tidy 18 on the management sources and suites | Host | No finding |
 | `scripts/check-format.sh` (clang-format 18), `check-web-routes.py`, `check-web-boundary.py`, `check-mgmt-services-boundary.py`, the generator's tests | Host | Pass |
 | `scripts/check-management-api.sh` (Spectral 6.16.3, Node.js 24.22.2) and `python3 -m unittest discover -s tests/management_api` | Node.js | Pass |
-| `npm run check:types`, `typecheck` and the unit tests in `web` | Node.js | 521 of 523 pass. The 2 failures, in `tools/test/boundary.test.ts`, were on `main` before #187, and [#282](https://github.com/wonny-labs/crux-pilot/pull/282) has since fixed the boundary rule: [decision 17](#decisions-taken-without-an-answer). |
+| `npm run check:types`, `typecheck` and the unit tests in `web` | Node.js | 521 of 523 pass. The 2 failures, in `tools/test/boundary.test.ts`, were on `main` before #187, and [#282](https://github.com/wonny-labs/crux/pull/282) has since fixed the boundary rule: [decision 17](#decisions-taken-without-an-answer). |
 | 20 mutations of the routes, the reader and the save | Host | 18 caught, 2 equivalent, [above](#tests). Review found 2 more that are not caught, listed there. |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang | | **Not run** |
 

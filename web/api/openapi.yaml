@@ -13,7 +13,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   contact:
     name: Crux
-    url: https://github.com/wonny-labs/crux-pilot
+    url: https://github.com/wonny-labs/crux
   description: |
     The API that a controller serves to its own web interface, over HTTPS only. It covers session,
     attempt polling, current user, own password change, status, configuration, network settings and reboot.

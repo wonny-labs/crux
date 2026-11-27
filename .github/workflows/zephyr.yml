@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: crux-pilot
+          path: crux
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -67,7 +67,7 @@ jobs:
 
       - name: Plan the checks of this tier
         id: plan
-        working-directory: crux-pilot
+        working-directory: crux
         run: |
           scripts/ci/run-tier.sh "$TIER" --job "zephyr-${{ matrix.shard }}" --plan
           echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job "zephyr-${{ matrix.shard }}" --count)" >> "$GITHUB_OUTPUT"
@@ -100,7 +100,7 @@ jobs:
         if: steps.plan.outputs.checks != '0'
         run: |
           archives="$HOME/.cache/crux-apt"
-          python3 crux-pilot/scripts/verify-apt-cache.py "$RUNNER_TEMP/apt-uris" "$archives"
+          python3 crux/scripts/verify-apt-cache.py "$RUNNER_TEMP/apt-uris" "$archives"
           mkdir -p "$archives/partial"
           sudo apt-get install -y -o "Dir::Cache::archives=$archives" --no-install-recommends \
             $CI_HOST_PACKAGES
@@ -124,7 +124,7 @@ jobs:
 
       - name: Fetch pinned Zephyr workspace and install SDK
         if: steps.plan.outputs.checks != '0'
-        working-directory: crux-pilot
+        working-directory: crux
         env:
           CRUX_GITHUB_TOKEN: ${{ github.token }}
         # Also records the build folder names of CRUX_BOARD_TARGET for the upload paths below.
@@ -134,7 +134,7 @@ jobs:
 
       - name: Run the checks of this tier
         if: steps.plan.outputs.checks != '0'
-        working-directory: crux-pilot
+        working-directory: crux
         run: scripts/ci/run-tier.sh "$TIER" --job "zephyr-${{ matrix.shard }}"
 
       # Avoid repeated glob traversals through large Twister build trees.
@@ -145,8 +145,8 @@ jobs:
         # environment value, so the files are copied to one folder instead.
         run: |
           set -euo pipefail
-          mkdir -p crux-pilot/build/twister-evidence
-          cd crux-pilot/build
+          mkdir -p crux/build/twister-evidence
+          cd crux/build
           for directory in zephyr/twister-*; do
             [ -d "$directory" ] || continue
             find "$directory" -type f \( \
@@ -167,182 +167,182 @@ jobs:
         with:
           name: zephyr-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            crux-pilot/build/ci/
+            crux/build/ci/
             # Keeps the original zephyr/twister-* layout under twister-evidence.
-            crux-pilot/build/twister-evidence/
+            crux/build/twister-evidence/
             # Direct cross-build outputs: do not scan every EVKB generated header tree.
-            crux-pilot/build/zephyr/*/*.log
-            crux-pilot/build/zephyr/*/*.err
-            crux-pilot/build/zephyr/*/CMakeFiles/**/*.log
-            crux-pilot/build/zephyr/*/CMakeFiles/CMakeConfigureLog.yaml
-            crux-pilot/build/zephyr/*/CMakeCache.txt
-            crux-pilot/build/zephyr/*/compile_commands.json
-            crux-pilot/build/zephyr/*/zephyr/.config
-            crux-pilot/build/zephyr/*/zephyr/zephyr.dts
-            crux-pilot/build/evidence/*inputs*.json
-            crux-pilot/build/system-resource-evidence/
-            crux-pilot/build/system-consumer/ctest-junit.xml
-            crux-pilot/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/evidence/m5-integrated-smoke/
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/provenance.json
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/rom.json
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/ram.json
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m5-integrated-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
-            crux-pilot/build/system-composition/*/build.log
-            crux-pilot/build/serial-consumer/ctest-junit.xml
-            crux-pilot/build/zephyr/serial-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/serial-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/native_sim_time/compile_commands.json
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/compile_commands.json
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/provenance.json
-            crux-pilot/build/evidence/target-inputs.json
-            crux-pilot/build/evidence/m3-inputs.json
-            crux-pilot/build/zephyr/m3-probe-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-probe-evkb/compile_commands.json
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/.config
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.map
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/rt1170-evk-a1-m3/compile_commands.json
-            crux-pilot/build/zephyr/m3-network-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-network-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.c
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.json
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.c
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.json
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/mdio_nxp_enet.c
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/mdio_nxp_enet.json
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/mdio_nxp_enet.c
-            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/mdio_nxp_enet.json
-            crux-pilot/build/zephyr/m3-native-output-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-normal-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-integrated-probe-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-integrated-normal-evkb/compile_commands.json
-            crux-pilot/build/evidence/zephyr-test-inputs.json
-            crux-pilot/build/zephyr/m5-physical-native/zephyr/.config
-            crux-pilot/build/zephyr/m5-physical-native/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m5-physical-native/compile_commands.json
-            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/.config
-            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m5-physical-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.c
-            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.json
-            crux-pilot/build/evidence/m5-preparation/native-scenario.log
-            crux-pilot/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
-            crux-pilot/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
-            crux-pilot/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
-            crux-pilot/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
-            crux-pilot/build/zephyr/networking-native-pico/scenario.log
-            crux-pilot/build/zephyr/networking-native-pico/zephyr/.config
-            crux-pilot/build/zephyr/networking-native-pico/zephyr/zephyr.map
-            crux-pilot/build/zephyr/networking-evkb/zephyr/.config
-            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.map
-            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.bin
-            crux-pilot/build/networking-consumer/public-requirements.txt
-            crux-pilot/build/zephyr/controller-normal/scenario.log
-            crux-pilot/build/zephyr/controller-missing-rtc/scenario.log
-            crux-pilot/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/time-busy-wait-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/time-busy-wait-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/execution-posix-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/execution-posix-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/evidence/evkb-build.log
-            crux-pilot/build/evidence/zephyr-rom-report.log
-            crux-pilot/build/evidence/zephyr-ram-report.log
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/.config
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.stat
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.elf
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/rom.json
-            crux-pilot/build/zephyr/${{ env.CRUX_BOARD_KEY }}/ram.json
-            crux-pilot/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
-            crux-pilot/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
-            crux-pilot/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
-            crux-pilot/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
-            crux-pilot/build/logging-composition/*/build.log
-            crux-pilot/build/serial-composition/*/build.log
-            crux-pilot/build/serial-composition/*/.config
-            crux-pilot/build/serial-composition/*/zephyr.dts
+            crux/build/zephyr/*/*.log
+            crux/build/zephyr/*/*.err
+            crux/build/zephyr/*/CMakeFiles/**/*.log
+            crux/build/zephyr/*/CMakeFiles/CMakeConfigureLog.yaml
+            crux/build/zephyr/*/CMakeCache.txt
+            crux/build/zephyr/*/compile_commands.json
+            crux/build/zephyr/*/zephyr/.config
+            crux/build/zephyr/*/zephyr/zephyr.dts
+            crux/build/evidence/*inputs*.json
+            crux/build/system-resource-evidence/
+            crux/build/system-consumer/ctest-junit.xml
+            crux/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
+            crux/build/zephyr/system-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/evidence/integrated-smoke/
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/provenance.json
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/rom.json
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/ram.json
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/integrated-smoke-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
+            crux/build/system-composition/*/build.log
+            crux/build/serial-consumer/ctest-junit.xml
+            crux/build/zephyr/serial-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/serial-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/native_sim_time/compile_commands.json
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/compile_commands.json
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/provenance.json
+            crux/build/evidence/target-inputs.json
+            crux/build/evidence/controller-inputs.json
+            crux/build/zephyr/controller-probe-evkb/zephyr/.config
+            crux/build/zephyr/controller-probe-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-probe-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-probe-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-probe-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-probe-evkb/compile_commands.json
+            crux/build/zephyr/rt1170-evk-a1-m3/zephyr/.config
+            crux/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.dts
+            crux/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.map
+            crux/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.elf
+            crux/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.bin
+            crux/build/zephyr/rt1170-evk-a1-m3/compile_commands.json
+            crux/build/zephyr/controller-network-evkb/zephyr/.config
+            crux/build/zephyr/controller-network-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-network-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-network-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-network-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-network-evkb/compile_commands.json
+            crux/build/zephyr/controller-mdio-candidate-evkb/zephyr/.config
+            crux/build/zephyr/controller-mdio-candidate-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-mdio-candidate-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-mdio-candidate-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-mdio-candidate-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.c
+            crux/build/zephyr/controller-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.json
+            crux/build/zephyr/controller-mdio-candidate-evkb/compile_commands.json
+            crux/build/zephyr/controller-mdio-trace-evkb/zephyr/.config
+            crux/build/zephyr/controller-mdio-trace-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-mdio-trace-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-mdio-trace-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-mdio-trace-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.c
+            crux/build/zephyr/controller-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.json
+            crux/build/zephyr/controller-mdio-trace-evkb/compile_commands.json
+            crux/build/zephyr/controller-deferred-output-evkb/zephyr/.config
+            crux/build/zephyr/controller-deferred-output-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-deferred-output-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-deferred-output-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-deferred-output-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-deferred-output-evkb/crux-mdio/mdio_nxp_enet.c
+            crux/build/zephyr/controller-deferred-output-evkb/crux-mdio/mdio_nxp_enet.json
+            crux/build/zephyr/controller-deferred-output-evkb/compile_commands.json
+            crux/build/zephyr/controller-native-output-evkb/zephyr/.config
+            crux/build/zephyr/controller-native-output-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-native-output-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-native-output-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-native-output-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-native-output-evkb/crux-mdio/mdio_nxp_enet.c
+            crux/build/zephyr/controller-native-output-evkb/crux-mdio/mdio_nxp_enet.json
+            crux/build/zephyr/controller-native-output-evkb/compile_commands.json
+            crux/build/zephyr/controller-normal-evkb/zephyr/.config
+            crux/build/zephyr/controller-normal-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-normal-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-normal-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-normal-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-integrated-probe-evkb/zephyr/.config
+            crux/build/zephyr/controller-integrated-probe-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-integrated-probe-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-integrated-probe-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-integrated-probe-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-integrated-probe-evkb/compile_commands.json
+            crux/build/zephyr/controller-integrated-normal-evkb/zephyr/.config
+            crux/build/zephyr/controller-integrated-normal-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/controller-integrated-normal-evkb/zephyr/zephyr.map
+            crux/build/zephyr/controller-integrated-normal-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/controller-integrated-normal-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/controller-integrated-normal-evkb/compile_commands.json
+            crux/build/evidence/zephyr-test-inputs.json
+            crux/build/zephyr/m5-physical-native/zephyr/.config
+            crux/build/zephyr/m5-physical-native/zephyr/zephyr.map
+            crux/build/zephyr/m5-physical-native/compile_commands.json
+            crux/build/zephyr/m5-physical-evkb/zephyr/.config
+            crux/build/zephyr/m5-physical-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/m5-physical-evkb/zephyr/zephyr.map
+            crux/build/zephyr/m5-physical-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/m5-physical-evkb/zephyr/zephyr.bin
+            crux/build/zephyr/m5-physical-evkb/compile_commands.json
+            crux/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.c
+            crux/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.json
+            crux/build/evidence/m5-preparation/native-scenario.log
+            crux/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
+            crux/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/thread-only-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
+            crux/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/sync-only-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/portable_execution-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
+            crux/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/execution_runtime-${{ env.CRUX_BOARD_TAG }}/compile_commands.json
+            crux/build/zephyr/networking-native-pico/scenario.log
+            crux/build/zephyr/networking-native-pico/zephyr/.config
+            crux/build/zephyr/networking-native-pico/zephyr/zephyr.map
+            crux/build/zephyr/networking-evkb/zephyr/.config
+            crux/build/zephyr/networking-evkb/zephyr/zephyr.dts
+            crux/build/zephyr/networking-evkb/zephyr/zephyr.map
+            crux/build/zephyr/networking-evkb/zephyr/zephyr.elf
+            crux/build/zephyr/networking-evkb/zephyr/zephyr.bin
+            crux/build/networking-consumer/public-requirements.txt
+            crux/build/zephyr/controller-normal/scenario.log
+            crux/build/zephyr/controller-missing-rtc/scenario.log
+            crux/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/controller-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
+            crux/build/zephyr/time-busy-wait-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/time-busy-wait-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
+            crux/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.bin
+            crux/build/zephyr/execution-native-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
+            crux/build/zephyr/execution-posix-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/execution-posix-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/evidence/evkb-build.log
+            crux/build/evidence/zephyr-rom-report.log
+            crux/build/evidence/zephyr-ram-report.log
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/.config
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.dts
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.stat
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.map
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.elf
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/zephyr/zephyr.bin
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/rom.json
+            crux/build/zephyr/${{ env.CRUX_BOARD_KEY }}/ram.json
+            crux/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/.config
+            crux/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.dts
+            crux/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.map
+            crux/build/zephyr/logging-${{ env.CRUX_BOARD_TAG }}/zephyr/zephyr.elf
+            crux/build/logging-composition/*/build.log
+            crux/build/serial-composition/*/build.log
+            crux/build/serial-composition/*/.config
+            crux/build/serial-composition/*/zephyr.dts
           retention-days: 14
           if-no-files-found: warn
           include-hidden-files: true

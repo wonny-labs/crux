@@ -79,5 +79,5 @@ manifest:
       groups:
         - crux-reliance
   self:
-    path: crux-pilot
+    path: crux
     west-commands: scripts/west-commands.yml

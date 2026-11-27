@@ -121,7 +121,7 @@ With the patch, a missing key or a failed hash makes `tcp_init_isn()` return an 
 
 ## HTTP header-phase deadline
 
-`http-header-deadline.patch` changes `subsys/net/lib/http/http_server_core.c` (SHA-256 `db56e2d1…` at v4.5.0, and `98ef028a…` after the patch; copyright Emna Rekik and Nordic Semiconductor ASA). v4.5.0 moves the client read into `handle_http_data()` and adds HTTP/3 to the file; the deadline is unchanged and still not upstream. See [Issue #268](https://github.com/wonny-labs/crux-pilot/issues/268) and the [web contract](../../docs/web-contract.md).
+`http-header-deadline.patch` changes `subsys/net/lib/http/http_server_core.c` (SHA-256 `db56e2d1…` at v4.5.0, and `98ef028a…` after the patch; copyright Emna Rekik and Nordic Semiconductor ASA). v4.5.0 moves the client read into `handle_http_data()` and adds HTTP/3 to the file; the deadline is unchanged and still not upstream. See [Issue #268](https://github.com/wonny-labs/crux/issues/268) and the [web contract](../../docs/web-contract.md).
 
 At the pin, every read that returns data restarts the client's inactivity timer, and request headers run no resource callback. A client that trickles an incomplete request head, one byte per period, holds its client slot for as long as the parser accepts headers, and three such clients hold every slot of the web adapter.
 
@@ -130,7 +130,7 @@ With the patch, after each read that leaves the client open, the server checks w
 `components/web/ports/zephyr/header_deadline.cmake` replaces the one `http_server_core.c` in the `subsys__net__lib__http` library for every image with `CONFIG_CRUX_WEB`; the script sits beside the web adapter rather than under `scripts/`. The `native_sim` suites `tests/native/web_http` and `tests/native/web_https` expect three trickling clients closed at the deadline while a fourth is served, and a head sent in pieces within the deadline served on each request of a kept connection. These are not device evidence. Two limits are declared:
 
 - A client that reconnects holds a slot for up to the deadline per connection.
-- A body on a request that the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it: every byte restarts the inactivity timer, and a client that trickles such a body and reads the answers holds a slot with no time limit. Bounding that is a change beyond the decided option ([Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529)).
+- A body on a request that the server answers itself, the plain `404` of a path with no resource or the plain `405` of a method outside the mask, runs no callback, so neither deadline bounds it: every byte restarts the inactivity timer, and a client that trickles such a body and reads the answers holds a slot with no time limit. Bounding that is a change beyond the decided option ([Issue #529](https://github.com/wonny-labs/crux/issues/529)).
 
 The RT1060-EVKB bench image enables `CONFIG_CRUX_WEB`, so it compiles this copy too.
 

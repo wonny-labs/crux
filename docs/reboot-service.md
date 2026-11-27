@@ -1,8 +1,8 @@
 # Reboot service
 
-Status: merged in [PR #290](https://github.com/wonny-labs/crux-pilot/pull/290) for Issue #214. Host, and one `native_sim` test image. Nothing here has run on a board. [The services image](native-composition-242.md) does not compose this service, and no image serves these routes. The only image that starts it is the module fixture `tests/native/management_module` (`CONFIG_CRUX_REBOOT`, ADR-0004 phase 0), which starts the service and its worker with the real providers and reads its state: it makes no request, so no real reset runs and nothing calls a real reset. Host results are interim results, and physical
+Status: merged in [PR #290](https://github.com/wonny-labs/crux/pull/290) for Issue #214. Host, and one `native_sim` test image. Nothing here has run on a board. [The services image](native-composition-242.md) does not compose this service, and no image serves these routes. The only image that starts it is the module fixture `tests/native/management_module` (`CONFIG_CRUX_REBOOT`, ADR-0004 phase 0), which starts the service and its worker with the real providers and reads its state: it makes no request, so no real reset runs and nothing calls a real reset. Host results are interim results, and physical
 evidence stays tracked apart. Decision W9 and the reboot section of [the frontend foundation
-design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
+design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux/issues/183#issuecomment-6637976084)
 (W13: reboot is Advanced and optional) are the basis.
 
 Owner: `components/reboot`. Public header `<crux/reboot.h>`, usage target `crux::reboot`. The routes are in

@@ -156,7 +156,7 @@ Four real configurations of the bench image, with the environment variable unset
 | Need | The product's way |
 | --- | --- |
 | The first account | A **serial setup step**: the Command line contract's `!setup` loop ([cli-contract.md](cli-contract.md)) creates it from a password a person types at the console. It exists on Host and is composed in no image yet ([management-in-a-product.md](management-in-a-product.md)). Nothing is in the image. |
-| A user's access without a shared password | **User public keys** for SSH (Ed25519 and ECDSA), which no command or route registers yet: [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318). |
+| A user's access without a shared password | **User public keys** for SSH (Ed25519 and ECDSA), which no command or route registers yet: [Issue #318](https://github.com/wonny-labs/crux/issues/318). |
 | Never | A password, derived or not, in the image, the repository or a log. `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE` is a **bench test form** under the declaration of C1, accepted on this board and this bench only, like the test host key. |
 
 ## Decisions taken in C4

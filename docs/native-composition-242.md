@@ -1,6 +1,6 @@
 # Every management service on `native_sim`
 
-Status: delivered on `native_sim` in [PR #291](https://github.com/wonny-labs/crux-pilot/pull/291), under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242). This is the
+Status: delivered on `native_sim` in [PR #291](https://github.com/wonny-labs/crux/pull/291), under [Issue #242](https://github.com/wonny-labs/crux/issues/242). This is the
 second part of #242. The first, merged in #263, composed Access, the credential store, security events, status and
 configuration on real PSA providers, and is described in [the management composition](native-management-composition.md).
 This part composes every other management service on the same providers, behind the HTTPS listener of #185, in one

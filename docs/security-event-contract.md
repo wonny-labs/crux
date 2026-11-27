@@ -1,7 +1,7 @@
 # Security event contract
 
-Status: merged in [PR #234](https://github.com/wonny-labs/crux-pilot/pull/234) for Issue #182, on Host with fakes, and gate #183 has passed. It runs on `native_sim` in the [management composition](native-management-composition.md) and the [services image](native-composition-242.md). The decisions and reasoning are in [the accepted proposal](plans/security-events-contract-proposal.md),
-with decisions E1 to E6 accepted in the [gate record](https://github.com/wonny-labs/crux-pilot/pull/209). This document does not
+Status: merged in [PR #234](https://github.com/wonny-labs/crux/pull/234) for Issue #182, on Host with fakes, and gate #183 has passed. It runs on `native_sim` in the [management composition](native-management-composition.md) and the [services image](native-composition-242.md). The decisions and reasoning are in [the accepted proposal](plans/security-events-contract-proposal.md),
+with decisions E1 to E6 accepted in the [gate record](https://github.com/wonny-labs/crux/pull/209). This document does not
 repeat the reasoning. It states what
 was built, what was chosen, and what is not known.
 
@@ -19,11 +19,11 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`. The web session module emits `web.csrf_rejected` and `web.origin_rejected` for a refused CSRF token or `Origin`, rate-limited ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319), [below](#from-the-web-session-port)), tested on the Host only. The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [below](#from-the-ssh-adapter-port)), tested on the Host only: the same code is compiled into images that select `CONFIG_CRUX_SSH`, and no run of one has shown a record. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Emitters outside Access: web, SSH | Identifiers exist. **No emitter exists** for `web.tls_failed`. The web session module emits `web.csrf_rejected` and `web.origin_rejected` for a refused CSRF token or `Origin`, rate-limited ([Issue #319](https://github.com/wonny-labs/crux/issues/319), [below](#from-the-web-session-port)), tested on the Host only. The SSH access adapter emits `ssh.auth_limit` and `ssh.host_key_missing` through its provider ([Issue #317](https://github.com/wonny-labs/crux/issues/317), [below](#from-the-ssh-adapter-port)), tested on the Host only: the same code is compiled into images that select `CONFIG_CRUX_SSH`, and no run of one has shown a record. A refusal by the SSH provider before a first callback stays **reserved**: it has no identifier and no event. The certificate model emits `web.certificate_*` through its provider. The file service and the command line emit through the providers of the next rows. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
 | Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
-| `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
+| `GET /api/v1/events` | Not implemented (HTTPS web management). The read function it needs exists. |
 | Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
 | Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
 | Target | Compiled and linked, drained to Crux Logging on LPUART1, in the Mbed management image (`samples/boards/nxp/mimxrt1060_evk/web_management`), which `psa-crypto.yml` cross-builds on each pull request and push to `main` that changes more than documentation, and in the RT1060-EVKB bench image (`tests/zephyr/management_rt1060_compile`, `target.conf`, one local cross-build), which refuses to start. Nothing has run on a target. See [What is not known](#what-is-not-known). |
@@ -258,9 +258,9 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0403 | `config.save_failed` | C | Configuration service |
 | 0x0500 | `cli.line_rejected` | R | CLI, #181 |
 | 0x0501 | `cli.console_error` | R | CLI |
-| 0x0600 | `web.tls_failed` | R | M11 |
+| 0x0600 | `web.tls_failed` | R | HTTPS web management |
 | 0x0601 | `web.csrf_rejected` | R | Web session module, #319: a request with a session refused for its CSRF token |
-| 0x0602 | `web.certificate_replaced` | C | M11, the [TLS certificate](tls-certificate.md), #190 |
+| 0x0602 | `web.certificate_replaced` | C | HTTPS web management, the [TLS certificate](tls-certificate.md), #190 |
 | 0x0603 | `web.certificate_rejected` | R | The [TLS certificate](tls-certificate.md), #190 |
 | 0x0604 | `web.certificate_unusable` | C | The [TLS certificate](tls-certificate.md), #190: the stored certificate refused at start, so nothing is served |
 | 0x0605 | `web.origin_rejected` | R | Web session module, #319: a request with a session, or a login, refused for its `Origin`. Added on the owner's decision of 2026-11-14. |
@@ -363,13 +363,13 @@ Neither record has a subject, and none carries a header, a token or any text fro
 
 The owner could not be asked about decisions 1 to 20. Each is the narrow choice, and a changed choice is small while nothing depends on it.
 
-Decisions 21 to 24 are details inside an owner decision: [Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) was
+Decisions 21 to 24 are details inside an owner decision: [Issue #317](https://github.com/wonny-labs/crux/issues/317) was
 decided on 2026-11-14, with option A for `ssh.auth_limit` and `ssh.host_key_missing` and option B for refusals before the first
 callback, and that decision did not cover them. They are the narrow choice as well, and a changed choice is small.
 
 | # | Point | Choice | Reason |
 | --- | --- | --- | --- |
-| 1 | A name for a record | Added `crux_security_event_name(id)`, which is not in the proposal | A read result holds only the value, and M11 must show a name. The project table is private to the core, so no one else can answer. |
+| 1 | A name for a record | Added `crux_security_event_name(id)`, which is not in the proposal | A read result holds only the value, and HTTPS web management must show a name. The project table is private to the core, so no one else can answer. |
 | 2 | Cursor ahead of the numbering | Restarts at the oldest record | A cursor kept across a reset would otherwise read `END` until the numbers caught up. The caller sees the sequence fall. A cursor from before a reset is ahead only until the numbering passes it, and then it reads as an ordinary cursor, so this does not detect every reset. |
 | 3 | Sequence wrap | Skips zero | Zero is a cursor's start, so a record numbered zero could not be read after a wrap. |
 | 4 | Forging a Crux event | `event.lost` passed to an emit records `event.unknown`, counted. `crux_security_event_init` refuses a project name equal to any Crux name, and a name used twice. Only exact names are refused, so `access.other` and `event.lost.x` are allowed. | `event.lost` is a line only, and only the drain writes it. The proposal reserves no name prefix. |

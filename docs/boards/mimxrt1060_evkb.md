@@ -57,7 +57,7 @@ The [J-Link board route](../board-jlink-usbipd.md) guide gives the steps, lists 
    The J-Link's node was `crw-rw-rw-` owned by `root` before the rule applied, and `crw-rw----` with owner `root` and group `plugdev` after a reattach. The container can open either.
 3. Optional: put `JLink_Linux_<version>_x86_64.deb` in `.devcontainer/jlink/packages/`. The Dev Container build downloads the pinned version by itself ([guide](../board-jlink-usbipd.md#steps)).
 4. VS Code: **Dev Containers: Rebuild and Reopen in Container**.
-5. In the container, from the repository root `/workspace/crux-pilot`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`.
+5. In the container, from the repository root `/workspace/crux`, where every command below runs: `lsusb -d 1366:` lists the J-Link, `id -nG` includes `plugdev`, and `command -v JLinkExe JLinkGDBServer` finds both tools. The Cortex-Debug profiles also need `JLinkGDBServerCLExe`.
 6. Connection check, with the switches and jumpers above: `printf 'exit\n' | JLinkExe -nogui 1 -if swd -speed 100 -device MIMXRT1062xxx6A -autoconnect 1` shows `VTref` of about 3.3 V and `Found Cortex-M7`.
 7. Build and flash the Time sample:
 
@@ -118,7 +118,7 @@ The script prints the build directory before it builds, and the ELF path and the
 
 A debug build records no provenance.
 A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured.
-The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`.
+The controller, probe and network image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`.
 The physical Time suite reads no configuration, so it does not make this check.
 
 `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts.

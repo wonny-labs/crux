@@ -132,7 +132,7 @@ class RunFromRepositoryRoot(unittest.TestCase):
 
     def test_the_tutorial_names_one_folder(self):
         text = read(DOCS / "tutorial.md")
-        self.assertIn("All commands in this tutorial run from `/workspace/crux-pilot`, where the VS Code terminal"
+        self.assertIn("All commands in this tutorial run from `/workspace/crux`, where the VS Code terminal"
                       " opens.", " ".join(text.split()))
         self.assertIsNone(re.search(r"from `/workspace`", text))
         self.assertNotIn("| Folder | What it is | Run from here |", text)

@@ -6,8 +6,8 @@ Where boards and drivers go, and when one moves into the shared module, is in [S
 
 | File | Purpose |
 | --- | --- |
-| `west.yml` | The organisation manifest, `acme-manifest`. It imports `crux-pilot` and pins the shared hardware module `acme-hw` |
-| `product-y/west.yml` | A product manifest that imports `acme-manifest` in place of `crux-pilot` |
+| `west.yml` | The organisation manifest, `acme-manifest`. It imports `crux` and pins the shared hardware module `acme-hw` |
+| `product-y/west.yml` | A product manifest that imports `acme-manifest` in place of `crux` |
 
 ## When to introduce the layer
 
@@ -19,12 +19,12 @@ Keep in a product manifest what only that product uses.
 
 ## How west resolves the three manifests
 
-The product repository stays the manifest repository (west's T2 topology). Its `west.yml` imports `acme-manifest`, which imports `crux-pilot`, which imports Zephyr with Crux's module allowlist.
+The product repository stays the manifest repository (west's T2 topology). Its `west.yml` imports `acme-manifest`, which imports `crux`, which imports Zephyr with Crux's module allowlist.
 
 ```mermaid
 flowchart LR
     P["product-y/west.yml"] -->|"import: true"| O["acme-manifest/west.yml"]
-    O -->|"import: true"| C["crux-pilot/west.yml"]
+    O -->|"import: true"| C["crux/west.yml"]
     C -->|"name-allowlist"| Z["zephyr/west.yml"]
     O -->|"plain project"| H["acme-hw"]
 ```
@@ -50,7 +50,7 @@ flowchart LR
 
 | Project | Report |
 | --- | --- |
-| `crux-pilot` | `CONTRACT` |
+| `crux` | `CONTRACT` |
 | Zephyr and the allowlisted modules, as Crux pins them | `OK` |
 | `acme-manifest` itself, and `acme-hw` | `PRODUCT` |
 | A Crux pin replaced in `acme-manifest` with `crux-override` | `OVERRIDE` with the organisation's reason |
@@ -60,7 +60,7 @@ It does not compare a product with its organisation manifest. A product that pin
 
 ## Start the layer
 
-1. Create the `acme-manifest` repository from `west.yml`, replace `acme` and `git.example`, and pin `crux-pilot` and `acme-hw`.
-2. In each product, replace the `crux-pilot` entry with the `acme-manifest` entry of `product-y/west.yml`, and remove what `acme-manifest` now pins.
+1. Create the `acme-manifest` repository from `west.yml`, replace `acme` and `git.example`, and pin `crux` and `acme-hw`.
+2. In each product, replace the `crux` entry with the `acme-manifest` entry of `product-y/west.yml`, and remove what `acme-manifest` now pins.
 3. Run `west update` and `west crux-pins` in each product, and compare the result with the table above.
 4. For a release, pin `acme-manifest` by tag or SHA in the product and freeze as the [release flow](../../docs/product-composition.md#release) says. The lock lists every project, `acme-manifest` and `acme-hw` included, so the release does not depend on the organisation manifest's later state.

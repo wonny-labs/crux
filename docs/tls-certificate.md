@@ -1,6 +1,6 @@
 # TLS certificate model
 
-Status: merged in [PR #284](https://github.com/wonny-labs/crux-pilot/pull/284) for [Issue #190](https://github.com/wonny-labs/crux-pilot/issues/190), and gate #183 has passed. **Nothing here ran on a board.** The evidence of #190 is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
+Status: merged in [PR #284](https://github.com/wonny-labs/crux/pull/284) for [Issue #190](https://github.com/wonny-labs/crux/issues/190), and gate #183 has passed. **Nothing here ran on a board.** The evidence of #190 is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
 ports on TF-PSA-Crypto whose output OpenSSL checks. The module ran later on `native_sim` on both profiles, including wolfPSA, in [the services image](native-composition-242.md) of #242: see the rows below. The listener there still serves the declared test certificate. The design follows the
 [certificate model](plans/secure-management-web-design.md#certificate-model) of the web design.
 

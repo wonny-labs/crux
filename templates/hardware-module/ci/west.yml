@@ -20,7 +20,7 @@ manifest:
     # at main, so this CI picks up each Crux or Zephyr pin the organisation
     # has already moved. To test a new Crux pin before the organisation
     # moves, on a module branch either set revision to a branch of
-    # acme-manifest that carries the new pin, or add a crux-pilot entry with
+    # acme-manifest that carries the new pin, or add a crux entry with
     # its url, the new revision and "import: true" above this one (an entry here
     # beats the imported one). Do not merge either into the module's main.
     - name: acme-manifest

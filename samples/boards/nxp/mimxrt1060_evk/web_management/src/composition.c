@@ -219,7 +219,7 @@ bool composition_core_start(void)
     }
     crux_reset_cause_t cause = {0};
     crux_mgmt_status_config_t status = {
-        .platform_version = "crux-pilot",
+        .platform_version = "crux",
         .project_version = "rt1060-mbed",
         .boot_reset_cause_status = crux_system_reset_cause_get(&cause),
         .boot_reset_cause = cause,

@@ -2,11 +2,11 @@
 
 See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification. The FatFs provider on `native_sim` and on the EVKB microSD slot is described in [microsd-composition.md](microsd-composition.md).
 
-Issue [#23](https://github.com/wonny-labs/crux-pilot/issues/23) implements the
+Issue [#23](https://github.com/wonny-labs/crux/issues/23) implements the
 [approved contract](file-contract.md) as a bounded portable C17 component with a
 Linux Host provider. Production media, layout and backend adoption remain open.
 It supports the CRUD/sync/recovery concerns from
-[#15](https://github.com/wonny-labs/crux-pilot/issues/15), without granting physical
+[#15](https://github.com/wonny-labs/crux/issues/15), without granting physical
 Flash access. The existing [Flash safety work](flash-safety-acceptance.md) and
 [storage assessment](storage-configuration-assessment.md) remain separate evidence.
 QSPI/LittleFS/NVS are candidates, not selected production providers.

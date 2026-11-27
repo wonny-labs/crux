@@ -19,7 +19,7 @@ class BootstrapZephyrUpdateTest(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="crux-zephyr-update-test-")
         root = Path(self.temporary.name).resolve()  # macOS: /var is a symlink to /private/var
         self.workspace = root / "workspace"
-        self.repo = self.workspace / "crux-pilot"
+        self.repo = self.workspace / "crux"
         self.repo.mkdir(parents=True)
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
         (self.workspace / ".west").mkdir()
@@ -79,6 +79,22 @@ exit 0
         call = self.update_call().split()
         self.assertIn("--narrow", call)
         self.assertNotIn("-o=--progress", call)
+
+    def move_repo(self, name):
+        self.repo = self.repo.rename(self.workspace / name)
+
+    def test_the_older_folder_name_is_still_accepted(self):
+        self.move_repo("crux-pilot")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.update_call()
+
+    def test_another_folder_name_is_refused_before_west_runs(self):
+        self.move_repo("crux-main")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn(f"Expected repo at {self.workspace}/crux;", result.stderr)
+        self.assertFalse(self.log.exists())
 
 
 if __name__ == "__main__":

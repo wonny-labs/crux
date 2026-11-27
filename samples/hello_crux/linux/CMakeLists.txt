@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(hello_crux_host LANGUAGES C)
 
-# Where Crux is. An external project passes it: -DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot.
+# Where Crux is. An external project passes it: -DCRUX_SOURCE_DIR=/absolute/path/to/crux.
 # Inside this repository the default is the checkout that holds this sample.
 get_filename_component(default_crux_source "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CRUX_SOURCE_DIR "${default_crux_source}" CACHE PATH "Crux source tree")

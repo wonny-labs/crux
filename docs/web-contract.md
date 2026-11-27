@@ -1,6 +1,6 @@
 # Web contract and private HTTP adapter
 
-Status: merged in [PR #266](https://github.com/wonny-labs/crux-pilot/pull/266) for Issue #184. Nothing here has run on a board. #184's own image uses plain HTTP, and the adapter runs over TLS in [HTTPS composition](https-composition.md) (#185) and [the services image](native-composition-242.md) (#242).
+Status: merged in [PR #266](https://github.com/wonny-labs/crux/pull/266) for Issue #184. Nothing here has run on a board. #184's own image uses plain HTTP, and the adapter runs over TLS in [HTTPS composition](https-composition.md) (#185) and [the services image](native-composition-242.md) (#242).
 
 Owner: `components/web`. Public header `<crux/web.h>`, usage target `crux::web`. Adapter header `crux_web_adapter.h`,
 internal target `crux_web_adapter`.
@@ -262,7 +262,7 @@ reading the body and answers again; every byte restarts the inactivity timer. So
 `POST` to a path with no resource with a large `Content-Length`, then one byte per period, and reads the answers, holds a
 slot with no time limit, and three such clients block the interface as trickled headers did. This is read from the
 server's source at the pin and has not been run. Bounding it is a change beyond the decided option, recorded for a decision in
-[Issue #529](https://github.com/wonny-labs/crux-pilot/issues/529).
+[Issue #529](https://github.com/wonny-labs/crux/issues/529).
 
 ### Flow control for large transfers
 

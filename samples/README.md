@@ -10,7 +10,7 @@ Each folder under `samples/` is one of five kinds. Only the first two run on the
 | **Board-only application** | A Zephyr image for the MIMXRT1060-EVKB. This repository's checks only cross-build or link it; running it needs a board and an approved procedure |
 | **Web front end** | Browser code that a web image packages. It is built with npm and tested in a browser against `native_sim` |
 
-Commands run from the repository root, `/workspace/crux-pilot` in the Dev Container. Do not add `-DEXTRA_ZEPHYR_MODULES` for a second Crux checkout in that workspace: both copies are built, and CMake stops on duplicate targets. For a workspace that does not list Crux, see the [Build and Integration Guide](../docs/build.md#testing-a-consumer-application).
+Commands run from the repository root, `/workspace/crux` in the Dev Container. Do not add `-DEXTRA_ZEPHYR_MODULES` for a second Crux checkout in that workspace: both copies are built, and CMake stops on duplicate targets. For a workspace that does not list Crux, see the [Build and Integration Guide](../docs/build.md#testing-a-consumer-application).
 
 ## Where to start
 

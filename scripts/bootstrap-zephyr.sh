@@ -9,8 +9,9 @@ if [[ $# -gt 1 || ( $# -eq 1 && "${1:-}" != "--install-sdk" ) ]]; then
     printf 'Usage: %s [--install-sdk]\n' "$0" >&2
     exit 2
 fi
-if [[ "$repo" != "$workspace/crux-pilot" ]]; then
-    printf 'Expected repo at %s/crux-pilot; got %s\n' "$workspace" "$repo" >&2
+# crux-pilot is the folder name of older clones, accepted until the consumers have moved.
+if [[ "$repo" != "$workspace/crux" && "$repo" != "$workspace/crux-pilot" ]]; then
+    printf 'Expected repo at %s/crux; got %s\n' "$workspace" "$repo" >&2
     exit 2
 fi
 if ! command -v west >/dev/null 2>&1; then

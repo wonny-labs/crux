@@ -41,7 +41,7 @@ For a manual build in that environment:
 
 ```sh
 west build -p always -b 'mimxrt1060_evk@B//qspi' \
-  -d build/zephyr/m3-probe-evkb tests/board_images/integration_probe -- \
+  -d build/zephyr/controller-probe-evkb tests/board_images/integration_probe -- \
   -DZEPHYR_EXTRA_MODULES="$PWD" \
   -DEXTRA_CONF_FILE="$PWD/tests/board_images/integration_probe/device_health_probe.conf"
 ```
@@ -97,7 +97,7 @@ The integrated scenario combines SW5 GPIO observations, serialised Time access, 
 diagnostics, service-readiness observations and health supervision of the Time/GPIO and network owners. The network
 window, fault injection and watchdog arming are deliberate test operations; the normal configuration disables test
 Shell commands and leaves watchdog arming and network traffic off at boot. `scripts/test-controller-integration.sh`
-builds `build/zephyr/m3-integrated-{probe,normal}-evkb/` and does not flash, reset or communicate with hardware.
+builds `build/zephyr/controller-integrated-{probe,normal}-evkb/` and does not flash, reset or communicate with hardware.
 Physical operation requires a separately authorised procedure, verified firmware and the isolated network fixture. The
 qualified integrated build selects the [opt-in native MDIO correction](../../../patches/zephyr/README.md); the
 uncorrected network probe build is not qualified by its results. See [the validation record](../../../docs/m3-validation.md)

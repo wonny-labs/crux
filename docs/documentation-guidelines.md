@@ -27,7 +27,7 @@ Each page has one type and one purpose. Its title names the subject, and its fir
 | **How-to guide** | Finish one task they have chosen | Preconditions, the procedure and the result that shows it worked; background is one sentence and a link |
 | **Reference**: contract, interface, policy, schema, glossary | Look up an exact fact | Every interface, behaviour, error, limit and option, exactly; a minimal example; migration notes when the contract requires them |
 | **Explanation**: architecture, design rationale | Understand why the parts fit | Structure, reasons, alternatives and trade-offs, not procedures or option lists |
-| **Dated**: record (one investigation, run, qualification or review; `docs/research/`), decision (`docs/decisions/`), plan (`docs/plans/`, `docs/superpowers/plans/`), history (`docs/history/`), evidence (`docs/evidence/`, `docs/baseline.md`) | Know what one activity found, decided, proposed or produced | That activity with its date, revision and limits. Never the only home of a current fact |
+| **Dated**: record (one investigation, run, qualification or review; `docs/research/`), decision (`docs/decisions/`), plan (`docs/plans/`), history (`docs/history/`), evidence (`docs/evidence/`, `docs/baseline.md`) | Know what one activity found, decided, proposed or produced | That activity with its date, revision and limits. Never the only home of a current fact |
 | **Template**: a file that a product copies and then owns, such as `templates/product/CONTRIBUTING.md` | Start a product file | Text the product owns after copying, without Crux history or status |
 
 The first five types are **current-state pages**. Sections 4 and 5 apply to them.

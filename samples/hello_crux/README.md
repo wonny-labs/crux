@@ -32,7 +32,7 @@ No board is needed. On the EVKB the same source and `zephyr/prj.conf` print on t
 
 ## Building and running
 
-From the repository root (`/workspace/crux-pilot` in the Dev Container):
+From the repository root (`/workspace/crux` in the Dev Container):
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/hello_crux samples/hello_crux/zephyr -t run

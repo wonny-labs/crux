@@ -50,7 +50,7 @@ class ControllerSampleRemovalTest(unittest.TestCase):
 
     def test_old_script_names_stay_as_aliases_until_the_workflows_switch(self):
         for old, new in (("scripts/test-controller.sh", "scripts/test-time-periodic.sh"),
-                         ("scripts/test-m3-rt1170.sh", "scripts/test-integration-probe-rt1170.sh")):
+                         ("scripts/test-controller-probe-rt1170.sh", "scripts/test-integration-probe-rt1170.sh")):
             self.assertTrue(os.access(REPO / old, os.X_OK), old)
             self.assertTrue(os.access(REPO / new, os.X_OK), new)
             self.assertIn(Path(new).name, (REPO / old).read_text(), old)

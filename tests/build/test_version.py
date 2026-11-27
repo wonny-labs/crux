@@ -68,7 +68,7 @@ class VersionHeaderTest(unittest.TestCase):
 
     def test_prerelease_is_empty_dev_or_a_release_candidate(self):
         _, prerelease = parts()
-        self.assertRegex(prerelease, PRERELEASE)
+        self.assertIsNotNone(PRERELEASE.fullmatch(prerelease), prerelease)
 
     def test_string_equals_the_parts(self):
         self.assertEqual(macros()["CRUX_VERSION_STRING"], f'"{expected_string()}"')

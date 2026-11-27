@@ -22,10 +22,6 @@ path = "docs/plans/"
 reason = "Completed or historical implementation plans."
 
 [[selection.exclude]]
-path = "docs/superpowers/plans/"
-reason = "Execution plans and historical development records."
-
-[[selection.exclude]]
 path = "docs/evidence/"
 reason = "Frozen validation and review records, not maintained guidance."
 

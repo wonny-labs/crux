@@ -1,7 +1,7 @@
 # Test foundation for Crux consumer applications
 
 Status: **decisions accepted by the owner on 3 November 2026; see [Decisions](#decisions)**
-([Issue #169](https://github.com/wonny-labs/crux-pilot/issues/169)). The boundary below is adopted.
+([Issue #169](https://github.com/wonny-labs/crux/issues/169)). The boundary below is adopted.
 The [consumer test guide](build.md#testing-a-consumer-application), the maintained
 [out-of-tree consumer](../tests/consumer_poc/README.md) and the
 [device-control tool](../tools/device_control/README.md) implement steps 2 to 4 of the
@@ -206,6 +206,6 @@ The owner accepted every recommendation on 3 November 2026.
 | 7 | Is a reset gate needed separately from flash? | Decided: yes; `AGENTS.md` treats reset as a hardware operation | One combined gate |
 | 8 | Keep `tests/consumer_poc` after this decision? | Decided: keep it, because step 3 is approved | It stays unmaintained and drifts |
 
-The objection from [#60](https://github.com/wonny-labs/crux-pilot/issues/60) was no recurring
+The objection from [#60](https://github.com/wonny-labs/crux/issues/60) was no recurring
 consumer and a duplicated oracle. Here the oracle belongs to the application, so nothing is
 duplicated, but the recurring consumer is still only expected. Step 5 tests that assumption.

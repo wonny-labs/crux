@@ -1,6 +1,6 @@
 # Portable Configuration contract
 
-Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated.
+Status: approved for software-only development by the human Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated.
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
@@ -194,7 +194,7 @@ controller core with two application descriptors: `diagnostics_enabled` BOOL
 These are qualification choices for reporting policy, not new production defaults.
 The application captures accepted configuration at its chosen cycle boundary;
 updating/loading parameters alone does not change that captured runtime snapshot.
-The example does not alter accepted M3 schedules, watchdog policy or evidence.
+The example does not alter accepted controller health and network probe schedules, watchdog policy or evidence.
 
 
 ## Result convention

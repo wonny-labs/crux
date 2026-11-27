@@ -1,0 +1,10 @@
+tests:
+  crux.integrated_smoke:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - netphys
+      - integration
+      - portable
+    harness: ztest
+    timeout: 30

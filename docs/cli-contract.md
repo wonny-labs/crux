@@ -1,7 +1,7 @@
 # Command line contract
 
-Status: merged in [PR #238](https://github.com/wonny-labs/crux-pilot/pull/238) for Issue #181, on Host with fake providers and a scripted transport, and gate #183 has passed. It runs on `native_sim` in [the services image](native-composition-242.md), over a test transport and over SSH in [the integrated image](ssh-integrated-image.md). The serial console has not run on `native_sim` or a board. A product starts it with `crux_cli_serial_start()` of `<crux/cli_zephyr.h>` (target `crux::cli_zephyr`, ADR-0004 phase 1b, Experimental), which owns the console thread and the UART of the devicetree alias `crux-serial0`. The decisions and reasoning are in
-[the accepted proposal](plans/cli-contract-proposal.md), which this document does not repeat. L1 to L6 are accepted and AC2 is declined, as [the gate record, PR #209](https://github.com/wonny-labs/crux-pilot/pull/209) says. Where this document and the proposal differ, the choices below say why.
+Status: merged in [PR #238](https://github.com/wonny-labs/crux/pull/238) for Issue #181, on Host with fake providers and a scripted transport, and gate #183 has passed. It runs on `native_sim` in [the services image](native-composition-242.md), over a test transport and over SSH in [the integrated image](ssh-integrated-image.md). The serial console has not run on `native_sim` or a board. A product starts it with `crux_cli_serial_start()` of `<crux/cli_zephyr.h>` (target `crux::cli_zephyr`, ADR-0004 phase 1b, Experimental), which owns the console thread and the UART of the devicetree alias `crux-serial0`. The decisions and reasoning are in
+[the accepted proposal](plans/cli-contract-proposal.md), which this document does not repeat. L1 to L6 are accepted and AC2 is declined, as [the gate record, PR #209](https://github.com/wonny-labs/crux/pull/209) says. Where this document and the proposal differ, the choices below say why.
 
 Owner: `components/cli`.
 

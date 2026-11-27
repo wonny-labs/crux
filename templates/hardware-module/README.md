@@ -54,7 +54,7 @@ The module keeps its name, `acme-hw`, from `zephyr/module.yml`, so this checkout
 If the organisation has no manifest repository, the module's manifest pins Crux itself. The module repository stays the manifest repository, so `west init` and `west update` work as above.
 
 1. Replace `ci/west.yml` with `ci/west-direct.yml`, under the name `ci/west.yml`, so that `ci/build.yml` and every command stay as they are.
-2. Set the `crux-pilot` revision to a full Crux commit SHA. Add each other component the module needs as its own entry, also by full SHA.
+2. Set the `crux` revision to a full Crux commit SHA. Add each other component the module needs as its own entry, also by full SHA.
 3. Keep the Zephyr, SDK and west versions in `ci/build.yml` equal to what that Crux commit uses.
 4. Remove the token step of `ci/build.yml` if the manifest names no private repository.
 

@@ -145,7 +145,7 @@ manifest:
     - name: acme
       url-base: https://git.example/scm/acme
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: <Crux SHA>
       import: true
@@ -256,7 +256,7 @@ The existing templates use option A. Option B came from the reference product wo
 | --- | --- | --- |
 | Layering | Product imports the organisation manifest, which imports Crux | Product imports Crux and the organisation layer; the organisation layer holds modules and kits and does not import Crux, or imports it filtered out with a `name-allowlist` |
 | Baseline | One Zephyr baseline per organisation, and the shared module's CI tests exactly that | Each product moves its baseline on its own; a shared module's CI covers only the baseline it was run on |
-| Risk | A product that also names `crux-pilot` overrides the organisation's pin; visible in the product manifest | Products drift apart, and a module tag may not have been built against a product's baseline |
+| Risk | A product that also names `crux` overrides the organisation's pin; visible in the product manifest | Products drift apart, and a module tag may not have been built against a product's baseline |
 
 This page does not change the accepted guidance. B is listed for the owner's decision. In both, give the organisation's projects a name prefix, because west project names are global; put a product entry before the import when an override is intended; and consume driver and kit modules as Zephyr modules (`board_root`, `dts_root`, module CMake), never by including their files from product sources. Adding or changing a module that takes part in an image build changes `firmware_identity` ([Identity](product-composition.md#identity)), so treat it as a pin move with identity evidence.
 

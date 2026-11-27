@@ -38,7 +38,7 @@ The Crux Controller product adopted the System service: the reset cause is logge
 
 **Existing precedents for a `native_sim`-only switch.** `CRUX_FILE_SIMULATOR` depends on `BOARD_NATIVE_SIM` (`zephyr/Kconfig:230-234`). `CRUX_WEB_PLAIN_HTTP_FOR_TESTS` depends on `BOARD_NATIVE_SIM` and says "no other board can select it" (`zephyr/Kconfig:420-424`). `CRUX_SETTINGS_FILE_CONTROL` is a CMake variable that stops the configure step on any other board (`zephyr/CMakeLists.txt:142-146`). All three are **Verified** by reading.
 
-**What the System contract says about this** (the accepted design, [System health design](../superpowers/specs/2026-10-24-system-health-design.md)):
+**What the System contract says about this** (the accepted design, [System health design](../design/system-health-design.md)):
 
 - `native_sim` "uses the real Zephyr kernel/device watchdog dispatch with a controlled fixture device and controlled reset/fault hooks where needed", reuses the native HWINFO for the POR and SOFTWARE path, and "never call an actual machine reset" (`:301-305`).
 - `EXPIRED` is observable only in the Host simulation. On real hardware an expiry can reset the processor before any status call (`:170-172`).

@@ -1,6 +1,6 @@
 # `native_sim` management composition
 
-Status: merged in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), the first part of [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+Status: merged in [PR #263](https://github.com/wonny-labs/crux/pull/263), the first part of [Issue #242](https://github.com/wonny-labs/crux/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
 The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
 
@@ -297,7 +297,7 @@ Each is a statement about `native_sim`, and none is device evidence.
 | The simulated clock does not count a thread's computing, so no duration here means anything for a device | Before the setting below, `test_03_login`, with real PBKDF2, reported 0 ms |
 | The drain runs at low priority, and a thread that never sleeps lets nothing else run. A burst with no pause fills the ring. | The first run: `stats.dropped` was not 0, until the test paused between steps. A real client's requests leave room. |
 | Stack, heap and memory are the host's. wolfSSL's allocation is the host's `malloc`. | No figure is recorded |
-| CI runs the Mbed profile only, because a default workflow must not select the wolf stacks. The Wolf profile's results are local, and [#247](https://github.com/wonny-labs/crux-pilot/issues/247) now covers the probe, port cases and composition too. | The `psa-crypto` workflow |
+| CI runs the Mbed profile only, because a default workflow must not select the wolf stacks. The Wolf profile's results are local, and [#247](https://github.com/wonny-labs/crux/issues/247) now covers the probe, port cases and composition too. | The `psa-crypto` workflow |
 | **A Ztest image over the offload needs `CONFIG_NATIVE_SIM_SLOWDOWN_TO_REAL_TIME`.** Its simulated clock otherwise runs as fast as it can, while the host's TCP stack keeps real time. | Twice in CI, on a fast runner and not locally: the server's handshake timed out at 10 simulated seconds, `-110`, with the client connected. A delayed ACK is the likely cause and was not traced. The setting cleared it. #185 and #186 must keep it. |
 | `native_sim/native`, the 32-bit width, was not run | Not run |
 

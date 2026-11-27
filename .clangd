@@ -10,7 +10,7 @@ If:
     - zephyr/.*
     - tests/native/.*
     - tests/board_images/.*
-    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/controller_(probe|network|network_stack|integrated)/.*
     - tests/(gpio|i2c|spi)/evkb/.*
     - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
     - tests/consumer_system/app/.*
@@ -40,7 +40,7 @@ If:
     - zephyr/.*
     - tests/native/.*
     - tests/board_images/.*
-    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/controller_(probe|network|network_stack|integrated)/.*
     - tests/(gpio|i2c|spi)/evkb/.*
     - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
     - tests/consumer_system/app/.*

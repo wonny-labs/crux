@@ -1,6 +1,6 @@
 # Packaged web assets
 
-Status: merged in [PR #283](https://github.com/wonny-labs/crux-pilot/pull/283) for [Issue #189](https://github.com/wonny-labs/crux-pilot/issues/189). Host and
+Status: merged in [PR #283](https://github.com/wonny-labs/crux/pull/283) for [Issue #189](https://github.com/wonny-labs/crux/issues/189). Host and
 `native_sim` evidence only, and the `native_sim` run of #189 is plain HTTP on loopback. Both examples were later packaged and served over TLS to Chrome
 in [the end-to-end record of #220](e2e-native-220.md). **Nothing here ran on a board, and #189's own image served no asset over TLS.** Every timing below is an emulated container's figure on a loaded machine, and says
 nothing about a target.

@@ -1,4 +1,4 @@
-> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues and pull requests; see also [Project status](../README.md#contributing) in the README.
+> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux/milestones), issues and pull requests; see also [Project status](../README.md#contributing) in the README.
 
 # Crux implementation status
 
@@ -17,15 +17,15 @@ Development Plan uses different milestones. Its M1 readiness assessment is recor
 in [platform M1 readiness](platform-m1-readiness.md), against planning source
 `7d2287bdb5a252ee5e1fc51c7142813ba37800d6`.
 
-The follow-up for issues [#2](https://github.com/wonny-labs/crux-pilot/issues/2) and
-[#3](https://github.com/wonny-labs/crux-pilot/issues/3) preserves the Pilot implementation
+The follow-up for issues [#2](https://github.com/wonny-labs/crux/issues/2) and
+[#3](https://github.com/wonny-labs/crux/issues/3) preserves the Pilot implementation
 and adds owned-target compiler-warning controls in Zephyr. Local verification and
 integration status are recorded in the [M1 exit evidence](baseline.md#platform-m1-exit-verification-2026-10-17).
 M2 implementation has not started as part of this work.
 
 Current platform M1 technical exit criteria are **Satisfied** at reviewed implementation
 revision `5c7bcd4`: clean Host/Zephyr CI, preserved target evidence, completed warning
-controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux-pilot/pull/4)
+controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux/pull/4)
 tracks final-head CI and review/integration; #2/#3 remain open until merge. This is an
 M1 exit candidate, not a declaration that unmerged changes are already in `main`.
 
@@ -103,7 +103,7 @@ the recorded result above is unchanged and refers to the old path at its tested 
 | --- | --- | --- |
 | M5-01 | pass | Latest final-review Host Debug and ASan/UBSan checks each passed 27/27 and the sample scenario. Hosted clean-checkout verification for commit `df48e61` passed Host 27/27, native_sim 4/4, and native_sim/EVKB sample builds. The review corrected a test-only successful-read injection path. See [final source review](baseline.md#final-source-review-before-publication-2026-10-17) and [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-02 | pass | A temporary malformed C++ source made `scripts/check-format.sh` fail with exit 1 and line diagnostics; the probe was removed, then the normal format check passed. The log is retained under ignored `build/evidence/`. |
-| M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux-pilot/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux-pilot/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
+| M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-04 | pass | Hosted provenance identifies clean/recoverable source commit `df48e61`, 4 pinned clean dependencies, runner image identity and matching successful tests. All 19 artifact/report hashes and sizes were verified after download. Earlier mismatch/failure/invalidation probes remain recorded. The hosted ELF hash differs from the local build; BIN hashes match, without a claim of bit-identical ELF reproduction. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Physical M4 UART pytest and on-target Ztest now support the timing/range/reset and repeated-init acceptance criteria. |
 | M5-06 | pass | Hardware, external CI, complete clean reproduction and artefact provenance gaps and next actions are recorded. The manifest blocker is resolved with before/after evidence. No policy was generalised beyond this Time slice. |

@@ -31,7 +31,7 @@ Container after `scripts/bootstrap-zephyr.sh`. No board is needed; both scenario
 
 ## Building and running
 
-From the repository root (`/workspace/crux-pilot` in the Dev Container).
+From the repository root (`/workspace/crux` in the Dev Container).
 
 Default scenario (simulator provider on LittleFS):
 
