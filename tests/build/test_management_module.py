@@ -213,6 +213,18 @@ class ScriptTest(unittest.TestCase):
         cmake = (REPO / "tests/native/management_module/CMakeLists.txt").read_text()
         self.assertIn("crux::credential_store_zephyr", cmake)
 
+    def test_the_image_runs_twice_on_a_second_disk_to_show_the_account_only_erase(self):
+        # With "--testargs accounts" the last case erases the accounts only, and the restart must load the
+        # same certificate and open first-account setup again, on a disk that it did not format.
+        self.assertRegex(self.text, r"(?m)^for run in accounts-first accounts-restart; do$")
+        self.assertIn('--flash="$out/disk-accounts.bin"', self.text)
+        self.assertIn("--testargs accounts", self.text)
+        self.assertIn("management module: device identity kept", self.text)
+        fixture = (REPO / "tests/native/management_module/src/main.c").read_text()
+        for needle in ("crux_credential_erase_accounts()", "native_get_test_cmd_line_args",
+                       "management module: device identity kept"):
+            self.assertIn(needle, fixture)
+
     def default_off_section(self):
         return self.text.split("# Default off")[1]
 

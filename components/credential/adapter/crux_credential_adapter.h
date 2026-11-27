@@ -193,6 +193,16 @@ crux_credential_result_t crux_credential_key_parse(const void *record, size_t le
  */
 crux_credential_result_t crux_credential_erase(void);
 
+/**
+ * Remove the account record from both slots and keep every other record: the TLS key and
+ * certificate and the SSH host key. The state is UNUSABLE from then until the next reset, as after
+ * crux_credential_erase(), and Access then reads EMPTY, which opens first-account setup.
+ *
+ * A composition reaches it on Zephyr through <crux/credential_store_zephyr.h>, which states the
+ * conditions and the results.
+ */
+crux_credential_result_t crux_credential_erase_accounts(void);
+
 #ifdef __cplusplus
 }
 #endif

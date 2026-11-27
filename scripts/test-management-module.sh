@@ -10,7 +10,9 @@
 #    a time limit), the configuration shows Thread, Sync and Time selected by the service symbol, and the
 #    ELF defines the entry point of every service that the fixture's prj.conf enables. The image runs twice on
 #    one disk: the last case is a factory reset, and the second run is the restart after it, which passes only
-#    if the erased credential store came up empty, without a new format of the disk.
+#    if the erased credential store came up empty, without a new format of the disk. The image then runs twice
+#    on a second disk with "--testargs accounts": the last case erases the accounts only, and the second run
+#    passes only if first-account setup is open again with the same TLS certificate fingerprint.
 # 3. The refusals: each missing piece (its locks, Crux Logging, hwinfo, a File provider) stops the configuration with
 #    the module's message, so a misconfiguration never reaches the compiler.
 # 4. Default off: an application of the module that sets no service symbol has none of them in its
@@ -64,6 +66,24 @@ grep -q 'management module: formatted the disk' "$out/fixture-first-run.log" ||
     fail 'the first run did not start on a blank disk'
 ! grep -q 'management module: formatted the disk' "$out/fixture-reset-run.log" ||
     fail 'the run after the factory reset formatted the disk'
+# The account-only erase, on a disk of its own: with "--testargs accounts" the last case erases the accounts
+# and keeps the device identity. The restart passes only if first-account setup is open again and the TLS
+# certificate loaded has the fingerprint that the first run saw.
+rm -f "$out/disk-accounts.bin"
+for run in accounts-first accounts-restart; do
+    log="$out/fixture-$run-run.log"
+    timeout -k 10 "${CRUX_MODULE_RUN_TIMEOUT:-300}" "$build/zephyr/zephyr.exe" --flash="$out/disk-accounts.bin" \
+        --seed=7 --testargs accounts > "$log" 2>&1 ||
+        { tail -40 "$log" >&2; fail "the fixture's $run run failed, or ran past its time limit"; }
+    grep -q 'PROJECT EXECUTION SUCCESSFUL' "$log" || fail "the fixture's $run run did not report success"
+    grep -q 'pass = 4, fail = 0' "$log" || fail "the fixture did not pass its four cases in the $run run"
+done
+grep -q 'management module: formatted the disk' "$out/fixture-accounts-first-run.log" ||
+    fail 'the first run of the account-only erase did not start on a blank disk'
+! grep -q 'management module: formatted the disk' "$out/fixture-accounts-restart-run.log" ||
+    fail 'the run after the account-only erase formatted the disk'
+grep -q 'management module: device identity kept' "$out/fixture-accounts-restart-run.log" ||
+    fail 'the run after the account-only erase did not load the same certificate'
 config="$build/zephyr/.config"
 for symbol in CRUX_ACCESS CRUX_CREDENTIAL CRUX_SECURITY_EVENT CRUX_THREAD CRUX_SYNC CRUX_TIME; do
     grep -qx "CONFIG_$symbol=y" "$config" || fail "CONFIG_$symbol is not set in the fixture's configuration"

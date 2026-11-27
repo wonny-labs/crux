@@ -1,8 +1,9 @@
 """The credential store's erase is a documented composition interface, reachable through a public target.
 
-`<crux/credential_store_zephyr.h>` and `crux::credential_store_zephyr` publish one existing declaration,
-`crux_credential_erase()`, so that a product's composition can reset a device to its first-account state
-behind a local trigger of its own (decision S4: no unauthenticated wipe). These checks run on the host.
+`<crux/credential_store_zephyr.h>` and `crux::credential_store_zephyr` publish two declarations:
+`crux_credential_erase()`, so that a product's composition can reset a device to its first-account state, and
+`crux_credential_erase_accounts()`, which does the same but keeps the device identity, both behind a local
+trigger of the product's own (decision S4: no unauthenticated wipe). These checks run on the host.
 They compile the header alone, read the CMake definition of the target, and hold the private adapter
 header to the same declaration. tests/native/management_module runs the erase through the target.
 """
@@ -27,7 +28,8 @@ ROOTS = [PUBLIC_INCLUDE, CREDENTIAL / "include", ROOT / "components/file/include
 USES = """
 #include <crux/credential_store_zephyr.h>
 crux_credential_result_t (*erase)(void) = crux_credential_erase;
-int main(void) { return erase ? 0 : 1; }
+crux_credential_result_t (*erase_accounts)(void) = crux_credential_erase_accounts;
+int main(void) { return erase && erase_accounts ? 0 : 1; }
 """
 
 
@@ -65,11 +67,13 @@ class PublicHeader(unittest.TestCase):
         includes = re.findall(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', HEADER.read_text(), re.M)
         self.assertEqual(includes, ["crux/credential_store.h"])
 
-    def test_it_publishes_the_erase_and_nothing_else(self):
-        self.assertEqual(declarations(HEADER), ["crux_credential_result_t crux_credential_erase(void);"])
+    def test_it_publishes_the_two_erases_and_nothing_else(self):
+        self.assertEqual(declarations(HEADER), ["crux_credential_result_t crux_credential_erase(void);",
+                                                "crux_credential_result_t crux_credential_erase_accounts(void);"])
 
-    def test_the_adapter_header_holds_the_same_declaration(self):
-        self.assertIn(declarations(HEADER)[0], declarations(ADAPTER))
+    def test_the_adapter_header_holds_the_same_declarations(self):
+        for declaration in declarations(HEADER):
+            self.assertIn(declaration, declarations(ADAPTER))
         both = compile_source('#include <crux/credential_store_zephyr.h>\n'
                               '#include "crux_credential_adapter.h"\nint main(void) { return 0; }\n',
                               ROOTS + [CREDENTIAL / "adapter"])
@@ -86,6 +90,12 @@ class PublicHeader(unittest.TestCase):
                        "button", "access.manage", "restart", "UNUSABLE", "physical erasure",
                        "CRUX_CREDENTIAL_ERR_STORE", "CRUX_CREDENTIAL_ERR_NOT_READY",
                        "crux_credential_start"):
+            self.assertIn(phrase, text, phrase)
+
+    def test_it_limits_the_account_only_erase_to_recovery_by_the_same_owner(self):
+        text = comment_text(HEADER)
+        for phrase in ("same owner", "TLS key", "SSH host key", "full erase", "ownership",
+                       "CRUX_CREDENTIAL_ERR_UNUSABLE", "CRUX_CREDENTIAL_ERR_READ"):
             self.assertIn(phrase, text, phrase)
 
     def test_the_lines_fit_the_column_limit_of_the_format_check(self):

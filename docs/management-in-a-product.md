@@ -23,7 +23,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | --- | --- | --- | --- |
 | Access core | Accounts, roles, permissions and sessions that every channel shares. 8 session slots, slot 0 reserved for serial. | Real on `native_sim` with the PSA ports. Host on fakes. | [Access contract](access-contract.md) |
 | Credential store | Accounts, device keys and certificates in two sealed slots. Protection basis is a device ID, and the store is **not confidential**. | Real on `native_sim`. Entropy is test-only there. | [Credential store](credential-store.md) |
-| Factory reset | An erase of the credential store for a trigger that the product owns. Crux offers no trigger. | The erase and the restart run on `native_sim`. | [Factory reset](#factory-reset) |
+| Factory reset | An erase of the credential store, or of its accounts only, for a trigger that the product owns. Crux offers no trigger. | Both erases and the restart run on `native_sim`. | [Factory reset](#factory-reset) |
 | Security events | Bounded records of management activity, through Logging. No persistence. | Real on `native_sim`. | [Security event contract](security-event-contract.md) |
 | HTTPS adapter | The Zephyr HTTP server behind a route table with a mandatory access class. TLS 1.3 only, one suite, no plain listener. | Real on `native_sim`, both TLS profiles. | [HTTPS composition](https-composition.md), [web contract](web-contract.md) |
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
@@ -388,6 +388,24 @@ The erase does not prove that the medium forgot the old data ([credential store 
 
 `tests/native/management_module` runs the erase and the restart, and `tests/native/file_littlefs_blk` the removal of the settings files.
 No Crux suite runs a button or a command trigger: test the one you wire.
+
+### Account-only reset
+
+The account-only reset recovers a device for **the same owner**, for example after every administrator password is lost, without changing what clients trust.
+`crux_credential_erase_accounts()` removes every account, password hash, role and SSH user key, and keeps the TLS key, the TLS certificate, whether self-signed or installed, and the SSH host key.
+
+Use the full reset above, never this one, when the device changes owner, is resold or is decommissioned: the kept private keys are as readable as the rest of the store to anyone who can read the medium and the chip ID ([credential store](credential-store.md)), so a previous owner who copied the medium could impersonate the device.
+After the full reset, prepare the device again.
+
+The steps are those of the factory reset, with `crux_credential_erase_accounts()` in place of `crux_credential_erase()`, and the same rule for the trigger. Keep or remove the settings and files according to the product's policy.
+
+| Result | What to do |
+| --- | --- |
+| `CRUX_CREDENTIAL_OK` | Restart. The store is valid with no accounts, first-account setup is open, and the TLS and SSH fingerprints are unchanged. |
+| `CRUX_CREDENTIAL_ERR_STORE` or `_ERR_ENTROPY` | Restart, then repeat. If the accounts still load after the restart, the erase did not happen. |
+| `CRUX_CREDENTIAL_ERR_READ` or `_ERR_UNUSABLE` | The identity cannot be read to be kept. Use the full reset. |
+
+`tests/native/management_module` runs the account-only reset and the restart on a disk of its own, and the restart checks the certificate fingerprint.
 
 ## Security assumptions
 

@@ -7,8 +7,8 @@
 # This builds the library, registers it with the Zephyr link and publishes the portable target
 # crux::credential_store (ADR-0004 phase 1a, Experimental): the store's state and its start, through
 # <crux/credential_store.h>. It also publishes the composition target crux::credential_store_zephyr
-# (Experimental) for <crux/credential_store_zephyr.h>, which declares the erase of a product's factory
-# reset and nothing else. It publishes none of the private adapter header that it reads (raw record
+# (Experimental) for <crux/credential_store_zephyr.h>, which declares the two erases of a product's
+# factory reset, full and account-only, and nothing else. It publishes none of the private adapter header that it reads (raw record
 # read, write, key replace and key parse stay private): see
 # components/access/ports/zephyr/CMakeLists.txt. The sources are the ones the Host build lists in
 # components/credential/CMakeLists.txt, and tests/build/test_management_module.py holds the two lists
