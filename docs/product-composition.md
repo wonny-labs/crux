@@ -340,7 +340,7 @@ Use it for short-term development checks only. At Zephyr v4.4.2:
 
 ### Sources replaced in this repository
 
-This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout, with the corrections in [patches/zephyr](../patches/zephyr/README.md). Five are single-file corrections: NXP ENET MDIO, Mbed TLS entropy, MMC cache flush, the HTTP header-phase deadline and the TCP initial sequence number, which every image with Zephyr's own TCP and `CONFIG_NET_TCP_ISN_RFC6528` gets. The sixth is the Settings File backend: for either Settings File selection of Configuration, `zephyr/settings_file.cmake` generates corrected copies of three Settings sources. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
+This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout, with the corrections in [patches/zephyr](../patches/zephyr/README.md). Five are single-file corrections: NXP ENET MDIO, Mbed TLS entropy, MMC cache flush, the HTTP header-phase deadline and the TCP initial sequence number, which every image that includes the Crux module gets when it has Zephyr's own TCP and `CONFIG_NET_TCP_ISN_RFC6528`. The sixth is the Settings File backend: for either Settings File selection of Configuration, `zephyr/settings_file.cmake` generates corrected copies of three Settings sources. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
 
 ## Versions
 

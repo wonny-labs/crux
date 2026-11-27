@@ -49,8 +49,10 @@ required. On `native_sim` it is a UART emulator or Zephyr's native PTY UART
 (`zephyr,native-pty-uart`), such as `uart0`, the board's Console. For `uart0` the
 product overlay names it in `zephyr,log-uart` and sets `current-speed = <115200>`
 (the board's value is a placeholder), and the image sets `LOG_BACKEND_NATIVE_POSIX=n`
-and follows the Console rule below. The log appears on that UART's pseudo-terminal, or
-on stdout with the executable's `-uart_stdinout` option.
+and follows the Console rule below. By default the log appears on that UART's
+pseudo-terminal. For stdout, set `CONFIG_UART_NATIVE_PTY_0_ON_STDINOUT=y` (the first
+PTY UART) or run the executable with `-uart_stdinout`. Of these three ways,
+`crux.logging.native_pty` tests only the Kconfig option.
 On any board the log UART is the enabled node that the devicetree chooses, of a reviewed
 UART driver selected by compatible (`nxp,lpuart`); no board, SoC or revision is checked. The
 EVKB composition chooses LPUART1.
