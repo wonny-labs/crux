@@ -89,17 +89,11 @@ the physical gate is approved for the current task.
 - **Configuration on the Settings File backend.** `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` (`depends on
   CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE`) links `components/configuration` with the private provider
   `configuration_settings.c` over the Zephyr Settings File backend, on Reliance Edge only. The pinned backend hides I/O
-  faults (a failed write or read can be reported as success or as a missing key), so the selection stages the corrected
-  build-local copies of `settings_file.c`, `settings_line.c` and `settings_store.c` that
-  `tests/native/configuration_settings_file` already uses, and **an image that selects it reaches a file under
-  `tests/`**: the module's `zephyr/CMakeLists.txt` includes `tests/native/configuration_settings_file/candidate.cmake`.
-  The corrections were not moved, because moving them would touch the hash record of `tests/native/settings_error`,
-  `.gitattributes` and frozen evidence for no change in behaviour. A product build that selects the provider needs that
-  directory. Set `CONFIG_SETTINGS_FILE_PATH` under the volume's mount point (the sample uses `/MMC:/settings/cfg`; the
+  faults (a failed write or read can be reported as success or as a missing key), so the selection stages corrected
+  build-local copies of `settings_file.c`, `settings_line.c` and `settings_store.c`
+  ([Settings File backend patches](../patches/zephyr/README.md#settings-file-backend-faults)). Set `CONFIG_SETTINGS_FILE_PATH` under the volume's mount point (the sample uses `/MMC:/settings/cfg`; the
   link check requires exactly that). `CRUX_SETTINGS_FILE_CONTROL` keeps the unpatched backend for the native_sim
-  negative control, and is refused on any other board at CMake. The corrections' limits are those of the
-  [Configuration notes in the test guide](../tests/README.md): no checksum or resynchronisation, and a torn tail can lose
-  the latest save. The Kconfig dependencies only warn when unmet, so the sample's link check requires the symbol in
+  negative control, and is refused on any other board at CMake. The Kconfig dependencies only warn when unmet, so the sample's link check requires the symbol in
   `.config`.
   `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS` is the same provider with the same staged backend on the file
   system that the composition mounts, with no Reliance Edge dependency. It refuses FatFs, and on an MMC disk it

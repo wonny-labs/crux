@@ -12,7 +12,11 @@
  *       onto atomic/w8 with the VFS rename and marks: the File data path of a replace
  *   W8C W8-control: the same, but replaces as File allows today, crux_file_remove_at of
  *       atomic/w8 and then crux_file_rename; a cut between the two can leave no atomic/w8
- *   W8 and W8C exist only in an image with a File provider (file.conf or fatfs-file.conf)
+ *   W5  appends records to atomic/w5 as the File contract's append recipe does: open, size, seek,
+ *       write, sync and close through the Crux File provider for each record, with a mark after the
+ *       sync
+ *   W8 and W8C exist only in an image with a File provider (file.conf, fatfs-file.conf or
+ *   littlefs-file.conf), and W5 has a baseline only with the LittleFS one
  * files/keep and settings/w2 generation 0 are written at provision; files/keep never again.
  */
 #include "workloads.h"
@@ -44,6 +48,9 @@
 #define W2_TMP_PATH SETTINGS_DIR "/w2.tmp"
 
 #define MAX_FILE 4096U
+/* W5's file, in the directory that the File workloads bind. LittleFS stores the name as it is. */
+#define W5_NAME "w5"
+#define W5_PATH POWERCUT_MOUNT_POINT "/atomic/" W5_NAME
 /* fs_stat or read_file found something other than a file that fits: a stale or damaged value. */
 #define WRONG_SHAPE 1
 
@@ -257,6 +264,7 @@ static int prepare_common(void)
 }
 
 static int prepare_w4(void);
+static int prepare_w5(void);
 static int prepare_w8(void);
 
 int powercut_prepare(enum powercut_workload w)
@@ -275,6 +283,8 @@ int powercut_prepare(enum powercut_workload w)
         return w3_write(W3_A, w3_baseline[W3_A], 0, false);
     case POWERCUT_W4:
         return prepare_w4();
+    case POWERCUT_W5:
+        return prepare_w5();
     case POWERCUT_W8:
     case POWERCUT_W8C:
         return prepare_w8();
@@ -372,6 +382,7 @@ int powercut_stage_w3(uint32_t steps, uint32_t empty_path)
 }
 
 static int run_w4(bool early_ack);
+static int run_w5(bool early_ack);
 static int run_w8(bool control, bool early_ack);
 
 int powercut_run(enum powercut_workload w, bool early_ack)
@@ -385,6 +396,8 @@ int powercut_run(enum powercut_workload w, bool early_ack)
         return run_w3(early_ack);
     case POWERCUT_W4:
         return run_w4(early_ack);
+    case POWERCUT_W5:
+        return run_w5(early_ack);
     case POWERCUT_W8:
     case POWERCUT_W8C:
         return run_w8(w == POWERCUT_W8C, early_ack);
@@ -443,13 +456,13 @@ static bool holds(const char *path, size_t want, struct powercut_result *out)
 }
 
 /*
- * I2 for W1: records 1 to n, complete and in order, with n not below the acknowledged count. With
- * acked_only, records 1 to the acknowledged count must be intact and the rest is ignored.
+ * I2 for W1 and W5: records 1 to n, complete and in order, with n not below the acknowledged count.
+ * With acked_only (W1), records 1 to the acknowledged count must be intact and the rest is ignored.
  */
-static bool check_w1(uint32_t acked, struct powercut_result *out)
+static bool check_records(const char *path, uint32_t acked, struct powercut_result *out)
 {
     size_t size = 0;
-    int rc = read_file(W1_PATH, buffer, MAX_FILE, &size);
+    int rc = read_file(path, buffer, MAX_FILE, &size);
     size_t records = size / W1_RECORD_SIZE;
 
     note(rc, true, out);
@@ -943,6 +956,75 @@ static int run_w8(bool control, bool early_ack)
 }
 #endif
 
+static int prepare_w5(void)
+{
+#if defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    int rc = ensure_dir(ATOMIC_DIR);
+
+    return rc != 0 ? rc : replace_content(W5_PATH, buffer, 0, 0, false);
+#else
+    return -ENOTSUP; /* W5 needs the LittleFS File provider, from littlefs-file.conf */
+#endif
+}
+
+#if POWERCUT_HAS_FILE
+/* Appends record `step` as the File contract's append recipe does. */
+static int w5_append(uint32_t step, bool early_ack)
+{
+    crux_file_t *file = NULL;
+    uint64_t size = 0;
+    size_t written = 0;
+    crux_file_result_t result = crux_file_open_at(0, W5_NAME, CRUX_FILE_READ_WRITE, &file);
+    crux_file_result_t closed;
+
+    if (result != CRUX_FILE_OK) {
+        return W8_FILE_ERROR(result);
+    }
+    fill(buffer, W1_RECORD_SIZE, W1_TAG(step));
+    result = crux_file_size(file, &size);
+    if (result == CRUX_FILE_OK) {
+        result = crux_file_seek(file, size);
+    }
+    if (result == CRUX_FILE_OK) {
+        result = crux_file_write(file, buffer, W1_RECORD_SIZE, &written);
+    }
+    if (result == CRUX_FILE_OK && written != W1_RECORD_SIZE) {
+        result = CRUX_FILE_ERR_NO_SPACE;
+    }
+    if (result == CRUX_FILE_OK && early_ack) {
+        ack(step);
+    }
+    if (result == CRUX_FILE_OK) {
+        result = crux_file_sync(file);
+    }
+    if (result == CRUX_FILE_OK && !early_ack) {
+        ack(step);
+    }
+    closed = crux_file_close(&file);
+    if (result == CRUX_FILE_OK) {
+        result = closed;
+    }
+    return result == CRUX_FILE_OK ? 0 : W8_FILE_ERROR(result);
+}
+
+/* With early_ack, each record is acknowledged before its sync: a control. */
+static int run_w5(bool early_ack)
+{
+    int rc = w8_bind();
+
+    for (uint32_t step = 1; rc == 0 && step <= W1_RECORDS; step++) {
+        rc = w5_append(step, early_ack);
+    }
+    return rc;
+}
+#else
+static int run_w5(bool early_ack)
+{
+    ARG_UNUSED(early_ack);
+    return -ENOTSUP;
+}
+#endif
+
 /*
  * I3 for W8 and W8C: atomic/w8 is one complete generation. I2 adds that it is not older than
  * acknowledged; no generation newer than the one in progress exists at a cut. A target that does
@@ -998,7 +1080,10 @@ void powercut_verify(enum powercut_workload w, uint32_t acked, struct powercut_r
     out->replaced = check_w2(w == POWERCUT_W2 ? acked : 0U, out);
     switch (w) {
     case POWERCUT_W1:
-        out->data = check_w1(acked, out);
+        out->data = check_records(W1_PATH, acked, out);
+        break;
+    case POWERCUT_W5:
+        out->data = check_records(W5_PATH, acked, out);
         break;
     case POWERCUT_W2:
         out->data = out->replaced;

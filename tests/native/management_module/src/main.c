@@ -4,7 +4,8 @@
  * certificate, file, reboot, web session and web management services under their own symbols, on
  * real PSA providers, a real FatFs on a simulated disk and the Crux Logging provider. The web
  * server is not started: the fixture serves nothing. This file is the application: it starts them
- * in the order of docs/management-in-a-product.md and checks that they work together. Test only:
+ * in the order of docs/management-in-a-product.md and checks that they work together. The last case
+ * is a factory reset, so a second run on the same disk is the restart after it. Test only:
  * the entropy is test-only and the first account is a declared input.
  */
 #include "crux_tf_psa_threading.h"
@@ -16,6 +17,7 @@
 #include <crux/config_service.h>
 #include <crux/configuration.h>
 #include <crux/credential_store.h>
+#include <crux/credential_store_zephyr.h>
 #include <crux/file_service.h>
 #include <crux/file_zephyr.h>
 #include <crux/management_status.h>
@@ -132,6 +134,7 @@ static bool medium_ready(void)
         if (fs_mkfs(FS_FATFS, (uintptr_t)DISK_NAME, NULL, 0) != 0 || fs_mount(&mount) != 0) {
             return false;
         }
+        TC_PRINT("management module: formatted the disk\n");
     }
     return directory_ready(PATH_SLOT_A) && directory_ready(PATH_SLOT_B) &&
            directory_ready(PATH_FILES) &&
@@ -330,4 +333,22 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     zassert_equal(session_stats.attempts, 0u);
     zassert_equal(management_stats.saves_queued, 0u);
     zassert_false(crux_web_management_save_pending());
+}
+
+/*
+ * A factory reset, as docs/management-in-a-product.md has it: the erase through the composition
+ * header, and then a restart. scripts/test-management-module.sh runs the image again on the same
+ * disk, and that run passes only if the store came up empty: no account, so first-account setup is
+ * open again, and a new device key and certificate.
+ */
+ZTEST(management_module, test_04_factory_reset_erases_the_credential_store)
+{
+    crux_file_info_t info;
+
+    zassert_equal(crux_credential_erase(), CRUX_CREDENTIAL_OK);
+    zassert_equal(crux_credential_state(), CRUX_CREDENTIAL_STATE_UNUSABLE);
+    zassert_equal(crux_file_stat(ROOT_SLOT_A, "store.img", &info), CRUX_FILE_ERR_NOT_FOUND);
+    zassert_equal(crux_file_stat(ROOT_SLOT_B, "store.img", &info), CRUX_FILE_ERR_NOT_FOUND);
+    /* The session is still in RAM, which is why a product restarts at once. */
+    zassert_equal(count_events(admin, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED), 1u);
 }

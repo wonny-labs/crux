@@ -161,6 +161,51 @@ for name, line in wanted.items():
 print(f'RT1060 probe link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
 
+# Link only: the File provider on LittleFS over the microSD disk, with Configuration saving on the
+# same volume. The image writes to a card, so it must never be flashed without physical approval.
+littlefs_output="${CRUX_FILE_RT1060_LITTLEFS_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-littlefs}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/tests/zephyr/file_littlefs_link" \
+    --build-only -O "$littlefs_output" --inline-logs)
+
+python3 - "$littlefs_output/twister.json" "$board" <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+name = 'crux.file.littlefs_blk_link_rt1060'
+if (len(suites) != 1 or suites[0]['name'].rsplit('/', 1)[-1] != name or
+        suites[0]['platform'] != sys.argv[2] or suites[0].get('status') != 'not run' or
+        suites[0].get('runnable')):
+    raise RuntimeError(f'RT1060 LittleFS File link check did not build: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+configs = list(Path(sys.argv[1]).parent.rglob('zephyr/.config'))
+if len(configs) != 1:
+    raise RuntimeError(f'expected one build configuration, found {len(configs)}')
+build = configs[0].parent.parent
+lines = configs[0].read_text().splitlines()
+for line in ('CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV=y',
+             'CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS=y', 'CONFIG_DISK_DRIVER_SDMMC=y',
+             'CONFIG_FS_LITTLEFS_CACHE_SIZE=512', 'CONFIG_SDHC_BUFFER_ALIGNMENT=32'):
+    if line not in lines:
+        raise RuntimeError(f'{line} is missing from {configs[0]}')
+nm = next(line.split('=', 1)[1] for line in (build / 'CMakeCache.txt').read_text().splitlines()
+          if line.startswith('CMAKE_NM:'))
+present = {line.split()[-1] for line in subprocess.run(
+    [nm, str(build / 'zephyr/zephyr.elf')], check=True, capture_output=True,
+    text=True).stdout.splitlines() if len(line.split()) >= 3}
+for symbol in ('main', 'littlefs_mount', 'crux_file_zephyr_bind', 'crux_file_open',
+               'crux_config_save'):
+    if symbol not in present:
+        raise RuntimeError(f'{symbol} is not linked into the LittleFS File image')
+for symbol in ('f_mount', 'red_mount2', 'littlefs_mkfs'):
+    if symbol in present:
+        raise RuntimeError(f'{symbol} is linked into the LittleFS File image')
+print(f'RT1060 LittleFS File link check built on {sys.argv[2]}, without FatFs, Reliance Edge or a '
+      'formatter entry')
+PY
+
 # The check is selected by devicetree facts, not by board name or revision: Rev C and the hyperflash
 # variant have the same SD card node, so they configure and compile the same File object.
 for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do

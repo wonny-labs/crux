@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Stage disposable Settings File fault-propagation copies; never touch the pinned checkout."""
+"""Stage disposable Settings File fault-propagation copies; never touch the pinned checkout.
+
+The Settings File selections of Configuration build these copies (zephyr/settings_file.cmake).
+"""
 import argparse
 import hashlib
 import json
@@ -9,15 +12,16 @@ import subprocess
 import tempfile
 
 PIN = '41d10b59730406bbab4ca9f1fbbe9e96aafb4966'
-HERE = Path(__file__).resolve().parent
+PATCHES = Path(__file__).resolve().parents[1] / 'patches' / 'zephyr'
 SOURCES = {
-    'settings_file.c': ('subsys/settings/src/settings_file.c', HERE / 'settings_file.patch'),
+    'settings_file.c': ('subsys/settings/src/settings_file.c', PATCHES / 'settings-file-error.patch'),
     # Zephyr v4.5.0 returns the name write error itself, which was this copy's only correction, so
     # the copy is staged unchanged and the build still takes all three sources from one place.
     'settings_line.c': ('subsys/settings/src/settings_line.c', None),
-    # Shared with the NVS candidate: one reviewed settings_store.c correction, not a second copy.
+    # The NVS candidate and the error experiment under tests/native apply this patch too: one
+    # reviewed settings_store.c correction, not a second copy.
     'settings_store.c': ('subsys/settings/src/settings_store.c',
-                         HERE.parent / 'settings_error' / 'settings_store.patch'),
+                         PATCHES / 'settings-store-error.patch'),
 }
 
 

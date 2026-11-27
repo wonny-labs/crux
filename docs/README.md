@@ -22,7 +22,7 @@ This page finds the right page for what you want to do. Start at the [repository
 5. [Testing a consumer application](build.md#testing-a-consumer-application) and the [test foundation decisions](test-foundation-proposal.md).
 6. When several products share boards or drivers: [Shared boards and drivers across products](shared-hardware-modules.md). When products compile vendor kits delivered on more than one line: [Vendor kits across repositories](vendor-kits.md).
 
-**Migrating a controller product:** start with [Choosing an API](choosing-an-api.md), then the product guide, the template and the storage pages ([File composition interface](file-composition-interface.md), [File contract](file-contract.md), [eMMC and Reliance Edge composition](emmc-reliance-composition.md)).
+**Migrating a controller product:** start with [Choosing an API](choosing-an-api.md), then the product guide, the template and the storage pages ([File composition interface](file-composition-interface.md), [File contract](file-contract.md) with its [LittleFS mapping](file-contract.md#littlefs-block-device-mapping), [eMMC and Reliance Edge composition](emmc-reliance-composition.md)).
 
 ## Add a board or a driver
 

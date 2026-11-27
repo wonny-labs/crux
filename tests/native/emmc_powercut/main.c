@@ -15,7 +15,7 @@
  *              step in progress, and appends created_empty=0|1 to the line; for W4 the line ends
  *              with cmp=0|1, whether the Settings File backend's temporary is left behind; for
  *              W8 and W8C it ends with missing=0|1 w2=0|1, whether the replaced file is
- *              absent and whether settings/w2 is intact
+ *              absent and whether settings/w2 is intact; W5 adds nothing
  */
 #include "fs_backend.h"
 #include "workloads.h"
@@ -48,7 +48,7 @@ static void add_options(void)
          .name = "W",
          .type = 's',
          .dest = (void *)&workload,
-         .descript = "run and verify: W1, W2, W3, W4, W8 or W8C"},
+         .descript = "run and verify: W1, W2, W3, W4, W5, W8 or W8C"},
         {.option = "acked",
          .name = "n",
          .type = 'u',
@@ -103,7 +103,7 @@ static bool phase_is(const char *name)
 
 static bool parse_workload(enum powercut_workload *out)
 {
-    static const char *const names[] = {"W1", "W2", "W3", "W4", "W8", "W8C"};
+    static const char *const names[] = {"W1", "W2", "W3", "W4", "W8", "W8C", "W5"};
 
     for (size_t i = 0; workload != NULL && i < ARRAY_SIZE(names); i++) {
         if (strcmp(workload, names[i]) == 0) {
@@ -144,6 +144,12 @@ static void provision(void)
         rc = powercut_prepare(POWERCUT_W8);
         if (rc != 0) {
             fail("prepare W8", rc);
+        }
+    }
+    if (IS_ENABLED(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)) {
+        rc = powercut_prepare(POWERCUT_W5);
+        if (rc != 0) {
+            fail("prepare W5", rc);
         }
     }
     rc = powercut_fs_unmount();
@@ -237,7 +243,7 @@ int main(void)
         provision();
     }
     if (!parse_workload(&w)) {
-        finish(64, "FAIL usage: --workload=W1|W2|W3|W4|W8|W8C is required");
+        finish(64, "FAIL usage: --workload=W1|W2|W3|W4|W5|W8|W8C is required");
     }
     if (phase_is("run") || phase_is("run-early")) {
         run(w, phase_is("run-early"));

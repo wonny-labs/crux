@@ -144,7 +144,7 @@ for name, start, settings in SCENARIOS:
     commands = json.loads((build / 'compile_commands.json').read_text())
     files = [str(Path(entry['directory'], entry['file']).resolve()) for entry in commands]
     # The Settings File image is built from the corrected copies of the three backend sources, which
-    # tests/native/configuration_settings_file stages, and not from the pinned originals.
+    # zephyr/settings_file.cmake stages, and not from the pinned originals.
     staged = sorted(Path(f).name for f in files if '/settings-file-candidate/' in f)
     pinned = [f for f in files if f.startswith(str((zephyr / 'subsys/settings/src').resolve()))]
     if settings and (staged != sorted(SETTINGS_SOURCES) or

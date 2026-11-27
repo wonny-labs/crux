@@ -18,8 +18,10 @@ else()
     "-DEXTRA_CONF_FILE=fatfs.conf, -DEXTRA_CONF_FILE=reliance.conf or "
     "-DEXTRA_CONF_FILE=littlefs.conf")
 endif()
-# W8 and W8C replace through the Crux File provider, selected by file.conf or fatfs-file.conf.
-if(CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+# W5, W8 and W8C use the Crux File provider, selected by file.conf, fatfs-file.conf or
+# littlefs-file.conf.
+if(CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
+   CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
   target_link_libraries(app PRIVATE crux::file_zephyr)
 endif()
 crux_emmc_sim_add(app)
