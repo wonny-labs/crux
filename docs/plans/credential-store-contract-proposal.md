@@ -300,7 +300,7 @@ until Flash write safety is decided (Issues #141 and #165).
 
 ### Pilot card layout
 
-The composition in `samples/storage_sd` never creates a directory, so a host prepares `secure-a` and `secure-b` alongside
+The composition in `samples/boards/nxp/mimxrt1060_evk/sd_card_file` never creates a directory, so a host prepares `secure-a` and `secure-b` alongside
 `files` and `settings`. Today `sd_storage.c` checks only `files` and `settings`, and an image with the store adds the two new directories to that check through a build setting, so existing cards and images keep working. A blank card fails at mount and a card without them gives
 `SD_STORAGE_LAYOUT_MISSING`. Both leave the File roots unbound, and the store reads `UNUSABLE`.
 

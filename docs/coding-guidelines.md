@@ -1,4 +1,4 @@
-# Coding and Public API Documentation Guidelines
+# Coding Guidelines
 
 ## Purpose and scope
 
@@ -31,7 +31,7 @@ Apply these rules incrementally. Do not reformat unrelated code, rename existing
 
 The existing [.clang-tidy](../.clang-tidy) selection, compiler warnings and tests are the configured automated checks. They are not a claim of full MISRA C, CERT C, security or functional-safety compliance. New mandatory checks and toolchain changes require separate justification.
 
-## Public API consistency
+## Public API design
 
 Apply shared rules where they help consumers, without flattening capability-specific
 contracts or renaming established APIs for style alone.
@@ -53,14 +53,14 @@ contracts or renaming established APIs for style alone.
 - **Context:** Use **thread context** in portable public contracts rather than
   OS-specific task terminology. State special ISR, pre-kernel and startup limits.
   Each component, not the shared context detector, decides call eligibility.
-- **Compatibility:** This Pilot supports documented C17/C++17 source consumers
+- **Compatibility:** Crux supports documented C17/C++17 source consumers
   without a stable binary ABI. Review incompatible API or behavioural changes and
   the necessary consumer migration before adoption. Avoid compatibility wrappers
   without demonstrated need and do not equate API maturity with target qualification.
 
 ## Public API documentation
 
-For new or materially changed public declarations, use Doxygen-compatible `/** ... */` comments in the owning header. Existing untouched headers can be documented incrementally when relevant. A generated API site, Doxygen groups and a full-header conversion are not required by the current Pilot.
+For new or materially changed public declarations, use Doxygen-compatible `/** ... */` comments in the owning header. Existing untouched headers can be documented incrementally when relevant. A generated API site, Doxygen groups and a full-header conversion are not required.
 
 For multi-line Doxygen blocks, put `/**` on its own line and start the first text or
 command (`@file`, `@brief`, etc.) on a following ` * ` line. Retain concise
@@ -78,6 +78,23 @@ Use an imperative one-sentence `@brief` or a clear first sentence. Document para
 
 Explain non-obvious type, enum, member and macro semantics with brief `/** ... */` or `/**< ... */` comments. Prefer meaningful guarantees and pitfalls over boilerplate: do not narrate implementation steps, restate identifiers or types, or add repetitive `@param`/`@return` text. Put shared constraints once at header level and use function comments for caller-specific differences. Keep design rationale and detailed verification in the capability contract.
 
+## Logging
+
+This section covers log records and console output: each kind of code writes them in one way.
+The rules follow Zephyr's [logging guide](https://docs.zephyrproject.org/latest/services/logging/index.html) and the usual library practice: a library reports status, and the application chooses where output goes.
+
+| Code | Output |
+| --- | --- |
+| Drivers | Zephyr `LOG_*`, one log module per driver ([driver rules](#rules-for-driver-and-adapter-code)). No `printk`, `printf` or Crux Logging |
+| Zephyr ports of Crux components (`components/*/ports/zephyr`) | Return a status. Use Zephyr `LOG_*` for a diagnostic only when one is needed. Add a per-component log level Kconfig symbol (`Kconfig.template.log_config`) when a port first logs, not in advance. Never Crux Logging |
+| Portable Crux components (`components/*/src`) | Return a status. Use Crux Logging only when a log record is part of the component's contract, as for security events |
+| Product application | Zephyr `LOG_*` for diagnostics; `printk` for console lines that a person or a test harness reads |
+| Samples and tests | `printk` on Zephyr and `printf` on Linux, one call per checked line. A test-only line inside a port is compiled only in test builds |
+| The last message before a reset | `log_panic()` first (when `CONFIG_LOG` is set and not minimal), then one `LOG_ERR`, then the reset; a `native_sim` test device whose line is a test oracle may use `printk`. Never Crux Logging |
+
+Crux Logging (`<crux/logging.h>`) is for portable code whose log record is part of its contract or that must log on both Linux Host and Zephyr.
+It has no console provider; console lines use `printk` or `printf`.
+
 ## Review and validation
 
 Review new or changed API declarations, documentation, implementation and focused tests together. Compare advertised outputs, errors, ownership, context and supported environments with actual behaviour. Record incompatible changes explicitly instead of treating documentation edits as API approval.
@@ -88,7 +105,7 @@ Use existing format, dependency, build and test checks proportional to the chang
 
 Everything above covers Crux-owned C17 code. A product repository that builds on Crux owns its own Zephyr code: adapters, devicetree, Kconfig and device drivers. Crux does not own that code, adds no driver model or device API for it ([ADR-0001](decisions/0001-application-boundary-and-api-stability.md), [choosing an API](choosing-an-api.md)), and no Crux check enforces this section in a product repository. The section is guidance for a product team and for agents that work in such a repository. It is not a Crux interface, and a product may decide otherwise for its own code. The facts below were read in the Zephyr v4.4.0 sources. The Zephyr revision a product pins can differ, so check the linked page for it.
 
-**Defer to Zephyr first.** For C style, devicetree, Kconfig, Doxygen and API design, follow Zephyr's own guidelines, which the [upstream list](#upstream-guidance) links, and the style of the nearest existing code. Two choices stay with the product. Formatting: Zephyr formats with 8-column tabs, while this repository and the [product template](../templates/product/README.md) use 4 spaces and 100 columns. Choose one style for a repository and keep it. A driver that is meant for upstream Zephyr is formatted with Zephyr's `.clang-format`. Naming: see the prefix rule below.
+**Defer to Zephyr first.** For C style, devicetree, Kconfig, Doxygen and API design, follow Zephyr's own guidelines, which the [references](#references) link, and the style of the nearest existing code. Two choices stay with the product. Formatting: Zephyr formats with 8-column tabs, while this repository and the [product template](../templates/product/README.md) use 4 spaces and 100 columns. Choose one style for a repository and keep it. A driver that is meant for upstream Zephyr is formatted with Zephyr's `.clang-format`. Naming: see the prefix rule below.
 
 ### Rules for driver and adapter code
 
@@ -96,7 +113,7 @@ A driver is Zephyr code. It lives on the shell side of the product, with the ada
 
 - **Driver API.** Define the API structure of an upstream driver class with `DEVICE_API(class, name)`, so that it is placed in an iterable section. Zephyr's [migration guide for 4.1](https://docs.zephyrproject.org/latest/releases/migration-guide-4.1.html) says out-of-tree drivers should do so, and Zephyr's compliance check `DeviceAPI` flags a plain `struct x_driver_api` variable under `drivers/`. Set `DT_DRV_COMPAT` to the compatible with underscores, define instances with `DEVICE_DT_INST_DEFINE` or the class macro (for example `SENSOR_DEVICE_DT_INST_DEFINE`), and gate the Kconfig symbol with `depends on DT_HAS_<COMPAT>_ENABLED`. Zephyr's [device driver model](https://docs.zephyrproject.org/latest/kernel/drivers/index.html) is the reference.
 - **Init level and priority.** Use `POST_KERNEL` when the init function needs kernel services or another driver, such as the bus of an I2C or SPI part. `PRE_KERNEL_1` and `PRE_KERNEL_2` run on the interrupt stack and may not use kernel services. Take the priority from a Kconfig symbol: the class's `CONFIG_<CLASS>_INIT_PRIORITY` where one exists, else the product's own. It is an integer from 0 to 999 and lower values start first. It must be a decimal literal or a symbolic name, never an expression such as `CONFIG_KERNEL_INIT_PRIORITY_DEFAULT + 5`. A device initialises after the devices it uses. Check the order that the linker produced with `west build -t initlevels`. A part that need not be ready at boot can use `zephyr,deferred-init` and `device_init()`.
-- **Logging.** Register one log module per driver with `LOG_MODULE_REGISTER(name, CONFIG_..._LOG_LEVEL)` in one of its source files; its other source files use `LOG_MODULE_DECLARE(name, CONFIG_..._LOG_LEVEL)`. Log with `LOG_ERR`, `LOG_WRN`, `LOG_INF` and `LOG_DBG`. Either reuse the class's level symbol, as sensor drivers do with `CONFIG_SENSOR_LOG_LEVEL`, or give the driver its own through the `module` and `module-str` variables and `subsys/logging/Kconfig.template.log_config`, as `drivers/eeprom/Kconfig` does. A driver does not call `printk`, `printf` or Crux Logging.
+- **Logging.** Register one log module per driver with `LOG_MODULE_REGISTER(name, CONFIG_..._LOG_LEVEL)` in one of its source files; its other source files use `LOG_MODULE_DECLARE(name, CONFIG_..._LOG_LEVEL)`. Either reuse the class's level symbol, as sensor drivers do with `CONFIG_SENSOR_LOG_LEVEL`, or give the driver its own through `subsys/logging/Kconfig.template.log_config`, as `drivers/eeprom/Kconfig` does. The other output rules are in [Logging](#logging).
 - **Return values.** Return 0 on success and a negative `errno` on failure, as Zephyr's [API design guidelines](https://docs.zephyrproject.org/latest/develop/api/design_guidelines.html) say: `-ENOSYS` for an API that is supported but not implemented, and `-ENOTSUP` for an optional API or a combination of options that the hardware cannot do. Pass a bus error up unchanged. Use `__ASSERT` for programming errors and keep error returns for conditions that can happen in normal operation. `crux_status_t` and the other Crux result types never appear in a driver. The adapter translates the errno at its boundary into whatever the product's port declares.
 - **ISR and blocking rules.** An interrupt handler does bounded work and never blocks: no `K_FOREVER`, no mutex, no bus transfer that can sleep. It hands the work to a thread with `k_sem_give`, `k_work_submit` or `k_msgq_put` with `K_NO_WAIT`. A kernel call from an ISR never uses another timeout. State in the driver's header comment whether each API function may be called from an ISR. Assume thread context only for a function built on a synchronous bus transfer, and test `k_is_in_isr()` where a function can be reached from both. A driver that guards its own data uses Zephyr's `k_mutex` or `k_spinlock`, never a Crux lock, and keeps one lock kind per piece of state (rule 3 of [coexistence in one image](choosing-an-api.md#coexistence-in-one-image)).
 - **DMA and cache.** On a core with a data cache, flush a buffer with `sys_cache_data_flush_range()` before the device reads it, and invalidate it with `sys_cache_data_invd_range()` after the device wrote it and before the CPU reads it (`<zephyr/cache.h>`). Align and size the buffer to the cache line (`sys_cache_data_line_size_get()`, `CONFIG_DCACHE_LINE_SIZE`), or place it in non-cached memory with `__nocache`. This guideline adds a rule of its own: allocate DMA buffers statically, not on a thread stack. Whether the cache is enabled and which memory is cacheable depend on the SoC and the board image, so verify them on the target. `native_sim` has no cache and no DMA, so a test there says nothing about cache coherency. Zephyr's [cache guide](https://docs.zephyrproject.org/latest/hardware/cache/guide.html) has the rest.
@@ -109,7 +126,7 @@ A reviewer or an author can walk these rules, and the files around a driver, wit
 
 ### What the Crux boundary check covers
 
-The product-side include check, `templates/product/check_domain_includes.py`, is lexical. In `domain/` it rejects every `<zephyr/...>` header, the Crux composition interfaces, and the four frozen headers (`<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>`, `<crux/serial.h>`). With `--product ROOT` it also rejects the four frozen headers in every C, C++ and assembly source of the repository, driver sources included. [The template README](../templates/product/README.md#check-the-whole-product-repository) lists its rules.
+The product-side include check, `templates/product/check_domain_includes.py`, is lexical. In `domain/` it rejects every `<zephyr/...>` header, the Crux composition interfaces, and four Crux headers: the three frozen ones (`<crux/thread.h>`, `<crux/sync.h>`, `<crux/serial.h>`) and the removed `<crux/queue.h>`. With `--product ROOT` it also rejects those four headers in every C, C++ and assembly source of the repository, driver sources included. [The template README](../templates/product/README.md#check-the-whole-product-repository) lists its rules.
 
 It does not police anything else in this section. In particular it does not check:
 
@@ -197,7 +214,7 @@ Checks that do not make sense for a product:
 | SphinxLint | Lints reStructuredText files only |
 | PyLint, Ruff, PythonCompat | Python checks with Zephyr's `pylintrc`, the repository's Ruff configuration, and a Python 3.12 version ceiling. A product's Python tooling follows its own rules |
 
-## Upstream guidance
+## References
 
 These references inform selected practices. They do not override Crux's established formatting, public contracts or review rules.
 

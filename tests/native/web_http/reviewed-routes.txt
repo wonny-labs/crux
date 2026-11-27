@@ -13,6 +13,7 @@ public GET /probe/cookies
 public GET /probe/slow/{ms}
 public GET /probe/static/{size}
 public GET /probe/stats
+public GET /probe/second-start
 public GET /probe/fail/{skip}
 public GET /probe/other
 public GET /probe/send-buffer/{bytes}

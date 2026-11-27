@@ -354,7 +354,7 @@ destination, so its stat-before-rename path applies here as it does on FatFs.
 
 ### Reference composition
 
-`samples/storage_emmc`, project code in the style of `samples/storage_sd`: disk `MMC`, mount `/MMC:`, directories
+`samples/boards/nxp/mimxrt1060_evk/emmc_file`, project code in the style of `samples/boards/nxp/mimxrt1060_evk/sd_card_file`: disk `MMC`, mount `/MMC:`, directories
 `/MMC:/files` and `/MMC:/settings`. It initialises the disk, mounts without format, checks the layout, unmounting if
 anything is missing, then binds the File root. It reports the same kinds of status as the microSD composition. The disk
 name is a build setting, so the same code can run on the EVKB microSD.
@@ -368,7 +368,7 @@ only.** The EVKB has no eMMC, and nothing here claims that the overlay matches a
 system only. The corrections from `tests/native/configuration_settings_file` are promoted to an opt-in build-local copy
 used by the provider and the fixture alike, because the pinned backend hides I/O faults (F11).
 
-- With atomic rename, the `.cmp` recovery step in `samples/storage_sd` should not be needed here, and W4 tests that rather
+- With atomic rename, the `.cmp` recovery step in `samples/boards/nxp/mimxrt1060_evk/sd_card_file` should not be needed here, and W4 tests that rather
   than assuming it.
 - The Settings backend can create directories (`subsys/settings/src/settings_file.c:514-552`), so the provider initialises
   only after the composition's layout check, and a test confirms that order.

@@ -21,7 +21,7 @@ runtime consumers must join these roots or explicitly extend the inventory and
 tests before acceptance. Moving a consumer into a provider directory does not
 change its role or make a native dependency permissible.
 
-Existing `samples/controller/zephyr` and `samples/controller/host` contain execution,
+Existing `tests/time_periodic/zephyr`, `tests/board_images/integration_probe` and `tests/time_periodic/host` contain execution,
 diagnostic and qualification composition code. They remain native fixtures for the
 accepted controller scenarios, not evidence that the entire reference application
 already satisfies the future portable consumer boundary. Native access there must
@@ -35,7 +35,7 @@ and changes none of its rules or checks. It prescribes no directory layout and a
 policy run on Crux's own trees as before. A product's own checks, an include check and a Host build of the domain, are
 the product's. The product template carries an example of the include check, for its domain, and does not carry a Host build script.
 
-**Frozen interfaces.** Thread, Sync, Queue and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). The freeze adds no check to this policy, and existing consumers, the `crux::queue_linux` composition target and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these four headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
+**Frozen interfaces.** Thread, Sync and Serial are frozen for new product code (approved 13 November 2026; see [Choosing an API](choosing-an-api.md)). Crux has no queue API ([messaging contract](messaging-contract.md)). The freeze adds no check to this policy, and existing consumers and their probes stay valid. The product template's check (`templates/product/check_domain_includes.py`) rejects `crux/thread.h`, `crux/sync.h`, `crux/queue.h`, `crux/serial.h`, every `<zephyr/...>` header and the composition interfaces `crux/NAME_zephyr.h` and `crux/NAME_linux.h` in a product's domain. Other native headers are caught only by the Host build of the domain. New product code must not use these headers in its domain, although the rules above allow public `<crux/NAME.h>` headers. D10's Build B is exempt ([ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md) P2).
 
 The ADR names three layers for product code. Each maps onto a role of the dependency policy:
 
@@ -120,12 +120,14 @@ The usage guard recognises a complete `--sysroot=<path>` compile option only
 when its normalised absolute path exactly equals the selected toolchain's
 `SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
 roots, child paths, compound flag strings, include paths and link options remain
-subject to the existing native checks. New Queue/Time/Thread/Sync combined
-consumer probes cover this distinction on Host, native_sim and EVKB builds.
+subject to the existing native checks. `test_real_messaging_facades_preserve_selected_toolchain_flags`
+in `tests/build/test_consumer_boundary.py` covers this distinction for the Thread and Sync facades
+with a mocked Zephyr toolchain, and the Zephyr module's deferred usage checks apply it in every
+Zephyr build.
 
 ### Scoped #28 integration
 
-The common checker registers exactly `samples/networking/client.{c,h}`,
+The common checker registers exactly `samples/networking/echo_client/common/client.{c,h}`,
 `tests/networking/runtime_port.{c,h}`, `tests/networking_consumer/consumer.h`
 and `tests/networking_consumer/cpp_probe.cpp` under the named networking profile.
 The existing networking checker supplies its stricter include/operation checks;
@@ -152,7 +154,7 @@ consumer. Host independent C/C++ execution, the native C++ compilation probe,
 real Zephyr stack tests and EVKB cross-build complement these bounded checks.
 See [integration evidence](evidence/native-interfaces/assessment.md).
 
-Current owned interfaces include `<crux/status.h>`, `<crux/time.h>`,
+Current owned interfaces include `<crux/status.h>`, `<crux/version.h>`, `<crux/time.h>`,
 `<crux/time_calendar.h>` and `<crux/netif.h>`. Component private ports remain
 implementation details. File/Configuration and subsequent execution/device
 contracts retain their existing review gates.
@@ -248,10 +250,7 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final application executables declare
-the used public capabilities and may link the documented `crux::queue_linux` composition target. This alias is not a portable usage
-facade or an exception to recursive `LINK_ONLY` checks. The guard rejects the
-composition target and its backing implementation, including application aliases
-and transitive wrappers. This does not inspect all provider-private requirements
+the used public capabilities. No Linux composition-only target exists. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
 
@@ -263,7 +262,7 @@ check through the `zephyr` token in its name and through its port include root u
 `components/file/ports/zephyr`. The negative test `tests/build/test_file_zephyr_boundary.py` shows
 that for a direct link, a transitive wrapper and the usage check. The check does not restrict `crux::file`, which stays the portable File target.
 [File root binding](file-composition-interface.md) states the role and its limits, and the general
-[composition interface rules](composition-interfaces.md) of ADR-0001 cover it, and rules 3, 4 and 6 also cover `crux::queue_linux`.
+[composition interface rules](composition-interfaces.md) of ADR-0001 cover it.
 
 ### System consumer boundary
 

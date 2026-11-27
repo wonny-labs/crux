@@ -20,7 +20,7 @@ qualification or product power-loss safety.
 
 ## Composition
 
-Project code in [`samples/storage_sd`](../samples/storage_sd), not in `components/file`:
+Project code in [`samples/boards/nxp/mimxrt1060_evk/sd_card_file`](../samples/boards/nxp/mimxrt1060_evk/sd_card_file), not in `components/file`:
 
 1. `disk_access_init("SD")`: failure is `SD_STORAGE_NO_MEDIA`.
 2. `fs_mount("/SD:")` with `FS_MOUNT_FLAG_NO_FORMAT` and `CONFIG_FS_FATFS_MOUNT_MKFS=n`:
@@ -35,17 +35,16 @@ checked; FatFs fails an unmount only if the volume was not mounted) and leaves t
 component unbound, so a later `sd_storage_start()` can succeed. The Settings File backend
 is not part of this sequence; its target provider is a separate decision.
 
-Selection: `CONFIG_CRUX_FILE_FATFS_RT1060` links the File provider into an EVKB Rev B image.
-It is off by default and requires the RT1062 SoC, an enabled `nxp,imx-usdhc` node with a
-`zephyr,sdmmc-disk` child, and the guarded FatFs/SDHC configuration (Kconfig, the File port CMake
-and a C `#error` for the SoC; the testcase and sample CMake turn an unsatisfied dependency into an
-error because Kconfig only warns). On the RT1060-EVK it also requires the Rev B QSPI target
-(`BOARD_REVISION_B` and `BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI`, in Kconfig and the File port
-CMake), so Rev C and the hyperflash variant are refused. Since the owner's decision of
-2026-11-16 a board with another name and the RT1062 SoC can select it; that is accepted, not
+Selection: `CONFIG_CRUX_FILE_FATFS_SDMMC` links the File provider into the image.
+It is off by default and requires an enabled `zephyr,sdmmc-disk` node, the SD card disk driver
+and the guarded FatFs configuration (Kconfig, the File port CMake and a C `#error`; the testcase
+and sample CMake turn an unsatisfied dependency into an error because Kconfig only warns). It names
+no SoC, board or revision, so any board with the disk node can select it; that is accepted, not
 qualified: the evidence below is one RT1060-EVKB and one card, and the selection compiles on a
-fictional test board only (`tests/zephyr/board_fixture`). The older
-`CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` object-only check remains.
+fictional test board only (`tests/zephyr/board_fixture`). The object-only check is
+`CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK`. The earlier names, `CONFIG_CRUX_FILE_FATFS_RT1060`
+and `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK`, are deprecated aliases
+([migration notes](file-contract.md#migration-notes)).
 `CONFIG_SAMPLE_SD_START` (off by default) makes the sample image run the mount sequence at
 boot.
 
@@ -59,7 +58,7 @@ cross-build that is linked but never flashed.
 | `tests/native/file_sd_composition`, 8 cases, 64-bit `native_sim` | pass (32-bit runs in CI only) |
 | Cases | blank medium fails closed and the medium digest is unchanged; missing directories are not created; one missing directory is not ready; a provisioned medium starts after earlier failures; a second start is rejected without side effects; unmount and remount keep the provider usable, and out-of-order stop and remount are refused; the medium digest itself is shown to see a one-byte change |
 | Mutation check | a start that formats on a failed mount fails the blank-medium case; a start that creates missing directories fails the directory cases |
-| `scripts/test-file-rt1060-compile.sh` | the compile check and both link scenarios (`crux.sample.storage_sd`, `.start`) build on `mimxrt1060_evk@B/mimxrt1062/qspi` |
+| `scripts/test-file-rt1060-compile.sh` | the compile check and both link scenarios (`crux.sample.boards.mimxrt1060_evk.sd_card_file`, `.start`) build on `mimxrt1060_evk@B/mimxrt1062/qspi` |
 | Image symbols | `f_mkfs` is not linked in either image. Only the mount-at-boot image links `sd_storage_start`, `disk_access_init` and `crux_file_zephyr_bind`; the base image links `f_mount` and `f_mkdir` (through the VFS table) but not the provider, so "never creates directories" is a property of the composition code, not of the image |
 
 Observation: Zephyr's FatFs `fs_unmount` does not refuse while a File handle is open (the
@@ -72,7 +71,7 @@ stop and remount out of order return `-EINVAL`, and remounting a mounted volume 
 
 ## Resource measurements (static, from linked images)
 
-Measured on the code of commit `9a03c5d` (`samples/storage_sd`, the File provider and the
+Measured on the code of commit `9a03c5d` (`samples/boards/nxp/mimxrt1060_evk/sd_card_file`, the File provider and the
 configuration unchanged until the alignment change described below). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
 `CONFIG_FS_FATFS_MAX_LFN=127` (stack mode), `CRUX_FILE_POOL_SIZE=4`.
 
@@ -88,7 +87,7 @@ transfer completes, so a buffer sharing a line with another object could lose th
 made during the transfer. No failing caller was found: the Crux File component serialises on one
 lock, and the hardware samples read into stack buffers owned by the blocked thread. The FatFs sector
 window in the static `FATFS` object was also a read target in those images, and no link map was
-inspected for what shared its last line. The two RT1060 File selections now set `SDHC_BUFFER_ALIGNMENT` and `FS_FATFS_WINDOW_ALIGNMENT` to 32
+inspected for what shared its last line. The two SD card File selections (`CRUX_FILE_FATFS_SDMMC` and its compile check) set `FS_FATFS_WINDOW_ALIGNMENT` to 32, and with the USDHC driver `SDHC_BUFFER_ALIGNMENT` too,
 (`zephyr/Kconfig`), which sends every target that is not line-aligned through the SD layer's bounce
 buffer, and a compile-time check in `file_native.c` refuses a smaller value. The sizes above and
 every physical result below predate this change and ran with the Zephyr defaults (SDHC alignment
@@ -157,14 +156,14 @@ removes the destination first. Repeating that sequence on the same board and car
 rename), 71 left a valid file, and none left a stale or damaged settings file (stale detection is a lower bound: two cuts could not be checked); the card always mounted.
 The rate belongs to a loop that does nothing but replace the file: a real controller compacts rarely, so it
 is not a deployment rate. With the corrections staged in the test fixture (#144, not a product backend) a missing settings file
-next to a `.cmp` leftover is an I/O error until the next save, not defaults; on 3 November 2026 the owner chose to complete the rename with the start-up recovery step described below (software only, not yet called by any image). The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
+next to a `.cmp` leftover is an I/O error until the next save, not defaults, and a missing settings file whose `.cmp` check fails with anything but "not found" is an error too, not defaults, because the leftover's presence is then unknown; on 3 November 2026 the owner chose to complete the rename with the start-up recovery step described below (software only, not yet called by any image). The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
 320 KiB), where the earlier append test had been clean. One card, 256-byte files, the backend's
 write-temporary, close, rename order and the identical `fs_rename`, not the backend itself. See
 [docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
 
 ## Probes for the remaining physical items
 
-`samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
+`tests/board_images/sd_card_probe` holds two default-off images, both writing to the card (physical approval
 needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
 (create, 64 KiB write, sync, read back, rename, stat, list, remove) twice and prints the
 Zephyr thread analyzer report (stack size and unused bytes per thread; the interrupt stack appears as an
@@ -203,7 +202,7 @@ So on this board the SD slot appears to be the only user of uSDHC1, and that is 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
 Owner decision of 3 November 2026: complete the rename at start-up in the one state the replace-pattern test
-found. `sd_settings_recover(path)` in [`samples/storage_sd`](../samples/storage_sd) renames `<path>.cmp` to
+found. `sd_settings_recover(path)` in [`samples/boards/nxp/mimxrt1060_evk/sd_card_file`](../samples/boards/nxp/mimxrt1060_evk/sd_card_file) renames `<path>.cmp` to
 `<path>` when the settings file is missing and the temporary is a non-empty regular file, and does nothing in
 any other state. It is safe because the backend closes the temporary (a synced close) before it starts the
 rename, so a missing settings file next to a `.cmp` means the compaction had finished writing. A stat error is

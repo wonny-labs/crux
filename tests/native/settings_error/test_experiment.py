@@ -10,7 +10,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
-from support import prepare, run, nvs_headers
+from support import CANDIDATE_PATCHES, prepare, run, nvs_headers
 
 HERE = Path(__file__).resolve().parent
 STORE_CASES = {
@@ -122,7 +122,7 @@ class Experiment(unittest.TestCase):
                 'harness_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                                    for p in HERE.iterdir() if p.suffix in ('.py', '.c')},
                 'patch_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-                                 for p in HERE.glob('*.patch')},
+                                 for p in CANDIDATE_PATCHES},
                 'cases': cls.observations,
             }, indent=2) + '\n')
         cls.temporary.cleanup()

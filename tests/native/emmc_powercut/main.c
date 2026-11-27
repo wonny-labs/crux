@@ -13,7 +13,9 @@
  *              --acked-only narrows the W1 data check to the acknowledged records;
  *              --create-may-be-empty lets the W3 check accept a created, still empty file of the
  *              step in progress, and appends created_empty=0|1 to the line; for W4 the line ends
- *              with cmp=0|1, whether the Settings File backend's temporary is left behind
+ *              with cmp=0|1, whether the Settings File backend's temporary is left behind; for
+ *              W8 and W8C it ends with missing=0|1 w2=0|1, whether the replaced file is
+ *              absent and whether settings/w2 is intact; W5 adds nothing
  */
 #include "fs_backend.h"
 #include "workloads.h"
@@ -46,7 +48,7 @@ static void add_options(void)
          .name = "W",
          .type = 's',
          .dest = (void *)&workload,
-         .descript = "run and verify: W1, W2, W3 or W4"},
+         .descript = "run and verify: W1, W2, W3, W4, W5, W8 or W8C"},
         {.option = "acked",
          .name = "n",
          .type = 'u',
@@ -101,7 +103,7 @@ static bool phase_is(const char *name)
 
 static bool parse_workload(enum powercut_workload *out)
 {
-    static const char *const names[] = {"W1", "W2", "W3", "W4"};
+    static const char *const names[] = {"W1", "W2", "W3", "W4", "W8", "W8C", "W5"};
 
     for (size_t i = 0; workload != NULL && i < ARRAY_SIZE(names); i++) {
         if (strcmp(workload, names[i]) == 0) {
@@ -134,6 +136,20 @@ static void provision(void)
         rc = powercut_prepare(POWERCUT_W4);
         if (rc != 0) {
             fail("prepare W4", rc);
+        }
+    }
+    /* W8 and W8C replace through the File provider, so only an image with one has their baseline.
+     */
+    if (POWERCUT_HAS_FILE) {
+        rc = powercut_prepare(POWERCUT_W8);
+        if (rc != 0) {
+            fail("prepare W8", rc);
+        }
+    }
+    if (IS_ENABLED(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)) {
+        rc = powercut_prepare(POWERCUT_W5);
+        if (rc != 0) {
+            fail("prepare W5", rc);
         }
     }
     rc = powercut_fs_unmount();
@@ -211,6 +227,9 @@ static void verify(enum powercut_workload w)
     if (w == POWERCUT_W4) {
         printf(" cmp=%d", result.cmp_left);
     }
+    if (w == POWERCUT_W8 || w == POWERCUT_W8C) {
+        printf(" missing=%d w2=%d", result.target_missing, result.w2_intact);
+    }
     printf("\n");
     fflush(stdout);
     posix_exit(0);
@@ -224,7 +243,7 @@ int main(void)
         provision();
     }
     if (!parse_workload(&w)) {
-        finish(64, "FAIL usage: --workload=W1|W2|W3|W4 is required");
+        finish(64, "FAIL usage: --workload=W1|W2|W3|W4|W5|W8|W8C is required");
     }
     if (phase_is("run") || phase_is("run-early")) {
         run(w, phase_is("run-early"));

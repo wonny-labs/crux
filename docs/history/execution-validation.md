@@ -7,7 +7,7 @@
 > Archive maintenance changes relative links, not recorded results or measurements.
 > [Original pre-cleanup document](https://github.com/wonny-labs/crux-pilot/blob/ab3a7f545d62b619a09801fccde8d6d22792c396/docs/execution-validation.md).
 
-Current Thread/Sync usage is documented in the [README](../../README.md#architecture).
+Current Thread/Sync usage is documented in the [README](../../README.md#what-it-provides).
 The separation preserves the contract and C identifiers but replaces the historical
 Execution header/target and provider ownership described in this retained record.
 The results and source identities below remain evidence for their recorded revisions.

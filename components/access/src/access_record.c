@@ -176,17 +176,38 @@ static const key_type_t key_types[] = {
 };
 
 #define ACCESS_EC_POINT_UNCOMPRESSED 0x04u
+/* RFC 4251 section 6: names are printable US-ASCII, at most 64 characters, with no comma. */
+#define ACCESS_SSH_NAME_MAX 64u
 
-bool crux_access_key_acceptable(const uint8_t *key, size_t length)
+typedef enum { KEY_MALFORMED, KEY_SUPPORTED, KEY_UNSUPPORTED } key_form_t;
+
+static bool ssh_name_valid(const uint8_t *text, size_t length)
+{
+    if (length == 0 || length > ACCESS_SSH_NAME_MAX) {
+        return false;
+    }
+    for (size_t index = 0; index < length; ++index) {
+        /* Printable excludes whitespace, control characters and DEL. */
+        if (text[index] < 0x21u || text[index] > 0x7Eu || text[index] == ',') {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* A public key blob is a type name string, then data whose form the type defines (RFC 4253
+ * section 6.6). A valid name of another type is UNSUPPORTED, and its data is not examined. A
+ * supported name must have exactly its type's form. */
+static key_form_t key_form(const uint8_t *key, size_t length)
 {
     if (length == 0 || length > CRUX_ACCESS_KEY_SIZE_MAX) {
-        return false;
+        return KEY_MALFORMED;
     }
     reader_t reader = {key, length, 0};
     const uint8_t *text = NULL;
     size_t text_length = 0;
-    if (!ssh_string(&reader, &text, &text_length)) {
-        return false;
+    if (!ssh_string(&reader, &text, &text_length) || !ssh_name_valid(text, text_length)) {
+        return KEY_MALFORMED;
     }
     const key_type_t *type = NULL;
     for (size_t index = 0; index < sizeof(key_types) / sizeof(key_types[0]); ++index) {
@@ -195,21 +216,28 @@ bool crux_access_key_acceptable(const uint8_t *key, size_t length)
         }
     }
     if (type == NULL) {
-        return false;
+        return KEY_UNSUPPORTED;
     }
     if (type->curve != NULL && (!ssh_string(&reader, &text, &text_length) ||
                                 !ssh_string_is(text, text_length, type->curve))) {
-        return false;
+        return KEY_MALFORMED;
     }
     if (!ssh_string(&reader, &text, &text_length) || text_length != type->point_size) {
-        return false;
+        return KEY_MALFORMED;
     }
     if (type->curve != NULL && text[0] != ACCESS_EC_POINT_UNCOMPRESSED) {
-        return false;
+        return KEY_MALFORMED;
     }
-    return reader.position == length;
+    return reader.position == length ? KEY_SUPPORTED : KEY_MALFORMED;
 }
 
+bool crux_access_key_acceptable(const uint8_t *key, size_t length)
+{
+    return key_form(key, length) == KEY_SUPPORTED;
+}
+
+/* A key of an unsupported type is kept with usable false, so that a save writes it back unchanged
+ * and a build that supports the type can use it again. */
 static bool decode_key(reader_t *reader, access_key_t *key)
 {
     uint16_t length = 0;
@@ -217,7 +245,12 @@ static bool decode_key(reader_t *reader, access_key_t *key)
         return false;
     }
     key->length = length;
-    return get_bytes(reader, key->bytes, length) && crux_access_key_acceptable(key->bytes, length);
+    if (!get_bytes(reader, key->bytes, length)) {
+        return false;
+    }
+    key_form_t form = key_form(key->bytes, length);
+    key->usable = form == KEY_SUPPORTED;
+    return form != KEY_MALFORMED;
 }
 
 static bool decode_account(reader_t *reader, access_account_t *account)

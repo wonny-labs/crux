@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cross-build check of the RT1060-EVK Rev B management image on the Mbed TLS profile
-# (samples/management_rt1060_mbed, docs/rt1060-mbed-management-image.md). It builds and inspects images and
+# (samples/boards/nxp/mimxrt1060_evk/web_management, docs/rt1060-mbed-management-image.md). It builds and inspects images and
 # never flashes, resets or runs one: nothing here operates the board.
 #
 #   scripts/test-management-mbed-rt1060.sh [static|build|all]
@@ -16,6 +16,8 @@
 #           test:    the first-account form on, with a password file made here outside the repository: the embedded
 #                    password is in the binary and in no text file of the build. And two refusals at configuration:
 #                    the form with no password file, and with a file inside the repository.
+#           Then the console that shares its UART with Logging, which is no part of this image:
+#           tests/zephyr/cli_console_shared_compile/run.sh cross-builds it for the same board.
 # all:    static, then build.
 set -euo pipefail
 
@@ -27,6 +29,8 @@ case "$mode" in static | build | all) ;; *)
 esac
 
 repo="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
     exit 1
@@ -46,7 +50,8 @@ run_build() {
     local out="${CRUX_MBED_MGMT_OUTPUT:-$repo/build/management-mbed-rt1060}"
     local jobs="${CRUX_MBED_MGMT_JOBS:-4}"
     local board='mimxrt1060_evk@B//qspi'
-    local sample="$repo/samples/management_rt1060_mbed"
+    crux_board_require "$(crux_board_target "$board")" "$board"
+    local sample="$repo/samples/boards/nxp/mimxrt1060_evk/web_management"
     local default="$out/default" test_build="$out/test-form"
     mkdir -p "$out"
     # Pristine build directories: west -p always cleans a directory that holds a build, and these are ours.
@@ -58,7 +63,7 @@ run_build() {
     for line in CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS=y CONFIG_MBEDTLS=y CONFIG_ENTROPY_MCUX_TRNG=y \
         CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY=y CONFIG_CRUX_ACCESS=y CONFIG_CRUX_WEB=y CONFIG_CRUX_WEB_SESSION=y \
         CONFIG_CRUX_WEB_MANAGEMENT=y CONFIG_CRUX_TLS_CERTIFICATE=y CONFIG_CRUX_REBOOT=y CONFIG_CRUX_LOGGING=y \
-        CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK=y; do
+        CONFIG_CRUX_FILE_FATFS_RAM_DISK=y CONFIG_NET_NATIVE_TCP=y CONFIG_NET_TCP_ISN_RFC6528=y; do
         grep -qx "$line" "$config" || fail "the resolved configuration lacks $line"
     done
     local absent
@@ -70,6 +75,9 @@ run_build() {
     # The fail-closed copy of Zephyr's Mbed TLS entropy glue was generated.
     find "$default" -path '*crux-mbedtls/zephyr_entropy.c' | grep -q . ||
         fail 'the fail-closed entropy source was not generated'
+    # The TCP stack whose initial sequence number fails closed (patches/zephyr/README.md) was generated.
+    find "$default" -path '*crux-tcp-isn/tcp.c' | grep -q . ||
+        fail 'the fail-closed TCP source was not generated'
 
     local nm
     nm="$(sed -n 's/^CMAKE_NM:[A-Z]*=//p' "$default/CMakeCache.txt")"
@@ -134,6 +142,9 @@ run_build() {
     mkdir -p "$(dirname "$inside")"
     cp "$password_file" "$inside"
     refuse 'a password file inside the repository' 'inside the repository' "CRUX_MBED_MGMT_PASSWORD_FILE=$inside"
+
+    CRUX_WORKSPACE="$workspace" CRUX_CONSOLE_SHARED_OUTPUT="$out/console-shared" CRUX_CONSOLE_SHARED_JOBS="$jobs" \
+        "$repo/tests/zephyr/cli_console_shared_compile/run.sh"
 }
 
 case "$mode" in static | all) run_static ;; esac

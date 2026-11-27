@@ -22,7 +22,7 @@ static void test_success(void)
     CHECK(has(reply, "{\"name\":\"version.platform\",\"status\":\"ok\",\"type\":\"text\","
                      "\"value\":\"1.2.3\"}"));
     CHECK(has(reply, "{\"name\":\"version.project\",\"status\":\"ok\",\"type\":\"text\","
-                     "\"value\":\"pilot-7\"}"));
+                     "\"value\":\"demo-7\"}"));
     CHECK(has(reply, "{\"name\":\"system.uptime_ms\",\"status\":\"ok\",\"type\":\"u64\","
                      "\"value\":\"1000\"}"));
     CHECK(has(reply, "{\"name\":\"net.link\",\"status\":\"ok\",\"type\":\"bool\",\"value\":true}"));

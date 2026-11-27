@@ -1,7 +1,7 @@
 # System Health and Reset — software validation
 
 Issue [#30](https://github.com/wonny-labs/crux-pilot/issues/30), approved contract
-[`72e5295`](superpowers/specs/2026-10-24-system-health-design.md). This is Pilot
+[`72e5295`](superpowers/specs/2026-10-24-system-health-design.md). This is
 software qualification, not physical watchdog/reset acceptance or production
 safety qualification. The Issue stays open; hardware, merge and closure require
 separate human approval.
@@ -171,8 +171,10 @@ separate final-HEAD acceptance criterion, with current results on the PR.
 - Normal Host reset/cause services are NOT_SUPPORTED; it never resets/exits the
   process or machine. Zephyr releases metadata before native cold reboot dispatch;
   success normally does not return, but a failed native reboot can hang instead.
-  Public reset never returns OK. It does not drain logging, save state or establish
-  Flash/QSPI/application safe state.
+  Public reset never returns OK. With Zephyr logging enabled, other than in minimal mode, it calls `log_panic()`
+  before the reboot, so records waiting for the deferred logging thread are written
+  out first (`crux.system.log_panic` on `native_sim`). It does not save state or
+  establish Flash/QSPI/application safe state.
 - Task context after startup only; detected ISR/pre-kernel use is unsupported.
   Serialization can block. No worst-case call, feed, scheduling or fairness bound.
   No allocation, new thread or timer worker; native mutex metadata is boot-local.
@@ -230,7 +232,7 @@ The Host check is `tests/build/test_system_native_sim_watchdog.py`. Two cases of
 `tests/build/test_system_composition.py` (a Zephyr configure for the board and for `native_sim`) and the
 `native_sim` scenario
 [`tests/system/zephyr/native_sim_watchdog`](../tests/system/zephyr/native_sim_watchdog/testcase.yaml)
-are Zephyr checks: `scripts/test-system.sh` runs them in the runtime shard, and the Host check does not.
+are Zephyr checks: `scripts/test-system.sh` runs them in [Zephyr CI](ci-zephyr-shards.md#shards), and the Host check does not.
 
 ## Minimal physical verification proposal — not authorized or performed
 

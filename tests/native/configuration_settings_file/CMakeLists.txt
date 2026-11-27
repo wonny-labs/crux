@@ -25,7 +25,7 @@ target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # Negative control: -DCRUX_SETTINGS_FILE_CONTROL=ON keeps the unpatched upstream backend, so the
 # suite must fail. Never a product configuration.
 if(NOT CRUX_SETTINGS_FILE_CONTROL)
-  include(${CMAKE_CURRENT_LIST_DIR}/candidate.cmake)
+  include(${CRUX_ROOT}/zephyr/settings_file.cmake)
 endif()
 target_link_options(app PUBLIC -Wl,--wrap=fs_read -Wl,--wrap=fs_write -Wl,--wrap=fs_open
-  -Wl,--wrap=fs_close)
+  -Wl,--wrap=fs_close -Wl,--wrap=fs_stat)

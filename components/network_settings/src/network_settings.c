@@ -627,6 +627,10 @@ static void worker_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);
 #endif
     for (;;) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);
+#endif
         (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);
         while (crux_network_settings_work_once()) {
         }

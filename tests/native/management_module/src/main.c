@@ -4,7 +4,9 @@
  * certificate, file, reboot, web session and web management services under their own symbols, on
  * real PSA providers, a real FatFs on a simulated disk and the Crux Logging provider. The web
  * server is not started: the fixture serves nothing. This file is the application: it starts them
- * in the order of docs/management-in-a-product.md and checks that they work together. Test only:
+ * in the order of docs/management-in-a-product.md and checks that they work together. The last case
+ * is a factory reset, so a second run on the same disk is the restart after it. With
+ * "--testargs accounts" the last case is the account-only erase instead. Test only:
  * the entropy is test-only and the first account is a declared input.
  */
 #include "crux_tf_psa_threading.h"
@@ -16,6 +18,7 @@
 #include <crux/config_service.h>
 #include <crux/configuration.h>
 #include <crux/credential_store.h>
+#include <crux/credential_store_zephyr.h>
 #include <crux/file_service.h>
 #include <crux/file_zephyr.h>
 #include <crux/management_status.h>
@@ -120,6 +123,39 @@ static const crux_access_session_t never_valid = {0};
 static crux_credential_state_t state_at_start = CRUX_CREDENTIAL_STATE_UNUSABLE;
 static crux_access_session_t admin;
 
+/*
+ * The account-only erase sequence: scripts/test-management-module.sh passes "--testargs accounts"
+ * and a disk of its own. The last case then erases only the accounts, after it wrote the
+ * certificate fingerprint to IDENTITY_FILE, and the next run must start with the same fingerprint.
+ */
+#define IDENTITY_FILE "kept-identity.txt"
+/* From the native_sim board: the arguments after --testargs. */
+void native_get_test_cmd_line_args(int *argc, char ***argv);
+static bool accounts_sequence;
+static bool identity_kept;
+static char kept_fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
+
+static void sequence_read(void)
+{
+    int argc = 0;
+    char **argv = NULL;
+    native_get_test_cmd_line_args(&argc, &argv);
+    for (int index = 0; index < argc; ++index) {
+        accounts_sequence = accounts_sequence || strcmp(argv[index], "accounts") == 0;
+    }
+    crux_file_t *file = NULL;
+    if (!accounts_sequence ||
+        crux_file_open_at(ROOT_FILES, IDENTITY_FILE, CRUX_FILE_READ, &file) != CRUX_FILE_OK) {
+        return;
+    }
+    size_t count = 0;
+    identity_kept = crux_file_read(file, kept_fingerprint, sizeof(kept_fingerprint) - 1u, &count) ==
+                        CRUX_FILE_OK &&
+                    count > 0u;
+    kept_fingerprint[count] = '\0';
+    (void)crux_file_close(&file);
+}
+
 static bool directory_ready(const char *path)
 {
     int result = fs_mkdir(path);
@@ -132,6 +168,7 @@ static bool medium_ready(void)
         if (fs_mkfs(FS_FATFS, (uintptr_t)DISK_NAME, NULL, 0) != 0 || fs_mount(&mount) != 0) {
             return false;
         }
+        TC_PRINT("management module: formatted the disk\n");
     }
     return directory_ready(PATH_SLOT_A) && directory_ready(PATH_SLOT_B) &&
            directory_ready(PATH_FILES) &&
@@ -157,6 +194,7 @@ static void *start_services(void)
     zassert_equal(crux_security_event_init(NULL, 0), CRUX_OK);
     zassert_equal(crux_realtime_init(), CRUX_OK);
     zassert_true(medium_ready());
+    sequence_read();
     crux_credential_result_t store = crux_credential_start(ROOT_SLOT_A, ROOT_SLOT_B);
     zassert_true(store == CRUX_CREDENTIAL_OK || store == CRUX_CREDENTIAL_ERR_UNUSABLE);
     state_at_start = crux_credential_state();
@@ -299,11 +337,18 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     zassert_equal(crux_network_settings_get(never_valid, &network),
                   CRUX_NETWORK_ERR_SESSION_INVALID);
 
-    /* The TLS certificate module made a certificate, and it has a fingerprint. */
+    /* The TLS certificate module made a certificate, and it has a fingerprint. After an
+     * account-only erase it loaded the kept one instead, and clients see the same fingerprint. */
     char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
-    zassert_equal(certificate_how, CRUX_TLS_CERTIFICATE_GENERATED);
     zassert_equal(crux_tls_certificate_fingerprint(fingerprint), CRUX_TLS_CERTIFICATE_OK);
     zassert_true(fingerprint[0] != '\0');
+    if (identity_kept) {
+        zassert_equal(certificate_how, CRUX_TLS_CERTIFICATE_STARTED);
+        zassert_equal(strcmp(fingerprint, kept_fingerprint), 0);
+        TC_PRINT("management module: device identity kept\n");
+    } else {
+        zassert_equal(certificate_how, CRUX_TLS_CERTIFICATE_GENERATED);
+    }
 
     /* The file service shows its one area, writable, and a file that does not exist. */
     size_t cursor = 0;
@@ -330,4 +375,43 @@ ZTEST(management_module, test_03_events_status_and_configuration_are_the_module_
     zassert_equal(session_stats.attempts, 0u);
     zassert_equal(management_stats.saves_queued, 0u);
     zassert_false(crux_web_management_save_pending());
+}
+
+/*
+ * A factory reset, as docs/management-in-a-product.md has it: the erase through the composition
+ * header, and then a restart. scripts/test-management-module.sh runs the image again on the same
+ * disk, and that run passes only if the store came up empty: no account, so first-account setup is
+ * open again, and a new device key and certificate.
+ */
+ZTEST(management_module, test_04_factory_reset_erases_the_credential_store)
+{
+    crux_file_info_t info;
+
+    if (accounts_sequence) {
+        /* The account-only erase: the slots stay, and the next run must find the same identity. */
+        char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
+        crux_file_t *file = NULL;
+        size_t count = 0;
+        zassert_equal(crux_tls_certificate_fingerprint(fingerprint), CRUX_TLS_CERTIFICATE_OK);
+        zassert_equal(crux_file_open_at(ROOT_FILES, IDENTITY_FILE, CRUX_FILE_CREATE_REPLACE, &file),
+                      CRUX_FILE_OK);
+        zassert_equal(crux_file_write(file, fingerprint, strlen(fingerprint), &count),
+                      CRUX_FILE_OK);
+        zassert_equal(crux_file_sync(file), CRUX_FILE_OK);
+        zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+
+        zassert_equal(crux_credential_erase_accounts(), CRUX_CREDENTIAL_OK);
+        zassert_equal(crux_credential_state(), CRUX_CREDENTIAL_STATE_UNUSABLE);
+        zassert_equal(crux_file_stat(ROOT_SLOT_A, "store.img", &info), CRUX_FILE_OK);
+        zassert_equal(crux_file_stat(ROOT_SLOT_B, "store.img", &info), CRUX_FILE_OK);
+        zassert_equal(count_events(admin, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED), 1u);
+        return;
+    }
+
+    zassert_equal(crux_credential_erase(), CRUX_CREDENTIAL_OK);
+    zassert_equal(crux_credential_state(), CRUX_CREDENTIAL_STATE_UNUSABLE);
+    zassert_equal(crux_file_stat(ROOT_SLOT_A, "store.img", &info), CRUX_FILE_ERR_NOT_FOUND);
+    zassert_equal(crux_file_stat(ROOT_SLOT_B, "store.img", &info), CRUX_FILE_ERR_NOT_FOUND);
+    /* The session is still in RAM, which is why a product restarts at once. */
+    zassert_equal(count_events(admin, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED), 1u);
 }

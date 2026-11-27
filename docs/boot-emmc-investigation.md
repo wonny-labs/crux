@@ -18,7 +18,7 @@
 ## Purpose and scope
 
 #298 asks whether the boot and update approach recommended in #141 can serve a platform that boots from eMMC, loads firmware
-into external SDRAM and executes from SDRAM, without assuming that a NOR-based result carries over. The pilot hardware boots
+into external SDRAM and executes from SDRAM, without assuming that a NOR-based result carries over. The reference hardware (RT1060-EVKB) boots
 from QSPI NOR, so everything here for eMMC is either a source reading or an expectation from public documents. It informs the
 public milestones M8 "Boot platform foundation and verified boot" and M9 "Secure firmware update and recovery".
 
@@ -301,7 +301,7 @@ status changes.
 | "Recovery of a corrupted bootloader" Not verified | Narrowed (section 3). The manual copy gives the error path to the serial downloader, the recovery device and manufacture mode order, the redundant image mechanism and the Enter Bootloader API. Behaviour on a board is still Not verified. |
 | Stage 3 A13: open-configuration behaviour of the ROM Not verified | Narrowed. The manual copy says that in Open configuration HAB runs, errors are logged and the image runs even without authentication data, and that Closed configuration aborts to the serial downloader (R8), after a switch to the secondary image where redundant boot is set up (R9). The HAB event content for a blank SRK hash is still Not verified. |
 | Stage 3 D10: the ROM runs the bootloader DCD before the application, Not verified | For SD and MMC boot the manual says the ROM performs a DCD check and extraction before it copies the image (R3), from which the order of the DCD writes is an Inference. Whether it holds for the NOR path was not read. |
-| Rank 1, RAM load with revert, and the staging variant (c) with a NOR slot | Unaffected for the pilot hardware. For an eMMC platform the slot lives on eMMC and variant (b) becomes the staging path, with the cost in section 2. The NOR evidence (#22 data closure, write extents) probably does not carry over to eMMC, and the eMMC ordering and atomicity questions in section 5 are new (Inference). |
+| Rank 1, RAM load with revert, and the staging variant (c) with a NOR slot | Unaffected for the reference hardware. For an eMMC platform the slot lives on eMMC and variant (b) becomes the staging path, with the cost in section 2. The NOR evidence (#22 data closure, write extents) probably does not carry over to eMMC, and the eMMC ordering and atomicity questions in section 5 are new (Inference). |
 | Write inventory by actor | On eMMC the bootloader writes through a block device with a cache, not through FlexSPI during XIP, so the #22 closure matrix does not apply. It is replaced by the flush and atomicity questions of section 5 (Inference). |
 | Trial builds | They were NOR builds. None was run for eMMC. |
 | Pins | #141 names Zephyr v4.4.0. `main` pins v4.4.2. Its cited files are identical at both. Its build trial used the older tree, as it states. |
@@ -313,7 +313,7 @@ status changes.
 | 1 | The reference manual was read only in a third-party-hosted Rev. 3 copy, and the JEDEC eMMC standard not at all. Can the owner supply the `nxp.com` manual (to compare R1 to R12, X8) and JESD84-B51x (for Y1)? | Supply both. A comparison of the manual copy is cheap. The JEDEC text settles the atomicity and reset questions of sections 3 and 5. |
 | 2 | Scope for an eMMC flash-area backend (variant (b) for eMMC) in the bootloader, as the next step after this record | Do not start before question 1. Then decide between a read-only RAM-load first stage and a full backend, and decide where the driver lives (Zephyr, Crux module or out of tree). |
 | 3 | Software-only replay of MCUboot's trailer sequences on the existing eMMC simulator, to test ordering and alignment assumptions (section 5) | Issue #310 exists. A model-only replay of RAM load with revert is recorded in the [trailer replay record](evidence/boot-emmc/trailer-replay/README.md). It needs no hardware. A run through a driver and the C simulator on `native_sim` waits for a backend scope decision (question 2). |
-| 4 | Is there an eMMC-bearing RT1060 or RT1062 target for M8 and M9 validation, or does the pilot hardware remain the only one? | Owner decision. Until one exists, eMMC boot and update stay unvalidated, and the NOR results stay the only evidence. |
+| 4 | Is there an eMMC-bearing RT1060 or RT1062 target for M8 and M9 validation, or does the reference hardware remain the only one? | Owner decision. Until one exists, eMMC boot and update stay unvalidated, and the NOR results stay the only evidence. |
 | 5 | Fuse programming, closed configuration and permanent boot-partition protection | Remain product decisions, as in #141 and #299. Nothing in this record needs them. |
 | 6 | Input to #299 | Section 3 is the eMMC input. The first gap to close there is whether the ROM's secondary image mechanism (R9) and the Enter Bootloader API (R12) work with eMMC boot partitions, and what the ROM does with an invalid image in Open configuration. |
 

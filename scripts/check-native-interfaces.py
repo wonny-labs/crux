@@ -15,15 +15,15 @@ import runpy
 
 # Public interfaces and shared implementation are portable by default, including
 # future runtime components. Providers belong outside these roots. Current
-# samples/controller/{host,zephyr} are legacy native compositions/qualification
-# fixtures pending migration, not portable consumers. Future application/runtime
+# tests/time_periodic/{host,zephyr} and tests/board_images/integration_probe are legacy
+# native compositions/qualification fixtures, not portable consumers. Future application/runtime
 # consumers have no such exemption: classify a new provider deliberately.
+# samples/README.md ("Files inside a sample") defines the sample folders. Each path below
+# exists in the tree.
 PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
-    "samples/controller/core", "samples/controller/include", "samples/time/include",
-    "samples/time/src/time_command.c",
-    "samples/controller/configuration",
+    "tests/time_periodic/core", "tests/time_periodic/include",
     "tests/configuration_consumer/consumer.c", "tests/configuration_consumer/consumer.cpp",
 
     "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
@@ -32,30 +32,35 @@ PORTABLE_ROOTS = (
     "tests/i2c/consumer/tmp117.c", "tests/i2c/consumer/tmp117.h",
     "tests/spi/consumer/spi_flash_id.c", "tests/spi/consumer/spi_flash_id.h",
 
-    "samples/serial", "tests/serial_consumer/src/runtime.c",
+    "tests/serial_consumer/src/runtime.c",
     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/src/consumer.cpp",
-    "samples/logging", "tests/logging_consumer/src/runtime.c",
+    "tests/logging_consumer/src/runtime.c",
     "tests/logging_consumer/src/runtime.h", "tests/logging_consumer/src/consumer.cpp",
-    "samples/messaging", "samples/controller/system",
     "tests/system_consumer/src/runtime.c", "tests/system_consumer/src/runtime.h",
     "tests/system_consumer/src/consumer.cpp",
-    "tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp",
+    # Code that a sample's zephyr/ and linux/ builds share (samples/README.md).
+    "samples/*/common", "samples/*/*/common",
+    "tests/configuration/controller_scenario.c",
+    "tests/serial_consumer/scenario", "tests/logging_consumer/scenario",
+    "tests/messaging_consumer/scenario", "tests/system_consumer/scenario",
 )
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.
 NETWORKING_PROFILE = frozenset((
-    "samples/networking/client.c", "samples/networking/client.h",
     "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
     "tests/networking_consumer/consumer.h", "tests/networking_consumer/cpp_probe.cpp",
+    "samples/networking/echo_client/common/client.c",
+    "samples/networking/echo_client/common/client.h",
 ))
 NETWORKING_HEADERS = {"sys/socket.h", "netinet/in.h", "arpa/inet.h", "poll.h",
                       "fcntl.h", "unistd.h"}
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 # Direct references into implementation/provider/test trees cannot become public
 # contracts even if their basename looks portable. This does not follow includes.
-PRIVATE_INCLUDE_SEGMENTS = {"ports", "host", "zephyr", "board", "boards", "nxp", "vendor",
+# "zephyr" and "linux" also keep a sample's common/ out of its OS folders.
+PRIVATE_INCLUDE_SEGMENTS = {"ports", "host", "zephyr", "linux", "board", "boards", "nxp", "vendor",
                             "test", "tests", "private"}
 NATIVE_HEADER = re.compile(
     r"^(?:zephyr/|boards?/|board\.h$|nxp/|vendor/|fsl_|MIMXRT|cmsis|stm32|"

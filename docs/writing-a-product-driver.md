@@ -1,6 +1,6 @@
 # Writing a product driver
 
-**Status: developer guidance, not a contract.** It describes how a product repository holds its own board, its own Zephyr drivers and devicetree bindings, and their tests. It adds no Crux interface and no Crux device model. The kit it describes is the Zephyr module in [`templates/product/`](../templates/product/README.md), written against **Zephyr v4.4** (Crux pins v4.4.2, see [`west.yml`](../west.yml)).
+**Status: developer guidance, not a contract.** It describes how a product repository holds its own board, its own Zephyr drivers and devicetree bindings, and their tests. It adds no Crux interface and no Crux device model. The kit it describes is the Zephyr module in [`templates/product/`](../templates/product/README.md), written against **Zephyr v4.4** (Crux pins v4.5.0, see [`west.yml`](../west.yml)).
 
 What runs: `scripts/test-product-template.sh`, which Crux's Zephyr CI runs, builds the example driver and runs its unit tests on `native_sim`, and builds its hardware scenario for two boards without running it. Nothing of the kit has run on a board. The example part is fictional.
 
@@ -181,7 +181,7 @@ The board is not a variant added with `board: extend:`. A variant keeps the name
 
 ## Static libraries and kernel objects
 
-The [template README](../templates/product/README.md#check-the-whole-product-repository) records that an adapter built as a `STATIC` library failed to link in one product with undefined references to `k_msgq_init` and other kernel message queue functions, while `k_thread` calls in the same file linked, and that the cause was not understood.
+In one product (Zephyr 4.4.2, `native_sim` and an RT1060-EVKB cross-build), an adapter built as a `STATIC` library failed to link with undefined references to `k_msgq_init`, `z_impl_k_msgq_put`, `z_impl_k_msgq_get` and `z_impl_k_msgq_purge`, while `k_thread` calls in the same file linked. Moving the file to `target_sources(app PRIVATE ...)` fixed it. An adapter that makes no kernel-object calls has not shown this failure.
 
 The cause is the order of Zephyr's link line (Zephyr v4.4, top-level `CMakeLists.txt` and `cmake/linker/ld/target.cmake`). Zephyr links its own libraries, `app` included, inside `--whole-archive`, and then the kernel archive outside it. The linker takes from the kernel archive only the members that something linked before it refers to. A plain CMake `STATIC` library that `app` links is a dependency of `app`, so CMake places it after those items, after the kernel archive. A kernel function that only this library calls, such as `k_msgq_init` in a small image, is then never taken from the archive and stays undefined. `k_thread` functions are referenced by the kernel itself, so they are linked anyway.
 
@@ -196,7 +196,7 @@ The probe `tests/product_template_link` tests this. `scripts/test-product-templa
 
 ## Zephyr versions
 
-This guide and the kit are written against Zephyr v4.4. Crux plans to move its pin to Zephyr 4.6 when it is released (planned, not decided or dated; see [ADR-0006](decisions/0006-cryptographic-dependency-policy.md)); the move is a change of its own. A product that follows the pin does the same. When it moves:
+This guide and the kit are written against Zephyr v4.4, and Crux's CI builds the kit at its v4.5.0 pin. Crux plans to move its pin to Zephyr 4.6 when it is released (planned, not decided or dated; see [ADR-0006](decisions/0006-cryptographic-dependency-policy.md)); the move is a change of its own. A product that follows the pin does the same. When a pin moves:
 
 - Re-run the kit's tests: they are the check that the example still builds and passes with the new tree.
 - Read the Zephyr migration guides for each release between the two, for the classes that your drivers use. The sensor API and the board model have both changed in recent releases.

@@ -255,7 +255,7 @@ static void test_cut_during_first_account(void)
     credential_test_context[0] = '\0';
 }
 
-/* S6, accepted for the Pilot: losing both directory entries reads as EMPTY and reopens
+/* S6, accepted for Crux: losing both directory entries reads as EMPTY and reopens
  * provisioning. Only a marker outside the medium would close this, as limit A7 says. */
 static void test_lost_directory_entries_reopen_provisioning(void)
 {
@@ -313,6 +313,74 @@ static void test_rotted_newest_slot_restores_an_account(void)
     CHECK(count == 2u);
 }
 
+/*
+ * Decision D-1: the account-only erase, with the real Access core. Access keeps what it loaded
+ * until the reset and cannot save it, and after the reset first-account setup is open, the device
+ * keys are the same, and damage to the newest slot does not bring an account back, unlike the
+ * limit above.
+ */
+static void test_account_erase_reopens_provisioning_and_keeps_keys(void)
+{
+    uint8_t tls_before[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    uint8_t host_before[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    uint8_t after[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    size_t tls_length = 0;
+    size_t host_length = 0;
+    size_t length = 0;
+
+    test_fresh();
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY,
+                                     CRUX_CREDENTIAL_KEY_ECDSA_P256) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY,
+                                     CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_before, sizeof(tls_before),
+                                     &tls_length) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_before,
+                                     sizeof(host_before), &host_length) == CRUX_CREDENTIAL_OK);
+    CHECK(boot_both() == CRUX_ACCESS_OK);
+    CHECK(provision() == CRUX_ACCESS_OK);
+    crux_access_session_t session = {0};
+    CHECK(login(&session) == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_create(session, OTHER, "administrator", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    unsigned generated = credential_fake_keygen_count();
+
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    /* Access still holds the accounts in RAM, so the product restarts at once, and no change of
+     * them reaches the store. */
+    CHECK(crux_access_account_remove(session, OTHER) != CRUX_ACCESS_OK);
+
+    CHECK(boot_both() == CRUX_ACCESS_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    session.value = 0;
+    CHECK(login(&session) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(provisioning_open());
+    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_TLS_KEY, after, sizeof(after),
+                                     &length) == CRUX_CREDENTIAL_OK);
+    CHECK(length == tls_length && memcmp(after, tls_before, length) == 0);
+    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, after, sizeof(after),
+                                     &length) == CRUX_CREDENTIAL_OK);
+    CHECK(length == host_length && memcmp(after, host_before, length) == 0);
+    CHECK(credential_fake_keygen_count() == generated);
+
+    uint64_t generation_a = 0;
+    uint64_t generation_b = 0;
+    CHECK(test_slot_generation(TEST_SLOT_A, &generation_a));
+    CHECK(test_slot_generation(TEST_SLOT_B, &generation_b));
+    test_slot_flip(generation_a > generation_b ? TEST_SLOT_A : TEST_SLOT_B,
+                   CRUX_CREDENTIAL_HEADER_BYTES, 0x01);
+    CHECK(boot_both() == CRUX_ACCESS_OK);
+    CHECK(login(&session) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(provisioning_open());
+
+    /* A new owner's first account, next to the same keys. */
+    CHECK(provision() == CRUX_ACCESS_OK);
+    CHECK(boot_both() == CRUX_ACCESS_OK);
+    CHECK(login(&session) == CRUX_ACCESS_OK);
+    CHECK(provision() == CRUX_ACCESS_ERR_DENIED);
+}
+
 /* The bridge alone: what each store result reads as, and that load writes nothing unless VALID. */
 static void test_bridge_mapping(void)
 {
@@ -360,6 +428,7 @@ int main(void)
     test_cut_during_first_account();
     test_lost_directory_entries_reopen_provisioning();
     test_rotted_newest_slot_restores_an_account();
+    test_account_erase_reopens_provisioning_and_keeps_keys();
     test_bridge_mapping();
     return credential_test_finish("credential store under crux_access");
 }

@@ -5,8 +5,9 @@
  * Status: Experimental (ADR-0001 decision 4). It has no Zephyr composition outside tests/ yet,
  * and a change is listed in the release notes.
  *
- * Thread context only. crux_system_reset() does not flush storage, drain logs or perform
- * safe-state actions, so a request for a restart goes through this service. It checks the
+ * Thread context only. crux_system_reset() writes out pending deferred log records on Zephyr, but
+ * does not flush storage or perform safe-state actions, so a request for a restart goes through
+ * this service. It checks the
  * permission `system.reboot` and the composition's policy, records an event, and leaves the reset
  * to a worker, which gives events and saves a bounded time to finish before it checks the policy
  * again and resets.
@@ -176,7 +177,9 @@ CRUX_REBOOT_NODISCARD crux_reboot_result_t crux_reboot_start(const crux_reboot_c
 
 /**
  * Start the one worker thread that carries out requests, at low priority. A composition with no
- * thread calls crux_reboot_work_once() itself.
+ * thread, or one that must know which policy call comes just before the reset, does not call this
+ * and calls crux_reboot_work_once() itself: see "A final check before the reset" in
+ * docs/reboot-service.md.
  *
  * @retval CRUX_REBOOT_OK Started, or already running.
  * @retval CRUX_REBOOT_ERR_NOT_READY Not started, or the thread could not be created.

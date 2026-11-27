@@ -1,6 +1,6 @@
 """Static rules of the RT1060-EVK Rev B management image on the Mbed TLS profile.
 
-The image is samples/management_rt1060_mbed. These checks read its text, so the Host job runs them
+The image is samples/boards/nxp/mimxrt1060_evk/web_management. These checks read its text, so the Host job runs them
 without a Zephyr workspace. They hold what the cross-build cannot show on its own: the profile that was
 selected, the symbols and sources that must be absent, the order of the boot steps, and the one test
 form (the first account) that is off by default. The cross-build and the checks of its output are
@@ -11,7 +11,7 @@ import re
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
-IMAGE = REPO / "samples/management_rt1060_mbed"
+IMAGE = REPO / "samples/boards/nxp/mimxrt1060_evk/web_management"
 BOARD = "mimxrt1060_evk@B//qspi"
 
 SOURCES = ("main.c", "composition.c", "composition.h", "medium.c", "medium.h", "first_account_test.c")
@@ -104,7 +104,7 @@ class Profile(unittest.TestCase):
 
     def test_https_only_and_file_backend_is_a_ram_disk(self):
         self.assertNotIn("CRUX_WEB_PLAIN_HTTP_FOR_TESTS=y", self.conf)
-        self.assertIn("CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK=y", self.conf)
+        self.assertIn("CONFIG_CRUX_FILE_FATFS_RAM_DISK=y", self.conf)
         self.assertIn("CONFIG_DISK_DRIVER_SDMMC=n", self.conf)  # no card driver: nothing to format
         self.assertIn("CONFIG_FS_FATFS_MOUNT_MKFS=n", self.conf)
         self.assertIn("CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY=y", self.conf)

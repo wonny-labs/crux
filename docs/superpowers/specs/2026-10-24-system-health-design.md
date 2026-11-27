@@ -180,6 +180,37 @@ application must arrange timely, progress-conditioned feeds with sufficient
 margin for native calls, locks, logging and other work. No automatic feed on
 query/error, no worker and no extension of freshness to obtain a passing test.
 
+### Supervising several activities
+
+System has one token per boot and no channels. A product that watches several
+activities puts its own supervision in front of the one feed: one supervisor
+thread holds the token and calls `crux_watchdog_feed()` only while every
+required activity has made progress.
+
+- **Zephyr's task watchdog.** Call `task_wdt_init(NULL)`, so that the task
+  watchdog drives no hardware, give each activity a channel with
+  `task_wdt_add()`, and let the activity call `task_wdt_feed()`. Give each
+  channel a callback that only records the expiry, and let the supervisor stop
+  feeding when it sees one, so that the hardware watchdog resets the device. The
+  callback runs from a kernel timer in interrupt context, where System calls
+  return NOT_SUPPORTED ([Concurrency, context and errors](#concurrency-context-and-errors)).
+  A channel with no callback resets through `sys_reboot(SYS_REBOOT_COLD)`, which
+  latches a software reset cause rather than a watchdog one.
+- **The product's own supervisor.** Each activity reports progress, such as a
+  counter, to the supervisor thread, which feeds only when every activity has
+  advanced within its own period.
+
+**`CONFIG_TASK_WDT_HW_FALLBACK` is forbidden.** The composition rejects every
+statically selected second owner of the native watchdog, and this option is one
+([Pinned native findings and qualified composition](#pinned-native-findings-and-qualified-composition)).
+The System build stops with a configuration error when it is set
+(`components/system/ports/zephyr/CMakeLists.txt`), whatever `task_wdt_init()`
+is given. Its hardware timeout applies only when `task_wdt_init()` gets a
+device: the task watchdog then installs the timeout and feeds the hardware
+itself, beside System. Zephyr's default for it is `y`
+(`subsys/task_wdt/Kconfig`), so a product that enables `CONFIG_TASK_WDT` sets
+`CONFIG_TASK_WDT_HW_FALLBACK=n`.
+
 ## Reset causes: flags, initial observation and clear ownership
 
 Cause query reads currently latched native reasons and the supported mask;

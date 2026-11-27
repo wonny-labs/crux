@@ -23,7 +23,7 @@ registered in the final image independently of the portable usage target.
 Sockets owns only its declaration shim and native build definition in
 `components/sockets/ports/zephyr/`; the Linux usage target needs no wrapper.
 
-The reference firmware consumer is `samples/networking/client.c`. A separately
+The reference firmware consumer is `samples/networking/echo_client/common/client.c`. A separately
 written runtime-shaped adapter lives in `tests/networking/runtime_port.c`.
 Neither establishes complete compatibility with a third-party runtime. Test peer
 servers are fixture code outside the supported client API. Native stack startup,
@@ -111,9 +111,10 @@ Successful output is caller-owned and contains no native pointers:
 - `ipv4_address[4]`: network-order octets, zero when unavailable.
 
 Address eligibility excludes unspecified/0-prefix, multicast/reserved high
-addresses, limited/directed broadcast, IPv4 link-local, and tentative/duplicate
-states where the provider reports them. /31 point-to-point and /32 endpoints
-are not incorrectly classified as directed broadcasts. Selection is the lowest
+addresses, limited/directed broadcast, the subnet's network address (an all-zero
+host part, up to /30), IPv4 link-local, and tentative/duplicate states where the
+provider reports them. /31 point-to-point and /32 endpoints are not incorrectly
+classified as directed broadcasts or network addresses. Selection is the lowest
 eligible address in network byte order when several exist; this is an observation
 policy, not multiple-interface management or source-address selection.
 
@@ -189,7 +190,8 @@ unless identified physical evidence is separately accepted.
 ## Tuning and limits for products
 
 This section is guidance. It restates the profile above and adds no option, function or
-promise. Zephyr citations are to the pinned v4.4.2 (the `west.yml` revision). The same facts hold
+promise. Zephyr citations are to v4.4.2, the `west.yml` revision when this was written, and were not
+read again at the current pin v4.5.0. The same facts hold
 in v4.4.0, where the `sockets_inet.c` lines are three lower, the `tcp.c` lines are one higher and
 `Kconfig.tcp` is identical.
 
@@ -199,6 +201,7 @@ in v4.4.0, where the `sockets_inet.c` lines are three lower, the `tcp.c` lines a
 | How long does a closed TCP socket hold its context? | After a normal close, the side that sends the first FIN waits in TIME_WAIT for `CONFIG_NET_TCP_TIME_WAIT_DELAY` milliseconds, default 1500. The context stays allocated meanwhile | `subsys/net/ip/Kconfig.tcp:44-47`; `subsys/net/ip/tcp.c:2647-2654` (the timer), `:3726-3751` (close sends FIN and enters FIN_WAIT_1), `:3611` (TIME_WAIT state). The contract's 1500 ms and its settling time are in the [previous section](#configurations-assumptions-and-unsupported-scope) |
 | Can a product set that delay? | Yes, as a Kconfig value in the product's configuration, for example `CONFIG_NET_TCP_TIME_WAIT_DELAY=<milliseconds>`. Crux's Kconfig and CMake do not set it. Crux's qualification used 1500, so another value has no qualification evidence (a test configuration, `tests/native/isn_fail_closed/prj.conf:18`, sets 100 for its own purpose). Zephyr's help text names the trade-off: a long delay holds resources, a short one allows delayed packets to reach a reused port pair | `subsys/net/ip/Kconfig.tcp:44-60`; [Configurations](#configurations-assumptions-and-unsupported-scope) |
 | Does `SO_LINGER` change how a socket closes? | No. Zephyr accepts `setsockopt(SOL_SOCKET, SO_LINGER)`, returns 0 and ignores it ("for compatibility purposes only"). A zero-linger abortive close, which sends a reset instead of FIN, is therefore not available through it | `subsys/net/lib/sockets/sockets_inet.c:2593-2595` |
+| How is a TCP initial sequence number made? | With `CONFIG_NET_TCP_ISN_RFC6528`, Zephyr's default when `PSA_WANT_ALG_SHA_256` is set, from a keyed SHA-256 hash. Crux's module builds every such image with a `tcp.c` that refuses the connection when the key read or the hash fails: a RST to a SYN, and `-EIO` from a connect with no SYN. Without that option Zephyr uses `sys_rand32_get()`, which is not cryptographically secure, for every number | `subsys/net/ip/Kconfig.tcp` and `tcp.c` of v4.5.0; [patches/zephyr](../patches/zephyr/README.md#default-images-at-the-pin) |
 | Is `SO_KEEPALIVE` available? | Only with `CONFIG_NET_TCP_KEEPALIVE=y`, which has no default and so is off, and only on a TCP socket. Otherwise `setsockopt` fails with ENOPROTOOPT. `TCP_KEEPIDLE`, `TCP_KEEPINTVL` and `TCP_KEEPCNT` need the same symbol; their defaults are 7200 s, 75 s and 9 probes | `Kconfig.tcp:171-200`; `sockets_inet.c:2597-2611`, `:2639-2654`, `:2945-2946` |
 
 **A product that needs keepalive** can get it from Zephyr's socket API, called directly in its own

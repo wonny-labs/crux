@@ -1,6 +1,6 @@
 # The management image for RT1060-EVK Rev B on the Mbed TLS profile
 
-Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What runs is the static Host checks of the image's text and the cross-build check (`scripts/test-management-mbed-rt1060.sh build`), which `psa-crypto.yml` runs, without flashing, on each pull request and push to `main`; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
+Status: **Experimental.** A management image that is meant to **run** on the board, built here and never flashed or reset by anything in this repository. **Nothing in this document has run on a board.** What runs is the static Host checks of the image's text and the cross-build check (`scripts/test-management-mbed-rt1060.sh build`), which `psa-crypto.yml` runs, without flashing, on each pull request and push to `main` that changes more than documentation; everything on the board is for the team that runs it. It uses no Wolf stack, no SSH and no GPL source: HTTPS only, on Mbed TLS with TF-PSA-Crypto (Apache-2.0 option).
 
 It is a different image from the [bench image](rt1060-management-image-feasibility.md) of the Wolf profile. That image carries safety gates and **refuses to start by design**, and this one has none of them: see [what is different](#how-it-differs-from-the-bench-image).
 
@@ -23,7 +23,7 @@ Not in the image: SSH, SFTP, the serial console and command line (composed in no
 
 ## Where it lives, and why
 
-`samples/management_rt1060_mbed/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is also shaped as a product would be: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
+`samples/boards/nxp/mimxrt1060_evk/web_management/`. The repository keeps images that are built and never run under `tests/zephyr/` (compile checks, and the bench image, whose directory name keeps the evidence of its first stage), and images that a team builds and runs under `samples/`. This one is meant to run, so it is a sample. It is an evaluation image, not a product base. It does show the composition style: the services come from the Zephyr module under their Kconfig symbols (ADR-0004 phase 0), and `app` compiles none of their sources. What `app` holds is its own composition (`src/composition.c`), the route sources (the route table belongs to the image, so the module cannot build it), a RAM disk mount and the entry point. It includes public `<crux/...>` headers wherever one exists. The exceptions are listed [below](#taken-from-tests-and-private-roots) and a test fails if a new one is added.
 
 ## Build
 
@@ -37,7 +37,7 @@ west update
 The default image, with no account:
 
 ```bash
-west build -p always -b 'mimxrt1060_evk@B//qspi' crux-pilot/samples/management_rt1060_mbed
+west build -p always -b 'mimxrt1060_evk@B//qspi' samples/boards/nxp/mimxrt1060_evk/web_management
 ```
 
 The same with the test first account ([below](#the-first-account)):
@@ -45,10 +45,10 @@ The same with the test first account ([below](#the-first-account)):
 ```bash
 umask 077; head -c 24 /dev/urandom | base64 | tr -d '\n' > ~/crux-mbed-password   # outside every git work tree
 CRUX_MBED_MGMT_PASSWORD_FILE=~/crux-mbed-password west build -p always -b 'mimxrt1060_evk@B//qspi' \
-    crux-pilot/samples/management_rt1060_mbed -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
+    samples/boards/nxp/mimxrt1060_evk/web_management -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
 ```
 
-`scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`.
+`scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`. `build` also cross-builds the [console that shares its UART with Logging](cli-contract.md#console-and-logging-on-one-uart), which is not part of this image.
 
 Kconfig settings of the image: `CRUX_MBED_MGMT_IPV4_ADDRESS` (default `192.168.77.2`), `CRUX_MBED_MGMT_IPV4_NETMASK` (default `255.255.255.0`) and the test form. The address is the only one the interface has: the image has no DHCP and no IPv6, and it stops at boot if the interface holds another IPv4 address.
 
@@ -71,7 +71,7 @@ Flashing is the team's, with the standard NXP or Zephyr tools: `west flash` with
 In this order, each possibly behind a log prefix. The fingerprint and the TRNG node name are the board's.
 
 ```text
-MBED-MGMT image=crux-mgmt-rt1060-mbed board=mimxrt1060_evk@B/mimxrt1062/qspi tls=mbedtls address=192.168.77.2 test-first-account=1
+MBED-MGMT evaluation image, not a product: image=crux-mgmt-rt1060-mbed board=mimxrt1060_evk@B/mimxrt1062/qspi tls=mbedtls address=192.168.77.2 test-first-account=1
 CRUX-ENTROPY first-read=ok source=random@400cc000 compatible=nxp,kinetis-trng bytes=32 status=0 device-ready=1
 MBED-MGMT file-medium ram-disk 524288 B in SDRAM, formatted at this boot, mounted=1: nothing persists across a reset
 MBED-MGMT TEST ONLY first account created: user=admin role=administrator
@@ -102,13 +102,13 @@ The image is written for **RT1060-EVKB Rev B** (`mimxrt1060_evk@B//qspi`) and re
 
 | Part | Where it is set | SoC (RT1062) or board | A product board with an RT1062 changes |
 | --- | --- | --- | --- |
-| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's. The RAM disk provider's Kconfig (`CRUX_FILE_FATFS_RT1060_RAM_DISK`) depends on the RT1062 SoC, and on the RT1060-EVK on its Rev B QSPI target | Board | The image's check, or a board file that this repository does not have. The provider accepts an RT1062 board with another name |
+| Board check | `CMakeLists.txt` refuses any `CONFIG_BOARD_TARGET` but the EVKB's. The RAM disk provider (`CRUX_FILE_FATFS_RAM_DISK`) depends on a `zephyr,ram-disk` node and the absence of the SD card driver, the SD host driver and the flash disk, with no SoC or board dependency | Board | The image's check, or a board file that this repository does not have. The provider accepts any board with the RAM disk node |
 | Entropy | The TRNG (`zephyr,entropy = &trng`, `ENTROPY_MCUX_TRNG`), the fail-closed correction and the boot check | **SoC** | Nothing, unless the board's devicetree changes the chosen entropy node |
 | Device ID for the credential store | `CONFIG_HWINFO` | **SoC** (the unique ID) | Nothing |
 | Flash part and boot | QSPI NOR, XIP from `0x60000000`, the boot header of the board files | Board (the flash part, its size and the boot-mode switches) | The board's flash configuration and boot data |
 | RAM | All RAM of this configuration is the 32 MB SDRAM (`zephyr,sram = &sdram0`): the RAM disk, the Mbed TLS heap, the stacks and the network buffers sit there, and every size is chosen for that | Board | A board with on-chip RAM only must re-size all of them: 512 KiB for the RAM disk alone is half of the 1 MB of on-chip RAM of an RT1062 |
 | Console and logging | `target.overlay`: Crux Logging and `printk` on LPUART1 at 115,200 baud. LPUART3 is left free for the Crux serial console of a later phase | Board (which pins and which UART the board brings out) | `target.overlay`: the UART node and its speed |
-| Ethernet | `samples/controller/zephyr/m3-network.overlay` (the ENET MAC with a fixed local MAC address, the PHY monitor by polling because the PHY interrupt line is dropped, and the EVKB's LED removed because its GPIO is the PHY reset), `CONFIG_ETH_NXP_ENET_RX_BUFFERS` and the buffer counts of `prj.conf` | Board (the PHY part, its reset and interrupt lines, the MAC address) | The overlay for the product's PHY, MAC address and reset pin. The MAC address in that file is a fixed local one: give each unit its own |
+| Ethernet | `samples/boards/nxp/mimxrt1060_evk/common/network.overlay` (the ENET MAC with a fixed local MAC address, the PHY monitor by polling because the PHY interrupt line is dropped, and the EVKB's LED removed because its GPIO is the PHY reset), `CONFIG_ETH_NXP_ENET_RX_BUFFERS` and the buffer counts of `prj.conf` | Board (the PHY part, its reset and interrupt lines, the MAC address) | The overlay for the product's PHY, MAC address and reset pin. The MAC address in that file is a fixed local one: give each unit its own |
 | Static address | `CONFIG_CRUX_MBED_MGMT_IPV4_ADDRESS` and `_NETMASK` | Image setting | Both, for the product's network |
 | Storage | A RAM disk (`ram_disk.overlay`), nothing persists. The SD card and eMMC are not used and the card driver is off | Board | A product that needs accounts and keys to survive a reset needs a non-volatile File provider (microSD or eMMC compositions exist in the repository and are separate, not composed here), and a decision about confidentiality of the store |
 | Watchdog and reset | The `crux-watchdog0` alias to `wdog0` in `target.overlay`, used by Crux System and the reboot route | SoC peripheral, board alias | The alias, if the board uses another watchdog |
@@ -135,7 +135,7 @@ If the TRNG is not available, the image prints the refusal line and starts nothi
 | --- | --- | --- |
 | Runs | **Refuses to start**, by `CRUX_BENCH_RUN_REFUSED` | Runs |
 | Guards | Declaration, three guard levels, frozen Zephyr copy, manifest, UART report | None of them. Plain checks of the configuration. |
-| Zephyr | A patched copy (TLS socket patch and the TCP sequence number fail-closed patch) | The stock Zephyr of the workspace. **The TCP initial sequence number has no fail-closed patch here**: with a failed entropy source Zephyr's keyed sequence number is not guaranteed. No listener exists before the first random read passes, which narrows this and does not remove it. |
+| Zephyr | A patched copy (TLS socket patch and the TCP sequence number fail-closed patch) | The stock Zephyr of the workspace, with Crux's build-local single-file corrections. One of them is the [TCP initial sequence number](../patches/zephyr/README.md#default-images-at-the-pin): when the key read or the hash fails, a new connection is refused instead of getting a number from `sys_rand32_get()`. `scripts/test-management-mbed-rt1060.sh build` checks that the image generated it. |
 | Programming path | Profile and driver of `tests/target/` (not registered) | The team's own |
 | Listener address | Bound to one address by a setting | Every address of one interface that holds one IPv4 address |
 | First account | A password file, as plaintext, under the bench declaration | The same mechanism, as a test form that is off by default |
@@ -164,7 +164,7 @@ The locks of the Mbed profile's core are **not** taken from tests any more. The 
 | Item | State |
 | --- | --- |
 | The image's static rules: Mbed profile, no Wolf or SSH symbol, no bench symbol, the services selected, entropy before any key, the listener after the certificate, only the listed private includes, the test form off and absent from `prj.conf` | **Host**, `tests/build/test_management_mbed_rt1060_image.py` |
-| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **CI**: `scripts/test-management-mbed-rt1060.sh build` runs in `psa-crypto.yml` on each pull request and push to `main`; the step passed on `main` at `164b0428`. |
+| Cross-build for `mimxrt1060_evk@B//qspi`, the resolved configuration, the linked image's symbols, the test form's refusals | **CI**: `scripts/test-management-mbed-rt1060.sh build` runs in `psa-crypto.yml` on each pull request and push to `main` that changes more than documentation; the step passed on `main` at `164b0428`. |
 | Everything on the board: boot, the TRNG, the handshake and its time and memory, the stack of the HTTP thread (16,384 B, a first choice), the Mbed TLS heap (120,000 B, sized on `native_sim` for three clients), the network buffers (the bench's numbers), the generated key as the listener's credential, reboot, every client | **Not run** |
 | The Mbed TLS listener with the generated certificate on any target | Not run: the `native_sim` images of the Mbed profile serve the declared test certificate |
 

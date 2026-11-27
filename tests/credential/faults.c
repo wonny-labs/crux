@@ -7,6 +7,7 @@
 #include "fake_file.h"
 
 #include <crux/sync.h>
+#include <stdio.h>
 
 static uint8_t image_a[CRUX_CREDENTIAL_SLOT_BYTES];
 static uint8_t image_b[CRUX_CREDENTIAL_SLOT_BYTES];
@@ -428,6 +429,99 @@ static const walk_t walk_erase = {
     check_erase,
 };
 
+/* Accounts next to the identity: a certificate and a device key. */
+static void setup_identity(void)
+{
+    setup_two_records();
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_public(HOST_KEY, acknowledged_public, sizeof(acknowledged_public),
+                                     &acknowledged_length) == CRUX_CREDENTIAL_OK);
+}
+
+static void action_erase_accounts(void)
+{
+    last_result = crux_credential_erase_accounts();
+}
+
+static bool identity_is_kept(void)
+{
+    uint8_t public_key[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    size_t length = 0;
+    return record_is(CERTIFICATE, certificate, sizeof(certificate)) &&
+           crux_credential_key_public(HOST_KEY, public_key, sizeof(public_key), &length) ==
+               CRUX_CREDENTIAL_OK &&
+           length == acknowledged_length && memcmp(public_key, acknowledged_public, length) == 0;
+}
+
+/*
+ * Once the accounts read as absent, no valid slot holds them, so damage to either slot cannot bring
+ * them back. The walk's reset has run the repair at start already.
+ */
+static void check_accounts_stay_gone(void)
+{
+    CHECK(read_record(ACCOUNTS) == CRUX_CREDENTIAL_ERR_NOT_FOUND);
+    CHECK(!test_any_slot_has(ACCOUNTS));
+    for (size_t damaged = TEST_SLOT_A; damaged <= TEST_SLOT_B; ++damaged) {
+        if (test_slot_read(damaged, image_a, sizeof(image_a)) != CRUX_CREDENTIAL_SLOT_BYTES) {
+            continue;
+        }
+        test_slot_flip(damaged, CRUX_CREDENTIAL_HEADER_BYTES, 0x80);
+        (void)test_boot();
+        CHECK(read_record(ACCOUNTS) != CRUX_CREDENTIAL_OK);
+        test_slot_write(damaged, image_a, sizeof(image_a));
+    }
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+}
+
+/* Any point of an account-only erase leaves the identity, and the accounts either whole, or gone
+ * from every valid slot. Repeating the erase ends the same way from each. */
+static void check_erase_accounts(walk_point_t point)
+{
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    CHECK(identity_is_kept());
+    if (read_record(ACCOUNTS) == CRUX_CREDENTIAL_OK) {
+        CHECK(record_is(ACCOUNTS, value_old, sizeof(value_old)));
+        CHECK(point.cut < point.total);
+        CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    }
+    check_accounts_stay_gone();
+    CHECK(identity_is_kept());
+}
+
+static const walk_t walk_erase_accounts = {
+    "erasing the accounts only",
+    setup_identity,
+    action_erase_accounts,
+    check_erase_accounts,
+};
+
+/* The state a cut between the two writes of an account-only erase leaves, repaired at start. */
+static void setup_stale_accounts(void)
+{
+    const test_record_t cert = {CERTIFICATE, certificate, sizeof(certificate)};
+    const test_record_t older[] = {{ACCOUNTS, value_old, sizeof(value_old)}, cert};
+    test_image_build(image_a, 3, older, 2);
+    test_image_build(image_b, 4, &cert, 1);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    test_slot_write(TEST_SLOT_B, image_b, sizeof(image_b));
+}
+
+static void check_stale_accounts_repair(walk_point_t point)
+{
+    (void)point;
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    CHECK(record_is(CERTIFICATE, certificate, sizeof(certificate)));
+    check_accounts_stay_gone();
+}
+
+static const walk_t walk_stale_accounts_repair = {
+    "the repair at start of stale accounts",
+    setup_stale_accounts,
+    action_repair,
+    check_stale_accounts_repair,
+};
+
 /* A first save cut after its pending slot reached full size must stay old-or-new when repeated:
  * this slot is written in place, and its real header must still go last. */
 static void setup_pending_slot(void)
@@ -469,6 +563,10 @@ static void test_power_loss_walks(void)
     CHECK(count_unusable == 0 && count_empty == 0);
     walk_run(&walk_erase);
     CHECK(count_unusable > 0 && count_empty > 0 && count_valid > 0);
+    walk_run(&walk_erase_accounts);
+    CHECK(count_unusable == 0 && count_empty == 0);
+    walk_run(&walk_stale_accounts_repair);
+    CHECK(count_unusable == 0 && count_empty == 0);
 }
 
 /* Every bit of the header matters: a slot with any one flipped is corrupt, never absent or short.
@@ -769,6 +867,78 @@ static void test_failed_erase_steps(void)
     credential_test_context[0] = '\0';
 }
 
+/*
+ * An account-only erase with each File operation failing in turn, and a missing nonce. A failure
+ * before anything is written is ERR_READ and changes nothing. A later one is ERR_STORE, the state
+ * is UNUSABLE, and after the reset the accounts are whole or gone from every valid slot. Repeating
+ * the erase then ends as one that never failed.
+ */
+static void test_failed_erase_accounts_steps(void)
+{
+    static const crux_file_fake_op_t ops[] = {
+        CRUX_FILE_FAKE_STAT, CRUX_FILE_FAKE_OPEN, CRUX_FILE_FAKE_READ,  CRUX_FILE_FAKE_WRITE,
+        CRUX_FILE_FAKE_SEEK, CRUX_FILE_FAKE_SYNC, CRUX_FILE_FAKE_CLOSE, CRUX_FILE_FAKE_TRUNCATE};
+    unsigned failures_seen = 0;
+    for (size_t op = 0; op < sizeof(ops) / sizeof(ops[0]); ++op) {
+        for (unsigned skip = 0; skip < 12u; ++skip) {
+            (void)snprintf(credential_test_context, sizeof(credential_test_context),
+                           "account erase fault, op %zu skip %u", op, skip);
+            test_fresh();
+            setup_identity();
+            credential_fake_events_clear();
+            crux_file_fake_fail(ops[op], skip, CRUX_FILE_ERR_IO);
+            crux_credential_result_t result = crux_credential_erase_accounts();
+            crux_file_fake_fail(ops[op], 0u, CRUX_FILE_OK);
+            if (result == CRUX_CREDENTIAL_OK) {
+                CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+                continue;
+            }
+            failures_seen += 1;
+            const crux_credential_event_t *last =
+                credential_fake_event(credential_fake_event_count() - 1u);
+            CHECK(last->type == CRUX_CREDENTIAL_EVENT_ERASED && last->result == result &&
+                  last->record == ACCOUNTS);
+            if (result == CRUX_CREDENTIAL_ERR_READ) {
+                CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+                CHECK(record_is(ACCOUNTS, value_old, sizeof(value_old)));
+            } else {
+                CHECK(result == CRUX_CREDENTIAL_ERR_STORE);
+                CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+            }
+            CHECK(crux_credential_test_buffers_clear());
+            CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+            CHECK(identity_is_kept());
+            if (read_record(ACCOUNTS) == CRUX_CREDENTIAL_OK) {
+                CHECK(record_is(ACCOUNTS, value_old, sizeof(value_old)));
+            } else {
+                CHECK(!test_any_slot_has(ACCOUNTS));
+            }
+            CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+            CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+            check_accounts_stay_gone();
+            CHECK(identity_is_kept());
+        }
+    }
+    CHECK(failures_seen > 0u);
+
+    /* No nonce for the first image: nothing was written, and the state is UNUSABLE all the same. */
+    test_fresh();
+    setup_identity();
+    credential_fake_random_fail(0);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_ENTROPY);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(record_is(ACCOUNTS, value_old, sizeof(value_old)));
+    CHECK(identity_is_kept());
+    /* No nonce for the second: the first slot holds the new image, the other is repaired. */
+    credential_fake_random_fail(1);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_STORE);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    check_accounts_stay_gone();
+    CHECK(identity_is_kept());
+    credential_test_context[0] = '\0';
+}
+
 static void arm_no_second_nonce(void)
 {
     credential_fake_random_fail(1);
@@ -1054,10 +1224,12 @@ static void test_failed_second_write(void)
 static void test_full_file_pool(void)
 {
     crux_file_t *held[CRUX_FILE_POOL_SIZE] = {NULL};
-    static const char *const names[CRUX_FILE_POOL_SIZE] = {"held0", "held1", "held2", "held3"};
+    /* Any configured pool size (CRUX_FILE_POOL_SIZE is 4 to 32). */
+    char names[CRUX_FILE_POOL_SIZE][24];
 
     test_fresh_empty();
     for (size_t index = 0; index < CRUX_FILE_POOL_SIZE; ++index) {
+        CHECK(snprintf(names[index], sizeof(names[index]), "held%zu", index) > 0);
         CHECK(crux_file_open_at(TEST_ROOT_A, names[index], CRUX_FILE_CREATE_REPLACE,
                                 &held[index]) == CRUX_FILE_OK);
     }
@@ -1255,6 +1427,7 @@ static void test_lost_lock(void)
     CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
           CRUX_CREDENTIAL_ERR_NOT_READY);
     CHECK(crux_credential_erase() == CRUX_CREDENTIAL_ERR_NOT_READY);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_NOT_READY);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
     CHECK(crux_credential_store_get_info(&info) == CRUX_ERR_NOT_READY);
     CHECK(test_boot() == CRUX_CREDENTIAL_ERR_NOT_READY);
@@ -1284,6 +1457,7 @@ int main(void)
     test_failed_save_and_invalidation();
     test_failed_second_write();
     test_failed_erase_steps();
+    test_failed_erase_accounts_steps();
     test_full_file_pool();
     test_full_store();
     test_medium_removed_while_running();

@@ -96,7 +96,7 @@ static void test_dated_options(void)
 {
     fixture_boot();
     static const crux_tls_certificate_options_t dated = {
-        {"Crux device", NULL, 0, NULL, 0, NULL, 0}, 1800000000, 825};
+        {"Crux device", NULL, 0, NULL, 0, NULL, 0}, 1800000000, 825, false};
     crux_tls_certificate_start_t how;
     CHECK(crux_tls_certificate_start(&dated, &how) == CRUX_TLS_CERTIFICATE_OK);
     crux_tls_certificate_info_t info;
@@ -505,6 +505,35 @@ static void test_material_held_blocks_overwrite(void)
     CHECK(crux_tls_certificate_material_take(NULL) == CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT);
 }
 
+/* A release names material by its buffer and its generation. Material from a generation that is no
+ * longer in its buffer is not taken now, even when the buffer was reused and is taken again. */
+static void test_stale_release_after_slot_reuse(void)
+{
+    fixture_start();
+    crux_tls_certificate_material_t first, again;
+    CHECK(crux_tls_certificate_material_take(&first) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_material_release(&first) == CRUX_TLS_CERTIFICATE_OK);
+    /* Two changes, so the first buffer holds a new certificate. */
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_far, sizeof(fixture_far), NULL) ==
+          CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_material_take(&again) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(again.certificate == first.certificate);
+    CHECK(again.generation != first.generation);
+    /* The stale release must not count against the new holder. */
+    CHECK(crux_tls_certificate_material_release(&first) ==
+          CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT);
+    /* The new holder still blocks a change that would write its buffer. */
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_far, sizeof(fixture_far), NULL) ==
+          CRUX_TLS_CERTIFICATE_ERR_BUSY);
+    CHECK(crux_tls_certificate_material_release(&again) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_material_release(&again) ==
+          CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT);
+}
+
 static void during_save(void)
 {
     crux_tls_certificate_info_t info;
@@ -631,6 +660,7 @@ int main(void)
     tls_test_case("regenerate", test_regenerate);
     tls_test_case("material", test_material);
     tls_test_case("material held blocks overwrite", test_material_held_blocks_overwrite);
+    tls_test_case("stale release after slot reuse", test_stale_release_after_slot_reuse);
     tls_test_case("contention", test_contention);
     tls_test_case("private key in no output", test_private_key_in_no_output);
     tls_test_case("key copies cleared", test_key_copies_cleared);

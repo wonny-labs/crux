@@ -13,6 +13,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO / ".github/workflows/coverage.yml"
 HOST = REPO / ".github/workflows/host.yml"
+NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
 SCRIPTS = [REPO / "scripts/coverage-host.sh", REPO / "scripts/coverage-native-sim.sh"]
 JOBS = ("host", "native-sim")
 # Only GitHub's own actions may run; nothing here can upload to another service.
@@ -55,21 +56,24 @@ def trigger_block(workflow):
     return lines[start + 1:end]
 
 
+@unittest.skipUnless(WORKFLOW.parent.is_dir(), NO_GITHUB)  # a missing coverage.yml fails
 class CoverageWorkflowTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text()
         cls.triggers = trigger_block(cls.workflow)
 
-    def test_triggers_are_manual_weekly_and_main_push(self):
+    def test_triggers_are_manual_nightly_and_main_push(self):
+        # Coverage belongs to the nightly tier (docs/ci.md), on the schedule of the other workflows.
         events = [line.strip().rstrip(":") for line in self.triggers if re.match(r"  \S", line)]
         self.assertEqual({"workflow_dispatch", "schedule", "push"}, set(events))
         cron = re.findall(r"- cron: \"([^\"]+)\"", "\n".join(self.triggers))
-        self.assertEqual(1, len(cron), "one weekly schedule")
+        self.assertEqual(1, len(cron), "one nightly schedule")
         fields = cron[0].split()
         self.assertEqual(5, len(fields))
-        self.assertNotEqual("*", fields[4], "the schedule names a weekday, so it runs weekly")
-        self.assertEqual(["*", "*"], fields[2:4], "day of month and month stay open: weekly, not monthly")
+        self.assertEqual(["*", "*", "*"], fields[2:], "every day")
+        host_cron = re.findall(r"- cron: \"([^\"]+)\"", HOST.read_text())
+        self.assertEqual(host_cron, cron, "the same nightly time as the other workflows")
         self.assertIn("    branches: [main]", self.triggers)
 
     def test_pull_requests_do_not_start_it(self):

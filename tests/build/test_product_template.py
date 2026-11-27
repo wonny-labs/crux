@@ -280,7 +280,7 @@ int main(void)
 
 
 class DomainIncludeCheckTest(unittest.TestCase):
-    """The check rejects the four frozen Crux headers and every Zephyr header in the domain."""
+    """The check rejects the three frozen Crux headers, the removed queue header and every Zephyr header in the domain."""
 
     @classmethod
     def setUpClass(cls):
@@ -1006,8 +1006,11 @@ class ReleaseTemplateTest(unittest.TestCase):
 
     def test_release_steps_keep_the_guides_order_around_the_build(self):
         steps = release_section("Release steps")
+        # Zephyr v4.5.0 prepares the SBOM inputs in a build with CONFIG_BUILD_OUTPUT_META and
+        # deprecates `west spdx --init`, so no step runs it.
+        self.assertNotIn("spdx --init", steps)
         order = ["west crux-pins", "west manifest --freeze --active-only", "--capture-inputs",
-                 "west spdx --init", "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
+                 "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
                  "`west spdx`", "check-release-bundle", "checks below"]
         positions = []
         for marker in order:
@@ -1157,11 +1160,11 @@ class ManifestTest(unittest.TestCase):
         # and reports a workspace whose checkout differs from it. For an explicit Crux entry
         # the contract is Crux's own west.yml, so crux-pins does not compare the revision with
         # Zephyr's manifest. The literal below is the revision in Zephyr's west.yml at the
-        # pinned v4.4.2, copied by hand. Nothing checks it against Zephyr's manifest after a
+        # pinned v4.5.0, copied by hand. Nothing checks it against Zephyr's manifest after a
         # Zephyr bump; the same gap exists for mbedtls and tf-psa-crypto.
         projects = {entry["name"]: entry for entry in self.crux["projects"]}
         self.assertEqual(["crux-boot"], projects["mcuboot"].get("groups"))
-        self.assertEqual("6d3b3d2c38ab20c242e5b9abb04d050086383eb2", projects["mcuboot"]["revision"])
+        self.assertEqual("725d63c9d5bc1bb572d802e7a768daf504186daf", projects["mcuboot"]["revision"])
         self.assertIn("-crux-boot", self.crux["group-filter"])
         self.assertNotIn("mcuboot", projects["zephyr"]["import"]["name-allowlist"])
 

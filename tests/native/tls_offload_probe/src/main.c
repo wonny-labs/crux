@@ -35,6 +35,18 @@ static uint32_t bytes_echoed, empty_polls;
 static bool sweep_on_empty_poll = true;
 #define PROBE_NO_SWEEP "@probe-no-sweep"
 
+/*
+ * tests/native/web_https/nsos_rdhup.cmake: the offload reports a peer's FIN as POLLHUP, as a
+ * target's stack does. Zephyr v4.5.0 needs it here too. Its offload now reports the host readiness
+ * at every poll update, also when its signal did not fire (commits 35977a277356 and db19d19ba695,
+ * "net: nsos: update 'revents' with poll() when not signalled"), so a FIN seen as POLLIN alone
+ * makes the TLS layer ask the poll to retry at once, every time: the poll spins and never returns
+ * 0, and a native_sim thread that never sleeps also stops the simulated clock, so neither a timeout
+ * nor the eventfd timer ends it. With POLLHUP the TLS layer reports the hangup and the server
+ * closes the client. The no-sweep mode turns it off again, to show the raw offload.
+ */
+void crux_nsos_set_rdhup(int on);
+
 static void event_writer(struct k_timer *timer)
 {
     ARG_UNUSED(timer);
@@ -148,6 +160,7 @@ static void serve_client(struct zsock_pollfd *slot)
         if (received == sizeof(PROBE_NO_SWEEP) - 1 &&
             memcmp(buffer, PROBE_NO_SWEEP, sizeof(PROBE_NO_SWEEP) - 1) == 0) {
             sweep_on_empty_poll = false;
+            crux_nsos_set_rdhup(0);
             printk("PROBE sweep off\n");
         }
     } else {

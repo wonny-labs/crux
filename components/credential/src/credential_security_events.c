@@ -86,6 +86,8 @@ void crux_credential_port_event(const crux_credential_event_t *event)
         break;
     case CRUX_CREDENTIAL_EVENT_ERASED:
         record.id = CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED;
+        /* The account-only erase names the accounts. The full erase names nothing. */
+        record.subject = record_subject(event->record);
         break;
     }
     crux_security_event_emit(&record);

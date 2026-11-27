@@ -25,7 +25,7 @@ pull request that added this file. It has not yet run on a real build.
 
 Usage: scripts/check-boot-config.py [build-dir] [--image NAME]
   build-dir  the build directory of the composition ($repo/build/zephyr/boot-composition by default)
-  --image    the application's directory in the sysbuild tree (zephyr, the basename of samples/controller/zephyr)
+  --image    the application's directory in the sysbuild tree (zephyr, the basename of tests/boot_fixture/zephyr)
 Exit status: 0 every check passed, 1 a check failed, 2 a configuration cannot be used (missing build directory
 or file, or a file without a single CONFIG_ option).
 """
@@ -38,7 +38,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 DEFAULT_BUILD = REPOSITORY / "build/zephyr/boot-composition"
 DEFAULT_IMAGE = "zephyr"
 
-# Options that must be y in the bootloader image (Zephyr v4.4.2 BOOTLOADER_image_default.cmake sets them for
+# Options that must be y in the bootloader image (Zephyr v4.5.0 BOOTLOADER_image_default.cmake sets them for
 # SB_CONFIG_MCUBOOT_MODE_RAM_LOAD_WITH_REVERT; MCUboot boot/zephyr/Kconfig defines them).
 BOOTLOADER_REQUIRED = (
     ("CONFIG_BOOT_RAM_LOAD", "y"),

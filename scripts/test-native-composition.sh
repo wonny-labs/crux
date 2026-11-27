@@ -39,7 +39,9 @@ cache_dir="${CRUX_CACHE_DIR:-${repo}/../.crux-cache}"
 out="${CRUX_COMPOSITION_OUTPUT:-$repo/build/native-composition}"
 jobs="${CRUX_COMPOSITION_JOBS:-4}"
 board=native_sim/native/64
-target_board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+target_board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 composition="$repo/tests/native/management_composition"
 
 fail() {
@@ -73,7 +75,7 @@ run_host() {
 # the composition's CMake function, with the settings of a board.
 check_refusals() { # Host build directory, for the provider's headers
     local psa_include="$cache_dir/cmake/tf_psa_crypto-src" source guarded log="$out/refusals.log" cc="${CC:-gcc}"
-    local includes=("-I$psa_include/include" "-I$psa_include/drivers/builtin/include"
+    local includes=("-I$psa_include/include" "-I$psa_include/drivers/builtin/include" "-I$psa_include/dispatch/include"
         "-I$repo/components/base/include" "-I$repo/components/file/include"
         "-I$repo/components/access/include" "-I$repo/components/access/adapter" "-I$repo/components/access/src"
         "-I$repo/components/credential/include" "-I$repo/components/credential/adapter"
@@ -149,6 +151,7 @@ run_services() { # profile, ZEPHYR_BASE
 # Compile only, on the qualified entropy source. A build with a test generator must not compile.
 run_target() { # profile: mbed or wolf, conf file
     local build="$out/target-$1" config
+    crux_board_require "$target_board" 'mimxrt1060_evk@B//qspi'
     mkdir -p "$out"
     (cd "$workspace" && west build -p always -b "$target_board" -d "$build" -o="-j$jobs" "$repo/tests/psa_ports/zephyr" \
         -- "-DEXTRA_CONF_FILE=../../psa_crypto/zephyr/$2.conf;target-device-id.conf") > "$out/target-$1.log" 2>&1 ||

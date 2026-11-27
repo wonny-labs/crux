@@ -19,7 +19,7 @@ repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 board="$1"
 shift
-app="$repo/samples/time"
+app="$repo/samples/time/shell/zephyr"
 custom_app=0
 debug_optimizations=0
 while [[ $# -gt 0 ]]; do
@@ -50,9 +50,10 @@ fi
 
 zephyr="$workspace/zephyr"
 sanitize() { printf '%s' "$1" | sed -E 's/[^A-Za-z0-9_.-]+/_/g'; }
-# With neither option the build directory is the one that the VS Code profile and the
-# clean task name. --app and --debug-optimizations each add a part to the name, so a
-# reused directory never carries a stale choice.
+# With neither option the build directory is build/zephyr/<board>. --app and
+# --debug-optimizations each add a part to the name, so a reused directory never carries a
+# stale choice. The VS Code profiles do not name this directory: they debug the
+# <board>--current link that is updated after every successful build (see below).
 build_key="$(sanitize "$board")"
 if [[ "$custom_app" -eq 1 ]]; then
     repo_real="$(cd "$repo" && pwd -P)"
@@ -104,5 +105,14 @@ if [[ ! -f "$elf" ]]; then
     exit 1
 fi
 
+# The VS Code profiles debug the ELF behind this link, so they follow the last successful
+# build of this board, whichever application it was. Replace it atomically: a failed build
+# never gets here and leaves the previous link.
+current_link="$repo/build/zephyr/$(sanitize "$board")--current"
+current_tmp="$current_link.tmp.$$"
+ln -sfn "$build_key" "$current_tmp"
+mv -Tf "$current_tmp" "$current_link"
+
 printf '\nFirmware ELF ready for a debug profile:\n%s\n' "$elf"
 sha256sum "$elf"
+printf 'Current build link:   %s\n' "$current_link"

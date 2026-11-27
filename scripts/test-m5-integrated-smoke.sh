@@ -4,10 +4,12 @@ set -euo pipefail
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="${ZEPHYR_BASE:-$workspace/zephyr}"
-board="${CRUX_BOARD_TARGET:-mimxrt1060_evk@B//qspi}"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 app="$repo/tests/m5_integrated/zephyr"
 twister_output="$repo/build/zephyr/twister-m5-integrated"
-build="$repo/build/zephyr/m5-integrated-evkb"
+build="$repo/build/zephyr/m5-integrated-$(crux_board_tag "$board")"
 evidence="$repo/build/evidence/m5-integrated-smoke"
 inputs="$evidence/inputs-before.json"
 
@@ -29,7 +31,7 @@ west build -d "$build" -t rom_report
 west build -d "$build" -t ram_report
 
 config="$build/zephyr/.config"
-for option in CONFIG_CRUX_THREAD CONFIG_CRUX_SYNC CONFIG_CRUX_QUEUE CONFIG_CRUX_TIME \
+for option in CONFIG_CRUX_THREAD CONFIG_CRUX_SYNC CONFIG_CRUX_TIME \
     CONFIG_CRUX_LOGGING CONFIG_CRUX_SYSTEM CONFIG_INIT_STACKS CONFIG_THREAD_STACK_INFO \
     CONFIG_LOG_BACKEND_UART CONFIG_UART_CONSOLE CONFIG_WATCHDOG CONFIG_HWINFO CONFIG_REBOOT \
     CONFIG_LOG_PRINTK; do

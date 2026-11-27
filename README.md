@@ -1,163 +1,49 @@
-# Crux Pilot
+# Crux
 
-**Crux** is a reusable embedded software platform for controller and firmware applications. It provides portable C17 components and selected standard APIs, supported by OS-specific integration, build tools and tests. Portable application code remains separate from operating-system and board details.
+**Crux** is a reusable embedded software platform for firmware products, such as controllers. It gives a product tested platform services in portable C, a Zephyr module and build tooling, so that product code stays separate from operating-system and board details. It runs on Zephyr today; an Embedded Linux integration is expected, with no date set ([ADR-0003](docs/decisions/0003-p9-result-services-keep-narrow-thread-sync.md)).
 
-This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. An Embedded Linux integration is expected. It will be designed at the service boundary when its first product is defined, no date is set, and nothing of it is built yet. Crux is not yet a production-qualified or installable SDK; see [Status and limits](#status-and-limits).
+Crux is for teams that build firmware products on it: application developers who compose a product on Crux, and platform contributors who extend Crux itself.
 
-## Capabilities
+Crux is in development, not production-qualified and has no release yet; [Component readiness](docs/component-readiness.md) gives the state of each component.
 
-Applications select the components they need, and choose where each kind of code goes with the [developer rule](docs/choosing-an-api.md): OS and hardware facilities use Zephyr directly, platform services use Crux, and product behaviour is plain C in the domain. Portable application and runtime-porting code use public interfaces, while board/project configuration selects the OS implementations and hardware resources.
+## What it provides
 
-| Area | Components | Purpose |
-| --- | --- | --- |
-| Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
-| Execution and synchronisation (frozen for new product code, see [Choosing an API](docs/choosing-an-api.md)) | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
-| Communication and networking | `serial` (frozen for new product code), `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
-| Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load. The File type for Reliance Edge (`CRUX_FS_RELIANCE_EDGE`, `<crux/file_reliance_edge_zephyr.h>`) is described in the [File composition interface](docs/file-composition-interface.md) and under [Boot and storage work](#boot-and-storage-work) |
-| Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
-| Device I/O | `gpio`, `i2c`, `spi` (frozen as Experimental, see below) | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource. [ADR-0001](docs/decisions/0001-application-boundary-and-api-stability.md) D4 freezes these three APIs. Deprecation at the first tag and removal in the next tag are planned and not yet done ([Component readiness](docs/component-readiness.md)). New product code uses the Zephyr GPIO, I2C and SPI APIs directly |
-| Boot and update | `image_state` | State of two firmware image slots, a test request and a confirm: public header, pure functions, portable core and a Host test double. Experimental. No bootloader provider exists, and it has not run in a bootloader, on `native_sim` or on a board. See the [image state contract](docs/image-state-contract.md) |
-| Secure management | `access`, `credential`, `security_event`, `cli`, `file_service`, `config_service`, `mgmt_status`, `network_settings`, `reboot`, `tls_certificate`, `web`, `ssh` (private) | Accounts, roles and sessions shared by every management channel; status, configuration, file, network-settings and reboot services; the device TLS certificate and security events; HTTPS web management, the command line over serial and SSH, and SFTP. Tested on Linux Host, and most of it also on `native_sim` (not the reboot service or the serial console). Some parts are compiled for RT1060-EVKB; none has run on a board |
+- **A clear rule for where code goes.** OS and hardware facilities, such as threads, queues and buses, use Zephyr directly. Platform services use Crux. Product behaviour is plain C in the product's own domain ([Choosing an API](docs/choosing-an-api.md)).
+- **Platform services with written contracts:** typed time and clocks, file storage, configuration, logging, system health and reset, and network status and sockets.
+- **Secure remote management:** accounts, roles and sessions, security events, HTTPS web management, a command line over serial and SSH, and services for files, configuration, network settings, certificates and reboot.
+- **Boot and update building blocks:** an MCUboot build composition and an image-state interface.
+- **A product starting point:** a product template, board and driver guides, samples, and tests that run on the Linux Host and on Zephyr `native_sim` without hardware.
 
-All listed components have implemented source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
+The [architecture overview](docs/architecture.md) describes the public capabilities, and [Component readiness](docs/component-readiness.md) lists every component and how far each one is tested.
 
-## Architecture
+## Quick start
 
-Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets, except that `thread`, `sync`, `queue` and `serial` are frozen for new product code (existing users keep working; see [Choosing an API](docs/choosing-an-api.md)). OS and device services remain within the selected platform integration.
+You need Git, Docker, VS Code with the Dev Containers extension, and 30 to 40 GiB of free disk. [Getting started](docs/getting-started.md) covers native Linux and Windows with WSL2.
 
-See the [architecture overview](docs/architecture.md) for component ownership, portability boundaries and build dependencies.
+1. Create a parent folder and clone the repository into it ([folder layout](docs/getting-started.md#2-folder-layout)).
+2. Open the clone in VS Code and choose **Dev Containers: Reopen in Container**. The one Dev Container serves work with and without a board.
+3. Wait for the automatic set-up to finish; you do not run it. It builds and tests the Linux Host preset and installs the Zephyr workspace and SDK; the terminal prints `bootstrap: <step> ok` (`already done` on a rerun) for each step, or `FAILED` and the command that reruns it ([details](docs/getting-started.md#6-the-dev-container-sets-itself-up)).
+4. After you take a new version or recreate the folder, run **Dev Containers: Rebuild Container** ([when to rebuild](docs/getting-started.md#open-and-rebuild-the-container)).
 
-### Development and target environments
+Next: the [Tutorial](docs/tutorial.md).
 
-| Category | Environment | Current scope |
-| --- | --- | --- |
-| Development and test environment | Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
-| Simulated Zephyr target | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
-| Physical Zephyr target | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
-| Physical Zephyr target | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope only (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified; set aside for now (see the [boot overview](docs/boot-overview.md)) |
-| Expected, not scheduled | Embedded Linux | An integration is expected and will be designed at the service boundary when its first product is defined. No date is set. Not implemented or qualified, and the Linux Host providers remain test providers until then |
+## Where to read next
 
-**What the Linux Host providers are used for today.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](tests/README.md)). The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners. `scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer. In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest. The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](docs/build.md#external-linux-application-using-crux-source), [`tests/consumer_poc`](tests/consumer_poc/README.md) and `tests/external_application`. This is not Embedded Linux support.
-
-Host tests, `native_sim` runs and target cross-builds do not prove physical operation. Platform milestone M4 (storage, issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14)) selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR, and it is still the current EVKB profile. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
-
-For each component's Zephyr composition, strongest recorded evidence, gaps and provisional stability tier, see [Component readiness](docs/component-readiness.md).
-
-## Getting started
-
-**On native Linux or Windows with WSL2, read [Getting started on Linux and Windows with WSL2](docs/getting-started-linux-wsl2.md) first.** Three things are easy to get wrong:
-
-- **Use a Git clone.** The scripts call `git rev-parse --show-toplevel`. If you received an archive, run `git init && git add -A && git commit -m import` in it first. The executable bits of `scripts/` must survive, so clone inside Linux or WSL2.
-- **Keep the folder layout.** The Dev Container mounts the repository's parent folder, and that parent becomes the west workspace. The repository folder must be named `crux-pilot`, for example `~/work/crux-ws/crux-pilot`. Do not clone directly into your home directory.
-- **On Windows, clone inside the WSL2 file system**, not under `/mnt/c`, with `core.autocrlf` set to `false`.
-
-The first set-up downloads from several hosts (container registry, PyPI, GitHub) and needs about 30 GiB of free disk space (an estimate). See [Network and proxy prerequisites](docs/build.md#network-and-proxy-prerequisites) and [Disk and memory](docs/build.md#disk-and-memory).
-
-Use Docker and VS Code Dev Containers with the documented Linux amd64 environment. Run the commands below from the Crux repository root **inside the Dev Container**. See the [Build and Integration Guide](docs/build.md) for workspace setup, prerequisites and configuration options.
-
-### Linux Host
-
-Build Crux and run its Host tests, then run the existing finite reference-controller scenario:
-
-```sh
-scripts/bootstrap-host.sh
-build/linux/debug/samples/controller/host/crux-controller-host
-```
-
-The bootstrap configures, builds and runs CTest. The reference controller reports cycle progress and Time status. For subsequent builds and tests using the prepared environment:
-
-```sh
-scripts/check-host.sh
-```
-
-### Zephyr
-
-Prepare the pinned west workspace and SDK, then run the controller simulations and RT1060-EVKB cross-build:
-
-```sh
-scripts/bootstrap-zephyr.sh --install-sdk
-scripts/test-controller.sh
-```
-
-The script checks normal and RTC-absent system realtime `native_sim` scenarios and builds a target firmware image. It does not program or reset the physical board. See the [test guide](tests/README.md) for other components and test procedures.
-
-### Use Crux from another application
-
-A separate Linux CMake project can consume Crux from source with `add_subdirectory()`. Enable only the required `CRUX_BUILD_<COMPONENT>` options and link the documented public `crux::` targets. See the [complete external application example](docs/build.md#external-linux-application-using-crux-source). Installed packages, `find_package(Crux)` and binary SDKs are not supported.
-
-**Physical hardware:** Debugging, resets and firmware programming require a separately approved procedure. The current VS Code Flash profile builds and downloads the **Time sample**, not arbitrary firmware. The Attach profile does not download an image but the debugger connection may halt the target. See the [RT1060 debugging instructions](docs/build.md#rt1060-evkb-debugging) before using either profile.
-
-### Boot and storage work
-
-Work on eMMC storage and on secure boot is in progress. The status below is what the linked pages record, and no result comes from an eMMC device or from a booted image.
-
-- **eMMC on Reliance Edge.** A reference composition (`samples/storage_emmc`) links for the RT1060-EVKB and is tested on Host and `native_sim` against a test-only eMMC simulator. The RT1060-EVKB has no eMMC, so nothing has run on eMMC hardware. The Reliance Edge source is GPLv2 and sits in the optional west group `crux-reliance`, which is off by default. See [eMMC composition on Reliance Edge](docs/emmc-reliance-composition.md) and [Component readiness](docs/component-readiness.md).
-- **MCUboot.** MCUboot is in the manifest in the optional group `crux-boot`, with a documented build-only composition (sysbuild, RAM load with revert) for the RT1060-EVK Rev B, checked in CI. Nothing has been programmed or booted on a board. See the [boot overview](docs/boot-overview.md) and the [boot composition](docs/boot-composition.md).
-- **Image state.** The `image_state` contract is Experimental code with a Host test double and no bootloader provider. See the [image state contract](docs/image-state-contract.md).
-
-## Repository structure
-
-| Path | Purpose |
+| You want to | Read |
 | --- | --- |
-| `components/` | Public capability interfaces, shared implementations and OS-specific ports |
-| `samples/` | Capability examples and reference controller applications |
-| `zephyr/` | Out-of-tree Zephyr module integration |
-| `tests/` | Host, Zephyr, build-policy and target validation |
-| `web/` | Management API specification, TypeScript client, mock server and browser tests for the web examples in `samples/web`. No C build needs it. See the [web guide](web/README.md). |
-| `scripts/` | Setup, build, analysis and test commands |
-| `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
-| `templates/` | Copy-and-start skeletons for a product repository: `templates/product`, with its own README |
-| `.devcontainer/` | Linux development environment |
-| `.github/workflows/` | CI workflows |
-| `docs/` | Architecture, API contracts, decisions and evidence |
+| Run your first builds and samples | [Tutorial: your first build and sample](docs/tutorial.md) and [Samples](samples/README.md) |
+| Find your way around the repository | [Repository layout](docs/architecture.md#repository-layout) |
+| Understand the layers and ownership | [Architecture overview](docs/architecture.md) and [Choosing an API](docs/choosing-an-api.md) |
+| Build Crux or consume it from another CMake project | [Build and Integration Guide](docs/build.md) |
+| Start, version and release a product | [Product Composition Guide](docs/product-composition.md) and the [product template](templates/product/README.md) |
+| Add a board or a driver | [Porting to a new board](docs/porting-to-a-new-board.md) and [Writing a product driver](docs/writing-a-product-driver.md) |
+| Add remote management or secure boot | [Secure management in a product](docs/management-in-a-product.md) and the [boot overview](docs/boot-overview.md) |
+| Run the tests before a pull request | [Test guide](tests/README.md) |
+| Find any other page by task | [Documentation map](docs/README.md) |
 
-## Documentation
+## Contributing
 
-| Topic | Reference |
-| --- | --- |
-| Architecture, components and API contracts | [Architecture overview and capability inventory](docs/architecture.md) |
-| Setup, builds, external applications and debugging | [Build and Integration Guide](docs/build.md) |
-| Composing, versioning and releasing a product on Crux | [Product Composition Guide](docs/product-composition.md) |
-| Adding a board, a Zephyr driver and its tests to a product repository | [Writing a product driver](docs/writing-a-product-driver.md) and the [product template](templates/product/README.md) |
-| Test commands and qualification procedures | [Test guide](tests/README.md) |
-| Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
-| Where to start, which pages are current or historical, terms and milestones | [Documentation index](docs/README.md) |
-| Platform-wide decisions (ADRs) | [Decision records](docs/decisions/README.md) |
-| Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) (historical record of early platform milestone M3) |
-| First set-up on Linux or WSL2 | [Getting started on Linux and Windows with WSL2](docs/getting-started-linux-wsl2.md) |
-| Secure boot, MCUboot and eMMC | [Boot overview](docs/boot-overview.md), [eMMC composition](docs/emmc-reliance-composition.md) |
-
-### Secure management
-
-The documents for accounts, the management services, HTTPS web management, the command line over serial and SSH, and SFTP. **A product team that consumes Crux as a west module starts with [Secure management in a product](docs/management-in-a-product.md)**: what to enable, what is not built, limits, tested clients and browsers, and the open decisions. Nothing here has run on a board. The [capability inventory](docs/architecture.md#current-capability-integration) gives each component's validation level.
-
-| Topic | Documents |
-| --- | --- |
-| Terms | [Glossary](docs/management-glossary.md): session channel and access session, provider and adapter, refuse and deny, route, listener, profiles |
-| Accounts, roles, sessions and security events | [Access contract](docs/access-contract.md), [credential store](docs/credential-store.md), [security events](docs/security-event-contract.md) |
-| Management services | [Status and configuration services](docs/status-configuration-services.md), [file service](docs/file-service-contract.md), [network settings](docs/network-settings-service.md), [reboot](docs/reboot-service.md) |
-| HTTPS web management | [HTTPS composition](docs/https-composition.md), [web contract](docs/web-contract.md), [sessions and login](docs/web-session.md), [management APIs](docs/web-management-apis.md), [packaged web assets](docs/web-assets.md), [TLS certificate](docs/tls-certificate.md), [API specification](web/api/openapi.yaml) |
-| Browser examples | [Web guide](web/README.md) with the Preact and Angular examples, [configuration flow](docs/web-config-flow.md), and [end to end on `native_sim`](docs/e2e-native-220.md) |
-| Command line over serial and SSH | [Command line contract](docs/cli-contract.md), [SSH provider contract](docs/ssh-provider-contract.md), [wolfSSH provider](docs/ssh-wolf-provider.md), [command line over SSH](docs/cli-over-ssh.md) |
-| SFTP | [SFTP design](docs/sftp-design.md), including the recorded WinSCP runs |
-| Management services together on `native_sim` | [Management composition](docs/native-management-composition.md) and [the services image](docs/native-composition-242.md) |
-
-## Status and limits
-
-- **Not production-qualified.** Crux is a development and architecture-validation Pilot, not an installable SDK, and no `find_package(Crux)` or binary package exists.
-- **No release or tag.** Products consume Crux as a source revision (a west project or a source tree) and pin a revision for a release; the product template follows `main` until a tag exists.
-- **Stability tiers are provisional.** Public interfaces use the tiers of [ADR-0001](docs/decisions/0001-application-boundary-and-api-stability.md#decision-4-api-stability-and-change-policy) (Experimental, Unstable, Stable, Deprecated). Nothing is Stable, and several components are Experimental. Each component's tier and evidence are in [Component readiness](docs/component-readiness.md).
-- **Interim freeze digest.** The tree digest of the patched Zephyr copy for the RT1060 management image is recorded in an interim form, derived on macOS. It is to be re-derived in the build environment at the first real bench build ([bench image plan](docs/rt1060-bench-image-plan.md)).
-- **No board evidence for secure management.** Accounts, the management services, HTTPS web management, the command line and SFTP have run on Linux Host and, mostly, on `native_sim`, and some parts compile for RT1060-EVKB. None has run on a board.
-- **Evidence levels differ.** A Host test, a `native_sim` run, a target cross-build and a physical-board run each prove different things, and none implies another. See [Development and target environments](#development-and-target-environments).
-
-## Project status and contributing
-
-**Who to ask.** Open a [GitHub issue](https://github.com/wonny-labs/crux-pilot/issues) for a question, a documentation gap or a missing interface. The repository records no other contact channel.
-
-Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and review rules and [AGENTS.md](AGENTS.md) for AI execution boundaries.
+Ask a question or report a gap as an [issue](https://github.com/wonny-labs/crux-pilot/issues). Read [CONTRIBUTING.md](CONTRIBUTING.md) for ownership, public interfaces and review rules, and [AGENTS.md](AGENTS.md) for the rules that AI agents follow in this repository.
 
 ## License
 

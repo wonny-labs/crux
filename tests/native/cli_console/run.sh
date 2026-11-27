@@ -81,3 +81,38 @@ refuse() { # name expected-text extra-conf...
 refuse no-access 'The fixture needs CONFIG_CRUX_CLI_CONSOLE' CONFIG_CRUX_ACCESS=n
 refuse with-shell 'must not enable CONFIG_SHELL' CONFIG_SHELL=y CONFIG_SHELL_BACKEND_SERIAL=y
 printf 'ok: a console without Access and a console beside a Zephyr shell are both refused at configuration\n'
+
+# 4. The console and Logging on one UART (CONFIG_CRUX_CLI_CONSOLE_UART_SHARED, Experimental), with the progress
+#    hook of the service threads: the fixture in shared/, which adds shared.conf and shared.overlay to the files
+#    above. Its profile paths are absolute, because the fixture is one level deeper.
+shared="$fixture/shared"
+shared_profile="-DEXTRA_CONF_FILE=$repo/tests/native/tls_offload_probe/mbed.conf;$repo/tests/native/management_composition/profile-psa.conf;$repo/tests/native/management_composition/mbed-threading.conf"
+build="$out/shared"
+(cd "$workspace" && west build -p always -b "$board" -d "$build" -o="-j$jobs" "$shared" -- "$shared_profile") \
+    > "$out/shared-build.log" 2>&1 || { tail -40 "$out/shared-build.log" >&2; fail 'the shared fixture failed to build'; }
+rm -f "$out/shared-disk.bin"
+timeout -k 10 "${CRUX_CONSOLE_RUN_TIMEOUT:-300}" "$build/zephyr/zephyr.exe" --flash="$out/shared-disk.bin" --seed=7 \
+    > "$out/shared-run.log" 2>&1 ||
+    { tail -40 "$out/shared-run.log" >&2; fail 'the shared fixture failed to run, or ran past its time limit'; }
+grep -q 'PROJECT EXECUTION SUCCESSFUL' "$out/shared-run.log" || fail 'the shared fixture did not report success'
+grep -q 'pass = 5, fail = 0' "$out/shared-run.log" || fail 'the shared fixture did not pass its five cases'
+config="$build/zephyr/.config"
+grep -qx 'CONFIG_CRUX_CLI_CONSOLE_UART_SHARED=y' "$config" || fail 'the shared fixture is not in the shared mode'
+! grep -qx 'CONFIG_LOG_BACKEND_UART=y' "$config" || fail "the shared fixture kept Zephyr's UART backend"
+printf 'ok: the console and Logging share one UART, and the service threads report progress\n'
+
+refuse_shared() { # name expected-text extra-conf...
+    local name="$1" text="$2"
+    shift 2
+    local conf="$out/refuse-$name.conf"
+    printf '%s\n' "$@" > "$conf"
+    if (cd "$workspace" && west build -p always -b "$board" -d "$out/refuse-$name" "$shared" -- \
+            "$shared_profile;$conf") > "$out/refuse-$name.log" 2>&1; then
+        fail "the configuration '$name' was accepted, and it must not be"
+    fi
+    grep -q "$text" "$out/refuse-$name.log" || { tail -20 "$out/refuse-$name.log" >&2; fail "'$name' failed for another reason"; }
+}
+refuse_shared shared-with-uart-backend 'requires CONFIG_LOG_BACKEND_UART=n' CONFIG_LOG_BACKEND_UART=y
+refuse_shared shared-without-logging 'CONFIG_CRUX_CLI_CONSOLE_UART_SHARED needs CONFIG_CRUX_LOGGING' CONFIG_CRUX_LOGGING=n
+refuse_shared shared-other-rate 'CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE (9600) differs' CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE=9600
+printf "ok: a shared console beside Zephyr's UART backend, one without Crux Logging, and one at another rate than its UART are refused\n"

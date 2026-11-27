@@ -3,11 +3,13 @@
 """Tests of the power-cut replay model. They need no build: traces are made here."""
 import os
 import struct
+import subprocess
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import run_replay  # noqa: E402
 from replay_model import (SECTOR, CommitPatternError, TraceError, acked_at,  # noqa: E402
                           build_image, flushes_before_metaroot, mandatory_positions,
                           metaroot_sectors, parse_trace)
@@ -213,6 +215,38 @@ class ReplayModelTest(unittest.TestCase):
             build_image(BASELINE, TRACE, 0, 'shuffled', 0)
         with self.assertRaises(ValueError):
             build_image(fill(0) * 4, TRACE, len(TRACE), 'prefix', 0)  # sector 8 is outside
+
+
+class ReplayArguments(unittest.TestCase):
+    """run_replay.py pairs each file system with the workloads it runs, before it starts a process."""
+
+    def run_replay(self, *options):
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'run_replay.py')
+        return subprocess.run([sys.executable, script, '--exe-fix', 'none', '--exe-nofix', 'none',
+                               '--seed', '1', '--samples', '0', '--max-seconds', '1',
+                               '--out', os.devnull, *options], capture_output=True, text=True)
+
+    def test_w4_needs_a_file_system_that_claims_the_invariants(self):
+        result = self.run_replay('--fs', 'fatfs', '--workload', 'W4')
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--workload W4 needs --fs reliance or --fs littlefs', result.stderr)
+
+    def test_littlefs_needs_a_named_workload(self):
+        result = self.run_replay('--fs', 'littlefs')
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--fs littlefs runs W4, W5 or W8', result.stderr)
+
+    def test_w5_runs_on_littlefs_only(self):
+        for fs in ('fatfs', 'reliance'):
+            result = self.run_replay('--fs', fs, '--workload', 'W5')
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('--workload W5 needs --fs littlefs', result.stderr)
+
+    def test_littlefs_w8_has_its_own_images_and_report(self):
+        self.assertEqual(run_replay.IMAGES['littlefs-w8'],
+                         {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'})
+        self.assertEqual(run_replay.IMAGES['littlefs-w5'],
+                         {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'})
 
 
 if __name__ == '__main__':

@@ -11,7 +11,8 @@
 /* The volume under the suite comes from a fixture header: FIXTURE_ROOT (the mount point), the mount
  * object fixture_mount, and fixture_provision(), which makes a volume that the Settings backend can
  * initialise on and mounts it. Only the FatFs fixture defines FIXTURE_HAS_READ_BACK, because the
- * read-back probe exists only in the provider copy that prepare_provider.py makes. */
+ * read-back probe exists only in the provider copy that prepare_provider.py makes. A fixture whose
+ * file system allocates a file's blocks only at a sync defines FIXTURE_FILL_SYNCS_EACH_CHUNK. */
 #ifndef FIXTURE_HEADER
 #define FIXTURE_HEADER "fixture_fatfs.h"
 #endif
@@ -26,10 +27,21 @@ static bool count_compaction_reads;
 #ifdef FIXTURE_HAS_READ_BACK
 extern bool crux_probe_read_back; /* provider copy: verify every saved record by reading it back */
 #endif
+static int fail_stat_cmp; /* the error the next fs_stat of a compaction temp file returns */
 static unsigned read_calls, fail_read_at; /* fail the N-th fs_read since the counter was reset */
 enum write_fault { WRITE_NONE, WRITE_ZERO, WRITE_SHORT, WRITE_ERROR };
 static enum write_fault write_fault;
 
+int __real_fs_stat(const char *, struct fs_dirent *);
+int __wrap_fs_stat(const char *path, struct fs_dirent *entry)
+{
+    if (fail_stat_cmp != 0 && strstr(path, ".cmp") != NULL) {
+        int rc = fail_stat_cmp;
+        fail_stat_cmp = 0;
+        return rc;
+    }
+    return __real_fs_stat(path, entry);
+}
 int __real_fs_open(struct fs_file_t *, const char *, fs_mode_t);
 int __real_fs_close(struct fs_file_t *);
 ssize_t __real_fs_read(struct fs_file_t *, void *, size_t);
@@ -137,6 +149,7 @@ static void before(void *unused)
 {
     ARG_UNUSED(unused);
     fail_read = false;
+    fail_stat_cmp = 0;
     read_calls = fail_read_at = 0;
     compaction_read_fault_at = 0;
     count_compaction_reads = false;
@@ -311,6 +324,13 @@ static void fill_volume(void)
     zassert_ok(fs_open(&file, FIXTURE_ROOT "/filler", FS_O_CREATE | FS_O_WRITE));
     do {
         written = fs_write(&file, chunk, sizeof(chunk));
+#ifdef FIXTURE_FILL_SYNCS_EACH_CHUNK
+        /* LittleFS allocates the blocks of a file only when the file is synced. A filler whose
+         * close fails for lack of space would leave its blocks free, and the volume not full. */
+        if (written == (ssize_t)sizeof(chunk) && fs_sync(&file) != 0) {
+            break;
+        }
+#endif
     } while (written == (ssize_t)sizeof(chunk));
     (void)fs_close(&file);
 }
@@ -583,6 +603,15 @@ ZTEST(configuration_settings_file, test_missing_file_with_a_compaction_leftover_
     fresh(&p, &spec, 99);
     crux_config_result_t rc = crux_config_load(&p);
     zassert_equal(rc, CRUX_CONFIG_ERR_IO, "a lost file reads as %d", rc);
+
+    /* Only "not found" for the leftover means a first boot. Any other answer from fs_stat leaves
+     * the leftover's presence unknown, so it is an I/O error too, and not defaults. */
+    crux_config_param_t q = {0};
+    fail_stat_cmp = -EIO;
+    fresh(&q, &spec, 99);
+    rc = crux_config_load(&q);
+    zassert_equal(fail_stat_cmp, 0, "fault must reach the leftover check");
+    zassert_equal(rc, CRUX_CONFIG_ERR_IO, "a failed leftover check reads as %d", rc);
     zassert_ok(fs_unlink(FIXTURE_ROOT "/settings/cfg.cmp"));
 }
 

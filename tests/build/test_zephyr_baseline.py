@@ -232,7 +232,7 @@ class ModuleGateTest(unittest.TestCase):
 
     def test_the_module_switch_turns_the_gate_off(self):
         # Kconfig turns the capabilities off with the module, so model that too.
-        off = "set(CONFIG_CRUX_PILOT_MODULE OFF)\nset(CONFIG_CRUX_TIME OFF)\nset(KERNEL_PATCHLEVEL 99)\n"
+        off = "set(CONFIG_CRUX_MODULE OFF)\nset(CONFIG_CRUX_TIME OFF)\nset(KERNEL_PATCHLEVEL 99)\n"
         for settings in (off, off + f"set({OPTION} ON)\n"):
             with self.subTest(settings=settings):
                 result = self.configure(settings)

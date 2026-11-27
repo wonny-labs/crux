@@ -21,7 +21,9 @@ USES = """
 crux_file_result_t (*bind_default)(const char *) = crux_file_zephyr_bind;
 crux_file_result_t (*bind_root)(crux_file_root_t, const char *) = crux_file_zephyr_bind_root;
 crux_file_result_t (*last_error)(void) = crux_file_zephyr_last_cleanup_error;
-int main(void) { return bind_default && bind_root && last_error ? 0 : 1; }
+crux_file_result_t (*bind_limited)(crux_file_root_t, const char *, uint64_t) =
+    crux_file_zephyr_bind_root_limited;
+int main(void) { return bind_default && bind_root && last_error && bind_limited ? 0 : 1; }
 """
 
 
@@ -55,7 +57,7 @@ class PublicHeader(unittest.TestCase):
 
     def test_the_private_header_declares_nothing_a_second_time(self):
         text = (PORT / 'file_native.h').read_text()
-        self.assertNotRegex(text, r'crux_file_zephyr_(bind|bind_root|last_cleanup_error)\s*\(')
+        self.assertNotRegex(text, r'crux_file_zephyr_(bind|bind_root|bind_root_limited|last_cleanup_error)\s*\(')
         self.assertRegex(text, r'#include\s+"include/crux/file_zephyr\.h"')
 
     def test_the_public_path_is_unique_across_components(self):
@@ -84,8 +86,12 @@ class PublicHeader(unittest.TestCase):
             self.assertIn(word, text.lower(), word)
 
 
-SAMPLES_ON_THE_PUBLIC_TARGET = ('storage_sd_interrupt', 'storage_sd_replace', 'storage_sd_probe',
-                                'storage_emmc', 'storage_reliance_sd')
+# Board compositions and board test images that only need the binding header (paths from the root).
+SAMPLES_ON_THE_PUBLIC_TARGET = ('tests/board_images/sd_card_power_cut_append',
+                                'tests/board_images/sd_card_power_cut_replace',
+                                'tests/board_images/sd_card_probe',
+                                'samples/boards/nxp/mimxrt1060_evk/emmc_file',
+                                'tests/board_images/sd_card_power_cut_sequence')
 
 
 def builds_compiling(*sources):
@@ -114,7 +120,7 @@ class Consumers(unittest.TestCase):
 
     def test_the_samples_that_only_need_the_binding_header_use_the_public_target(self):
         for name in SAMPLES_ON_THE_PUBLIC_TARGET:
-            directory = ROOT / 'samples' / name
+            directory = ROOT / name
             with self.subTest(sample=name):
                 text = (directory / 'CMakeLists.txt').read_text()
                 self.assertRegex(text, r'target_link_libraries\(app PRIVATE[^)]*crux::file_zephyr')
@@ -123,7 +129,7 @@ class Consumers(unittest.TestCase):
                     self.assertNotIn('file_native.h', source.read_text(), source.name)
 
     def test_the_emmc_composition_includes_the_public_header_in_format_order(self):
-        lines = (ROOT / 'samples/storage_emmc/emmc_storage.c').read_text().splitlines()
+        lines = (ROOT / 'samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_storage.c').read_text().splitlines()
         includes = [line for line in lines if line.startswith('#include')]
         self.assertIn('#include <crux/file_zephyr.h>', includes)
         self.assertNotIn('#include "file_native.h"', includes)
@@ -151,9 +157,16 @@ class Target(unittest.TestCase):
     cmake = (PORT / 'CMakeLists.txt').read_text()
 
     def test_each_provider_branch_publishes_the_composition_target(self):
+        # Every provider branch builds its targets through one helper, which publishes crux::file and
+        # the composition target together.
         calls = len(re.findall(r'^\s*crux_file_zephyr_composition\(\)\s*$', self.cmake, re.M))
         self.assertEqual(calls, self.cmake.count('add_library(crux_file INTERFACE)'))
-        self.assertGreaterEqual(calls, 3)
+        helper = re.search(r'function\(crux_file_zephyr_provider\)(.*?)endfunction\(\)', self.cmake, re.S)
+        self.assertIsNotNone(helper)
+        self.assertIn('add_library(crux_file INTERFACE)', helper.group(1))
+        self.assertRegex(helper.group(1), r'(?m)^\s*crux_file_zephyr_composition\(\)\s*$')
+        branches = len(re.findall(r'^\s*crux_file_zephyr_provider\(\)\s*$', self.cmake, re.M))
+        self.assertGreaterEqual(branches, 4)    # SD card, RAM disk, Reliance Edge, simulators
 
     def test_the_target_exposes_only_the_public_include_root_and_the_file_contract(self):
         body = re.search(r'function\(crux_file_zephyr_composition\)(.*?)endfunction\(\)', self.cmake, re.S)

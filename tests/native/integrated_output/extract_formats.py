@@ -3,7 +3,7 @@ import argparse,ast,json,re
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('sample',type=Path);p.add_argument('output',type=Path);a=p.parse_args()
 variants={}
-for name in ('m3_main.c','network_client.c'):
+for name in ('probe_main.c','network_client.c'):
     for match in re.finditer(r'printk\(\s*((?:"(?:\\.|[^"\\])*"\s*)+)(?:,|\))',(a.sample/name).read_text()):
         value=''.join(ast.literal_eval(t) for t in re.findall(r'"(?:\\.|[^"\\])*"',match[1]))
         if value.startswith('M3_'):variants.setdefault(value.split(' ')[0][3:],set()).add(value)

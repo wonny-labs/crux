@@ -38,7 +38,6 @@ class ExternalApplicationTest(unittest.TestCase):
                 ('serial', {'serial'}, 'crux_serial_open'),
                 ('logging', {'logging'}, 'crux_log_write'),
                 ('system', {'system'}, 'crux_system_status_get'),
-                ('messaging', {'queue', 'time', 'thread'}, 'crux_queue_create'),
                 ('parent', set(), None)):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 result, build = self.configure(Path(temporary), profile)
@@ -50,7 +49,7 @@ class ExternalApplicationTest(unittest.TestCase):
                     file = entry['file'].replace('\\', '/')
                     match = re.search(r'/components/([^/]+)/', file)
                     if match:
-                        self.assertIn(match[1], selected | ({'interrupt'} if selected & {'time', 'thread', 'sync', 'queue', 'system'} else set()), file)
+                        self.assertIn(match[1], selected | ({'interrupt'} if selected & {'time', 'thread', 'sync', 'system'} else set()), file)
                     self.assertNotIn('googletest', file)
                     self.assertNotIn('/samples/', file)
                     if Path(file).name in ('consumer.c', 'consumer.cpp'):
@@ -110,7 +109,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(logging)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::time OR TARGET crux::sync '
+                'OR TARGET crux::thread OR TARGET crux::time OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "Logging changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -134,7 +133,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(system)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::time OR TARGET crux::sync '
+                'OR TARGET crux::thread OR TARGET crux::time OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "System changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -188,13 +187,15 @@ class ExternalApplicationTest(unittest.TestCase):
             self.assertNotIn('time_port_memory.c', commands)
 
     def test_controlled_samples_reject_system_clock_provider(self):
-        for sample, controller in (('ON', 'OFF'), ('OFF', 'ON')):
-            with self.subTest(sample=sample), tempfile.TemporaryDirectory() as temporary:
+        for sample, controller, option in (('ON', 'OFF', 'CRUX_BUILD_TIME_PERIODIC_SCENARIO'),
+                                           ('OFF', 'ON', 'CRUX_BUILD_TIME_PERIODIC_SCENARIO'),
+                                           ('OFF', 'ON', 'CRUX_BUILD_REFERENCE_CONTROLLER')):
+            with self.subTest(sample=sample, option=option), tempfile.TemporaryDirectory() as temporary:
                 result = subprocess.run(
                     [CMAKE, '-S', str(REPO), '-B', temporary, '-G', 'Ninja',
                      '-DCRUX_TIME_PROVIDER=linux', '-DCRUX_BUILD_TESTS=OFF',
                      f'-DCRUX_BUILD_HOST_SAMPLE={sample}',
-                     f'-DCRUX_BUILD_REFERENCE_CONTROLLER={controller}'],
+                     f'-D{option}={controller}'],
                     text=True, capture_output=True)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('controlled Time samples require CRUX_TIME_PROVIDER=memory',
@@ -244,11 +245,3 @@ class ExternalApplicationTest(unittest.TestCase):
             result, _ = self.configure(Path(temporary), 'system', '-DCONFLICT_PROVIDER=ON')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('CRUX_SYSTEM_PROVIDER', result.stdout + result.stderr)
-
-    def test_missing_native_composition_fails_at_link(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            result, build = self.configure(Path(temporary), 'messaging', '-DOMIT_PROVIDER=ON')
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            result = subprocess.run([CMAKE, '--build', str(build)], text=True, capture_output=True)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('undefined reference', result.stdout + result.stderr)

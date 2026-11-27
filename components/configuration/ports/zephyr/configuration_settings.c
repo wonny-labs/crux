@@ -9,11 +9,16 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/util.h>
 
-#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
-/* The target selection: Settings File on Reliance Edge, with the corrected backend that the
- * module stages. It is a target selection and has no simulator restriction. */
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
+/* The target selections: Settings File on Reliance Edge or on another mounted file system, with the
+ * corrected backend that the module stages. They are target selections and have no simulator
+ * restriction. The module's CMake refuses FatFs for CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS;
+ * this repeats it at compile time. The Reliance Edge selection is not affected. */
 #if !defined(CONFIG_SETTINGS_FILE)
 #error "The Settings File selection requires CONFIG_SETTINGS_FILE"
+#endif
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS) && defined(CONFIG_FAT_FILESYSTEM_ELM)
+#error "The Settings File selection refuses FatFs: its rename can leave the settings file missing"
 #endif
 #else
 #if !defined(CRUX_CONFIGURATION_SETTINGS_SIMULATOR) || !CONFIG_BOARD_NATIVE_SIM ||                 \
@@ -51,6 +56,16 @@ crux_config_result_t crux_config_zephyr_init(void)
     crux_config_result_t rc = result(settings_subsys_init());
     initialized = rc == CRUX_CONFIG_OK;
     return rc;
+}
+
+/* Clears a buffer through volatile stores, so that the compiler keeps them before a return. */
+static void wipe(void *buffer, size_t length)
+{
+    volatile uint8_t *bytes = buffer;
+    while (length > 0u) {
+        *bytes++ = 0;
+        --length;
+    }
 }
 
 struct read_context {
@@ -102,18 +117,20 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
 
     struct read_context ctx = {0};
     int rc = settings_load_subtree_direct(name, receive, &ctx);
+    crux_config_result_t outcome = CRUX_CONFIG_OK;
     if (ctx.error != 0 || rc != 0) {
-        return result(ctx.error != 0 ? ctx.error : rc);
+        outcome = result(ctx.error != 0 ? ctx.error : rc);
+    } else if (!ctx.found) {
+        outcome = CRUX_CONFIG_DEFAULT_MISSING;
+    } else {
+        size_t copied = MIN(ctx.length, capacity);
+        memcpy(buffer, ctx.bytes, copied);
+        record->length = ctx.length;
+        record->transferred = copied;
     }
-    if (!ctx.found) {
-        return CRUX_CONFIG_DEFAULT_MISSING;
-    }
-
-    size_t copied = MIN(ctx.length, capacity);
-    memcpy(buffer, ctx.bytes, copied);
-    record->length = ctx.length;
-    record->transferred = copied;
-    return CRUX_CONFIG_OK;
+    /* The record may hold a sensitive value: no copy of it stays on the stack. */
+    wipe(ctx.bytes, sizeof(ctx.bytes));
+    return outcome;
 }
 
 crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length)

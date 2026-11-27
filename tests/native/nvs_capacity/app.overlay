@@ -7,6 +7,7 @@
 &flash0 {
     partitions {
         candidate_nvs: partition@100000 {
+            compatible = "zephyr,mapped-partition";
             label = "candidate-nvs-software-only";
             reg = <0x100000 0x10000>;
         };

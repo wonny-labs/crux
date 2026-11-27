@@ -12,6 +12,7 @@
 
 #include <crux/thread.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/ztest.h>
 
 typedef struct {
@@ -95,6 +96,48 @@ ZTEST(service_priority, test_unknown_identifier_changes_nothing)
 {
     probe_t probe = run_probe(CRUX_THREAD_PRIORITY_LOW, CRUX_SERVICE_THREAD_COUNT, true);
     zassert_equal(probe.after, 6);
+}
+
+/* The progress hook (<crux/service_priority_zephyr.h>) on the kernel: one registration per boot,
+ * and a report from a Crux Thread worker reaches the function on that worker's thread. */
+static atomic_t progress_reports[CRUX_SERVICE_THREAD_COUNT];
+static atomic_t progress_off_thread;
+static k_tid_t reporter;
+static int progress_context;
+
+static void record_progress(crux_service_thread_t thread, void *context)
+{
+    if (context != &progress_context || k_current_get() != reporter) {
+        atomic_inc(&progress_off_thread);
+    }
+    atomic_inc(&progress_reports[thread]);
+}
+
+static void report_main(void *argument)
+{
+    (void)argument;
+    reporter = k_current_get();
+    for (int which = 0; which <= CRUX_SERVICE_THREAD_COUNT; ++which) {
+        crux_service_progress_report((crux_service_thread_t)which);
+    }
+}
+
+ZTEST(service_priority, test_progress_reaches_the_registered_function)
+{
+    zassert_equal(crux_service_progress_register(NULL, NULL), CRUX_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_service_progress_register(record_progress, &progress_context), CRUX_OK);
+    zassert_equal(crux_service_progress_register(record_progress, NULL), CRUX_ERR_BUSY);
+
+    const crux_thread_options_t options = {0u, CRUX_THREAD_PRIORITY_LOW};
+    crux_thread_t thread;
+    zassert_equal(crux_thread_create(&options, report_main, NULL, &thread), CRUX_OK);
+    zassert_equal(crux_thread_join(&thread, 5000u), CRUX_OK);
+    /* Each identifier once, nothing for the one past the end, on the worker's own thread with the
+     * registered context. */
+    for (int which = 0; which < CRUX_SERVICE_THREAD_COUNT; ++which) {
+        zassert_equal(atomic_get(&progress_reports[which]), 1, "thread %d", which);
+    }
+    zassert_equal(atomic_get(&progress_off_thread), 0);
 }
 
 ZTEST_SUITE(service_priority, NULL, NULL, NULL, NULL, NULL);

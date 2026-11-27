@@ -1,5 +1,6 @@
 """Run the source boundary checker on isolated, representative source trees."""
 from pathlib import Path
+import runpy
 import subprocess
 import shutil
 import sys
@@ -22,7 +23,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_system_consumers_reject_native_leakage(self):
         for path in ("tests/system_consumer/src/runtime.c", "tests/system_consumer/src/consumer.cpp",
-                     "tests/system_consumer/src/runtime.h", "samples/controller/system/controller_system.c"):
+                     "tests/system_consumer/src/runtime.h", "tests/system_consumer/scenario/controller_system.c"):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
@@ -31,7 +32,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_logging_consumers_reject_native_leakage(self):
         for path in ("tests/logging_consumer/src/runtime.c", "tests/logging_consumer/src/consumer.cpp",
-                     "tests/logging_consumer/src/runtime.h", "samples/logging/controller.c"):
+                     "tests/logging_consumer/src/runtime.h", "tests/logging_consumer/scenario/controller.c"):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
@@ -40,7 +41,7 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_serial_consumers_reject_native_leakage(self):
         for path in ("tests/serial_consumer/src/runtime.c", "tests/serial_consumer/src/consumer.cpp",
-                     "tests/serial_consumer/src/runtime.h", "samples/serial/controller.c"):
+                     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/scenario/controller.c"):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
@@ -56,13 +57,25 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_messaging_consumers_reject_native_leakage(self):
-        for path in ("tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
-                     "samples/messaging/controller.c"):
+        for path in ("tests/messaging_consumer/scenario/controller.c",):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/queue.h>\n#include <crux/time.h>\n", path)
+                good = self.check_source("#include <crux/thread.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
+    def test_listed_sample_and_test_paths_exist(self):
+        # A stale path checks nothing.
+        planned = set()
+        checker = runpy.run_path(str(CHECKER))
+        for name in ("PORTABLE_ROOTS", "NETWORKING_PROFILE"):
+            for path in checker[name]:
+                # A glob such as samples/*/common may match nothing yet; test_sample_layout.py checks
+                # that it covers every common/ folder.
+                if not path.startswith(("samples/", "tests/")) or path in planned or "*" in path:
+                    continue
+                with self.subTest(table=name, path=path):
+                    self.assertTrue((REPO / path).exists(), path)
 
     def test_rejects_native_header_families_and_include_spacing(self):
         for header in ("zephyr/kernel.h", "board.h", "fsl_gpio.h", "fsl_device_registers.h",
@@ -106,10 +119,10 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_rejects_direct_paths_into_component_ports(self):
-        for header in ("../ports/linux/queue_port.h", "../ports/zephyr/queue_port.h"):
+        for header in ("../ports/linux/example_port.h", "../ports/zephyr/example_port.h"):
             for path in ("components/example/include/crux/example.h",
                          "components/example/src/example.c",
-                         "tests/messaging_consumer/runtime.c"):
+                         "tests/thread_sync_consumer/consumer.c"):
                 with self.subTest(header=header, path=path):
                     result = self.check_source(f'#include "{header}"\n', path)
                     self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -129,9 +142,10 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/runtime/src/thread.c", "components/runtime/portable/thread.c",
                      "components/new/runtime_porting/lock.h", "runtime_porting/include/lock.h",
                      "applications/new/src/main.c", "runtime/src/thread.c",
-                     "samples/controller/core/task.c", "samples/controller/include/task.h",
-                     "samples/time/include/time_command.h", "samples/time/src/time_command.c",
-                     "samples/controller/configuration/scenario.c",
+                     "tests/time_periodic/core/task.c", "tests/time_periodic/include/task.h",
+                     "samples/time/shell/common/crux_time_command.h",
+                     "samples/time/shell/common/time_command.c",
+                     "tests/configuration/controller_scenario.c",
                      "tests/configuration_consumer/consumer.c",
                      "tests/configuration_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
@@ -144,9 +158,54 @@ class NativeInterfaceTest(unittest.TestCase):
                 result = self.check_source("k_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
+    def test_applies_to_the_new_sample_layout_paths(self):
+        # Paths of the samples layout proposal, including the earlier name time_periodic_task.
+        for path in ("samples/time/shell/common/crux_time_command.h",
+                     "samples/time/shell/common/time_command.c",
+                     "tests/configuration/controller_scenario.c",
+                     "tests/serial_consumer/scenario/controller.c",
+                     "tests/logging_consumer/scenario/controller.c",
+                     "tests/messaging_consumer/scenario/controller.c",
+                     "tests/system_consumer/scenario/controller_system.c"):
+            with self.subTest(path=path):
+                bad = self.check_source("k_timeout_t timeout;", path)
+                self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
+                good = self.check_source("#include <crux/time.h>\n#include <stdio.h>\n", path)
+                self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
+    def test_sample_common_code_cannot_include_linux_headers(self):
+        # common/ is compiled by both OS folders, so it must not reach into linux/ (samples/README.md).
+        for path in ("samples/time/shell/common/time_command.c",
+                     "samples/networking/echo_client/common/client.c"):
+            for header in ("../linux/host_io.h", "linux/host_io.h"):
+                with self.subTest(path=path, header=header):
+                    result = self.check_source(f'#include "{header}"\n', path)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("native/private header", result.stdout)
+
+    def test_new_sample_layout_compositions_remain_native(self):
+        for path in ("samples/time/shell/zephyr/src/main.c", "samples/time/shell/zephyr/src/time_shell.c",
+                     "samples/time/shell/linux/main.c",
+                     "samples/networking/echo_client/zephyr/src/main.c",
+                     "samples/networking/echo_client/linux/main.c",
+                     "tests/board_images/integration_probe/probe_main.c"):
+            with self.subTest(path=path):
+                result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_networking_profile_covers_the_new_client_path(self):
+        source = "#include <sys/socket.h>\n#include <poll.h>\nclock_gettime(CLOCK_MONOTONIC, &now);\n"
+        for path in ("samples/networking/echo_client/common/client.c",
+                     "samples/networking/echo_client/common/client.h"):
+            with self.subTest(path=path):
+                result = self.check_source(source, path)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                result = self.check_source("#include <pthread.h>\npthread_t thread;", path)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+
     def test_networking_profile_is_scoped_to_registered_consumers(self):
         source = "#include <sys/socket.h>\n#include <poll.h>\nclock_gettime(CLOCK_MONOTONIC, &now);\n"
-        for path in ("samples/networking/client.c", "tests/networking/runtime_port.c",
+        for path in ("samples/networking/echo_client/common/client.c", "tests/networking/runtime_port.c",
                      "tests/networking_consumer/cpp_probe.cpp"):
             with self.subTest(path=path):
                 result = self.check_source(source, path)
@@ -160,7 +219,7 @@ class NativeInterfaceTest(unittest.TestCase):
                        "pthread_join(t, 0);", "clock_gettime(CLOCK_REALTIME, &now);",
                        "clock_gettime(clock, &now);", "#include <sys/socket.h>\nbind(fd, a, n);"):
             with self.subTest(source=source):
-                result = self.check_source(source, "samples/networking/client.c")
+                result = self.check_source(source, "samples/networking/echo_client/common/client.c")
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_native_providers_and_compositions_remain_native(self):
@@ -173,15 +232,13 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/sync/ports/zephyr/sync_native.c",
                      "tests/thread_sync_consumer/native_worker.c",
                      "tests/thread_sync_consumer/zephyr/native_worker.c",
-                     "components/queue/ports/linux/queue_port.c",
-                     "components/queue/ports/zephyr/queue_port.c",
                      "components/time/ports/linux/time_clock_linux.c",
                      "components/time/ports/zephyr/time_clock_zephyr.c",
-                     "samples/controller/zephyr/main.c",
+                     "tests/time_periodic/zephyr/main.c",
                      "components/netif/ports/linux/backend.c",
                      "components/netif/ports/zephyr/backend.c",
                      "components/file/ports/linux/backend.c",
-                     "samples/controller/host/main.c", "samples/time/src/main.c"):
+                     "tests/time_periodic/host/main.c", "samples/time/shell/zephyr/src/main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -242,7 +299,8 @@ const char *escaped = "\\\" k_sem_take";
                              "components/sync/include/crux/sync.h",
                              "tests/thread_sync_consumer/consumer.c",
                              "tests/thread_sync_consumer/consumer.cpp",
-                             "samples/networking/client.c", "samples/networking/client.h",
+                             "samples/networking/echo_client/common/client.c",
+                             "samples/networking/echo_client/common/client.h",
                              "tests/networking_physical/transaction.c",
                              "tests/networking_physical/frame.c", "tests/networking_physical/frame.h",
                              "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
@@ -254,10 +312,10 @@ const char *escaped = "\\\" k_sem_take";
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(REPO / relative, destination)
             for relative in ("components/base/include", "components/time/include",
-                             "components/time/src", "samples/controller/core",
-                             "samples/controller/include", "samples/time/src"):
+                             "components/time/src", "tests/time_periodic/core",
+                             "tests/time_periodic/include", "samples/time/shell/common"):
                 (root / relative).mkdir(parents=True, exist_ok=True)
-            probe = root / "samples/time/src/time_command.c"
+            probe = root / "samples/time/shell/common/time_command.c"
             subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
             for source, expected in (("k_timeout_t timeout;", 1),
                                      ("#include <time.h>\n#include <errno.h>\n", 0)):

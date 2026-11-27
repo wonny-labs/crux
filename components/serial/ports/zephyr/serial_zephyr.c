@@ -101,10 +101,7 @@ static void callback(const struct device *unused, void *context)
     if (observed_error()) {
         goto done;
     }
-    if (uart_irq_update(dev) < 0) {
-        fault();
-        goto done;
-    }
+    uart_irq_update(dev);
     /* Bounded per invocation; native IRQ is level-triggered or the emulator
      * repeats while pending. A provider overflow is a latched visible fault. */
     for (int i = 0; i < CAPACITY && uart_irq_rx_ready(dev) > 0; ++i) {
@@ -125,14 +122,14 @@ static void callback(const struct device *unused, void *context)
     }
     if (!native.failed && uart_irq_tx_ready(dev) > 0) {
         uint8_t *bytes;
-        uint32_t size = ring_buf_get_claim(&native.tx, &bytes, CAPACITY);
+        uint32_t size = ring_buf_get_ptr(&native.tx, &bytes, 0);
+        size = MIN(size, (uint32_t)CAPACITY);
         if (size != 0) {
             int count = uart_fifo_fill(dev, bytes, (int)size);
             if (count < 0 || (uint32_t)count > size) {
-                ring_buf_get_finish(&native.tx, 0);
                 fault();
             } else {
-                ring_buf_get_finish(&native.tx, (uint32_t)count);
+                ring_buf_consume(&native.tx, (uint32_t)count);
                 if (count > 0) {
                     k_sem_give(&tx_event);
                 }
@@ -159,10 +156,11 @@ crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *c
         return CRUX_ERR_IO;
     }
 
+    /* irq_update is optional from Zephyr v4.5.0: uart_irq_update() skips a driver without it. */
     const struct uart_driver_api *api = dev->api;
     if (!api->configure || !api->config_get || !api->irq_callback_set || !api->fifo_fill ||
         !api->fifo_read || !api->irq_tx_enable || !api->irq_tx_disable || !api->irq_rx_enable ||
-        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready || !api->irq_update) {
+        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (uart_config_get(dev, &native.saved) != 0) {

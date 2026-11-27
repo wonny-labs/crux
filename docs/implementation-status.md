@@ -1,4 +1,4 @@
-> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues and pull requests; see also [Project status](../README.md#project-status-and-contributing) in the README.
+> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues and pull requests; see also [Project status](../README.md#contributing) in the README.
 
 # Crux implementation status
 
@@ -80,6 +80,9 @@ M1 exit candidate, not a declaration that unmerged changes are already in `main`
 | M3-06 | pass | Host tests cover strict timestamp syntax, invalid dates, range errors, trailing input, token overflow, stable errors and no write on rejection. The actual Shell adapter's trailing-argument response is included in M3-05 evidence. |
 | M3-07 | pass | The clean-source EVKB QSPI sample build passed with C17 and board-specific RTC init priority 61. Linker allocation is 65,964 B FLASH and 8,448 B RAM. Current ELF SHA-256 is `3b75f71b…68aa84a`. This software verification did not flash; the earlier downloaded image is identified separately under M4-01. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
 | M3-08 | pass | [Current evidence](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17) distinguishes passing native simulation/Shell execution, target compilation and unexecuted physical SNVS tests, and preserves the original manifest failures and their cause. |
+
+The `samples/time` application named in M3-03 is now `samples/time/shell` after the samples layout change;
+the recorded result above is unchanged and refers to the old path at its tested revision.
 
 ## M4 Physical EVK verification
 

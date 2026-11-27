@@ -10,7 +10,7 @@ This is not an adopted Flash driver, partition layout, backend or production rec
 ## Implemented experiment
 
 The default build and pinned dependency checkouts are unchanged. The standalone
-`samples/flash_safety_poc` composition generates three private source copies using
+`tests/board_images/flash_safety_check` composition generates three private source copies using
 `scripts/prepare-flash-poc.py`, checks their exact upstream SHA-256 identities,
 and substitutes them only in that composition's native library targets.
 Upstream copyright/licence notices remain in generated copies. No copied third-party
@@ -54,7 +54,7 @@ containers, read-only upstream/cache mounts and no device exposure were used.
 In the documented Linux environment, with `ZEPHYR_BASE` and SDK configured:
 
 ```sh
-scripts/test-flash-poc.sh
+scripts/test-flash-safety-check.sh
 ```
 
 The recorded build used the same west command with an isolated output directory
@@ -145,7 +145,7 @@ The full PoC target build and ELF tests remain a **documented manual merge gate*
 not an automated GitHub required check or branch-protection rule. For a PR changing
 the generator, sample, test harness, verifier or pinned native inputs:
 
-1. Run `scripts/test-flash-poc.sh` in the documented Linux environment, with the
+1. Run `scripts/test-flash-safety-check.sh` in the documented Linux environment, with the
    pinned workspace and SDK configured. Retain the full command output, input
    hashes, generated configuration/linker/map, ELF/BIN identity and selected
    disassembly. It must pass the fault harness, target build and three ELF tests.

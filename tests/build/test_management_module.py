@@ -114,7 +114,7 @@ class KconfigTest(unittest.TestCase):
     def test_the_service_symbols_depend_on_the_module(self):
         blocks = kconfig_blocks()
         for symbol in NEW_SYMBOLS:
-            self.assertRegex(blocks[symbol], r"depends on [^\n]*CRUX_PILOT_MODULE", symbol)
+            self.assertRegex(blocks[symbol], r"depends on [^\n]*CRUX_MODULE", symbol)
 
     def test_no_wolf_symbol_is_named(self):
         blocks = kconfig_blocks()
@@ -199,6 +199,31 @@ class ScriptTest(unittest.TestCase):
         # grep spelling of quiet is refused.
         self.assertIsNone(re.search(r"(nm|defined_symbols)\b[^\n]*\|\s*grep\b[^\n]*(\s-\w*q|--quiet)",
                                     self.text))
+
+    def test_the_image_runs_twice_on_one_disk_to_show_the_factory_reset(self):
+        # The first run ends in a factory reset through the composition interface, and the second is
+        # the restart after it: without a format, it passes only if the erase emptied the store.
+        self.assertRegex(self.text, r"(?m)^for run in first reset; do$")
+        self.assertIn("pass = 4, fail = 0", self.text)
+        self.assertIn("formatted the disk", self.text)
+        fixture = (REPO / "tests/native/management_module/src/main.c").read_text()
+        for needle in ("<crux/credential_store_zephyr.h>", "crux_credential_erase()",
+                       "formatted the disk"):
+            self.assertIn(needle, fixture)
+        cmake = (REPO / "tests/native/management_module/CMakeLists.txt").read_text()
+        self.assertIn("crux::credential_store_zephyr", cmake)
+
+    def test_the_image_runs_twice_on_a_second_disk_to_show_the_account_only_erase(self):
+        # With "--testargs accounts" the last case erases the accounts only, and the restart must load the
+        # same certificate and open first-account setup again, on a disk that it did not format.
+        self.assertRegex(self.text, r"(?m)^for run in accounts-first accounts-restart; do$")
+        self.assertIn('--flash="$out/disk-accounts.bin"', self.text)
+        self.assertIn("--testargs accounts", self.text)
+        self.assertIn("management module: device identity kept", self.text)
+        fixture = (REPO / "tests/native/management_module/src/main.c").read_text()
+        for needle in ("crux_credential_erase_accounts()", "native_get_test_cmd_line_args",
+                       "management module: device identity kept"):
+            self.assertIn(needle, fixture)
 
     def default_off_section(self):
         return self.text.split("# Default off")[1]
@@ -320,7 +345,7 @@ class Slice2CMakeTest(unittest.TestCase):
 
     def test_the_configuration_core_is_left_to_the_settings_file_selection_when_it_is_on(self):
         text = (REPO / "components/configuration/ports/zephyr/core/CMakeLists.txt").read_text()
-        self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE", text)
+        self.assertIn("CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER", text)
 
 
 # Slice 3: network settings, the TLS certificate module, the file service and reboot. Each is a visible
@@ -356,7 +381,7 @@ class Slice3KconfigTest(unittest.TestCase):
         for symbol, (needs, selects) in SLICE3_VISIBLE.items():
             self.assertRegex(blocks[symbol], rf"depends on [^\n]*\b{needs}\b", symbol)
             if needs != "CRUX_NETWORK_SETTINGS":  # that symbol reaches the module through its dependency
-                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_PILOT_MODULE\b", symbol)
+                self.assertRegex(blocks[symbol], r"depends on [^\n]*\bCRUX_MODULE\b", symbol)
             for chosen in selects:
                 self.assertRegex(blocks[symbol], rf"(?m)^\s+select\s+{chosen}\b", f"{symbol} {chosen}")
 

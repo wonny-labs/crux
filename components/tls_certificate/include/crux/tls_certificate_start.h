@@ -56,6 +56,12 @@ typedef struct {
      * expiration" of RFC 5280, which needs no clock to renew.
      */
     uint32_t validity_days;
+    /**
+     * False, the default, makes the key and a self-signed certificate when either is missing. True
+     * makes start refuse with CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY instead and write nothing, for a
+     * product whose identity is made while it is prepared and must never appear at a normal boot.
+     */
+    bool require_existing_identity;
 } crux_tls_certificate_options_t;
 
 /** Borrowed material for a TLS stack. */
@@ -77,7 +83,8 @@ typedef enum {
  * Make the device key exist and load or create the certificate. Call it once the credential store
  * has started, and before any TLS listener starts. A failure can be retried. Ensures the device's
  * TLS key record in the store as an ECDSA P-256 key, and keeps an existing key whatever its type,
- * as the store does. A product does not make the key itself.
+ * as the store does. A product does not make the key itself. With require_existing_identity set,
+ * a missing key or certificate is refused before anything is written.
  *
  * A stored certificate that is malformed or does not match the key is never replaced here. It is
  * logged as web.certificate_unusable, with the reason as its subject, no certificate is active, a
@@ -99,6 +106,8 @@ typedef enum {
  * @retval CRUX_TLS_CERTIFICATE_ERR_NOT_READY The store is unusable or not started, or a lock could
  * not be made.
  * @retval CRUX_TLS_CERTIFICATE_ERR_BUSY Already started.
+ * @retval CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY require_existing_identity is set and the key or the
+ * certificate is not stored. Nothing was written and nothing is active. A retry gives the same.
  */
 crux_tls_certificate_result_t
 crux_tls_certificate_start(const crux_tls_certificate_options_t *options,

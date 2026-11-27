@@ -1,10 +1,10 @@
 # ADR-0001: Application boundary and public API stability
 
-Status: **Accepted** on 12 November 2026, with D10 limited to phase 1. **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md)** on 13 November 2026. See [the owner's decision](#the-owners-decision). Proposed: 12 November 2026. Baseline: main `54cc83e`.
+Status: **Accepted**, with D10 limited to phase 1 (Host and `native_sim`, no hardware). **Amended by [ADR-0002](0002-platform-direction-zephyr-execution-crux-services.md) and [ADR-0008](0008-versioning-and-release-rules.md).** The decided outcomes are listed under [Owner decisions](#owner-decisions).
 
-This record is documentation only. It changes no code, check, contract or protected path, and nothing in it binds until the owner accepts it. Each decision that it would put into effect needs its own change afterwards, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
+Each decision that this record puts into effect is its own change, listed under [Follow-up changes](#follow-up-changes). The facts and sources behind it are in the [research note](../research/app-boundary-and-api-stability.md).
 
-## The recommendation in brief
+## In brief
 
 1. **Three layers.**
    - The domain uses Crux services and interfaces that the product defines for itself (ports), and no Zephyr.
@@ -19,11 +19,9 @@ This record is documentation only. It changes no code, check, contract or protec
    - Before `v1.0`, no compatibility promise beyond listed breaking changes, and stated criteria for `v1.0`.
 5. **Value is measured, not asserted.** Crux's claim is narrowed to its services, a checked boundary with Host providers, and product composition. A comparison decides whether the boundary earns its cost: an ADS112C04 temperature measurement built as Crux with an adapter, and as a plain Zephyr application.
 
-The [owner decisions](#owner-decisions) at the end list ten items. Eight are "approve the recommendation". Two need the owner's input: D7 asks for a number, and D10 needs hardware and a place to run the experiment.
-
 ## Context
 
-**The review.** A colleague reviewed Crux on 12 November 2026. A fact-check against `54cc83e` found the claims largely true:
+**The review.** An external review of Crux was fact-checked against the sources and found largely true:
 
 - Crux is focused on Zephyr, and Linux Host is a development and test environment only.
 - The I2C, SPI and GPIO APIs are narrow static bindings with no device model.
@@ -40,7 +38,7 @@ The colleague's central point: **no general advantage over a well-structured Zep
 - Wrapping drivers loses features and forces constant API changes.
 - Frequent interface changes hurt applications.
 
-**The owner's decision of 12 November 2026.** Crux will not be ported to an operating system other than Zephyr for the foreseeable future. The owner's words, in the Crux Pilot main session's chat on 12 November 2026: "Zephyr 외 OS 이식은 당분간 없어" ("no port to an OS other than Zephyr for the time being"). Portability between operating systems is therefore no longer a reason for any Crux API. Linux Host stays a development and test environment. Three reasons remain for Crux to publish an interface:
+**No port beyond Zephyr.** Crux will not be ported to an operating system other than Zephyr for the foreseeable future. Portability between operating systems is therefore no longer a reason for any Crux API. Linux Host stays a development and test environment. Three reasons remain for Crux to publish an interface:
 
 - It provides a service that Zephyr does not.
 - It holds policy that each product would otherwise write again.
@@ -52,10 +50,10 @@ The colleague's central point: **no general advantage over a well-structured Zep
 | --- | --- |
 | The native-free consumer policy: portable application logic uses public Crux targets and qualified standard APIs; native providers and platform composition use Zephyr | [Native-free consumer policy](../native-interface-policy.md), adopted under Issue #24 |
 | Lexical and build-graph checks of that policy on Crux's own trees | `scripts/check-native-interfaces.py`, `cmake/CruxConsumerBoundary.cmake` |
-| Two composition targets: `crux::file_zephyr` (Zephyr) and `crux::queue_linux` (Linux Host). Each has a negative boundary test: `tests/build/test_file_zephyr_boundary.py` and `tests/build/test_consumer_boundary.py:99` | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
+| One composition target: `crux::file_zephyr` (Zephyr), with a negative boundary test: `tests/build/test_file_zephyr_boundary.py`. **Amended on 25 November 2026:** the Linux Host target `crux::queue_linux` was removed with Crux Queue | [File root binding](../file-composition-interface.md), [component ownership](../architecture.md#component-ownership-and-source-layout) |
 | A product-shaped consumer that already uses three checked trees | `crux-controller`, see [Crux today](../research/app-boundary-and-api-stability.md#crux-today) |
 | Version rules before `v1`, and a provisional compatibility table | [Versions](../product-composition.md#versions), [Compatibility table](../compatibility-table.md) |
-| `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-consistency) |
+| `BREAKING CHANGE:` footers, and source compatibility without a binary ABI | [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages), [Coding guidelines](../coding-guidelines.md#public-api-design) |
 
 **What is missing.**
 
@@ -75,7 +73,7 @@ The colleague's central point: **no general advantage over a well-structured Zep
 | C. Everything through Crux | Crux wraps every device and subsystem a product needs | One API for the application | A second device model on top of Zephyr's: always behind, always changing. The research found this is the route that Mbed and vendor HALs paid for |
 | D. No boundary | Applications call Zephyr and Crux wherever they like | Least ceremony | The mixing the owner wants to avoid. Domain logic cannot run on Host |
 
-**Recommendation: B.**
+**Decision: B.**
 
 ```mermaid
 flowchart TB
@@ -135,7 +133,7 @@ This refines the existing roles in the [architecture](../architecture.md#archite
 | **c. Host build of the domain** | Real: a Zephyr header does not exist in a Linux Host build, so a Zephyr include in the domain fails to compile | The domain needs a Host build and Host fakes of its ports, which ports and adapters require anyway |
 | d. Separate compile graph inside the Zephyr build | Real. But in a Zephyr build, libraries normally take Zephyr's include paths and toolchain options through one interface target. Separating the two needs build work and evidence. This is interpretation, not tested | High; not attempted |
 
-**Recommendation: b and c together.**
+**Decision: b and c together.**
 
 - In Crux nothing changes: its two existing checks stay.
 - In a product, the [product template](../../templates/product/README.md) gains an example include check and a Host build of the domain, in a follow-up change. The product owns both and may make them stricter.
@@ -155,7 +153,7 @@ This refines the existing roles in the [architecture](../architecture.md#archite
 | 5 | It may include a Zephyr header or name a Zephyr type, such as `const struct device *`, only where the binding needs one. `<crux/file_zephyr.h>` needs none. | New. Composition code is Zephyr code already, so passing a device is more honest than inventing an identifier |
 | 6 | It follows the same stability tiers as any public interface ([Decision 4](#decision-4-api-stability-and-change-policy)). A change forced by a Zephyr baseline move is listed as a breaking change | New |
 
-Rules 3, 4 and 6 also cover the Linux Host composition targets, such as `crux::queue_linux`, which name `linux` in place of `zephyr`. Rule 2 does not. On Linux Host no Kconfig selects a provider, so the composition target is the provider itself: `crux::queue_linux` is an alias of the static provider library `crux_queue_linux`. Its negative test covers the direct link and the transitive wrappers. No test runs the usage check on it, because the identity check rejects it first.
+Rules 3, 4 and 6 also cover the Linux Host composition targets, which name `linux` in place of `zephyr`. Rule 2 does not. On Linux Host no Kconfig selects a provider, so the composition target is the provider itself. **Amended on 25 November 2026:** the example `crux::queue_linux` was removed with Crux Queue, and no Linux Host composition target exists ([Composition interface rules](../composition-interfaces.md#linux-host-composition-targets)).
 
 Rule 1 extends the placement that the [File root binding](../file-composition-interface.md#decisions-taken) justified for one header (its decision 5) to every composition interface. [CONTRIBUTING](../../CONTRIBUTING.md#public-headers-and-module-dependencies) places public headers in a component's `include/crux/`. Whether CONTRIBUTING should name this second location is a follow-up. CONTRIBUTING is a protected path, so that change needs the owner's approval.
 
@@ -178,7 +176,7 @@ A pass-through to a Zephyr driver API fails the first condition.
 | --- | --- |
 | Management services: Access, command line, web, SSH and SFTP adapters, credential store, security events, the status, configuration, network settings and reboot services | Policy and integration that Zephyr does not provide as a unit, and that each product would otherwise write and secure again |
 | Configuration and File service policy, health supervision and watchdog policy, time authority | Policy above Zephyr's mechanisms |
-| Time, Thread, Sync, Queue, Logging, File, Configuration with Host providers | Bounded contracts that let domain logic run on Linux Host. These are thin over the Zephyr kernel, so this justification is the one the [experiment](#decision-5-crux-value-and-the-evidence-that-would-show-it) measures |
+| Time, Thread, Sync, Logging, File, Configuration with Host providers | Bounded contracts that let domain logic run on Linux Host. These are thin over the Zephyr kernel, so this justification is the one the [experiment](#decision-5-crux-value-and-the-evidence-that-would-show-it) measures. **Amended on 25 November 2026:** Queue is no longer listed; it was removed ([messaging contract](../messaging-contract.md)) |
 | Qualified standard profiles, such as Sockets | A documented subset, with no wrapper |
 | Composition interfaces | The binding route of Decision 2 |
 | Product composition: the importable manifest, `west crux-pins`, the baseline gate, provenance and the release bundle | Delivery tooling that a plain Zephyr application does not have |
@@ -201,7 +199,7 @@ Each binds one Devicetree alias. Their only callers are tests and two test fixtu
 | **c. Freeze as Experimental, then retire** | No consumer is harmed: no tag exists and nothing outside tests calls them. Retiring them exercises the deprecation process once before `v1.0` | The Host loopback fixtures let a device driver such as TMP117 run on Host. In the three-layer model, that value moves to a Host fake of the port plus `native_sim` with Zephyr's I2C and SPI emulators, which the `native_sim` tests already use |
 | d. Remove now | Simplest | Removal touches protected paths (`scripts/`, `.github/`) and is better done in one reviewed change, with one release of notice |
 
-**Recommendation: c.**
+**Decision: c.**
 
 - Freeze them now: no new features.
 - Label them Experimental at the first tag.
@@ -209,7 +207,7 @@ Each binds one Devicetree alias. Their only callers are tests and two test fixtu
 - They are removed in the next tagged release, with a migration note pointing to `i2c_dt_spec`, `spi_dt_spec` and `gpio_dt_spec` in an adapter.
 - If a product consumer appears before the removal and shows a need that an adapter cannot meet, the owner can stop the removal. Nothing here expects that.
 
-Removing a public API needs the owner's explicit approval under `AGENTS.md`, so it is listed as its own decision, D4.
+Removing a public API needs explicit approval under `AGENTS.md`. D4 records the decision, and the removal itself is follow-up change 4.
 
 ## Decision 4: API stability and change policy
 
@@ -221,7 +219,7 @@ Removing a public API needs the owner's explicit approval under `AGENTS.md`, so 
 | b. Two tiers, stable and experimental | Simple | No home for a contract that is adopted and used but not yet promised |
 | **c. Zephyr's four names, with Crux's own rules** | A Zephyr developer reads the labels the same way. The research found the same shape in Kubernetes, Rust and Pigweed | One more label to keep per interface |
 
-**Recommendation: c.** The tiers apply to every public interface: headers, `crux::` targets, Kconfig symbols, Devicetree aliases such as `crux-i2c0`, and composition interfaces. Private headers, ports and test controls are **Internal**: no promise, as today.
+**Decision: c.** The tiers apply to every public interface: headers, `crux::` targets, Kconfig symbols, Devicetree aliases such as `crux-i2c0`, and composition interfaces. Private headers, ports and test controls are **Internal**: no promise, as today.
 
 | Tier | Meaning | May change | Notice before removal |
 | --- | --- | --- | --- |
@@ -285,7 +283,7 @@ Options for growing an options structure (rule 2):
 | c. Six months | Predictable | Could cover no release at all |
 | **d. After `v1.0`: at least two minor releases and at least six months, whichever is longer. Before `v1.0`: one tagged release for Unstable, none for Experimental** | Combines Zephyr's release floor with Kubernetes' time floor | Old code is kept longer |
 
-**Recommendation: d.** The mechanism, a follow-up change:
+**Decision: d.** The mechanism, a follow-up change:
 
 - A `CRUX_DEPRECATED("use X")` macro on the declaration, using the compiler's `deprecated` attribute.
 - An entry in the release notes and in the contract document.
@@ -300,7 +298,7 @@ Options for growing an options structure (rule 2):
 | An independent consumer build | Exists: `tests/consumer_boundary` | Keep |
 | An out-of-tree consumer build | `crux-controller` gates its pull requests on a pinned Crux commit and builds daily against Crux main (`scheduled-main.yml`, information only) | Keep both. Add a build at each Crux tag before release. This is the consumer-driven contract |
 | A record of the public surface | None | A generated list of public declarations, targets and Kconfig symbols at each tag, compared with the previous tag in release review. A new script, as a follow-up |
-| Release notes sections | Listed breaking changes, and the compatibility table (the owner's decision of 8 November 2026). No release exists yet | Add sections for deprecations and tier changes |
+| Release notes sections | Listed breaking changes, and the compatibility table. No release exists yet | Add sections for deprecations and tier changes |
 
 ### 4.5 What is promised before `v1.0`
 
@@ -308,7 +306,7 @@ The rule in [Versions](../product-composition.md#versions) stays as it is:
 
 - `v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes.
 - It makes no compatibility promise.
-- A Zephyr baseline move or a change to a pinned module raises `y`.
+- A Zephyr baseline move or a change to a pinned module raises `y`. **Amended on 25 November 2026** by [ADR-0008](0008-versioning-and-release-rules.md) O5: a pin move within a module's own patch line is allowed in a `z` release.
 
 [CONTRIBUTING](../../CONTRIBUTING.md#commit-messages) asks for a `BREAKING CHANGE:` footer, which does not by itself set a version.
 
@@ -318,7 +316,7 @@ This ADR adds three rules, which are new commitments:
 - Tiers are labelled from the first tag.
 - Unstable interfaces get one tagged release of notice.
 
-**Proposed criteria for `v1.0`:**
+**Criteria for `v1.0`:**
 
 1. Every public interface has a tier.
 2. The Stable set meets the promotion rule in 4.1.
@@ -336,7 +334,7 @@ This ADR adds three rules, which are new commitments:
 | The I2C, SPI and GPIO APIs are narrow, with no device model | Agreed. Decision 3 stops Crux competing with Zephyr's driver APIs and retires these three |
 | A product IC needs product-owned Zephyr work | Agreed, and that is now the design: Decision 1 puts that work in an adapter |
 | Zephyr composition is uneven, and Settings takes sources from `tests/` | Agreed. Decision 4 makes such capabilities Experimental until they have a composition outside `tests/` |
-| Secure management has never run on a board | Agreed. It is the largest value claim, and it is unproven until milestones M10 to M12 produce board evidence |
+| Secure management has never run on a board | Agreed. It is the largest value claim, and it is unproven until board evidence exists |
 | No general advantage over a well-structured Zephyr application has been shown | **Agreed as of today.** A plain Zephyr application can also be built as ports and adapters, so the boundary alone is not Crux's advantage. What Crux claims, and must show, is H1 to H4 below |
 
 | Hypothesis | What would show it | Evidence today |
@@ -354,7 +352,7 @@ This ADR adds three rules, which are new commitments:
 | **b. Measure it with a comparison experiment** | Evidence either way | Costs one small project, and hardware for its second phase |
 | c. Accept the claim now and narrow Crux to services and tooling only | Decisive | Gives up H2 and H3 without testing them |
 
-**Recommendation: b.** If the result refutes H2 and H3, option c becomes the next decision. In that case Crux would keep the services and the tooling, and stop wrapping kernel facilities.
+**Decision: b.** If the result refutes H2 and H3, option c becomes the next decision. In that case Crux would keep the services and the tooling, and stop wrapping kernel facilities.
 
 **The experiment: ADS112C04 temperature measurement.**
 
@@ -411,7 +409,7 @@ The boundary is refuted when B needs clearly more code and effort and the change
 The experiment runs in two phases:
 
 - Phase 1 runs on Host and `native_sim` only, needs no hardware, and belongs in a repository of its own, outside `crux-pilot`, because Crux hosts no product ICs.
-- Phase 2 runs on the RT1060-EVKB with an ADS112C04 breakout. It needs the part, and the owner's approval for the board under `AGENTS.md`. Where it runs and who runs it are D10.
+- Phase 2 runs on the RT1060-EVKB with an ADS112C04 breakout. It needs the part, and approval of the board run under `AGENTS.md`. Phase 2 is not approved (D10).
 
 ## Consequences
 
@@ -441,7 +439,7 @@ The experiment runs in two phases:
 
 ## Follow-up changes
 
-None of these is part of this ADR. Each is its own reviewed change after acceptance, and the ones on protected paths need the owner's approval of that change. None had started when the owner accepted this record. Item 7 covers phase 1 only, as [the owner's decision](#the-owners-decision) records.
+None of these is part of this ADR. Each is its own reviewed change, and a change on a protected path needs approval of that change. Item 7 covers phase 1 only (D10). Item 1 is done: the [architecture](../architecture.md#three-layers-for-a-product-adr-0001) and the [native-free consumer policy](../native-interface-policy.md) name the three layers. The rules of item 2 are in [Composition interface rules](../composition-interfaces.md). The [product template](../../templates/product/README.md) carries the example include check of item 3; a Host build of the domain is exercised by Crux's template test and is not yet a script that a product copies. The freeze in item 4 is in effect; the deprecation and removal are not done.
 
 1. Update the [architecture](../architecture.md) and the [native-free consumer policy](../native-interface-policy.md) to name the three layers, ports and adapters, and to link this ADR.
 2. Write the composition interface rules into the [File root binding](../file-composition-interface.md) document or a short guide, and use them for the next composition interface. If the owner wants it, name the `ports/<os>/include/crux/` location in CONTRIBUTING, a protected path.
@@ -451,40 +449,19 @@ None of these is part of this ADR. Each is its own reviewed change after accepta
 6. Add release-note sections, a record of the public surface, and a `crux-controller` build at each Crux tag.
 7. Run the experiment, phase 1 first.
 
+<a id="the-owners-decision"></a>
+
 ## Owner decisions
 
-| # | Decision | Recommendation |
-| --- | --- | --- |
-| D1 | Adopt the three layers: domain, adapters, Crux services | Approve |
-| D2 | Zephyr only in adapters, composition, providers, samples' Zephyr folders and tests. Crux keeps its checks, and products get an include check and a Host build of the domain through the template | Approve |
-| D3 | The composition interface rules as the one formal route into Crux providers, including Zephyr types where a binding needs them | Approve |
-| D4 | No device or driver model. Freeze the I2C, SPI and GPIO APIs now as Experimental, announce deprecation at the first tag, remove them in the next tagged release. This removes public API, so it needs your explicit yes | Approve |
-| D5 | Zephyr's four tier names with Crux's rules, labelled from the first tag. Capabilities without a Zephyr composition outside `tests/` start Experimental. Nothing Stable before `v1.0` | Approve |
-| D6 | The six change rules, including "zero means default, unless zero must mean unset" (security and safety fields stay fail-closed) and "unknown results are failures" | Approve |
-| D7 | **Deprecation window:** after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable | Approve, or give other numbers |
-| D8 | Compatibility evidence: contract tests per provider, `crux-controller` built against main (as today) and at each tag, a record of the public surface, fuller release notes | Approve |
-| D9 | The three new rules before `v1.0` in 4.5: every breaking change raises `y` with a migration note, tiers from the first tag, one release of notice for Unstable. Also the five criteria for `v1.0` | Approve |
-| D10 | **The experiment:** run phase 1 (Host and `native_sim`, no hardware) in a new repository outside `crux-pilot`. Phase 2 needs an ADS112C04 breakout and board time | Approve phase 1. For phase 2, please decide whether to buy the part and when the board is free. Neither of those authorises the board run: phase 2 needs your explicit authorisation for that run when it happens |
+- **D1.** Three layers: domain, adapters and Crux services (Decision 1).
+- **D2.** Zephyr only in adapters, composition, providers, samples' Zephyr folders and tests. Crux keeps its checks, and products get an include check and a Host build of the domain through the template (Decision 2).
+- **D3.** The composition interface rules are the one formal route into Crux providers, including Zephyr types where a binding needs them (Decision 2).
+- **D4.** No device or driver model. GPIO, I2C and SPI are frozen as Experimental; deprecation is announced at the first tag, and they are removed in the next tagged release (Decision 3). The removal touches `scripts/` and `.github/` and needs approval of that change.
+- **D5.** Zephyr's four tier names with Crux's rules, labelled from the first tag. Capabilities without a Zephyr composition outside `tests/` start Experimental. Nothing is Stable before `v1.0` (Decision 4.1).
+- **D6.** The six change rules of 4.2, including "zero means default, unless zero must mean unset" (security and safety fields stay fail-closed) and "unknown results are failures".
+- **D7.** Deprecation window: after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable (4.3).
+- **D8.** Compatibility evidence: contract tests per provider, `crux-controller` built against main and at each tag, a record of the public surface, and fuller release notes (4.4).
+- **D9.** The three new rules before `v1.0` in 4.5 (every breaking change raises `y` with a migration note, tiers from the first tag, one release of notice for Unstable), and the five criteria for `v1.0`.
+- **D10.** The experiment, phase 1 only: Host and `native_sim`, without hardware, in a new repository outside `crux-pilot`. Phase 2 is not approved: buying the ADS112C04 breakout, the board time and any board run are undecided.
 
-### The owner's decision
-
-The owner accepted the recommendations in the Crux Pilot main session chat on 12 November 2026 at 21:33:37 UTC. The time comes from the session transcript, and the owner's time zone was not recorded. The main session had listed D1 to D10 with the recommendation "D1 to D9 approve, D7 with the recommended numbers, D10 phase 1 only", and had flagged D4 as needing an explicit yes. The owner replied:
-
-> 추천대로 진행해줘. ecc 환경변수도 수정할수 있으면해줘.
-
-The first sentence means "Proceed as recommended". The second is about ECC environment variables and is not part of this record.
-
-| # | Decided |
-| --- | --- |
-| D1 to D6, D8, D9 | Approved as recommended |
-| D7 | Approved with the recommended numbers: after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable |
-| D10 | Phase 1 only: the Host and `native_sim` experiment, without hardware, in a new repository outside `crux-pilot`. Phase 2 is **not approved**. Buying the ADS112C04 breakout and the board time stay undecided, and no board run is authorised |
-
-The approval of D4 is read from "추천대로 진행해줘", given after a list that flagged D4 as needing an explicit yes. The removal itself is follow-up change 4, which touches `scripts/` and `.github/` and so needs the owner's approval of that change.
-
-## Record
-
-- Author: Claude Code, model `claude-opus-5-5`, in a session started by the Crux Pilot main session.
-- Research: three subagents on the Sonnet model alias (exact model ID not reported), each limited to primary sources.
-- Review: the repository's `reviewer` agent; its verdict is recorded in the pull request.
-- Acceptance: recorded by Claude Code, `claude-opus-5-5`, from the owner's words as the Crux Pilot main session relayed them. The pull request that records it holds its review.
+The drafting record, measurements and approval history are in [history/adr-0001-record.md](../history/adr-0001-record.md).

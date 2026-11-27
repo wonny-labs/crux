@@ -37,14 +37,16 @@ int main(void)
     now_ns = INT64_C(86400000) * INT64_C(1000000);
     CHECK(crux_access_port_now_ms() == UINT64_C(86400000));
 
-    /* A clock that failed reads as one that ran backwards. tests/access/clock_fault.c holds what
-     * the core then does, which is not all fail-closed. */
+    /* A clock that failed says so. tests/access/clock_fault.c holds what the core then does. */
     answer = CRUX_ERR_NOT_READY;
-    CHECK(crux_access_port_now_ms() == 0u);
-    /* A negative reading cannot wrap into a far future. */
+    CHECK(crux_access_port_now_ms() == CRUX_ACCESS_CLOCK_FAILED);
+    /* A negative reading is a provider error too, and cannot wrap into a far future. */
     answer = CRUX_OK;
     now_ns = -1;
-    CHECK(crux_access_port_now_ms() == 0u);
+    CHECK(crux_access_port_now_ms() == CRUX_ACCESS_CLOCK_FAILED);
+    /* The largest reading stays below the failure value. */
+    now_ns = INT64_MAX;
+    CHECK(crux_access_port_now_ms() == (uint64_t)INT64_MAX / UINT64_C(1000000));
 
     printf("access clock provider: %u failures\n", failures);
     return failures == 0 ? 0 : 1;

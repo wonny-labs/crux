@@ -1,91 +1,84 @@
 # Zephyr CI shards
 
-The [`zephyr-software` workflow](../.github/workflows/zephyr.yml) runs its check steps in four parallel jobs, called shards. This page explains how they are arranged, how to add a check, and what was measured when the layout was chosen. The change was made in [PR #248](https://github.com/wonny-labs/crux-pilot/pull/248).
+The Zephyr checks run in eight parallel jobs, called shards: the `zephyr-*` jobs of [`scripts/ci/checks.toml`](../scripts/ci/checks.toml). The [`zephyr-software` workflow](../.github/workflows/zephyr.yml) and the root `Jenkinsfile` run one shard per job. This page explains how they are arranged, where to put a check, and what was measured when the layout was chosen. [Continuous integration](ci.md) says which tier runs which check, and [ADR-0009](decisions/0009-tiered-ci.md#t10-shortening-the-tiers) why the jobs are split this way.
 
 ## Layout
 
 ```mermaid
 flowchart LR
     event["Push to main or pull request"] --> filter{"Only docs/** or **.md changed?"}
-    manual["Manual run"] --> storage
-    manual --> controller
-    manual --> runtime
-    manual --> io
+    manual["Manual run"] --> shards
     filter -- "Yes" --> skip["Zephyr workflow does not run<br/>Host and link checks still run"]
-    filter -- "No" --> storage["zephyr storage"]
-    filter -- "No" --> controller["zephyr controller"]
-    filter -- "No" --> runtime["zephyr runtime"]
-    filter -- "No" --> io["zephyr io"]
-    storage --> summary["zephyr<br/>passes only if every shard passed"]
-    controller --> summary
-    runtime --> summary
-    io --> summary
+    filter -- "No" --> shards["eight shards in parallel:<br/>emmc, runtime, controller, integration,<br/>storage, io, system, file"]
+    shards --> summary["zephyr<br/>passes only if every shard passed"]
 ```
 
-Each shard is a separate runner with its own checkout, Zephyr workspace and SDK. Shards share nothing, and each uploads its own artifact, named `zephyr-<shard>-<run>-<attempt>`. A failing shard does not cancel the others, so one run reports every failing area. Within a shard, the first failing step still stops the steps after it.
+Each shard is a separate runner with its own checkout, Zephyr workspace and SDK. Shards share nothing, and each uploads its own artifact, named `zephyr-<shard>-<run>-<attempt>`. A failing shard does not cancel the others, so one run reports every failing area. Within a shard, the first failing check stops the checks after it. A shard whose tier selects no check skips its set-up and passes. The matrix lists the longest shards first, so that they start first when runners are short.
 
 ## Shards
 
-Times are medians from 12 runs of the single job, taken before the split. Steps added since are not included in the times.
+The shards were balanced by the measured time of each check. Times are whole jobs, set-up included, from two full runs on `ubuntu-24.04` runners at `07334939` and `a704189d`.
 
-| Shard | Steps | Minutes |
-| --- | --- | ---: |
-| `storage` | Patch style, storage simulators, File RT1060 compile, Flash PoC fault paths, Time and EVKB build, product template | 11.5 |
-| `controller` | Execution candidates, early controller, controller integration, RT1170 cross-build, M5 integrated smoke | 11.5 |
-| `runtime` | Portable execution, Time busy-wait, messaging, out-of-tree consumer, Logging, System | 12.2 |
-| `io` | Serial, command line shell rule and serial wiring, command line SSH entry points, GPIO, I2C, SPI, networking, networking physical fixture, web adapter | 12.2, measured before the two command line steps and the web adapter step were added |
+| Shard | Checks | Minutes |
+| --- | --- | --- |
+| `emmc` | eMMC stack, power-cut replay and Reliance Edge on `native_sim` | 10.2, 9.7 |
+| `storage` | Patch style, storage simulators, Flash PoC fault paths, Time and EVKB build | 10.0, 8.8 |
+| `file` | File RT1060 compile, File eMMC link check | 9.5, 8.1 |
+| `controller` | Smoke builds, execution candidates, early controller, RT1170 cross-build, M5 integrated smoke, product template, networking, networking physical fixture | 13.8, 12.0 |
+| `integration` | Controller integration, reboot sanitizers, Time busy-wait | 12.8, 10.3 |
+| `runtime` | Portable execution, messaging, Logging, boot composition | 13.6, 9.8 |
+| `system` | Out-of-tree consumer, System, Serial | 13.3, 9.6 |
+| `io` | Command line shell rule and SSH entry points, GPIO, I2C, SPI, web adapter | 10.2, 10.3 |
 
-Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shard, and the upload 0.1 to 0.2 minutes.
+Set-up (packages, tools, SDK and workspace) adds 2.4 to 2.7 minutes to every shard, and the upload 0.1 minutes.
 
-`scripts/test-networking-physical.sh` reads the Picolibc checkout that `scripts/bootstrap-networking-tests.sh` fetches, so these two must stay in the same shard. No other step reads what a step in another shard produces.
+`scripts/test-networking-physical.sh` reads the Picolibc checkout that `scripts/bootstrap-networking-tests.sh` fetches, so these two must stay in the same shard. A check that enables an optional west group (`emmc-reliance-edge` and `file-emmc-compile` enable `crux-reliance`, `boot-composition` enables `crux-boot`) must be the last of its shard. No other check reads what another check produces; each shard passing on a fresh runner shows it.
 
 ## Add a check
 
-1. Add the step to the `shard` job in `zephyr.yml`.
-2. Give it a condition such as `if: matrix.shard == 'io'`. Prefer the shard whose work is closest, unless that would make it clearly the longest.
-3. Put a step that reads another step's output in the same shard.
-4. Add any new output paths to the upload step.
+Follow [Add a check](ci.md#add-a-check), with the job `zephyr-<shard>`:
+
+1. Prefer the shard whose work is closest, unless that would make it clearly the longest. A check of more than about seven minutes, or one that would take a shard past about ten, goes to the shortest shard or a new one.
+2. Put a check that reads another check's output in the same shard, after it.
+3. Add any new output paths to the upload step of `zephyr.yml`.
 
 `tests/build/test_zephyr_ci_shards.py` runs in Host CI. It fails in these cases:
 
 | Defect | Why it matters |
 | --- | --- |
-| A step that runs a command names an unknown shard | The step would be skipped while the run stays green |
-| A step that runs a command has no shard condition and is not a set-up step | The step would run in all four shards |
-| A shard has no checks | The matrix and the steps have drifted apart |
-| The networking steps are in different shards | The fixture step would not find its library |
+| A step that runs a command is neither a set-up step nor `scripts/ci/run-tier.sh` for the shard's job | The check would run outside the tiers, in every shard |
+| The matrix and the `zephyr-*` jobs of the map file differ | A job's checks would never run while the run stays green |
+| A Zephyr check has a scope other than `not-docs`, or `not-docs` differs from the workflow's filter | Its documentation rule would differ on other CI systems |
+| The networking checks are in different shards | The fixture check would not find its library |
 | Two shards could share an artifact name | The upload would be refused |
 | The summary job accepts anything but `success` | A cancelled or skipped shard would look like a pass |
 | Anything other than documentation skips the workflow | Code changes would go untested |
-| `host.yml` also skips documentation | Nothing would run the tests that read documentation |
+| `host.yml` gets a `paths-ignore` filter | Nothing would run the tests that read documentation |
+| A tier workflow lacks `ready_for_review`, the nightly schedule or the manual tier input | A ready pull request or the nightly run would miss the full set |
+| A workflow job with a matrix of map file jobs names a fixed job | One job would run in every entry while the others never run |
 
-The test has two limits. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Apart from those, every step that has a `run:` (in any position) or mentions that repository code must name a shard of the matrix, whatever command it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
+`tests/build/test_ci_tiers.py` holds the checks of every job with their commands, so a deleted or changed check fails it, and it requires a check that enables an optional west group to be the last of its job. The shard test cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
 
 ## Documentation-only changes
 
-The workflow does not run when every changed file matches `docs/**` or `**.md`. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and `host.yml` also runs it because that workflow has no such filter.
+The workflow does not run when every changed file matches `docs/**` or `**.md`, and the map file gives every Zephyr check the same rule on other CI systems. A pull request that also changes code still runs it. `tests/build/test_product_template.py` is the only Zephyr-side check found to read documentation, and the `host-build-tests` job also runs it: `host.yml` has no such filter, and the tests in `tests/build` run for every change.
+
+`psa-crypto.yml` skips documentation too, except a change to a dependency review record, which its pin check reads.
 
 If `zephyr` becomes a required check, a documentation-only pull request would wait for a check that never reports. `main` has no required checks today, so this needs handling before such a rule is added.
 
 ## Measurements
 
-All runs used GitHub-hosted `ubuntu-24.04` runners. Run time is from creation to the last update. Times are in minutes.
+All runs used GitHub-hosted `ubuntu-24.04` runners. Times are in minutes.
 
-| Workflow | Runs | Run time |
-| --- | ---: | --- |
-| Single job, before the split | 12 | Median 50.8, range 35.7 to 56.9 |
-| Four shards | 4 | 16.1, 20.3, 16.1, 26.0, in run order |
+| Layout | Slowest shard | Zephyr workflow, creation to end |
+| --- | --- | ---: |
+| Four shards, at `be60bc65` | `storage` 30.5, of which `emmc-reliance-edge` 12.4 | 31.3 |
+| Eight shards, at `a704189d` | `controller` 12.0 | 14.1 |
 
-The test scope did not change: runs before and after the split had 77 Twister configurations, 67 passes, 43 `west build` configures and 116 Zephyr configures.
+`emmc-reliance-edge` took 9.2 to 14.8 minutes in three four-shard runs, which alone set the old `storage` shard's length. As a check of its own shard, its storage half took 7.3 and 7.6 minutes.
 
-| Run | Run time | `storage` | `controller` | `runtime` | `io` |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | 16.1 | 13.1 | 14.2 | 13.2 | 15.9 |
-| 2 | 20.3 | 15.4 | 15.7 | 11.2 | 20.1 |
-| 3 | 16.1 | 15.4 | 15.9 | 12.1 | 15.3 |
-| 4 | 26.0 | 15.2 | 15.6 | 16.8 | 24.2 |
-
-The slow runs are not slow checks. In run 2 the `io` job spent 4.8 minutes installing packages and in run 4 it spent 7.7 minutes, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) then added a cache for them. Each shard restores the packages, `scripts/verify-apt-cache.py` removes every file whose SHA-256 differs from the signed index, and apt downloads whatever is missing. In the hosted runs after that change the install step took 0.1 to 0.3 minutes in every job and downloaded nothing. A typical run was not shorter (16.2 to 17.6 minutes against 14.1 to 16.4 in runs without a slow download), so the gain is that a run no longer waits on the mirror. The times in the tables on this page were measured before the cache.
+Package downloads once set the length of slow runs. In two four-shard runs the `io` job spent 4.8 and 7.7 minutes installing packages, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) then added a cache for them. Each shard restores the packages, `scripts/verify-apt-cache.py` removes every file whose SHA-256 differs from the signed index, and apt downloads whatever is missing. In the hosted runs after that change the install step took 0.1 to 0.3 minutes in every job and downloaded nothing. A typical run was not shorter (16.2 to 17.6 minutes against 14.1 to 16.4 in runs without a slow download), so the gain is that a run no longer waits on the mirror.
 
 Another stall seen once: the `io` job took 6.2 minutes to fetch the Zephyr workspace in a `-j 4` run.
 
@@ -101,5 +94,5 @@ A later pair with a working cache, on identical source, gave the second run 99.2
 ## Limits
 
 - Total runner time rises because each shard repeats the set-up.
-- Each run uses five jobs, so many parallel sessions can reach the account's limit on concurrent jobs and wait for runners.
+- Each run uses nine jobs (eight shards and the summary). A full run of a code change uses 15 jobs across the workflows, 19 with the web jobs, and GitHub's free plan runs at most 20 at once ([limits](https://docs.github.com/en/actions/reference/limits)), so two runs at once queue some shards. In the first trial the `emmc` shard waited while another pull request's run held runners.
 - The shard sizes come from past timings and will drift. Rebalance them when one shard stays clearly the longest.

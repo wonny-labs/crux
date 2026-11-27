@@ -20,7 +20,7 @@ With `--strict-signature` the signed images must also be byte-identical, which a
 
 ## The tools
 
-`tests/target/compare_boot_builds.py BUILD_A BUILD_B [--image NAME] [--strict-signature] [--json]` reads two build directories of the composition (the layout of `scripts/test-boot-composition.sh`: `mcuboot/zephyr/zephyr.bin`, and `<image>/zephyr/` with `zephyr.bin`, `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, where `<image>` is `zephyr` for `samples/controller/zephyr`). It uses the [inspector](boot-image-inspection.md) to parse the signed images, so a difference is named: `header`, `payload`, `protected TLVs`, `TLVs other than the signature`, `trailer`, `padded length`. Each artifact has a status: `identical`, `equivalent` (only the signature differs), `differs`, `missing` or `absent`. Exit 0 reproducible, 1 not reproducible, 2 usage error (an unreadable directory, the same directory twice) or an unexpected failure of the tool, which is not a verdict. It uses the Python standard library only and has no key, board or flash access.
+`tests/target/compare_boot_builds.py BUILD_A BUILD_B [--image NAME] [--strict-signature] [--json]` reads two build directories of the composition (the layout of `scripts/test-boot-composition.sh`: `mcuboot/zephyr/zephyr.bin`, and `<image>/zephyr/` with `zephyr.bin`, `zephyr.signed.bin` and `zephyr.signed.confirmed.bin`, where `<image>` is `zephyr` for `tests/boot_fixture/zephyr`). It uses the [inspector](boot-image-inspection.md) to parse the signed images, so a difference is named: `header`, `payload`, `protected TLVs`, `TLVs other than the signature`, `trailer`, `padded length`. Each artifact has a status: `identical`, `equivalent` (only the signature differs), `differs`, `missing` or `absent`. Exit 0 reproducible, 1 not reproducible, 2 usage error (an unreadable directory, the same directory twice) or an unexpected failure of the tool, which is not a verdict. It uses the Python standard library only and has no key, board or flash access.
 
 `tests/target/check_boot_reproducibility.sh` wraps it:
 
@@ -43,7 +43,7 @@ Until the step is wired and has run, reproducibility of the committed compositio
 
 Labels: **Verified** (read from a CI record or a file in this repository), **Inference** (derived, not run), **Not verified**.
 
-**Nothing is wired.** This section proposes; it adds no job, step or script call, and no workflow or script runs `check_boot_reproducibility.sh`. Any of the options below edits a protected path (`.github/workflows/zephyr.yml`, or `scripts/`), so each needs the owner's explicit approval before it is made.
+**Nothing is wired.** This section proposes; it adds no job, step or script call, and no workflow or script runs `check_boot_reproducibility.sh`. Any of the options below edits a protected path (`scripts/ci/checks.toml`, or `scripts/`), so each needs the owner's explicit approval before it is made.
 
 **Cost, measured.** **Verified** from the CI run 43898428480 (`zephyr.yml` on `main`, 16 November 2026, read with `gh run view --json jobs`): the composition step of the `runtime` shard ran from 15:55:45 to 15:56:47 UTC, about 62 s, inside a job of about 19 minutes. The step runs `west update mcuboot`, `pip install` and one pristine sysbuild (`-p always`) on a workspace that the earlier steps had prepared. **Inference:** the earlier advice of this page, that two sysbuilds "take about twice the time of the composition step, so the step is better placed in its own job", assumed a larger step, and at 62 s a separate job probably costs more (runner start, workspace bootstrap) than the second build itself. **Not verified:** that this one run is typical, and the time of the first run without a warm cache.
 
@@ -55,13 +55,15 @@ Labels: **Verified** (read from a CI record or a file in this repository), **Inf
 
 One further cost is **Inference**: the composition script now also runs the build configuration check and the image check ([boot image inspection](boot-image-inspection.md)) in each run, so a repetition repeats them (a few seconds). A difference in the signed image's signature alone is expected and tolerated by the definition above, so only a difference in a header, payload, TLV other than the signature, trailer or an unsigned binary fails.
 
-**Recommendation (Inference):** option A as the first step, in the `runtime` shard, because it needs no new script and costs a few minutes; option B if the time matters; option C only if path independence is wanted as a claim. The step text would be:
+**Recommendation (Inference):** option A as the first step, in the `runtime` shard, because it needs no new script and costs a few minutes; option B if the time matters; option C only if path independence is wanted as a claim. The check in [`scripts/ci/checks.toml`](../scripts/ci/checks.toml) would be:
 
-```yaml
-      - name: Check that two builds of the MCUboot RAM load composition reproduce (software-only)
-        if: matrix.shard == 'runtime'
-        working-directory: crux-pilot
-        run: tests/target/check_boot_reproducibility.sh --build
+```toml
+[[check]]
+id = "boot-composition-reproducible"
+job = "zephyr-runtime"
+run = """
+tests/target/check_boot_reproducibility.sh --build
+"""
 ```
 
-It would be placed directly after the composition step, so the build directory that `--build` moves and recreates is the one the composition step wrote. A first run on a real build may fail for a reason that is a finding (an input that differs, a tool that is not deterministic); that is the point of running it, and it is not a reason to re-run until green. Until a step like this has run, reproducibility of the committed composition stays **Not verified**.
+It would be placed directly after the composition check, so the build directory that `--build` moves and recreates is the one the composition step wrote. A first run on a real build may fail for a reason that is a finding (an input that differs, a tool that is not deterministic); that is the point of running it, and it is not a reason to re-run until green. Until a step like this has run, reproducibility of the committed composition stays **Not verified**.

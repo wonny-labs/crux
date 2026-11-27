@@ -1,10 +1,10 @@
-menuconfig CRUX_PILOT_MODULE
+menuconfig CRUX_MODULE
 	bool "Crux Zephyr module"
 	default y
 	help
 	  Enable discovery of Crux's Zephyr integration module.
 
-if CRUX_PILOT_MODULE
+if CRUX_MODULE
 
 config CRUX_TIME
 	bool "Crux Time capability"
@@ -162,29 +162,22 @@ config CRUX_SYNC_SEMAPHORE_COUNT
 
 endif # CRUX_SYNC
 
-endif # CRUX_PILOT_MODULE
+endif # CRUX_MODULE
 
 config CRUX_SOCKETS
     bool "Crux qualified IPv4 client socket profile"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_TCP && NET_UDP
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4 && NET_TCP && NET_UDP
     depends on POSIX_SYSTEM_INTERFACES && POSIX_NETWORKING && POSIX_DEVICE_IO
     depends on POSIX_FD_MGMT && POSIX_TIMERS && POSIX_MONOTONIC_CLOCK
 
 
 config CRUX_NETIF
     bool "Crux primary interface status"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4
-
-config CRUX_QUEUE
-    bool "Crux bounded copy queue"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
-    select TIMEOUT_64BIT
-    help
-      Initial qualification profile: four queues, sixteen records, sixty-four bytes.
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4
 
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL
+    depends on CRUX_MODULE && MULTITHREADING && SERIAL
     depends on UART_INTERRUPT_DRIVEN && UART_USE_RUNTIME_CONFIGURE
     select TIMEOUT_64BIT
     help
@@ -192,7 +185,7 @@ config CRUX_SERIAL
 
 config CRUX_CLI
     bool "Crux command line and serial console"
-    depends on CRUX_PILOT_MODULE && CRUX_SERIAL && CRUX_THREAD
+    depends on CRUX_MODULE && CRUX_SERIAL && CRUX_THREAD
     help
       The command registry and the serial console over Crux Serial. The module links the console
       only under CONFIG_CRUX_CLI_CONSOLE, which also needs Access and provides the event port:
@@ -228,7 +221,8 @@ config CRUX_CLI_CONSOLE
       composition target crux::cli_zephyr for <crux/cli_zephyr.h> (Experimental), which declares
       crux_cli_serial_start(): a composition interface, not a portable usage target. The console
       owns the UART that the devicetree alias crux-serial0 names, so no Zephyr console, log
-      backend or shell may use it. The application passes its command tables to crux_cli_init()
+      backend or shell may use it; only Crux Logging may share it, under
+      CONFIG_CRUX_CLI_CONSOLE_UART_SHARED. The application passes its command tables to crux_cli_init()
       first. See docs/cli-contract.md.
 
 config CRUX_CLI_CONSOLE_BAUD_RATE
@@ -240,9 +234,42 @@ config CRUX_CLI_CONSOLE_BAUD_RATE
       Read by crux_cli_serial_start() when it opens the port. Data bits, stop bits and parity are
       8, 1 and none.
 
+choice CRUX_CLI_CONSOLE_UART
+    prompt "Console and Logging UART (Experimental)"
+    default CRUX_CLI_CONSOLE_UART_DEDICATED
+    depends on CRUX_CLI_CONSOLE
+    help
+      Whether the console has a UART of its own, or shares it with Crux Logging. See
+      docs/cli-contract.md.
+
+config CRUX_CLI_CONSOLE_UART_DEDICATED
+    bool "Separate UARTs for the console and Logging"
+    help
+      The console owns the UART of crux-serial0 alone, and Logging uses Zephyr's UART backend on
+      the UART that zephyr,log-uart names. No log text appears on the console.
+
+config CRUX_CLI_CONSOLE_UART_SHARED
+    bool "One UART for the console and Logging"
+    select CRUX_LOGGING_CONSOLE_BACKEND
+    help
+      Experimental. Needs CONFIG_CRUX_LOGGING and CONFIG_LOG_BACKEND_UART=n, which the build checks.
+      A Crux Logging backend replaces Zephyr's UART backend on the UART of crux-serial0. Until the
+      console's thread starts, while the console has no port open, and after a panic, it writes
+      each message directly. In between it queues finished messages
+      (CONFIG_CRUX_LOGGING_CONSOLE_QUEUE_BYTES, drop new, with a count), and the console prints them
+      only while it waits for input: it clears the input line, writes the log text and redraws the
+      prompt and the typed text, never a password. Log text can therefore appear before login.
+
+      The devicetree current-speed of the crux-serial0 UART must equal
+      CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE (default 115200), and the build refuses another rate,
+      because direct output goes at the devicetree's rate. The rate bounds the log text: an idle
+      console writes about 512 bytes of it per 100 ms wait, which at 115200 is about 3.5 kB/s; a
+      faster sustained rate fills the queue, and the rest is dropped and counted.
+
+endchoice
 config CRUX_DEVELOPMENT_IMAGE
     bool "Mark this image as a development image"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Opt-in. It allows the Zephyr shell, on its serial backend only, in an image that also has Crux
       management. No image may have a network shell backend or MCUMGR_GRP_SHELL, with or without
@@ -251,32 +278,52 @@ config CRUX_DEVELOPMENT_IMAGE
 
 config CRUX_I2C
     bool "Crux synchronous I2C transfers"
-    depends on CRUX_PILOT_MODULE && I2C
+    depends on CRUX_MODULE && I2C
     help
       Synchronous 7-bit I2C transfers through the composition-selected crux-i2c0 alias.
 
 config CRUX_SPI
     bool "Crux synchronous SPI transceive"
-    depends on CRUX_PILOT_MODULE && SPI
+    depends on CRUX_MODULE && SPI
     help
       Synchronous full-duplex byte transceive through the composition-selected crux-spi0 alias.
 
 config CRUX_LOGGING
     bool "Crux completed-text logging"
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
 
+config CRUX_LOGGING_CONSOLE_BACKEND
+    bool
+    # Zephyr's formatter, which the backend uses as Zephyr's UART backend does.
+    select LOG_OUTPUT
+    help
+      Selected by CONFIG_CRUX_CLI_CONSOLE_UART_SHARED. Crux Logging builds the backend of a console
+      that shares its UART (components/logging/ports/zephyr/logging_console_backend.c) in place of
+      Zephyr's UART backend. Owned by Logging, so that Logging reads no command line symbol.
+
+config CRUX_LOGGING_CONSOLE_QUEUE_BYTES
+    int "Bytes of log text queued for a console that shares its UART"
+    default 2048
+    range 1024 65536
+    depends on CRUX_LOGGING_CONSOLE_BACKEND
+    help
+      Static memory for messages that wait for the console. A message that does not fit is dropped
+      and counted, and the console prints "--- N log messages dropped ---" in its place. When the
+      console's port fails, the backend writes the whole queue directly while the log thread waits:
+      2048 bytes take about 180 ms at 115200 baud.
+
 config CRUX_GPIO
     bool "Crux synchronous GPIO line"
-    depends on CRUX_PILOT_MODULE && GPIO
+    depends on CRUX_MODULE && GPIO
     help
       One statically selected input line using the native GPIO driver.
       The required crux-gpio0 Devicetree alias is checked by the provider.
 
 config CRUX_SYSTEM
     bool "Crux System observation, reset and single-owner watchdog"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    depends on CRUX_MODULE && MULTITHREADING
     help
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
@@ -296,14 +343,14 @@ config CRUX_SYSTEM_NATIVE_SIM_WATCHDOG
 
 config CRUX_FILE_SIMULATOR
     bool "Crux File VFS simulator candidate"
-    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
+    depends on CRUX_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
     help
       Experimental File provider for software-only storage validation.
       Does not select a target Flash layout, mount or format a volume.
 
 config CRUX_FILE_FATFS_SIMULATOR
     bool "Crux File FatFs simulated-disk simulator candidate"
-    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
+    depends on CRUX_MODULE && BOARD_NATIVE_SIM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
     depends on DISK_DRIVER_RAM || DISK_DRIVER_FLASH
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
@@ -311,70 +358,99 @@ config CRUX_FILE_FATFS_SIMULATOR
       Experimental native simulator composition on a RAM disk, or on a file-backed flash
       disk whose contents outlive the process; does not mount or format a volume.
 
-config CRUX_FILE_FATFS_RT1060
-    bool "Crux File FatFs provider on an RT1062 microSD card"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
-    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+# The FatFs providers on a real medium are chosen by generic disk and devicetree facts, never by a SoC
+# or board name: a board that has the disk gets the provider. Board facts (which SD host, which
+# pins, which disk node) belong to the board's devicetree and to boards/<board>.conf and
+# boards/<board>.overlay of the application (docs/porting-to-a-new-board.md).
+config CRUX_FILE_FATFS_SDMMC
+    bool "Crux File FatFs provider on an SD card"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Link the File provider into an image for a board with the RT1062 SoC and an enabled
-      USDHC with an SD disk in its devicetree. On the RT1060-EVK it needs the Rev B QSPI
-      target. Off by default. It mounts and formats nothing by itself; the project
-      composition owns mount order and recovery. Accepted is not qualified: a board other
-      than the RT1060-EVKB is checked for these facts only.
-      Physical-board evidence is narrow: runs of earlier revisions (2 and 3 November 2026) on
-      one RT1060-EVKB and one microSD card (docs/evidence/microsd-physical,
-      microsd-power-cut and microsd-card-states-stack), with plain crux_file appends and
-      reads. The replace-and-rename power-cut loop (microsd-replace-cut) called Zephyr
-      fs_rename directly, and the card-states-stack probe ran create, rename, stat, list and
-      remove through Zephyr fs_* directly (sample sd_probe.c), not crux_file. It qualifies neither the board, the card nor the
-      Settings File backend. The roots, stat, size, rename and listing operations that
-      crux_file gained later (#224) have no physical run.
+      Link the File provider into an image whose devicetree has an enabled zephyr,sdmmc-disk
+      node, on any board and any SD host controller that Zephyr's SD stack drives. Off by
+      default. It mounts and formats nothing by itself; the project composition owns mount
+      order and recovery. Accepted is not qualified: the physical evidence is narrow, one
+      RT1060-EVKB and one microSD card on earlier revisions (docs/component-readiness.md, the
+      microSD row), and covers neither the board, the card nor another SD host.
+
+config CRUX_FILE_FATFS_RAM_DISK
+    bool "Crux File FatFs provider on a RAM disk"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on DT_HAS_ZEPHYR_RAM_DISK_ENABLED
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH && !SDHC
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    help
+      Link the File provider into an image whose only disk is a RAM disk (an enabled
+      zephyr,ram-disk node), on any board, so that no card can be reached by it and nothing
+      persists across a reset. Off by default. It needs the SD card driver, the SD host
+      controller drivers and the flash disk to be absent: a build that has one is refused here
+      and by the provider's CMake. It mounts and formats nothing by itself; the composition owns
+      the mount, and may format a RAM disk because it is memory. No physical-board result exists
+      for this selection.
+
+config CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    bool "Compile-only Crux File FatFs SD card check"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Compile the File implementation of CRUX_FILE_FATFS_SDMMC as an object-only check, on any
+      board whose devicetree has an enabled zephyr,sdmmc-disk node. This does not link or
+      select a target File provider, mount media, format media, or enable runtime File
+      operations.
+
+# Deprecated names of the three selections above. Each keeps an existing prj.conf working: it
+# selects its replacement and DEPRECATED, so Zephyr's Kconfig prints "Deprecated symbol ... is
+# enabled". They have the replacement's dependencies and no SoC or board dependency. They stay
+# through the first tagged Crux release that carries them and are removed in the tagged release
+# after it (docs/file-contract.md#migration-notes).
+config CRUX_FILE_FATFS_RT1060
+    bool "Crux File FatFs provider on an SD card [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    select DEPRECATED
+    select CRUX_FILE_FATFS_SDMMC
+    help
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_SDMMC instead.
 
 config CRUX_FILE_FATFS_RT1060_RAM_DISK
-    bool "Crux File FatFs provider on a RAM disk of an RT1062 board"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
-    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH
+    bool "Crux File FatFs provider on a RAM disk [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_RAM
+    depends on DT_HAS_ZEPHYR_RAM_DISK_ENABLED
+    depends on !DISK_DRIVER_SDMMC && !DISK_DRIVER_FLASH && !SDHC
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    select DEPRECATED
+    select CRUX_FILE_FATFS_RAM_DISK
     help
-      Link the File provider into an RT1062 image (on the RT1060-EVK, the Rev B QSPI target)
-      whose only disk is a RAM disk, so that no card can be reached by it and nothing persists
-      across a reset. Off by default. It needs the
-      SD card driver to be absent: a build that has both is refused here and by the provider's
-      CMake. It mounts and formats nothing by itself; the composition owns the mount, and may
-      format a RAM disk because it is memory. Used by the bench image of the integrated
-      management composition (tests/zephyr/management_rt1060_compile, which declares it).
-      No physical-board result exists for this selection.
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_RAM_DISK instead.
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
-    bool "Compile-only Crux File FatFs RT1060 SDHC check"
-    depends on CRUX_PILOT_MODULE && SOC_MIMXRT1062
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI
-    depends on !BOARD_MIMXRT1060_EVK || BOARD_REVISION_B
-    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
-    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    bool "Compile-only Crux File FatFs SD card check [DEPRECATED]"
+    depends on CRUX_MODULE && FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
+    select DEPRECATED
+    select CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
     help
-      Compile the File implementation and RT1062 SDHC/FatFs composition as an
-      object-only check, on any board with the RT1062 SoC and an enabled USDHC with an SD
-      disk (on the RT1060-EVK, the Rev B QSPI target). This does not link or select a
-      target File provider, mount media, format media, or enable runtime File operations.
+      Deprecated. Use CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK instead.
 
 config CRUX_FILE_RELIANCE_EDGE
     bool "Crux File provider on Reliance Edge"
-    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
+    depends on CRUX_MODULE && CRUX_FS_RELIANCE_EDGE
     depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
-    depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
-    depends on !CRUX_FILE_FATFS_RT1060_RAM_DISK
+    depends on !CRUX_FILE_FATFS_SDMMC && !CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RAM_DISK
     help
       Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
       works on any board that has the file system, and names are stored as they are, with no
@@ -382,21 +458,86 @@ config CRUX_FILE_RELIANCE_EDGE
       format and the recovery. The image links GPLv2 source, so it is for testing and is not
       distributed. No physical-board result exists for this selection.
 
-# The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
-# cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
-# adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
+# LittleFS on a block device, chosen by the same generic disk facts. A RAM disk is volatile, so it
+# counts on native_sim only, for tests.
+config CRUX_FILE_LITTLEFS_BLK_DEV
+    bool "Crux File provider on LittleFS over a block device"
+    depends on CRUX_MODULE && FILE_SYSTEM && FILE_SYSTEM_LITTLEFS && FS_LITTLEFS_BLK_DEV
+    depends on (DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED && DISK_DRIVER_SDMMC) || \
+               (DT_HAS_ZEPHYR_MMC_DISK_ENABLED && DISK_DRIVER_MMC) || \
+               (BOARD_NATIVE_SIM && DT_HAS_ZEPHYR_RAM_DISK_ENABLED && DISK_DRIVER_RAM)
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    depends on !CRUX_FILE_FATFS_SDMMC && !CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
+    depends on !CRUX_FILE_FATFS_RAM_DISK && !CRUX_FILE_RELIANCE_EDGE
+    help
+      Experimental (ADR-0001 Decision 4): the symbol may change in any release, and the release
+      notes list the change.
+
+      Link the File provider into an image whose LittleFS volume is on an SD card or eMMC disk
+      (an enabled zephyr,sdmmc-disk or zephyr,mmc-disk node), on any board. On native_sim a RAM
+      disk (zephyr,ram-disk) is accepted too, for tests. Off by default. Names are stored as they
+      are. It mounts and formats nothing by itself: the composition mounts the volume with
+      FS_MOUNT_FLAG_USE_DISK_ACCESS and FS_MOUNT_FLAG_NO_FORMAT, and never formats on the path of a
+      failed mount, because Zephyr's mount otherwise formats a volume it cannot read. The build
+      refuses FatFs in the same image, and an eMMC disk without CONFIG_CRUX_MMC_CACHE_FLUSH.
+      CONFIG_FS_LITTLEFS_NUM_FILES must cover CONFIG_CRUX_FILE_POOL_SIZE and the files that other
+      code holds open, such as two for a Settings File save, and CONFIG_FILE_SYSTEM_MAX_FILE_NAME
+      must be above 63. No physical-board result exists for this selection. See
+      docs/file-contract.md#littlefs-block-device-mapping.
+
+# LittleFS on a block device reads and writes whole 512-byte sectors, so each cache holds one.
+configdefault FS_LITTLEFS_CACHE_SIZE
+    default 512 if CRUX_FILE_LITTLEFS_BLK_DEV
+
+config CRUX_FILE_POOL_SIZE
+    int "Crux File open-handle pool size"
+    depends on CRUX_MODULE
+    range 4 32
+    default 4
+    help
+      How many Crux File handles can be open at once in the image. A full pool makes
+      crux_file_open return CRUX_FILE_ERR_NO_RESOURCES. The value is the public compile
+      definition CRUX_FILE_POOL_SIZE of crux::file. Every user of File in the image shares the
+      pool: the Access credential store takes one handle while it saves or reads a record, and
+      the file service keeps its transfers below this value (CRUX_FILE_SERVICE_TRANSFER_MAX).
+      The file system must hold every handle as well: on FatFs raise CONFIG_FS_FATFS_NUM_FILES
+      to cover this value and any native files of the image, and with Reliance Edge
+      CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT must cover this value plus
+      CONFIG_CRUX_FILE_DIR_POOL_SIZE (the build checks it). The Host build has the CMake cache
+      variable CRUX_FILE_POOL_SIZE with the same default.
+
+config CRUX_FILE_DIR_POOL_SIZE
+    int "Crux File listing pool size"
+    depends on CRUX_MODULE
+    range 1 8
+    default 2
+    help
+      How many Crux File listings can be open at once. A full pool makes crux_file_dir_open
+      return CRUX_FILE_ERR_NO_RESOURCES. The value is the compile definition
+      CRUX_FILE_DIR_POOL_SIZE of crux::file. On FatFs CONFIG_FS_FATFS_NUM_DIRS must cover it
+      (the build checks it). The Host build has the CMake cache variable
+      CRUX_FILE_DIR_POOL_SIZE with the same default.
+
+# The USDHC HAL (driver IMX_USDHC) invalidates a read target by whole D-cache lines when a transfer
+# completes, while the driver asks for 4-byte alignment only, so with the SD card selections,
+# Reliance Edge and LittleFS on a block device this default raises it to 32, the line of a
+# Cortex-M7. It is keyed by that driver: a module configdefault comes before a driver's own default,
+# so an unconditional value here would lower a stricter driver default (128 for R-Car). Another SD
+# host keeps its driver's value. With an SD host and a data cache, file_native.c refuses any value
+# below the cache line size, so a board whose driver asks for less sets the value in its board
+# configuration. With an SD host, the Reliance Edge adapter refuses a REDCONF_BUFFER_ALIGNMENT below
+# this value.
 configdefault SDHC_BUFFER_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
-                  CRUX_FILE_RELIANCE_EDGE
+    default 32 if IMX_USDHC && (CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK || \
+                                CRUX_FILE_RELIANCE_EDGE || CRUX_FILE_LITTLEFS_BLK_DEV)
 
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    default 32 if CRUX_FILE_FATFS_SDMMC || CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK
 
 config CRUX_MMC_CACHE_FLUSH
     bool "Flush the eMMC cache on disk sync (build-local MMC stack correction)"
-    depends on CRUX_PILOT_MODULE && MMC_STACK
+    depends on CRUX_MODULE && MMC_STACK
     default n
     help
       Replace subsys/sd/mmc.c in this build with a copy generated from
@@ -405,23 +546,49 @@ config CRUX_MMC_CACHE_FLUSH
       the card completes it. The Zephyr checkout is never edited, and a pinned
       source that differs from the expected one fails the configuration.
 
+config CRUX_CONFIGURATION_SETTINGS_PROVIDER
+    bool
+    help
+      Set by a Settings File selection of Configuration, never directly: the module links
+      configuration_settings.c and the Configuration core with it, stages the corrected Settings
+      File sources, and builds no no-provider port. CRUX_CONFIGURATION_SETTINGS_FILE and
+      CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS select it.
+
 config CRUX_CONFIGURATION_SETTINGS_FILE
     bool "Crux Configuration on the Settings File backend over Reliance Edge"
-    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE
+    depends on CRUX_MODULE && CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE
+    select CRUX_CONFIGURATION_SETTINGS_PROVIDER
     help
       Link the Configuration component over the Zephyr Settings File backend, on the Reliance
       Edge file system only. The backend of the pinned Zephyr hides I/O faults, so the build
-      stages corrected copies of three of its sources from
-      tests/native/configuration_settings_file, and an image that selects this needs that
-      directory. Settings are initialised by the composition, after its layout check:
-      crux_config_zephyr_init lets the backend create the directories of
+      stages corrected copies of three of its sources (patches/zephyr and
+      zephyr/settings_file.cmake). Settings are initialised by the composition, after its
+      layout check: crux_config_zephyr_init lets the backend create the directories of
       CONFIG_SETTINGS_FILE_PATH, so the composition calls it only after its layout
       check has found the settings directory. Set CONFIG_SETTINGS_FILE_PATH under the
       volume's mount point.
 
+config CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS
+    bool "Crux Configuration on the Settings File backend over a mounted file system other than FatFs"
+    depends on CRUX_MODULE && SETTINGS_FILE && !CRUX_CONFIGURATION_SETTINGS_FILE
+    select CRUX_CONFIGURATION_SETTINGS_PROVIDER
+    help
+      The same provider and corrected backend as CRUX_CONFIGURATION_SETTINGS_FILE, on the file
+      system that the composition mounts, with no Reliance Edge dependency. It is proven on
+      LittleFS over a block device (FS_LITTLEFS_BLK_DEV) on native_sim. The backend compacts
+      its file by renaming a temporary onto it, so the file system must replace the
+      destination of a rename atomically across a power cut. FatFs does not: its rename
+      removes the destination first and can leave the settings file missing. So the module
+      refuses the build of an image that has both this and FAT_FILESYSTEM_ELM, at CMake and in
+      the provider's source, rather than through a Kconfig dependency, which would only drop
+      the selection with a warning and leave the image without a provider. The composition
+      mounts the volume, never formats it, and calls crux_config_zephyr_init only after its
+      layout check has found the directory of CONFIG_SETTINGS_FILE_PATH. Set that path under
+      the volume's mount point.
+
 menuconfig CRUX_WEB
     bool "Crux web server adapter"
-    depends on CRUX_PILOT_MODULE && NETWORKING
+    depends on CRUX_MODULE && NETWORKING
     select HTTP_SERVER
     select HTTP_SERVER_CAPTURE_HEADERS
     select HTTP_SERVER_RESOURCE_WILDCARD
@@ -443,16 +610,16 @@ config CRUX_WEB_PORT
     range 0 65535
 
 config CRUX_WEB_BIND_ADDRESS
-    string "The one IPv4 address the web service listens on, or empty for every address"
+    string "The one address the web service listens on, or empty for every address"
     default ""
-    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     help
-      Dotted IPv4 text of a local address, which must already be on an interface when the service
-      starts. Empty keeps the Zephyr server's default: every address, and IPv6 as well when it is
-      enabled. The RT1060-EVKB bench image sets the bench address (D10 of
-      docs/rt1060-management-image-feasibility.md). A text that is not an IPv4 address makes the
-      Zephyr server fall back to every address, so a composition that sets this checks the text
-      itself, as the bench image's guards do.
+      Dotted IPv4 text of a local address (or IPv6 text, with IPv6 enabled), which must already be
+      on an interface when the service starts. Empty keeps the Zephyr server's default: every
+      address, and IPv6 as well when it is enabled. The RT1060-EVKB bench image sets the bench
+      address (D10 of docs/rt1060-management-image-feasibility.md). The Zephyr server falls back to
+      every address for a text that is not an address of an enabled family, so crux_web_start()
+      returns CRUX_WEB_ERR_FAILED for such a text and the server does not start. The plain HTTP test
+      build takes it too, so that tests/native/web_http can check both.
 
 config CRUX_WEB_BACKLOG
     int "Connections the listening socket queues"
@@ -495,6 +662,22 @@ config CRUX_WEB_REQUEST_DEADLINE_MS
       Every received byte restarts the server's inactivity timer, so that timer does not bound a
       client that trickles a body. A composition passes this in crux_web_config_t.
 
+config CRUX_WEB_HEADER_DEADLINE_MS
+    int "Longest time from a request's first byte to the end of its headers"
+    default 10000
+    range 100 600000
+    help
+      Every received byte restarts the Zephyr server's inactivity timer, and headers run no
+      callback, so without this a client that trickles an incomplete request head holds a client
+      slot for as long as the parser accepts headers. The web adapter builds the server with a
+      build-local patch (patches/zephyr/http-header-deadline.patch) that closes such a client this
+      long after the request's first byte, whatever it sends meanwhile. A client idle between
+      requests stays under the inactivity timer, and the body of a request that reaches a route
+      under CONFIG_CRUX_WEB_REQUEST_DEADLINE_MS. The default is one period of the server's default
+      inactivity timeout of 10 s (Issue #268). Two limits remain: a client that reconnects holds a
+      slot for up to this long per connection, and a body trickled after a plain 404 or 405 that the
+      server sends itself runs no callback and has no time limit (Issue #529).
+
 config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
     bool "Plain HTTP on loopback, for tests of the adapter only"
     depends on BOARD_NATIVE_SIM
@@ -508,7 +691,7 @@ endif # CRUX_WEB
 # share it. Zephyr's module offers no option for them at the pinned revision, so the module provides them.
 config CRUX_PSA_THREADING
     bool "Locks for TF-PSA-Crypto's core on Zephyr kernel objects (Experimental)"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
+    depends on CRUX_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
       release, and the release notes list the change. Off by default, and no behaviour changes in an
@@ -546,7 +729,7 @@ config TF_PSA_CRYPTO_USER_CONFIG_FILE
 # and Time themselves (ADR-0004 C6), so that a product's configuration names service symbols only.
 config CRUX_ACCESS
     bool "Crux Access with its credential store and security events (Experimental)"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    depends on CRUX_MODULE && MULTITHREADING
     select CRUX_CREDENTIAL
     select CRUX_SECURITY_EVENT
     select CRUX_THREAD
@@ -572,14 +755,14 @@ config CRUX_ACCESS
 
 config CRUX_CREDENTIAL
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The credential store of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
       because the store cannot be linked without Access and the security events.
 
 config CRUX_SECURITY_EVENT
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The security events of CONFIG_CRUX_ACCESS, selected by it. It has no prompt
       because the events cannot be linked without Access and the credential store.
@@ -589,7 +772,7 @@ config CRUX_SECURITY_EVENT
 # and the status service also reads Time.
 config CRUX_CONFIG_SERVICE
     bool "Crux Configuration service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_SYNC
     help
@@ -601,14 +784,14 @@ config CRUX_CONFIG_SERVICE
       events, and the Configuration core beneath it. It starts nothing: the application lists its
       parameters and calls crux_config_service_start(). The module defines the portable target
       crux::config_service for <crux/config_service.h> (Experimental).
-      Without CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE there is no save provider, a save returns
+      Without a Settings File selection of Configuration there is no save provider, a save returns
       CRUX_CONFIG_SERVICE_ERR_STORE with CRUX_CONFIG_ERR_NOT_SUPPORTED in the report's failed_result
       (the "no provider" port of components/configuration), and the service still reads and updates
       parameters in memory.
 
 config CRUX_MGMT_STATUS
     bool "Crux status service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_SYNC
     select CRUX_TIME
@@ -624,11 +807,11 @@ config CRUX_MGMT_STATUS
 
 config CRUX_CONFIGURATION_CORE
     bool
-    depends on CRUX_PILOT_MODULE
+    depends on CRUX_MODULE
     help
       Experimental. The Configuration core of CONFIG_CRUX_CONFIG_SERVICE, CONFIG_CRUX_MGMT_STATUS and
-      CONFIG_CRUX_REBOOT, selected by them, with no prompt. With CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE it is that
-      selection's copy that is linked, and this builds nothing. Either way the module defines the
+      CONFIG_CRUX_REBOOT, selected by them, with no prompt. With a Settings File selection
+      (CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER) it is that selection's copy that is linked, and this builds nothing. Either way the module defines the
       portable target crux::configuration for <crux/configuration.h>.
 
 # ADR-0004 phase 0, slice 3: network settings, the TLS certificate module, the file service and reboot. Each
@@ -636,7 +819,7 @@ config CRUX_CONFIGURATION_CORE
 # Crux symbols that it links (ADR-0004 C6).
 config CRUX_NETWORK_SETTINGS
     bool "Crux network settings service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_CONFIG_SERVICE
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_CONFIG_SERVICE
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -657,13 +840,14 @@ config CRUX_NETWORK_SETTINGS_NO_APPLY
     depends on CRUX_NETWORK_SETTINGS
     help
       Experimental. Builds the no-op apply port of components/network_settings: it reports that it
-      applied the settings and reports no running values, so GET shows none. For native_sim and for an
+      applied nothing, so the boot report reads applied false and source default, and it reports no
+      running values, so GET shows none. For native_sim and for an
       image whose application applies nothing. Do not set it in an image that implements the apply port
       itself: the two would define the same symbols twice.
 
 config CRUX_TLS_CERTIFICATE
     bool "Crux TLS certificate module (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_SYNC
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
@@ -680,7 +864,7 @@ config CRUX_TLS_CERTIFICATE
 
 config CRUX_FILE_SERVICE
     bool "Crux file service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_SYNC
     help
       Experimental tier (ADR-0001 Decision 4): the symbol, and what it builds, may change in any
@@ -694,7 +878,7 @@ config CRUX_FILE_SERVICE
 
 config CRUX_REBOOT
     bool "Crux reboot service (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS
+    depends on CRUX_MODULE && CRUX_ACCESS
     select CRUX_CONFIGURATION_CORE
     select CRUX_THREAD
     select CRUX_SYNC
@@ -714,7 +898,7 @@ config CRUX_REBOOT
 # links (ADR-0004 C6).
 config CRUX_WEB_SESSION
     bool "Crux web sessions (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_WEB
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -732,7 +916,7 @@ config CRUX_WEB_SESSION
 
 config CRUX_WEB_MANAGEMENT
     bool "Crux web management (Experimental)"
-    depends on CRUX_PILOT_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
+    depends on CRUX_MODULE && CRUX_ACCESS && CRUX_WEB_SESSION && CRUX_CONFIG_SERVICE && CRUX_MGMT_STATUS
     select CRUX_THREAD
     select CRUX_SYNC
     help
@@ -747,7 +931,7 @@ config CRUX_WEB_MANAGEMENT
 
 menuconfig CRUX_SSH
     bool "Crux SSH management service on the wolfSSH provider"
-    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
+    depends on CRUX_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
     depends on WOLFSSH
     help
       Selects the wolfSSH provider behind the private provider interface, with the access adapter, and

@@ -205,7 +205,26 @@ The proposal's tables, as implemented:
 | `STORE` | `could not save, a later boot may use either` | Login prompt |
 | `NOT_READY` | `login unavailable` | Login prompt |
 
-A wrong password, an unknown name and a disabled account print the same words. Nothing appears before login. The name is in the line buffer and the password in the context's own buffers, and both are zeroed on every path, which `tests/cli/login.c` and `login_real.c` check by scanning the context.
+A wrong password, an unknown name and a disabled account print the same words. Nothing about the device appears before login, except log text in the shared mode below. The name is in the line buffer and the password in the context's own buffers, and both are zeroed on every path, which `tests/cli/login.c` and `login_real.c` check by scanning the context.
+
+### Console and Logging on one UART
+
+A product chooses with the Kconfig choice `CRUX_CLI_CONSOLE_UART`:
+
+| Symbol | Behaviour |
+| --- | --- |
+| `CRUX_CLI_CONSOLE_UART_DEDICATED` (default) | The console owns the UART of `crux-serial0` alone. Logging uses Zephyr's UART backend on the UART that `zephyr,log-uart` names, which must be another one. |
+| `CRUX_CLI_CONSOLE_UART_SHARED` | One UART. A Crux Logging backend replaces Zephyr's UART backend on the UART of `crux-serial0`, and the console prints what it queues. It needs `CONFIG_CRUX_LOGGING` and `CONFIG_LOG_BACKEND_UART=n`, and the UART's devicetree `current-speed` must equal `CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE` (default 115200); the build refuses anything else. `zephyr,log-uart` is optional, and when chosen it names `crux-serial0`. The choice turns on Logging's own `CONFIG_CRUX_LOGGING_CONSOLE_BACKEND`, so Logging reads no command line symbol. |
+
+In the shared mode, which follows the multiplexing of Zephyr's shell log backend without the Zephyr shell:
+
+- **Before the console's thread starts, while the console has no port open, and after `log_panic()`**, the backend writes each message directly with `uart_poll_out`, as Zephyr's UART backend does. When an open fails (for example a quarantined Serial binding) or the port closes after a failure, and at the panic, it first writes, once and in order, what the console had not shown.
+- **In between**, the backend formats each message and puts it in a queue of `CONFIG_CRUX_LOGGING_CONSOLE_QUEUE_BYTES` (default 2048), whole or not at all. The log thread never waits for the console's output; it waits only while the console switches the mode, and after a port failure while the queue is written out (2048 bytes take about 180 ms at 115200 baud). A message that does not fit is dropped and counted, and the console prints `--- N log messages dropped ---` where the gap is. A message longer than 512 bytes is cut and ends with `...`. A control byte other than LF and TAB is printed as `?`.
+- **The console prints log text only while it waits for input**: it clears the input line (`CR`, `ESC [K`), writes up to about 512 bytes of log text, and redraws the prompt and the typed text. Typed input is read first. A secret is never redrawn, because it is never echoed: at a password prompt only the prompt comes back. Command output is never interleaved, because no read happens while a command prints; log text waits for the next prompt. While the console is idle at a prompt, a line waits at most 100 ms.
+- **Log text can appear before login**, at the login prompt. That is the same physical-access exposure as a separate log UART.
+- **The rate bounds the log text.** Direct output goes at the devicetree's `current-speed`, which is why it must equal the console's rate. An idle console writes about 512 bytes of log text per 100 ms wait, which at 115200 baud is about 3.5 kB/s. A faster sustained rate fills the queue, and the rest is dropped and counted.
+
+Limits: a line longer than a prompt and `CRUX_CLI_LINE_MAX` is not redrawn, and the log text starts on a new line instead. After a panic, if the product's fatal error handler lets the system go on, console output and panic output can interleave. A close that fails and keeps the handle (`CRUX_ERR_BUSY`) keeps log text in the queue until a later close succeeds. When a Serial binding is quarantined because it could not restore the UART's settings, the UART's state is unknown, and direct log text may be garbled. Locks, ISR context and the panic path are described at the top of `components/logging/ports/zephyr/logging_console_backend.c`. Tests: `tests/cli/console_log.c` and `tests/cli/console_shared.c` on the Host, and the fixture `tests/native/cli_console/shared` on `native_sim`, with the refusals, from `tests/native/cli_console/run.sh`. The shared mode is also cross-built for `mimxrt1060_evk@B//qspi`, with the console on LPUART1, by `scripts/test-management-mbed-rt1060.sh build` ([the fixture and its checks](../tests/zephyr/cli_console_shared_compile/run.sh)); a build check only, which flashes and runs nothing ([what has run](component-readiness.md)). That build sets `CONFIG_UART_CONSOLE=n`: the board turns Zephyr's UART console on, which would own the console's UART, and the build refuses it.
 
 ## What #193 uses
 
@@ -274,13 +293,13 @@ It needs a session and its permission, so it cannot run before login. It does no
 | Configuration | `cmake/CruxManagementShell.cmake`, from `zephyr/CMakeLists.txt` for every image | All three image rows | `tests/build/test_management_shell.py` for the logic, `test_cli_composition.py` on real builds |
 | Compilation | `components/cli/ports/zephyr/cli_shell_rule.c` | The management rows | `test_management_shell.py`, compiling it with each symbol |
 | Script | `scripts/check-management-shell.py --config` | All three rows on a built `.config` | Both |
-| Image | The same script, `--elf` | No shell symbol, the shell's sections empty, and all 8 of their markers present, so a stripped image or an empty listing fails | Saved `nm` output, a real ELF on the Host, stripped and not, and real RT1060 and `native_sim` images |
+| Image | The same script, `--elf` | No shell symbol, the shell's sections empty, and all 10 of their markers present, so a stripped image or an empty listing fails | Saved `nm` output, a real ELF on the Host, stripped and not, and real RT1060 and `native_sim` images |
 
 | Image | `CONFIG_SHELL` | Backends |
 | --- | --- | --- |
 | Has `CONFIG_CRUX_CLI`, `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH`, and no `CONFIG_CRUX_DEVELOPMENT_IMAGE` | Must be `n` | None |
 | Has one of those, and is marked | May be `y` | `SHELL_BACKEND_SERIAL` and its options only |
-| Has none of those | May be `y` | Anything except the network backends and `MCUMGR_GRP_SHELL` |
+| Has none of those | May be `y` | Anything except the network backends (Telnet, WebSocket, MQTT and, from Zephyr v4.5.0, SSH) and `MCUMGR_GRP_SHELL` |
 
 The rule reads `CONFIG_CRUX_WEB` and `CONFIG_CRUX_SSH` by name. Both symbols now exist in `zephyr/Kconfig`, so the rule applies to every image that sets them. Host tests cover the rule's logic for them. No document records the image check running on an image that sets `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH`.
 

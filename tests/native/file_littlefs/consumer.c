@@ -1,5 +1,5 @@
 #include <crux/file.h>
-crux_file_result_t pilot_file_create(void)
+crux_file_result_t consumer_file_create(void)
 {
     crux_file_t *file = 0;
     crux_file_result_t rc = crux_file_open("portable", CRUX_FILE_CREATE_REPLACE, &file);

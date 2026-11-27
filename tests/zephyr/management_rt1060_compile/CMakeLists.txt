@@ -20,7 +20,7 @@ set(EXTRA_CONF_FILE
     "${CRUX_ROOT}/components/ssh/ports/zephyr/wolf-ssh.conf"
     "${CMAKE_CURRENT_LIST_DIR}/target.conf")
 set(DTC_OVERLAY_FILE
-    "${CRUX_ROOT}/samples/controller/zephyr/m3-network.overlay"
+    "${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/common/network.overlay"
     "${CMAKE_CURRENT_LIST_DIR}/target.overlay"
     "${CMAKE_CURRENT_LIST_DIR}/ram_disk.overlay")
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")

@@ -116,6 +116,8 @@ def verify_network_handoff(path, probe):
     require(network['profile']=='network' and network['west_projects']==probe['west_projects'],
             '#11 and integration pinned native dependencies differ')
     component_hashes={}
+    # These are the paths inside the commits of the captured images, which predate the move of the probe sources to
+    # tests/board_images/integration_probe; the blobs are read from those commits, so the old paths stay.
     for relative in ('samples/controller/zephyr/network_client.c','samples/controller/zephyr/network_client.h',
                      'samples/controller/zephyr/m3-network.overlay','samples/controller/zephyr/native_logger.c',
                      'samples/controller/zephyr/native_logger.h','patches/zephyr/nxp-enet-mdio-completion.patch'):

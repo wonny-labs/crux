@@ -44,8 +44,9 @@ crux_image_result_t crux_image_slot_state_derive(bool is_running,
         return derive_running(view, state);
     }
 
-    if (view->magic == CRUX_IMAGE_PORT_MAGIC_BAD || !flag_defined(view->image_ok) ||
-        !flag_defined(view->copy_done)) {
+    /* A magic other than good or unset is not a trailer this contract knows: fail closed. */
+    if ((view->magic != CRUX_IMAGE_PORT_MAGIC_GOOD && view->magic != CRUX_IMAGE_PORT_MAGIC_UNSET) ||
+        !flag_defined(view->image_ok) || !flag_defined(view->copy_done)) {
         *state = CRUX_IMAGE_SLOT_INVALID;
         return CRUX_IMAGE_OK;
     }

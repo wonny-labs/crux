@@ -114,6 +114,13 @@ class PublicHeader(unittest.TestCase):
                        "crux_tls_certificate_material_release", "CRUX_TLS_CERTIFICATE_ERR_BUSY"):
             self.assertIn(phrase, text, phrase)
 
+    def test_start_can_require_an_existing_identity_and_is_off_by_default(self):
+        start = " ".join(START.read_text().replace("\n *", " ").split())
+        self.assertRegex(START.read_text(), r"\bbool require_existing_identity;")
+        self.assertIn("CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY", start)
+        self.assertIn("False, the default", start)
+        self.assertRegex(STATE.read_text(), r"CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY = -12")
+
     def test_the_header_names_its_tier(self):
         self.assertRegex(START.read_text().split("*/", 1)[0], r"Status:\s+Experimental")
 

@@ -36,10 +36,10 @@ flowchart LR
 |---|---|
 | Public header with the three declarations and their ownership, lifetime, context and result documentation | `components/file/ports/zephyr/include/crux/file_zephyr.h` (new) |
 | `file_native.h` now only includes that header, so the provider, tests and samples that use the old spelling keep working | `components/file/ports/zephyr/file_native.h` |
-| Target `crux::file_zephyr`: an INTERFACE target that adds the include root and links `crux::file`; defined in each provider branch (RT1060 FatFs, Reliance Edge, simulators) | `components/file/ports/zephyr/CMakeLists.txt` |
-| The microSD sample and the FatFs `native_sim` test use the public target and no private include path | `samples/storage_sd`, `tests/native/file_fatfs` |
-| `sd_storage.c` now includes the public header, so the eight other builds that compile it link `crux::file_zephyr` too | `samples/storage_sd_interrupt`, `samples/storage_sd_probe`, `samples/storage_sd_replace`, `tests/native/file_sd_check`, `file_sd_composition`, `file_sd_interrupt`, `file_sd_probe`, `file_sd_replace` |
-| Follow-up: the eMMC composition includes the public header, and the samples `storage_emmc` and `storage_reliance_sd` and the native_sim fixtures `file_emmc_composition` and `configuration_settings_reliance` that compile `emmc_storage.c` link the target. The three microSD samples `storage_sd_interrupt`, `storage_sd_replace` and `storage_sd_probe`, the two eMMC samples and the two fixtures no longer add the port directory as a private include path. Other builds keep the private spelling `file_native.h` | `samples/storage_emmc`, `samples/storage_reliance_sd`, `samples/storage_sd_*`, `tests/native/file_emmc_composition`, `tests/native/configuration_settings_reliance` |
+| Target `crux::file_zephyr`: an INTERFACE target that adds the include root and links `crux::file`; defined in each provider branch (FatFs on an SD card or a RAM disk, Reliance Edge, simulators) | `components/file/ports/zephyr/CMakeLists.txt` |
+| The microSD sample and the FatFs `native_sim` test use the public target and no private include path | `samples/boards/nxp/mimxrt1060_evk/sd_card_file`, `tests/native/file_fatfs` |
+| `sd_storage.c` now includes the public header, so the eight other builds that compile it link `crux::file_zephyr` too | `tests/board_images/sd_card_power_cut_append`, `tests/board_images/sd_card_probe`, `tests/board_images/sd_card_power_cut_replace`, `tests/native/file_sd_check`, `file_sd_composition`, `file_sd_interrupt`, `file_sd_probe`, `file_sd_replace` |
+| Follow-up: the eMMC composition includes the public header, and the sample `emmc_file` and the board test image `sd_card_power_cut_sequence` and the native_sim fixtures `file_emmc_composition` and `configuration_settings_reliance` that compile `emmc_storage.c` link the target. The three microSD board test images `sd_card_power_cut_append`, `sd_card_power_cut_replace` and `sd_card_probe`, the two eMMC builds and the two fixtures no longer add the port directory as a private include path. Other builds keep the private spelling `file_native.h` | `samples/boards/nxp/mimxrt1060_evk/emmc_file`, `tests/board_images/sd_card_power_cut_sequence`, `tests/board_images/sd_card_*`, `tests/native/file_emmc_composition`, `tests/native/configuration_settings_reliance` |
 | Host tests | `tests/build/test_file_zephyr_public.py` and `tests/build/test_file_zephyr_boundary.py` |
 
 ## Decisions taken
@@ -48,9 +48,9 @@ flowchart LR
 |---|---|---|
 | 1 | The target and header keep `zephyr` in their names | A native-free consumer check rejects any target or path that names Zephyr. That is the intended result: the target is for composition code, and application code must not link it. A neutral name would hide the role. |
 | 2 | The target does not link the provider library | The provider is selected by Kconfig and appended to the Zephyr link by the module. The target only gives the header, so a product that selects a provider through Kconfig does not pick a second one by linking. |
-| 3 | Only the declarations that already existed are published | No new function, no rename. The Linux names stay in `file_linux.h`. |
+| 3 | The header published the declarations that already existed, with no rename. Its one later addition is [the root byte limit](#the-root-byte-limit) | The Linux names stay in `file_linux.h`. |
 | 4 | The private header stays | Renaming every user is a larger change with no consumer benefit. |
-| 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy is a precedent for a documented composition target. The project owner approved the public target and header on 8 November 2026 (option A); the location and the composition role are this change's reading of that approval. |
+| 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy was a precedent for a documented composition target (removed with Crux Queue on 20 November 2026). The project owner approved the public target and header on 8 November 2026 (option A); the location and the composition role are this change's reading of that approval. |
 | 6 | Management and HTTPS composition are not covered | They need a separate design that also depends on the Zephyr TLS socket route and licence decisions of the owner. |
 
 ## What a consuming product needs to do
@@ -66,9 +66,19 @@ A product that wants a strict boundary for its application code needs a composit
 | The ten builds that use the target (the FatFs `native_sim` test and the nine that compile `sd_storage.c`) | Zephyr CI: `scripts/test-file-rt1060-compile.sh` (RT1060 compile check of the samples) and `scripts/test-storage-simulators.sh` (`native_sim`) | **not run locally** (Docker, disk); left to CI |
 | `scripts/check-format.sh` (clang-format 18) | Host CI | **not run locally** (not installed); the changed lines were kept to 100 columns by hand |
 | The native-free consumer check rejects a consumer that links the target: a direct link, a transitive wrapper and the usage check, with the real guard and the real target definition, and the same projects pass against a weakened copy of the guard | `tests/build/test_file_zephyr_boundary.py`, Host | run locally and in Host CI |
-| The follow-up builds: the three microSD samples (RT1060 compile, `scripts/test-file-rt1060-compile.sh`), `storage_emmc` (RT1060 link, `scripts/test-file-emmc-compile.sh`), `storage_reliance_sd` (RT1060 link, `scripts/test-file-emmc-compile.sh`; `native_sim` build only, `scripts/test-storage-emmc.sh`), and the two eMMC `native_sim` fixtures, which also compile `emmc_storage.c` (`scripts/test-storage-emmc.sh`) | Zephyr CI | **not run locally** (Docker, disk); left to CI |
+| The follow-up builds: the three microSD board test images (RT1060 compile, `scripts/test-file-rt1060-compile.sh`), `emmc_file` (RT1060 link, `scripts/test-file-emmc-compile.sh`), `sd_card_power_cut_sequence` (RT1060 link, `scripts/test-file-emmc-compile.sh`; `native_sim` build only, `scripts/test-storage-emmc.sh`), and the two eMMC `native_sim` fixtures, which also compile `emmc_storage.c` (`scripts/test-storage-emmc.sh`) | Zephyr CI | **not run locally** (Docker, disk); left to CI |
 | A product repository builds against the target | not done; the first product consumer is the evaluation of this interface | open |
 | Any run on a board | none | not authorised and not part of this change |
+
+## The root byte limit
+
+The limit reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units. A volume free-space reserve and a product-side partition were the alternatives, and were not adopted. Its tier is in the [readiness table](component-readiness.md).
+
+`<crux/file_zephyr.h>` gains one function, `crux_file_zephyr_bind_root_limited(root, path, max_bytes)`, and the Linux provider's `file_linux.h` gains its counterpart `crux_file_linux_bind_root_limited`. They bind a root as `crux_file_zephyr_bind_root` and `crux_file_linux_bind_root` do and set the limit in the same call, so a root never runs without its limit once File calls start. Their rules are in [Root byte limits](file-contract.md#root-byte-limits). The function binds and configures a root, which [rule 4](composition-interfaces.md#the-six-rules) allows, and the behaviour it adds is the limit described in the contract.
+
+The author's choice within the approval: each file counts at least one unit, so an empty file is not free and a root holds at most `max_bytes / unit` files. An empty file takes directory space on every supported file system although it may take no data block. The choice can change in a later reviewed change.
+
+`tests/build/test_file_zephyr_public.py` compiles the declaration on the Host. The other tests are listed in the [test guide](../tests/README.md#portable-file-software-slice). No board has run it.
 
 ## The Reliance Edge file system type
 
@@ -85,7 +95,7 @@ The File provider on Reliance Edge needs a mounted volume, and a composition mou
 | Public header `<crux/file_reliance_edge_zephyr.h>`: one macro, `CRUX_FS_RELIANCE_EDGE`, with the value it had (`FS_TYPE_EXTERNAL_BASE`), and the rules for the mount and the format call. It includes only `<zephyr/fs/fs.h>` and declares no function | `components/file/ports/zephyr/include/crux/file_reliance_edge_zephyr.h` (new) |
 | The private header only includes the public one, so there is one definition and code that names the private header by its path keeps working | `zephyr/fs/reliance_edge/fs_reliance_edge.h` |
 | The header reaches a product through the existing target `crux::file_zephyr`; the target and its definition are unchanged | `components/file/ports/zephyr/CMakeLists.txt` |
-| The samples `storage_emmc` and `storage_reliance_sd` and the fixtures `file_emmc_composition` and `configuration_settings_reliance` use the public header and no longer add `zephyr/fs/reliance_edge` as an include path. `file_reliance` keeps the private spelling, so that the private header stays covered, and `emmc_powercut` does not link a Crux target and keeps it too | the four builds above |
+| The sample `emmc_file`, the board test image `sd_card_power_cut_sequence` and the fixtures `file_emmc_composition` and `configuration_settings_reliance` use the public header and no longer add `zephyr/fs/reliance_edge` as an include path. `file_reliance` keeps the private spelling, so that the private header stays covered, and `emmc_powercut` does not link a Crux target and keeps it too | the four builds above |
 | Host checks | `tests/build/test_file_reliance_edge_zephyr_public.py` |
 
 ### Decisions

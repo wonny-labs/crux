@@ -250,7 +250,7 @@ static void report_forms(void)
         "{\"name\":\"net.admin_up\",\"status\":\"ok\",\"type\":\"bool\",\"value\":true},"
         "{\"name\":\"net.ipv4\",\"status\":\"ok\",\"type\":\"text\",\"value\":\"192.0.2.10\"},"
         "{\"name\":\"version.platform\",\"status\":\"ok\",\"type\":\"text\",\"value\":\"1.2.3\"},"
-        "{\"name\":\"version.project\",\"status\":\"ok\",\"type\":\"text\",\"value\":\"pilot-7\"}"
+        "{\"name\":\"version.project\",\"status\":\"ok\",\"type\":\"text\",\"value\":\"demo-7\"}"
         "]}";
     if (strcmp(out, expected) != 0) {
         printf("got      %s\nexpected %s\n", out, expected);

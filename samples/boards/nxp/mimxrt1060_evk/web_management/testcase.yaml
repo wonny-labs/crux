@@ -1,0 +1,9 @@
+sample:
+  name: Crux management image on RT1060-EVK Rev B, Mbed TLS profile (cross-build only)
+common:
+  build_only: true
+  platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+  tags: [crux, management, mbedtls, link_only]
+tests:
+  crux.sample.boards.mimxrt1060_evk.web_management:
+    extra_args: []

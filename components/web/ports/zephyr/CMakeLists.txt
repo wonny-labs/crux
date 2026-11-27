@@ -20,6 +20,9 @@ target_include_directories(crux_web_zephyr PRIVATE
     "${CRUX_WEB_COMPONENT_DIR}/ports/zephyr/include"
     "${CMAKE_CURRENT_LIST_DIR}")
 zephyr_append_cmake_library(crux_web_zephyr)
+
+# The server built with a header-phase deadline (CONFIG_CRUX_WEB_HEADER_DEADLINE_MS).
+include("${CMAKE_CURRENT_LIST_DIR}/header_deadline.cmake")
 target_link_libraries(crux_web_zephyr PRIVATE crux_web_api zephyr_interface)
 target_compile_definitions(crux_web_zephyr PRIVATE
     CRUX_WEB_EXCHANGE_MAX=${CONFIG_HTTP_SERVER_MAX_CLIENTS})

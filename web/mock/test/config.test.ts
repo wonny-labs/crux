@@ -121,7 +121,7 @@ test('a value is read in the JSON form of its type', async () => {
   assert.deepEqual((await h.call('GET', '/api/v1/config/device_label')).body, {
     name: 'device_label',
     type: 'string',
-    value: 'pilot',
+    value: 'lab-unit',
   });
 });
 

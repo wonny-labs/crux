@@ -508,7 +508,11 @@ static void store_load(void)
     store.generation = views[active].generation;
     state_publish(CRUX_CREDENTIAL_STATE_VALID);
     uint32_t missing = views[active].records & ~views[other].records;
-    if (views[other].kind == SLOT_VALID && missing != 0 && slot_repair()) {
+    /* Accounts that only the older slot holds are what an account-only erase cut between its two
+     * writes leaves. They go now, so that damage to the newest slot cannot restore them. */
+    const uint32_t accounts = 1u << (uint32_t)CRUX_CREDENTIAL_RECORD_ACCOUNTS;
+    bool stale_accounts = (views[other].records & ~views[active].records & accounts) != 0;
+    if (views[other].kind == SLOT_VALID && (missing != 0 || stale_accounts) && slot_repair()) {
         keys_announce(missing);
     }
 }
@@ -869,6 +873,47 @@ crux_credential_result_t crux_credential_erase(void)
     }
     crux_credential_result_t result = complete ? CRUX_CREDENTIAL_OK : CRUX_CREDENTIAL_ERR_STORE;
     event_send(CRUX_CREDENTIAL_EVENT_ERASED, result);
+    store_leave();
+    return result;
+}
+
+static void event_send_accounts_erased(crux_credential_result_t result)
+{
+    crux_credential_event_t event = {
+        .type = CRUX_CREDENTIAL_EVENT_ERASED,
+        .result = result,
+        .state = store.state,
+        .record = CRUX_CREDENTIAL_RECORD_ACCOUNTS,
+    };
+    crux_credential_port_event(&event);
+}
+
+/*
+ * Removes the account record and keeps every other one. The new image goes to both slots, as for
+ * an added record, so that no valid slot holds the accounts once this returns OK. A cut between
+ * the two writes leaves them in the older slot only, and the repair at start removes them there.
+ */
+crux_credential_result_t crux_credential_erase_accounts(void)
+{
+    crux_credential_result_t result = store_enter_usable();
+    if (result != CRUX_CREDENTIAL_OK) {
+        return result;
+    }
+    if (!image_load()) {
+        /* Nothing has changed, and the product can fall back to the full erase. */
+        event_send_accounts_erased(CRUX_CREDENTIAL_ERR_READ);
+        store_leave();
+        return CRUX_CREDENTIAL_ERR_READ;
+    }
+    const bool empty = store.state == CRUX_CREDENTIAL_STATE_EMPTY;
+    /* From here provisioning needs a reset, as after the full erase, and nothing more is saved. */
+    state_publish(CRUX_CREDENTIAL_STATE_UNUSABLE);
+    if (!empty) {
+        (void)crux_credential_payload_remove(CRUX_CREDENTIAL_RECORD_ACCOUNTS, store.plain,
+                                             &store.payload_length);
+        result = image_save(true);
+    }
+    event_send_accounts_erased(result);
     store_leave();
     return result;
 }

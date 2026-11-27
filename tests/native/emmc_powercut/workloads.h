@@ -11,9 +11,33 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum powercut_workload { POWERCUT_W1, POWERCUT_W2, POWERCUT_W3, POWERCUT_W4 };
+enum powercut_workload {
+    POWERCUT_W1,
+    POWERCUT_W2,
+    POWERCUT_W3,
+    POWERCUT_W4,
+    POWERCUT_W8,
+    POWERCUT_W8C,
+    POWERCUT_W5
+};
 
-/* Baseline content, on the no-cache profile. W4 needs an image with the Settings File backend. */
+/*
+ * W8 and W8C (W8-control) replace a file through the Crux File provider; only an image with a File
+ * provider (file.conf, fatfs-file.conf or littlefs-file.conf) has them and their baseline. W5
+ * appends records through File, and only an image with the LittleFS provider has its baseline, so
+ * that the other file systems' baselines and counts stay as they are.
+ */
+#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||        \
+    defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+#define POWERCUT_HAS_FILE 1
+#else
+#define POWERCUT_HAS_FILE 0
+#endif
+
+/*
+ * Baseline content, on the no-cache profile. W4 needs an image with the Settings File backend, W8
+ * and W8C (one baseline) an image with a File provider, and W5 the LittleFS one.
+ */
 int powercut_prepare(enum powercut_workload w);
 int powercut_run(enum powercut_workload w, bool early_ack);
 
@@ -37,6 +61,10 @@ struct powercut_result {
     bool mounted, data, read_error, replaced, untouched, recommit;
     /* W4 only: the Settings File backend's temporary (.cmp) is left behind. Not a failure. */
     bool cmp_left;
+    /* W8 and W8C only: the replaced file does not exist at all, as distinct from a damaged one. */
+    bool target_missing;
+    /* W8 and W8C only: settings/w2, which they never touch, is intact. Kept apart from replaced. */
+    bool w2_intact;
 };
 
 /* Expects the volume unmounted; mounts it without formatting and leaves it mounted. */

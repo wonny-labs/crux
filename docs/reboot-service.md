@@ -9,7 +9,7 @@ Owner: `components/reboot`. Public header `<crux/reboot.h>`, usage target `crux:
 `components/web/management/web_management_reboot.c` and are described in [`web/api/openapi.yaml`](../web/api/openapi.yaml), which
 this change does not edit.
 
-`crux_system_reset()` does not flush storage, drain logs or perform safe-state actions: its contract says so, and a native failure
+`crux_system_reset()` does not flush storage or perform safe-state actions: its contract says so, and a native failure
 may hang. A restart that a person asks for over the network therefore goes through this service, which checks who asks, lets the
 application refuse, records the request, gives events and saves a bounded time, asks the application again, and only then resets.
 
@@ -79,7 +79,8 @@ test shows each row, and a mutation that lets an unset policy start is caught.
 
 The callback `bool (*)(void *context, crux_reboot_refusal_t *refusal)` returns true to allow. To refuse it returns false and may
 write a reason. It runs on the server thread for a request and on the worker thread for the second check, so it must be thread-safe
-and quick, and must not call the service. It is not given the session: whether a machine may restart does not depend on who asks,
+and quick, and must not call the service. It is not told which check it is: see [a final check before the
+reset](#a-final-check-before-the-reset). It is not given the session: whether a machine may restart does not depend on who asks,
 and the permission already decided that.
 
 The reason is shown to a client in the `423` and in `GET`, so it is held to the same rule as a status text value: one to 63 bytes
@@ -245,6 +246,49 @@ does not end stops the reset, and `GET` and the event say so: the restart did no
 still queued and still completes whole, which `Reboot.pending` shows too. What this does not cover is said in the [limits](#limits),
 and the first of them is a save that is accepted after the last poll.
 
+## A final check before the reset
+
+A product may have to act only when the restart is about to happen, for example to write a retained marker that tells the next
+boot that the restart was requested. Counting policy calls cannot find that moment: a job can end without the second check, and
+a request made while another is pending usually adds no call. The calling thread can, so the product runs the worker on a thread
+of its own:
+
+1. State the policy with `CRUX_REBOOT_POLICY_CALLBACK`. Always-allow calls nothing, so a product that never refuses registers a
+   callback that returns true.
+2. Do not call `crux_reboot_start_worker()`: the Crux worker could then take the job. After `crux_reboot_start()`, one product
+   thread calls `crux_reboot_work_once()` in a loop with a pause of about 1 s, which adds up to that much to the restart. The
+   product chooses the thread's priority and stack (`CONFIG_CRUX_REBOOT_WORKER_PRIORITY` does not apply to it, and no stack
+   figure has been measured). Where this page says worker, it is this thread.
+3. That thread never calls `crux_reboot_request()`, so that every policy call on it is the second check. The callback compares
+   the current thread with it (`k_current_get()` on Zephyr).
+4. On that thread, a callback that allows writes the marker as its last action. The service's next step is the reset. Calls on
+   other threads write nothing: a request that raced the accepted one can call the policy even after the second check, and it
+   does not cancel the reset.
+5. When `crux_reboot_work_once()` returns and the marker was written, the reset did not happen: clear the marker, and undo
+   whatever else the callback did.
+
+| What happens | Second check | `crux_reboot_work_once()` | The marker |
+| --- | --- | --- | --- |
+| No job to take: not started, none pending and announced, another caller has it, or the state's lock is late | Not made | False | Not written |
+| The delay or a step of the wait cannot sleep (`NO_TIMER`) | Not made | True | Not written |
+| A blocking source is still busy at the bound (`SAVE_IN_FLIGHT`) | Not made | True | Not written |
+| The second check refuses | Made | True | Not written |
+| Allowed, and the reset returns (`RESET_RETURNED`) | Made | True | Written: clear it |
+| Allowed, and the reset works | Made | Does not return | The next boot reads it, then clears it |
+| Allowed, and the reset hangs | Made | Does not return | Written. A later watchdog or operator reset may keep it: read it with the reset cause |
+
+A request that finds a job pending calls no policy, and that job's second check decides. A request that finds it ended asks the
+policy before it can start a new one. A refusal at the request starts no job. The marker write follows the callback's rules,
+quick and with no call into the service, which a write to retained memory meets. The callback must also keep what it judged from
+changing after it allows, because nothing asks again.
+
+**Supervision on Zephyr.** The product thread reports no passes to
+[the progress function](composition-interfaces.md#the-service-thread-progress), but each step of the settle wait inside
+`crux_reboot_work_once()` reports `CRUX_SERVICE_THREAD_REBOOT_WORKER` on it. Supervise the thread with a channel of the
+product's own, fed from its loop and, on that identifier, from the progress function, because the wait can outlast a short
+channel period. Before the wait, a call can spend up to 1 s on the state's lock and then sleeps for 1 s with no report, so the
+period must exceed the loop's pause plus those 2 s, with a margin.
+
 ## Routes
 
 | Route | Access class | Success | Refusals |
@@ -287,6 +331,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | A `POST` while the worker sleeps or polls | `202`, no policy call, no new job, one event, one reset in all | `Reboot.concurrency` |
 | A `GET` while the worker sleeps or polls | `200` `pending`, at once | `Reboot.concurrency` |
 | A `POST` that the policy would now refuse, while one is pending | `202`: the pending request's own second check decides | `Reboot.service`, `Web.reboot_routes` |
+| A job that ends while a `POST` is being handled | A `POST` that finds the job pending joins it in the same lock section. One that finds it ended asks the policy. Neither starts a job without a first check. | `Reboot.lock_faults` |
 | Three requesters, two readers and the real worker thread, 900 requests or more, until an acceptance and a refusal were both seen | Only states that exist, a reason only with `refused`, one worker at a time, every accepted request recorded once, every job ending in one event. The readers pause between reads and the policy refuses every third call for ever, so that a loaded machine cannot starve a requester's 20 ms wait or leave a run with no refusal. | `Reboot.concurrency`: 0 failures in 100 runs in a row, and in 200 runs eight at a time. Before the change it failed 14 of 100 runs four at a time. |
 | A worker that comes by while the `requested` event is being recorded | Finds nothing: the job is taken only after its event | `Reboot.steps` |
 | A session that ends, or loses its role, before the worker runs | The request is **not** cancelled: [decision 8](#decisions-taken-without-an-answer) | `Reboot.steps` |
@@ -296,10 +341,11 @@ reads has its record behind it. A session that ended before the worker ran leave
 | Limit | Consequence |
 | --- | --- |
 | A save that is accepted after the last poll is not waited for | The second policy check, a callback, runs after the last poll, and the reset follows at once. A save queued in that gap is cut, or stays queued and is lost with the RAM. Nothing blocks new saves while a reboot is pending. `Reboot.pending` pins this. |
-| The wait is a bound and not a guarantee about events | The counts say that Logging was handed the lines, not that a backend wrote them. A lost-records report counts as a line and can make the count read low. A backend that buffers is not seen. |
+| The wait is a bound and not a guarantee about events | The counts say that Logging was handed the lines, not that a backend wrote them. A lost-records report counts as a line and can make the count read low. On Zephyr the reset itself then calls `log_panic()` when logging is enabled and not in minimal mode, which writes out the records that still wait for the deferred logging thread before `sys_reboot`. A record that the native queue dropped is not brought back, and a backend that keeps its own buffer past its panic handler is not seen. |
 | A save that outlives 15 s stops the reset | A slow Configuration save can be waited out and a slower one cannot. The request fails, says so, and can be made again. No timing was measured on a target. **A save that hangs for ever leaves only a power cycle or the watchdog.** There is no override, and no CLI `reboot` command ([decision 16](#decisions-taken-without-an-answer)), so every later request fails the same way. This is the price of decision 7, which the owner should weigh with it. |
 | A source that does not block lets the reset cut its work | The composition's choice, in `blocks_reset`. The application's own save needs its own entry, or it is not seen. |
-| `crux_system_reset()` does not flush storage, drain logs or run safe-state actions | This service only gives events and the named saves a bounded time. Anything else is the application's, in its policy callback. |
+| `crux_system_reset()` does not flush storage or run safe-state actions | Besides releasing its own metadata, it only writes out pending deferred log records on Zephyr (`log_panic()`, `tests/system/zephyr` scenario `crux.system.log_panic` on `native_sim`); panic mode makes the remaining output blocking, so a large backlog on a slow UART lengthens the time to the reset. This service only gives events and the named saves a bounded time. Anything else is the application's, in its policy callback. |
+| A `POST` can join a job whose outcome is already decided | The state stays `pending` until after the end event is recorded. A `POST` in that time gets `202` and records `system.reboot_requested`, possibly after the end event, but starts nothing. A refused or failed job then shows as such in `GET`, and the restart has to be requested again. |
 | A native reset failure may hang | Only a watchdog or an operator recovers it. No state can be reported. |
 | The policy callback runs on the server thread | A slow callback stalls every other client. It must be quick. |
 | A reason is shown to anyone with `system.reboot` | It is the application's text, held to a character rule and a length and not to a meaning. |
@@ -325,7 +371,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | Item | Where |
 | --- | --- |
 | A statement of the policy: a callback that can refuse, or `CRUX_REBOOT_POLICY_ALWAYS_ALLOW`. Nothing else starts the service. | `crux/reboot.h`, [the policy](#the-policy-w9) |
-| Boot order: Access, the security events, `crux_reboot_start()`, `crux_reboot_start_worker()` | `crux/reboot.h` |
+| Boot order: Access, the security events, `crux_reboot_start()`, then `crux_reboot_start_worker()` or the product's own thread | `crux/reboot.h`, [a final check before the reset](#a-final-check-before-the-reset) |
 | The wait sources: the network settings and web save probes where those services run, the application's own save, and whether each blocks the reset | [What pending saves means](#what-pending-saves-means) |
 | A provider of the reset: `crux_reboot_system_reset`. On a build that must never reset, the Host provider of `crux_system_reset()` returns not supported, so the same provider is a no-op that reports `failed`. | `components/reboot/CMakeLists.txt` |
 | A provider of the sleep: `crux_reboot_sleep`. A provider of the event port and of the pending-events question: `crux_reboot_security_events`. | The same |
@@ -348,7 +394,8 @@ exits a `native_sim` image was not checked.
 | `Reboot.concurrency` | 3 | Two posts at once for 200 rounds, 900 requests with readers and the real worker thread, a post, a get and a second worker from inside each sleep of the worker |
 | `Reboot.reason` | 2 | 26 named vectors, and 60,000 generated texts against an oracle written apart from the rule that the service uses |
 | `Reboot.start_faults` | 1 | A start whose semaphore cannot be created three times gives back the mutex each time, and the next start succeeds with one mutex |
-| `Reboot.lock_faults` | 4 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it |
+| `Reboot.lock_faults` | 6 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it. The worker run just before a lock wait of a request: a job that ends during or before the request leaves no job without a first check |
+| `Reboot.product_thread` | 5 | A product thread in place of the worker: only the second check runs on it, the reset follows that check, no marker without an allowing second check, a request from another thread while the job is pending, and a new request after a failed one. Host only |
 | `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and passes only if the output names `warn_unused_result`, so a build that fails for another reason does not pass. A sibling object that uses the result does build. |
 | `Reboot.sleep_provider` | 1 | The sleep provider with Sync's take wrapped: only a take that times out is a sleep, and an error, or a take that got the semaphore, is not |
 | `Reboot.pending` | 9 | The two probes, a network save and a configuration save waited for, a save accepted during the wait, a save that never ends for each kind, a save started while the policy is asked at the request, the save queued after the last poll, and probes whose lock is late |

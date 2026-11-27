@@ -9,7 +9,7 @@
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/ztest.h>
 /* Private composition hook; no native headers/types are in consumer API. */
-extern crux_file_result_t pilot_file_create(void);
+extern crux_file_result_t consumer_file_create(void);
 FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(storage);
 static struct fs_mount_t mount = {
     .type = FS_LITTLEFS,
@@ -48,7 +48,7 @@ static void *setup(void)
     zassert_ok(fs_mkfs(FS_LITTLEFS, (uintptr_t)mount.storage_dev, NULL, 0));
     zassert_ok(fs_mount(&mount));
     zassert_equal(crux_file_zephyr_bind("/files"), CRUX_FILE_OK);
-    zassert_equal(pilot_file_create(), CRUX_FILE_OK);
+    zassert_equal(consumer_file_create(), CRUX_FILE_OK);
     return NULL;
 }
 ZTEST(file_littlefs, test_persisted_crud_and_sync)
@@ -57,7 +57,7 @@ ZTEST(file_littlefs, test_persisted_crud_and_sync)
     size_t n;
     char bytes[8] = {0};
     zassert_equal(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &f), CRUX_FILE_OK);
-    zassert_equal(crux_file_write(f, "pilot", 5, &n), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(f, "hello", 5, &n), CRUX_FILE_OK);
     zassert_equal(n, 5);
     zassert_equal(crux_file_sync(f), CRUX_FILE_OK);
     zassert_equal(crux_file_close(&f), CRUX_FILE_OK);
@@ -67,7 +67,7 @@ ZTEST(file_littlefs, test_persisted_crud_and_sync)
     zassert_equal(crux_file_open("record", CRUX_FILE_READ, &f), CRUX_FILE_OK);
     zassert_equal(crux_file_read(f, bytes, sizeof(bytes), &n), CRUX_FILE_OK);
     zassert_equal(n, 5);
-    zassert_mem_equal(bytes, "pilot", 5);
+    zassert_mem_equal(bytes, "hello", 5);
     zassert_equal(crux_file_seek(f, 6), CRUX_FILE_ERR_OUT_OF_RANGE);
     zassert_equal(crux_file_seek(f, UINT64_MAX), CRUX_FILE_ERR_OUT_OF_RANGE);
     zassert_equal(crux_file_write(f, "x", 1, &n), CRUX_FILE_ERR_ACCESS);

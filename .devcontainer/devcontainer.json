@@ -1,24 +1,40 @@
 {
-  "name": "Crux Pilot (Ubuntu 24.04 amd64)",
+  "name": "Crux (Ubuntu 24.04 amd64)",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
-    "options": ["--platform=linux/amd64"]
+    "options": ["--platform=linux/amd64"],
+    "args": {
+      "CRUX_JLINK": "auto",
+      "CRUX_JLINK_DEB": "",
+      "CRUX_JLINK_DEB_SHA256": "",
+      "CRUX_JLINK_URL": ""
+    }
   },
-  "runArgs": ["--platform=linux/amd64", "--memory=4g", "--cpus=2"],
-  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces/crux,type=bind",
-  "workspaceFolder": "/workspaces/crux/crux-pilot",
+  "runArgs": [
+    "--platform=linux/amd64",
+    "--memory=4g",
+    "--cpus=2",
+    "--device-cgroup-rule=c 189:* rmw",
+    "-v",
+    "/dev/bus/usb:/dev/bus/usb"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspace,type=bind",
+  "workspaceFolder": "/workspace/crux-pilot",
   "mounts": [
-    "source=crux-host-cache,target=/opt/crux-cache,type=volume"
+    "source=crux-host-cache,target=/opt/crux-cache,type=volume",
+    "source=crux-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"
   ],
   "containerEnv": {
-    "CRUX_WORKSPACE": "/workspaces/crux",
-    "CRUX_REPO": "/workspaces/crux/crux-pilot",
+    "CRUX_WORKSPACE": "/workspace",
+    "CRUX_REPO": "/workspace/crux-pilot",
     "CRUX_CACHE_DIR": "/opt/crux-cache",
+    "CRUX_BOOTSTRAP": "${localEnv:CRUX_BOOTSTRAP:all}",
     "ZEPHYR_SDK_INSTALL_DIR": "/opt/crux-cache/sdk/zephyr-sdk-1.0.1",
     "CLANG_FORMAT": "clang-format"
   },
-  "postCreateCommand": "git config --global --add safe.directory /workspaces/crux/crux-pilot && git config --global --add safe.directory /workspaces/crux/zephyr && git config --global --add safe.directory /workspaces/crux/modules/hal/cmsis && git config --global --add safe.directory /workspaces/crux/modules/hal/cmsis_6 && git config --global --add safe.directory /workspaces/crux/modules/hal/nxp && python3 -m venv /opt/crux-cache/venv && /opt/crux-cache/venv/bin/pip install --no-cache-dir cmake==3.28.4 ninja==1.11.1 clang-format==18.1.8 west==1.4.0 pytest==8.3.5",
+  "postCreateCommand": "bash scripts/bootstrap.sh --keep-going",
+  "postAttachCommand": "bash scripts/bootstrap.sh status",
   "remoteEnv": {
     "PATH": "/opt/crux-cache/venv/bin:${containerEnv:PATH}"
   },
@@ -29,8 +45,12 @@
         "ms-vscode.cpptools",
         "ms-python.python",
         "redhat.vscode-yaml",
-        "Arm.vscode-cmsis-debugger",
-        "llvm-vs-code-extensions.vscode-clangd"
+        "llvm-vs-code-extensions.vscode-clangd",
+        "mcu-debug.debug-tracker-vscode",
+        "mcu-debug.memory-view",
+        "mcu-debug.rtos-views",
+        "mcu-debug.peripheral-viewer",
+        "marus25.cortex-debug"
       ]
     }
   },

@@ -185,7 +185,7 @@ function defaultConfigParams(): MockConfigParam[] {
   return [
     param('verbose', 'bool', 'application', false),
     param('report_interval', 'u32', 'application', 5),
-    param('device_label', 'string', 'restart', 'pilot'),
+    param('device_label', 'string', 'restart', 'lab-unit'),
     param('link_secret', 'string', 'restart', 'unset', { sensitive: true }),
     param('build_limit', 'u32', 'safe_state', 64, { writePermission: null }),
     // Under a permission that no account holds, as a composition keeps a parameter private.

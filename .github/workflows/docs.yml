@@ -1,26 +1,56 @@
 name: docs-links
 
+# A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (docs/ci.md)"
+        type: choice
+        options: [full, fast, nightly]
+        default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
+
+# Supersede only older runs for this PR and workflow. Main/manual runs are unique.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
+
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
 
 jobs:
   links:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      TIER: ${{ inputs.tier || 'auto' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install pinned lychee
-        run: python3 scripts/check_docs.py --install
-      - name: Verify document-selection rules and real lychee behaviour
-        run: python3 -m unittest discover -s tests/docs -v
-      - name: Check maintained Markdown links and anchors
-        run: python3 scripts/check_docs.py
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job docs
+      - name: Upload the check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn

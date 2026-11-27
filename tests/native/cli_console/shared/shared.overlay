@@ -1,0 +1,7 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Logging shares the console's UART, so no separate log UART is chosen. */
+/ {
+    chosen {
+        /delete-property/ zephyr,log-uart;
+    };
+};

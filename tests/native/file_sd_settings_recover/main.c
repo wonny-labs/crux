@@ -1,7 +1,8 @@
 /* The recovery step for the one state a power cut can leave in a Settings File compaction: no
- * settings file and a complete temporary (samples/storage_sd/sd_settings_recover). The states are
- * created here; the real cut is only exercised on the board. Everything but the recovery step runs
- * on the real, unpatched Settings File backend over a FatFs RAM disk named like the card. */
+ * settings file and a complete temporary
+ * (samples/boards/nxp/mimxrt1060_evk/sd_card_file/sd_settings_recover). The states are created
+ * here; the real cut is only exercised on the board. Everything but the recovery step runs on the
+ * real, unpatched Settings File backend over a FatFs RAM disk named like the card. */
 #include "sd_settings_recover.h"
 #include <errno.h>
 #include <ff.h>

@@ -10,7 +10,7 @@
 
 static crux_cli_console_state_t state;
 static const crux_cli_console_config_t config = {
-    0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator"};
+    0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", NULL, NULL};
 
 static void begin(void)
 {
@@ -300,7 +300,7 @@ static void run_loop(void)
 {
     /* Arguments are checked first, and the only return is for a wrong one. */
     static const crux_cli_console_config_t no_role = {
-        0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, NULL};
+        0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, NULL, NULL, NULL};
     begin();
     CHECK(crux_cli_console_run(NULL, &config) == CRUX_CLI_ERR_INVALID_ARGUMENT);
     CHECK(crux_cli_console_run(&cli_test_context, NULL) == CRUX_CLI_ERR_INVALID_ARGUMENT);
@@ -354,6 +354,54 @@ static void run_loop(void)
     expect_five_second_pauses(2);
 }
 
+/* With a progress hook, the pause is slept in one-second steps, with a report before each, so that
+ * a supervisor hears from a console whose port will not open. */
+static unsigned progress_reports;
+static unsigned pauses_at_report[PAUSES_MAX];
+
+static void report_progress(void)
+{
+    if (progress_reports < PAUSES_MAX) {
+        pauses_at_report[progress_reports] = pause_count;
+    }
+    progress_reports += 1;
+}
+
+static void leave_after_progress_opens(void)
+{
+    if (opens_until_leave == 0) {
+        longjmp(leave_run, 1);
+    }
+    opens_until_leave -= 1;
+}
+
+static void run_loop_reports_progress(void)
+{
+    static const crux_cli_console_config_t supervised = {
+        0, {115200, 8, 1, CRUX_SERIAL_PARITY_NONE}, "administrator", NULL, report_progress};
+    begin();
+    cli_fake_serial.open_result = CRUX_ERR_IO;
+    cli_fake_serial.on_open = leave_after_progress_opens;
+    opens_until_leave = 2;
+    pause_count = 0;
+    progress_reports = 0;
+    if (setjmp(leave_run) == 0) {
+        (void)crux_cli_console_run(&cli_test_context, &supervised);
+        CHECK(false);
+    }
+    CHECK(cli_fake_serial.open_calls == 2);
+    /* Two pauses of five seconds each, as five steps of one second. */
+    CHECK(pause_count == 10u);
+    for (unsigned index = 0; index < pause_count && index < PAUSES_MAX; ++index) {
+        CHECK(pauses_ns[index] == INT64_C(1000000000));
+    }
+    /* A report before every step, so no step of the pause goes unreported. */
+    CHECK(progress_reports == 10u);
+    for (unsigned index = 0; index < progress_reports && index < PAUSES_MAX; ++index) {
+        CHECK(pauses_at_report[index] == index);
+    }
+}
+
 int main(void)
 {
     opens_with_the_configuration();
@@ -365,5 +413,6 @@ int main(void)
     quarantined_binding();
     close_refused();
     run_loop();
+    run_loop_reports_progress();
     return cli_test_finish("cli console");
 }

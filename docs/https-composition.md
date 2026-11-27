@@ -212,7 +212,7 @@ next client served and a share under 0.5. At `4ed6eb9` it only recorded, and was
 **The fix, test image only.** Zephyr's own TCP reports `POLLHUP` once the peer has closed (`sock_is_eof` in
 `sockets_inet.c`), and the server closes a client on `POLLHUP`. `tests/native/web_https/nsos_rdhup.cmake` builds a copy of
 the offload's host side, `nsos_adapt.c`, that also asks `epoll` for `EPOLLRDHUP` and reports it as `POLLHUP`: three
-edits, each on an anchor that must occur once, after a SHA-256 check of the v4.4.2 file. The West checkout is not
+edits, each on an anchor that must occur once, after a SHA-256 check of the v4.5.0 file. The West checkout is not
 edited, and the plain HTTP image keeps the driver as it is. **This is a `native_sim` limit, not a target one.** It is
 worth offering upstream as a one-line change to the driver's map.
 
@@ -282,6 +282,8 @@ the same five headers and body, over one kept connection, 60 requests each.
 | Headers one by one, as now | 21 | 21 | 49.5 ms | 49.3 ms | 52.8 and 52.4 ms |
 | Headers in one value | 9 | 9 | 49.7 ms | 49.8 ms | 51.6 and 52.8 ms |
 | One by one, with `TCP_NODELAY` on the connection | 21 | 21 | 0.6 ms | 0.8 ms | 0.8 and 1.3 ms |
+
+These figures are from Zephyr v4.4.2. Zephyr v4.5.0 assembles the header block in one buffer and gathers it with the body, so both variants make the same number of sends (3 server sends and 7 TCP sends each on Mbed in CI), and `tls_sends_of_a_small_response` now requires them to be equal. The decision stands, with one reason fewer.
 
 **Decision: do not halve the sends.**
 

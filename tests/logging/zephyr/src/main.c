@@ -79,7 +79,8 @@ ZTEST(logging, test_native_copy_filter_and_loss)
     wait_for("<inf> crux_logging: mutable: original 100% %s");
     wait_for("<err> crux_logging: levels: error-record");
     wait_for("<wrn> crux_logging: levels: warn-record");
-    wait_for("<dbg> crux_logging: crux_log_impl_write: levels: debug-record");
+    /* Zephyr v4.5.0 joins the module and the function name with '.' (log_output.c ids_print). */
+    wait_for("<dbg> crux_logging.crux_log_impl_write: levels: debug-record");
     wait_for("messages dropped");
     zassert_false(contains("hidden-record"));
     zassert_false(contains("xxxxxxxx"));

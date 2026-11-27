@@ -60,8 +60,8 @@ class PlacementCheck(unittest.TestCase):
 
     def test_a_placement_after_other_work(self):
         self.edit("components/network_settings/src/network_settings.c",
-                  "    for (;;) {\n        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);",
-                  "    for (;;) {\n        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);\n"
+                  "        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);",
+                  "        (void)crux_semaphore_take(work_signal, CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS);\n"
                   "        crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);")
         self.edit("components/network_settings/src/network_settings.c",
                   "    crux_service_priority_place(CRUX_SERVICE_THREAD_NETWORK_SETTINGS_WORKER);\n", "")
@@ -71,6 +71,23 @@ class PlacementCheck(unittest.TestCase):
         self.edit("components/web/session/web_session_attempt.c",
                   "CRUX_SERVICE_THREAD_WEB_SESSION_WORKER", "CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER")
         self.assert_caught("web_session_attempt.c: worker_main must begin with")
+
+    def test_a_missing_progress_report(self):
+        self.edit("components/web/management/web_management_save.c",
+                  "crux_service_progress_report(CRUX_SERVICE_THREAD_WEB_MANAGEMENT_WORKER);", "")
+        self.assert_caught("web_management_save.c: the worker must call crux_service_progress_report")
+
+    def test_a_progress_report_outside_the_placement_definition(self):
+        self.edit("components/cli/ports/zephyr/cli_serial_start.c",
+                  "#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT\n/* The console's progress",
+                  "#if 1\n/* The console's progress")
+        self.assert_caught("cli_serial_start.c: the worker must call crux_service_progress_report")
+
+    def test_a_progress_report_with_another_identifier(self):
+        self.edit("components/reboot/src/reboot.c",
+                  "        crux_service_progress_report(CRUX_SERVICE_THREAD_REBOOT_WORKER);\n#endif\n        (void)",
+                  "        crux_service_progress_report(CRUX_SERVICE_THREAD_CLI_CONSOLE);\n#endif\n        (void)")
+        self.assert_caught("reboot.c: reports progress as CRUX_SERVICE_THREAD_CLI_CONSOLE")
 
     def test_a_changed_default(self):
         text = (self.root / "zephyr/Kconfig").read_text()

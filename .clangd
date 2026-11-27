@@ -1,2 +1,78 @@
+# clangd configuration: https://clangd.llvm.org/config
+# Sources that only west builds use the compilation database of the native_sim: Build task.
+# The other sources, including Zephyr files that the Host tests also compile, use build/clangd.
+# Every fragment that applies to a path names the same database, so their order does not matter.
+If:
+  PathMatch:
+    - samples/.*
+    - components/[^/]+/ports/zephyr/.*
+    - tests/(.*/)?[^/]*zephyr[^/]*/.*
+    - zephyr/.*
+    - tests/native/.*
+    - tests/board_images/.*
+    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/(gpio|i2c|spi)/evkb/.*
+    - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
+    - tests/consumer_system/app/.*
+    - tests/execution/.*
+    - tests/product_template_link/.*
+    - tests/psa_entropy/wolf/.*
+    - tests/ssh/cli/(compile|openssh)/.*
+    - tests/ssh/sftp/native_sim/.*
+  PathExclude:
+    - (.*/)?host/.*
+    - samples/.*/linux/.*
+    - (.*/)?zephyr_shim/.*
+    - tests/zephyr/management_rt1060_compile/first_account/.*
+    - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
+    - components/time/ports/zephyr/busy_wait_zephyr\.c
+    - samples/time/shell/common/time_command\.c
+    - samples/networking/echo_client/common/.*
+    - tests/execution/src/posix\.c
+CompileFlags:
+  CompilationDatabase: build/native_sim
+---
+If:
+  PathExclude:
+    - samples/.*
+    - components/[^/]+/ports/zephyr/.*
+    - tests/(.*/)?[^/]*zephyr[^/]*/.*
+    - zephyr/.*
+    - tests/native/.*
+    - tests/board_images/.*
+    - tests/controller_(m3|network|network_stack|integrated)/.*
+    - tests/(gpio|i2c|spi)/evkb/.*
+    - tests/(gpio_physical|networking_physical|networking_physical_native)/.*
+    - tests/consumer_system/app/.*
+    - tests/execution/.*
+    - tests/product_template_link/.*
+    - tests/psa_entropy/wolf/.*
+    - tests/ssh/cli/(compile|openssh)/.*
+    - tests/ssh/sftp/native_sim/.*
 CompileFlags:
   CompilationDatabase: build/clangd
+---
+If:
+  PathMatch:
+    - (.*/)?host/.*
+    - samples/.*/linux/.*
+    - (.*/)?zephyr_shim/.*
+    - tests/zephyr/management_rt1060_compile/first_account/.*
+    - components/(gpio|i2c|spi)/ports/zephyr/[a-z0-9]+_status\.[ch]
+    - components/time/ports/zephyr/busy_wait_zephyr\.c
+    - samples/time/shell/common/time_command\.c
+    - samples/networking/echo_client/common/.*
+    - tests/execution/src/posix\.c
+CompileFlags:
+  CompilationDatabase: build/clangd
+---
+# Zephyr adds these GCC options to native_sim builds (zephyr/CMakeLists.txt,
+# cmake/compiler/gcc/compiler_flags.cmake); clang rejects or ignores them. The Dev Container's
+# clangd user config (.devcontainer/Dockerfile) removes the same list for Zephyr's own headers.
+CompileFlags:
+  Remove:
+    - -fno-reorder-functions
+    - -fno-defer-pop
+    - --param=min-pagesize=0
+    - -fno-freestanding
+    - -fno-printf-return-value

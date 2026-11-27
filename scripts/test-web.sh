@@ -43,7 +43,9 @@ jobs="${CRUX_WEB_JOBS:-4}"
 modules="$workspace/modules"
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 native_board='native_sim/native/64'
-target_board='mimxrt1060_evk@B//qspi'
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+target_board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 zephyr_revision=dccb09599635bdff17633fa7e9dab014b91dce90
 # As in scripts/test-ssh-wolf-settings.sh. See patches/zephyr/README.md.
 patch_url=https://raw.githubusercontent.com/wolfSSL/osp/8c32b060ac6017b1291a6da0875a48637bfb682d/zephyr/4.4/zephyr-tls-4.4.1.patch
@@ -84,6 +86,8 @@ run_host() {
 
 run_native() {
     local build="$output/native"
+    # The build-local server core with the header-phase deadline refuses drift. See patches/zephyr/README.md.
+    ZEPHYR_BASE="$workspace/zephyr" python3 "$repo/tests/native/web_http/test_prepare_header_deadline.py"
     ZEPHYR_BASE="$workspace/zephyr" cmake -S "$repo/tests/native/web_http" -B "$build" -G Ninja \
         -DBOARD="$native_board" "-DZEPHYR_MODULES=$repo" "-DPython3_EXECUTABLE=$(command -v python3)"
     ninja -C "$build" -j "$jobs"
@@ -95,9 +99,22 @@ run_native() {
     grep -q ' [tT] fnmatch$' "$build/symbols.txt" || fail "the image has no Zephyr fnmatch"
     grep -qx 'CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y' "$build/zephyr/.config" ||
         fail "the image must use the native socket offload"
+    # Both images run, so that a failure of one does not hide the other.
+    local failed=0
     python3 "$repo/tests/native/web_http/test_driver.py" "$build/zephyr/zephyr.exe" \
-        --results "$output/native-results.json"
+        --results "$output/native-results.json" || failed=1
     printf 'native_sim result, plain HTTP on loopback, not device evidence: %s\n' "$output/native-results.json"
+    # A bind text that is not an address must stop the start, and not open every address.
+    local refused="$output/native-bad-bind"
+    ZEPHYR_BASE="$workspace/zephyr" cmake -S "$repo/tests/native/web_http" -B "$refused" -G Ninja \
+        -DBOARD="$native_board" "-DZEPHYR_MODULES=$repo" "-DPython3_EXECUTABLE=$(command -v python3)" \
+        "-DEXTRA_CONF_FILE=$repo/tests/native/web_http/bad-bind.conf"
+    ninja -C "$refused" -j "$jobs"
+    grep -qx 'CONFIG_CRUX_WEB_BIND_ADDRESS="127.0.0.300"' "$refused/zephyr/.config" ||
+        fail "the refused image does not hold the bad bind text"
+    python3 "$repo/tests/native/web_http/test_driver.py" "$refused/zephyr/zephyr.exe" --expect-start-refused \
+        --results "$output/native-bad-bind-results.json" || failed=1
+    ((failed == 0)) || fail "a native web case failed; see the output above"
 }
 
 run_https() { # profile
@@ -149,6 +166,7 @@ prepare_patched_zephyr() {
 run_target() { # profile
     local selected="$1" build="$output/target-$1" tree="$workspace/zephyr" list tls_symbol
     local nm="$ZEPHYR_SDK_INSTALL_DIR/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-nm"
+    crux_board_require "$target_board" 'mimxrt1060_evk@B//qspi'
     list="$modules/hal/cmsis;$modules/hal/cmsis_6;$modules/hal/nxp;$repo"
     if [[ "$selected" == wolfssl ]]; then
         prepare_patched_zephyr

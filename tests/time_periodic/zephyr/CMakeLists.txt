@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_time_periodic LANGUAGES C)
+target_sources(app PRIVATE ../core/controller.c main.c)
+target_include_directories(app PRIVATE ../include)
+target_link_libraries(app PRIVATE crux::time)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

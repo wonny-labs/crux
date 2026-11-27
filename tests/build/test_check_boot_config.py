@@ -16,16 +16,16 @@ application that does not (docs/plans/image-state-contract-proposal.md, I5 and Q
 Where the option names come from (labels: Verified = read in the pinned source in this change; the sources
 were fetched from the upstream repositories at these revisions, outside this repository):
 
-* Verified, Zephyr v4.4.2 `dccb09599635` `share/sysbuild/image_configurations/BOOTLOADER_image_default.cmake`:
+* Verified, Zephyr v4.4.2 `dccb09599635` and v4.5.0 `41d10b597304` `share/sysbuild/image_configurations/BOOTLOADER_image_default.cmake`:
   SB_CONFIG_MCUBOOT_MODE_RAM_LOAD_WITH_REVERT sets CONFIG_BOOT_RAM_LOAD=y and CONFIG_BOOT_RAM_LOAD_REVERT=y
   on the MCUboot image.
-* Verified, Zephyr v4.4.2 `dccb09599635` `share/sysbuild/image_configurations/MAIN_image_default.cmake`:
+* Verified, Zephyr v4.4.2 `dccb09599635` and v4.5.0 `41d10b597304` `share/sysbuild/image_configurations/MAIN_image_default.cmake`:
   the same sysbuild option sets CONFIG_MCUBOOT_BOOTLOADER_MODE_RAM_LOAD_WITH_REVERT=y on the application.
   `modules/Kconfig.mcuboot` declares it in the choice MCUBOOT_BOOTLOADER_MODE, so the plain
   MCUBOOT_BOOTLOADER_MODE_RAM_LOAD and the other modes exclude it.
-* Verified, MCUboot `6d3b3d2c38ab` `boot/zephyr/Kconfig`: BOOT_RAM_LOAD, BOOT_RAM_LOAD_REVERT (which depends
+* Verified, MCUboot `6d3b3d2c38ab` and `725d63c9d5bc` `boot/zephyr/Kconfig`: BOOT_RAM_LOAD, BOOT_RAM_LOAD_REVERT (which depends
   on BOOT_RAM_LOAD) and BOOT_VERSION_CMP_USE_BUILD_NUMBER, the last defined only in the MCUboot image.
-* Verified, MCUboot `6d3b3d2c38ab` `boot/zephyr/include/mcuboot_config/mcuboot_config.h`:
+* Verified, MCUboot `6d3b3d2c38ab` and `725d63c9d5bc` `boot/zephyr/include/mcuboot_config/mcuboot_config.h`:
   CONFIG_BOOT_VERSION_CMP_USE_BUILD_NUMBER defines MCUBOOT_VERSION_CMP_USE_BUILD_NUMBER, and
   CONFIG_BOOT_RAM_LOAD_REVERT defines MCUBOOT_RAM_LOAD_REVERT.
 * Not verified: that a build of this repository's composition resolves to these values. That is what the
@@ -45,7 +45,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/check-boot-config.py"
 FIXTURES = REPO / "tests/build/fixtures/boot-config"
-IMAGE = "zephyr"  # basename of samples/controller/zephyr, the application of scripts/test-boot-composition.sh
+IMAGE = "zephyr"  # basename of tests/boot_fixture/zephyr, the application of scripts/test-boot-composition.sh
 
 CHECK = runpy.run_path(str(SCRIPT)) if SCRIPT.is_file() else {}
 
