@@ -125,7 +125,8 @@ web-ui = ["web/**", "samples/web/**", "tests/management_api/**"]
 #           earlier matches
 # With no known change (a manual or nightly run) every check runs.
 [scopes]
-# The workflow filter of the Zephyr jobs: documentation alone never starts them.
+# The GitHub workflows run every job for every change, so these scopes are their only path rules.
+# Documentation alone selects no Zephyr check.
 not-docs = ["**", "!docs/**", "!**.md"]
 psa-crypto = ["**", "!docs/**", "!**.md", "docs/dependency-review-*.md"]
 web-ui = [
@@ -135,6 +136,7 @@ web-ui = [
   "scripts/check-management-api.sh",
   "scripts/ci/**",
   ".github/workflows/web.yml",
+  ".github/workflows/ci.yml",
 ]
 
 [jobs.host]

@@ -20,6 +20,7 @@ PSA_CRYPTO = REPO / ".github/workflows/psa-crypto.yml"
 HOST = REPO / ".github/workflows/host.yml"
 WEB = REPO / ".github/workflows/web.yml"
 DOCS = REPO / ".github/workflows/docs.yml"
+CI = REPO / ".github/workflows/ci.yml"
 MANIFEST = REPO / "scripts/ci/checks.toml"
 TIER_WORKFLOWS = [HOST, ZEPHYR, PSA_CRYPTO, WEB, DOCS]
 NO_GITHUB = "this copy has no .github/workflows; see docs/ci.md#copies-without-github"
@@ -27,6 +28,8 @@ DOCS_ONLY = ["docs/**", "**.md"]
 PSA_SCRIPT = REPO / "scripts" / "test-psa-crypto.sh"
 # Later patterns win: everything but documentation, plus the records that the pin check reads.
 PSA_PATHS = ["**", "!docs/**", "!**.md", "docs/dependency-review-*.md"]
+WEB_PATHS = ["web/**", "samples/web/**", "tests/management_api/**", "scripts/check-management-api.sh",
+             "scripts/ci/**", ".github/workflows/web.yml", ".github/workflows/ci.yml"]
 # Steps that run in every shard: they prepare the runner or collect what the shard produced.
 SET_UP_STEPS = {
     "name: List host packages from the signed index",
@@ -64,19 +67,16 @@ def steps(job_lines):
     return result
 
 
-def paths_ignore(workflow, event, key="paths-ignore"):
-    """Return the patterns of a trigger event's path filter, or None without that filter."""
+def path_filter(workflow):
+    """Return the first path filter line of the workflow's triggers, or None without one."""
     lines = workflow.splitlines()
-    start = lines.index(f"  {event}:")
-    patterns = None
+    start = lines.index("on:")
     for line in lines[start + 1:]:
-        if not line.startswith("    "):
+        if re.match(r"\S", line):
             break
-        if line.strip() == f"{key}:":
-            patterns = []
-        elif patterns is not None and line.strip().startswith("- "):
-            patterns.append(line.strip()[2:].strip("\"'"))
-    return patterns
+        if re.match(r"\s+(paths|paths-ignore):", line):
+            return line
+    return None
 
 
 def runs_a_command(step):
@@ -190,10 +190,10 @@ class ZephyrShardsTest(unittest.TestCase):
         # Only "success" may pass: failed, cancelled and skipped shards must all fail it.
         self.assertIn('test "$SHARD_RESULT" = success', summary)
 
-    def test_only_documentation_skips_the_workflow(self):
-        self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "push"))
-        self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "pull_request"))
-        # The map file applies the same filter to the Zephyr checks, on every event and CI system.
+    def test_only_documentation_skips_the_zephyr_checks(self):
+        # The workflow runs for every change, so that ci-gate never waits for it (test_ci_gate.py);
+        # the map file skips the Zephyr checks of a documentation change, on every CI system.
+        self.assertIsNone(path_filter(self.workflow))
         self.assertEqual(DOCS_ONLY, self.manifest["selection"]["docs"])
         self.assertEqual(["**"] + [f"!{p}" for p in DOCS_ONLY], self.manifest["scopes"]["not-docs"])
         for check in self.manifest["check"]:
@@ -248,19 +248,15 @@ class ZephyrShardsTest(unittest.TestCase):
                 path = re.search(r"^\s+path: (.+)$", step["text"], re.MULTILINE).group(1)
                 self.assertNotIn("..", path)
 
-    def test_psa_crypto_workflow_skips_documentation_but_not_its_review_records(self):
-        psa = PSA_CRYPTO.read_text()
-        for event in ("push", "pull_request"):
-            with self.subTest(event=event):
-                self.assertIsNone(paths_ignore(psa, event))
-                self.assertEqual(PSA_PATHS, paths_ignore(psa, event, "paths"))
+    def test_psa_crypto_checks_skip_documentation_but_not_its_review_records(self):
+        self.assertIsNone(path_filter(PSA_CRYPTO.read_text()))
         self.assertEqual(PSA_PATHS, self.manifest["scopes"]["psa-crypto"])
         for check in self.manifest["check"]:
             if check["job"].startswith("psa-"):
                 with self.subTest(check=check["id"]):
                     self.assertEqual("psa-crypto", check.get("scope"))
 
-    def test_the_review_records_that_the_pin_check_reads_start_the_psa_crypto_workflow(self):
+    def test_the_review_records_that_the_pin_check_reads_select_the_psa_crypto_checks(self):
         records = re.findall(r"'(docs/[^']+)'", PSA_SCRIPT.read_text())
         self.assertTrue(records)
         for record in records:
@@ -268,11 +264,10 @@ class ZephyrShardsTest(unittest.TestCase):
                 self.assertTrue(fnmatchcase(record, PSA_PATHS[-1]))
                 self.assertTrue((REPO / record).is_file())
 
-    def test_the_web_workflow_starts_for_the_paths_its_checks_need(self):
-        web = WEB.read_text()
-        for event in ("push", "pull_request"):
-            with self.subTest(event=event):
-                self.assertEqual(self.manifest["scopes"]["web-ui"], paths_ignore(web, event, "paths"))
+    def test_the_web_checks_run_for_the_paths_they_need(self):
+        self.assertIsNone(path_filter(WEB.read_text()))
+        # A change to the workflows that run the web jobs runs the web checks.
+        self.assertEqual(WEB_PATHS, self.manifest["scopes"]["web-ui"])
         for check in self.manifest["check"]:
             if check["job"].startswith("web-"):
                 with self.subTest(check=check["id"]):
@@ -290,17 +285,12 @@ class ZephyrShardsTest(unittest.TestCase):
 
 @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
 class TierTriggersTest(unittest.TestCase):
-    """Every tier workflow starts on the events of the tier model, the same way."""
+    """ci.yml starts every tier workflow on the events of the tier model; each also runs by hand."""
 
-    def test_pull_requests_run_again_when_marked_ready_for_review(self):
-        for workflow in TIER_WORKFLOWS:
-            with self.subTest(workflow=workflow.name):
-                self.assertIn("    types: [opened, synchronize, reopened, ready_for_review]\n",
-                              workflow.read_text())
-
-    def test_every_tier_workflow_runs_nightly_at_one_time(self):
-        crons = {w.name: re.findall(r'- cron: "([^"]+)"', w.read_text()) for w in TIER_WORKFLOWS}
-        self.assertEqual({name: ["17 2 * * *"] for name in crons}, crons)
+    def test_the_ci_workflow_starts_every_tier_workflow_nightly(self):
+        # ci.yml calls the tier workflows (test_ci_gate.py), so only it has a schedule.
+        crons = {w.name: re.findall(r'- cron: "([^"]+)"', w.read_text()) for w in [CI, *TIER_WORKFLOWS]}
+        self.assertEqual({name: ["17 2 * * *"] if name == CI.name else [] for name in crons}, crons)
 
     def test_every_job_passes_the_manual_tier_or_auto(self):
         for workflow in TIER_WORKFLOWS:
