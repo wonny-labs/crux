@@ -19,6 +19,8 @@ The names `acme`, `acmeco`, `git.example`, `product-x`, `product-y` and `acme-hw
 
 The product repository is the default. A board or driver moves up a layer only when a criterion below says so, never in advance.
 
+The organisation manifest is optional: each product may instead pin the module directly, with a plain project entry in its own `west.yml` that gives the remote, the full SHA and the path. It saves a repository and a second pin to move. In exchange, nothing keeps the products on the same module or Crux revision, and `west crux-pins` reports the module as `PRODUCT` at any revision. The module's CI then has no organisation baseline to follow: it uses [`ci/west-direct.yml`](../templates/hardware-module/ci/west-direct.yml), which pins Crux itself ([module README](../templates/hardware-module/README.md#without-an-organisation-manifest)). Where this guide speaks of the organisation's baseline or module pin, read the Crux SHA in that file and the module pin in each product. Add the [organisation manifest](../templates/organisation-manifest/README.md#when-to-introduce-the-layer) when the products should move their shared pins together.
+
 ## Where does this board or driver live
 
 | Situation | Where it lives | Why |
@@ -117,7 +119,7 @@ Zephyr's own documentation: [modules](https://github.com/zephyrproject-rtos/zeph
 
 **What was run**
 
-- `tests/build/test_shared_hardware_templates.py` checks the structure of both templates and of this page, parses the manifests, and runs real west 1.4.0 on local throwaway repositories: `west manifest --validate`, the three-layer workspace, the module's CI workspace with its blocklist, and `west crux-pins` for each row of the organisation README's table. Fake repositories stand in for Crux, Zephyr and the modules. The Host CI job installs west 1.4.0 and PyYAML, so it runs the west tests too, without a Zephyr tree.
+- `tests/build/test_shared_hardware_templates.py` checks the structure of both templates and of this page, parses the manifests, and runs real west 1.4.0 on local throwaway repositories: `west manifest --validate`, the three-layer workspace, the module's CI workspace with each of its two manifests, a product that pins the module directly, and `west crux-pins` for each row of the organisation README's table. Fake repositories stand in for Crux, Zephyr and the modules. The Host CI job installs west 1.4.0 and PyYAML, so it runs the west tests too, without a Zephyr tree.
 
 **What was not run**
 
