@@ -83,6 +83,8 @@ jobs:
         id: apt_list
         if: steps.plan.outputs.checks != '0'
         run: |
+          # No job installs from packages.microsoft.com; an outage there would fail the update.
+          sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -exec grep -q 'packages\.microsoft\.com' {} \; -printf 'Removing unused apt source %p\n' -delete
           sudo apt-get update
           empty="$(mktemp -d)"
           sudo apt-get install -y -qq --print-uris --no-install-recommends \
