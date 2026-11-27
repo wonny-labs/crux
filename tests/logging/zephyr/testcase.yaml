@@ -5,3 +5,19 @@ tests:
     tags:
       - logging
       - portable
+  crux.logging.native_pty:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - logging
+    extra_args:
+      - CONF_FILE=native_pty.conf
+      - DTC_OVERLAY_FILE=native_pty.overlay
+      - CRUX_LOGGING_NATIVE_PTY=ON
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "<inf> crux_logging: pty: record on the native UART"
+        - "printk after the record"

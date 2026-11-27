@@ -33,9 +33,10 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(LOG_UART, okay), "Crux Logging UART must be enab
  * no pin conflict, so reviewing the board's pins is the product's duty. Accepted is not qualified.
  * Another driver is a reviewed addition here, keyed by its compatible. */
 #define TARGET_UART DT_NODE_HAS_COMPAT(LOG_UART, nxp_lpuart)
-BUILD_ASSERT((IS_ENABLED(CONFIG_BOARD_NATIVE_SIM) &&
-              DT_NODE_HAS_COMPAT(LOG_UART, zephyr_uart_emul)) ||
-                 TARGET_UART,
+#define SIMULATED_UART                                                                             \
+    (DT_NODE_HAS_COMPAT(LOG_UART, zephyr_uart_emul) ||                                             \
+     DT_NODE_HAS_COMPAT(LOG_UART, zephyr_native_pty_uart))
+BUILD_ASSERT((IS_ENABLED(CONFIG_BOARD_NATIVE_SIM) && SIMULATED_UART) || TARGET_UART,
              "Crux Logging unsupported UART resource");
 BUILD_ASSERT(DT_PROP(LOG_UART, current_speed) == 115200 &&
                  DT_ENUM_IDX_OR(LOG_UART, parity, 0) == 0 &&

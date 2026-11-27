@@ -45,8 +45,13 @@ The initial Zephyr provider maps to native LOG_ERR/WRN/INF/DBG with an explicit
 DEBUG source ceiling, visible severity, a native line boundary and the common Crux filter. It requires deferred native
 processing, UART TEXT output, autostart, drop-new, no capacity wait, no runtime
 native filter or extra backend. An explicit single enabled chosen log UART is
-required. Native_sim uses a dedicated UART emulator separate from its harness
-Console. On any board the log UART is the enabled node that the devicetree chooses, of a reviewed
+required. On `native_sim` it is a UART emulator or Zephyr's native PTY UART
+(`zephyr,native-pty-uart`), such as `uart0`, the board's Console. For `uart0` the
+product overlay names it in `zephyr,log-uart` and sets `current-speed = <115200>`
+(the board's value is a placeholder), and the image sets `LOG_BACKEND_NATIVE_POSIX=n`
+and follows the Console rule below. The log appears on that UART's pseudo-terminal, or
+on stdout with the executable's `-uart_stdinout` option.
+On any board the log UART is the enabled node that the devicetree chooses, of a reviewed
 UART driver selected by compatible (`nxp,lpuart`); no board, SoC or revision is checked. The
 EVKB composition chooses LPUART1.
 An image whose log UART is also the Console compiles UART_CONSOLE as the
