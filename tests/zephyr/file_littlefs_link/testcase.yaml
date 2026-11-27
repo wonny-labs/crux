@@ -1,0 +1,6 @@
+tests:
+  crux.file.littlefs_blk_link_rt1060:
+    build_only: true
+    platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    integration_platforms: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    tags: [filesystem, settings, crux, compile_only]

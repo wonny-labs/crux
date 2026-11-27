@@ -23,6 +23,7 @@ The terms are in [the glossary](management-glossary.md). How to read the tables:
 | --- | --- | --- | --- |
 | Access core | Accounts, roles, permissions and sessions that every channel shares. 8 session slots, slot 0 reserved for serial. | Real on `native_sim` with the PSA ports. Host on fakes. | [Access contract](access-contract.md) |
 | Credential store | Accounts, device keys and certificates in two sealed slots. Protection basis is a device ID, and the store is **not confidential**. | Real on `native_sim`. Entropy is test-only there. | [Credential store](credential-store.md) |
+| Factory reset | An erase of the credential store for a trigger that the product owns. Crux offers no trigger. | The erase and the restart run on `native_sim`. | [Factory reset](#factory-reset) |
 | Security events | Bounded records of management activity, through Logging. No persistence. | Real on `native_sim`. | [Security event contract](security-event-contract.md) |
 | HTTPS adapter | The Zephyr HTTP server behind a route table with a mandatory access class. TLS 1.3 only, one suite, no plain listener. | Real on `native_sim`, both TLS profiles. | [HTTPS composition](https-composition.md), [web contract](web-contract.md) |
 | Login, sessions, CSRF and `Origin` checks | Cookie sessions, a synchronizer token, `Origin` verification and a custom header on the login poll. | Real over HTTPS on `native_sim`. | [Web session](web-session.md) |
@@ -334,6 +335,57 @@ The example is the function `crux_native_management_ssh_add_keys` in [`tests/nat
 | Firefox 159.0.1 | Header capture over plain HTTP, by a script, and over HTTPS by hand, in a container | Loading a packaged folder. Not in CI. [Web contract](web-contract.md#header-capture), [HTTPS composition](https-composition.md) |
 | **Safari** | **Never run against firmware.** One observation by hand, **on the mock server of the web examples only**: a `Secure` cookie set over plain HTTP did not work in Safari. Firmware over HTTPS in Safari was not run. | Everything else. The 825-day rule for TLS server certificates is untested: [TLS certificate](tls-certificate.md), decision A. [Web session](web-session.md#decisions-taken-without-an-answer) |
 | **Edge** | **Never run** | |
+
+## Factory reset
+
+A factory reset returns a device to first-account setup, for example after a lost administrator password.
+Crux gives the erase, and the product gives the trigger and the code that uses it.
+
+**Before you start:** the image has `CONFIG_CRUX_ACCESS` and `CONFIG_REBOOT`, and the composition code links `crux::credential_store_zephyr`.
+
+1. Choose a trigger that proves physical access or an authenticated administrator:
+   - a button held while the device starts, read before any network service or console starts; or
+   - a command in the product's table with `CRUX_CLI_PERMISSION(CRUX_ACCESS_PERMISSION_MANAGE)`, so that only a session that holds `access.manage` sees and runs it.
+
+   Never wire the reset to anything that needs no login on a serial line or the network.
+2. Put the reset in the composition code:
+
+   ```c
+   #include <crux/credential_store_zephyr.h>
+   #include <errno.h>
+   #include <zephyr/fs/fs.h>
+   #include <zephyr/sys/reboot.h>
+
+   static bool removed(const char *path)
+   {
+       int result = fs_unlink(path);
+       return result == 0 || result == -ENOENT;
+   }
+
+   bool product_factory_reset(void)
+   {
+       /* The temporary first: a reset in between leaves the settings file, never a temporary alone. */
+       if (!removed(CONFIG_SETTINGS_FILE_PATH ".cmp") || !removed(CONFIG_SETTINGS_FILE_PATH) ||
+           crux_credential_erase() != CRUX_CREDENTIAL_OK) {
+           return false;
+       }
+       sys_reboot(SYS_REBOOT_COLD);
+       return true;
+   }
+   ```
+
+   The two removals are for a [Settings File](emmc-reliance-composition.md#selection) provider of Configuration; leave them out without one.
+   Add the product's own data, such as files of the file service, according to the product's policy.
+3. Call it at the right point:
+   - **Button:** after `crux_security_event_init()`, the mount, the File bindings and `crux_credential_start()`, and before the settings are initialised and `crux_access_init()` ([boot order](#boot-order)).
+   - **Command:** from the handler. Stop whatever saves settings first, because a save that runs after the removal writes the file again.
+4. If it returns `false`, report the failure and repeat the reset. A power cut during the erase can leave a valid slot, so the old accounts come back until an erase returns `CRUX_CREDENTIAL_OK`.
+
+**Result:** the device restarts with an empty store. First-account setup is open again, and the device has a new TLS key and certificate and a new SSH host key, so clients see a changed identity.
+The erase does not prove that the medium forgot the old data ([credential store limits](credential-store.md#limits)).
+
+`tests/native/management_module` runs the erase and the restart, and `tests/native/file_littlefs_blk` the removal of the settings files.
+No Crux suite runs a button or a command trigger: test the one you wire.
 
 ## Security assumptions
 

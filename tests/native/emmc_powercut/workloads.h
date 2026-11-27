@@ -17,14 +17,18 @@ enum powercut_workload {
     POWERCUT_W3,
     POWERCUT_W4,
     POWERCUT_W8,
-    POWERCUT_W8C
+    POWERCUT_W8C,
+    POWERCUT_W5
 };
 
 /*
  * W8 and W8C (W8-control) replace a file through the Crux File provider; only an image with a File
- * provider (file.conf or fatfs-file.conf) has them and their baseline.
+ * provider (file.conf, fatfs-file.conf or littlefs-file.conf) has them and their baseline. W5
+ * appends records through File, and only an image with the LittleFS provider has its baseline, so
+ * that the other file systems' baselines and counts stay as they are.
  */
-#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||        \
+    defined(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
 #define POWERCUT_HAS_FILE 1
 #else
 #define POWERCUT_HAS_FILE 0
@@ -32,7 +36,7 @@ enum powercut_workload {
 
 /*
  * Baseline content, on the no-cache profile. W4 needs an image with the Settings File backend, W8
- * and W8C (one baseline) an image with a File provider.
+ * and W8C (one baseline) an image with a File provider, and W5 the LittleFS one.
  */
 int powercut_prepare(enum powercut_workload w);
 int powercut_run(enum powercut_workload w, bool early_ack);

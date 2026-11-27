@@ -43,6 +43,13 @@ endfunction()
 # The selections are keyed on generic disk and devicetree facts, the same as their Kconfig
 # dependencies, never on a SoC or board name. Kconfig only warns about an unmet dependency, so each
 # fact is checked again here.
+if(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV AND
+   (CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SDMMC OR
+    CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
+    CONFIG_CRUX_FILE_RELIANCE_EDGE))
+  message(FATAL_ERROR "The LittleFS block device File provider cannot be combined with another File "
+                      "selection")
+endif()
 if(CONFIG_CRUX_FILE_FATFS_SDMMC AND CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK)
   message(FATAL_ERROR "The SD card File provider and its compile-only check are mutually exclusive")
 endif()
@@ -110,6 +117,26 @@ if(CONFIG_CRUX_FILE_FATFS_RAM_DISK)
     message(FATAL_ERROR "The RAM disk File provider requires an enabled zephyr,ram-disk node as the only "
                         "disk, no SD card driver, no SD host controller driver, no flash disk, and FatFs "
                         "with long names of at least 127, reentrancy and auto-format disabled")
+  endif()
+  crux_file_zephyr_provider()
+  return()
+endif()
+
+if(CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+  # LittleFS on an SD card or eMMC disk, on any board; a RAM disk on native_sim only. The module's
+  # CMake refuses an eMMC disk without the cache flush correction.
+  if(NOT CONFIG_FILE_SYSTEM OR NOT CONFIG_FILE_SYSTEM_LITTLEFS OR NOT CONFIG_FS_LITTLEFS_BLK_DEV OR
+     NOT ((CONFIG_DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED AND CONFIG_DISK_DRIVER_SDMMC) OR
+          (CONFIG_DT_HAS_ZEPHYR_MMC_DISK_ENABLED AND CONFIG_DISK_DRIVER_MMC) OR
+          (CONFIG_BOARD_NATIVE_SIM AND CONFIG_DT_HAS_ZEPHYR_RAM_DISK_ENABLED AND CONFIG_DISK_DRIVER_RAM)))
+    message(FATAL_ERROR "The LittleFS block device File provider requires LittleFS over a block device "
+                        "and an enabled zephyr,sdmmc-disk or zephyr,mmc-disk node with its disk driver, "
+                        "or a RAM disk on native_sim")
+  endif()
+  if(CONFIG_FAT_FILESYSTEM_ELM)
+    # Names are stored as they are, and FatFs ignores case and trailing dots.
+    message(FATAL_ERROR "The LittleFS block device File provider refuses FatFs "
+                        "(CONFIG_FAT_FILESYSTEM_ELM): it stores names as they are")
   endif()
   crux_file_zephyr_provider()
   return()

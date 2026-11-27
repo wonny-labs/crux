@@ -200,6 +200,19 @@ class ScriptTest(unittest.TestCase):
         self.assertIsNone(re.search(r"(nm|defined_symbols)\b[^\n]*\|\s*grep\b[^\n]*(\s-\w*q|--quiet)",
                                     self.text))
 
+    def test_the_image_runs_twice_on_one_disk_to_show_the_factory_reset(self):
+        # The first run ends in a factory reset through the composition interface, and the second is
+        # the restart after it: without a format, it passes only if the erase emptied the store.
+        self.assertRegex(self.text, r"(?m)^for run in first reset; do$")
+        self.assertIn("pass = 4, fail = 0", self.text)
+        self.assertIn("formatted the disk", self.text)
+        fixture = (REPO / "tests/native/management_module/src/main.c").read_text()
+        for needle in ("<crux/credential_store_zephyr.h>", "crux_credential_erase()",
+                       "formatted the disk"):
+            self.assertIn(needle, fixture)
+        cmake = (REPO / "tests/native/management_module/CMakeLists.txt").read_text()
+        self.assertIn("crux::credential_store_zephyr", cmake)
+
     def default_off_section(self):
         return self.text.split("# Default off")[1]
 

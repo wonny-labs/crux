@@ -6,8 +6,10 @@
 #
 # This builds the library, registers it with the Zephyr link and publishes the portable target
 # crux::credential_store (ADR-0004 phase 1a, Experimental): the store's state and its start, through
-# <crux/credential_store.h>. It publishes none of the private adapter header that it reads (raw record
-# read, write, key replace, erase and key parse stay private): see
+# <crux/credential_store.h>. It also publishes the composition target crux::credential_store_zephyr
+# (Experimental) for <crux/credential_store_zephyr.h>, which declares the erase of a product's factory
+# reset and nothing else. It publishes none of the private adapter header that it reads (raw record
+# read, write, key replace and key parse stay private): see
 # components/access/ports/zephyr/CMakeLists.txt. The sources are the ones the Host build lists in
 # components/credential/CMakeLists.txt, and tests/build/test_management_module.py holds the two lists
 # together.
@@ -51,6 +53,19 @@ target_link_libraries(crux_credential_zephyr PRIVATE zephyr_interface crux::base
 add_dependencies(crux_credential_zephyr zephyr_generated_headers)
 target_compile_options(crux_credential_zephyr PRIVATE -Wall -Wextra -Werror)
 
+# The composition interface of the erase: the header under ports/zephyr/include/crux/ and the portable
+# target. The name differs from the STATIC provider library crux_credential_zephyr above, which this
+# target does not link (rule 2 of docs/composition-interfaces.md). A native-free consumer check rejects
+# it by name and by path (rule 3), and tests/build/test_credential_zephyr_boundary.py shows that.
+function(crux_credential_store_zephyr_composition)
+  add_library(crux_credential_store_zephyr_composition INTERFACE)
+  add_library(crux::credential_store_zephyr ALIAS crux_credential_store_zephyr_composition)
+  target_include_directories(crux_credential_store_zephyr_composition INTERFACE
+    "${CRUX_CREDENTIAL_COMPONENT_DIR}/ports/zephyr/include")
+  target_link_libraries(crux_credential_store_zephyr_composition INTERFACE crux_credential_store)
+endfunction()
+
 crux_credential_public_target()
+crux_credential_store_zephyr_composition()
 cmake_language(DEFER CALL crux_assert_portable_usage crux::credential_store)
 cmake_language(DEFER CALL crux_assert_credential_adapter_unreachable crux::credential_store)

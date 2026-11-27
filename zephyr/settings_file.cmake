@@ -1,13 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
+# Build-local corrections of the Settings File backend; never modify the pinned dependency checkout.
+# The module includes this for its Settings File selections, and so does the fixture
+# tests/native/configuration_settings_file.
+get_filename_component(_patches "${CMAKE_CURRENT_LIST_DIR}/../patches/zephyr" ABSOLUTE)
 set(_copy "${CMAKE_BINARY_DIR}/settings-file-candidate")
 # Re-stage whenever an input changes, also in an incremental build.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  ${CMAKE_CURRENT_LIST_DIR}/prepare.py ${CMAKE_CURRENT_LIST_DIR}/settings_file.patch
-  ${CMAKE_CURRENT_LIST_DIR}/../settings_error/settings_store.patch
+  ${CMAKE_CURRENT_LIST_DIR}/prepare_settings_file.py ${_patches}/settings-file-error.patch
+  ${_patches}/settings-store-error.patch
   ${ZEPHYR_BASE}/subsys/settings/src/settings_file.c
   ${ZEPHYR_BASE}/subsys/settings/src/settings_line.c
   ${ZEPHYR_BASE}/subsys/settings/src/settings_store.c)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/prepare.py
+execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/prepare_settings_file.py
   --zephyr ${ZEPHYR_BASE} --output ${_copy} RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)
   message(FATAL_ERROR "Pinned Settings File copy preparation failed")
