@@ -112,6 +112,7 @@ static uint64_t charge(crux_file_root_t r, uint64_t size)
 
 /* Whether a root may go from counting before to counting after for one file. Nothing that grows
  * passes a root that is already above its limit, as a binding can find it. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a root, then counts in a fixed order
 static bool limit_allows(crux_file_root_t r, uint64_t before, uint64_t after)
 {
     const struct root_limit *l = &limits[r];
@@ -120,6 +121,7 @@ static bool limit_allows(crux_file_root_t r, uint64_t before, uint64_t after)
 }
 
 /* One file of the root went from counting before to counting after. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a root, then counts in a fixed order
 static void limit_move(crux_file_root_t r, uint64_t before, uint64_t after)
 {
     struct root_limit *l = &limits[r];
@@ -285,6 +287,7 @@ static uint64_t write_end(const struct crux_file *f, size_t l)
 
 /* Count a limited handle's transfer. A provider count is exact only after OK with a known position;
  * otherwise the size is read again, and when that fails the furthest end counts. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the arguments of transfer, in its order
 static void limit_after_transfer(size_t s, size_t l, size_t c, crux_file_result_t result,
                                  bool write)
 {
@@ -410,6 +413,16 @@ crux_file_result_t crux_file_close(crux_file_t **f)
     *f = NULL;
     crux_file_result_t result = crux_file_impl_close(s);
     files[s].live = false;
+    if (files[s].limited) {
+        /* A failure can have left the handle's count above the file: count what is there now, or
+         * keep the figure when the stat fails. */
+        crux_file_info_t now = {0};
+        crux_file_result_t looked = crux_file_impl_stat(files[s].root, files[s].name, &now);
+        if (looked == CRUX_FILE_OK || looked == CRUX_FILE_ERR_NOT_FOUND) {
+            limit_move(files[s].root, charge(files[s].root, files[s].size),
+                       looked == CRUX_FILE_OK ? charge(files[s].root, now.size) : 0);
+        }
+    }
     crux_file_unlock();
     return result;
 }

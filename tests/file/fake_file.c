@@ -196,7 +196,7 @@ void crux_file_fake_add_raw(crux_file_root_t root, const char *raw_name)
 void crux_file_fake_add_file(crux_file_root_t root, const char *name, size_t size)
 {
     size_t index = add(root, name, false, true);
-    if (index == FAKE_ENTRIES || size > CRUX_FILE_FAKE_FILE_BYTES) {
+    if (index == FAKE_ENTRIES || size > (size_t)CRUX_FILE_FAKE_FILE_BYTES) {
         abort();
     }
     entry_t *entry = &fake()->entries[index];

@@ -144,7 +144,7 @@ int main(void)
     /* Two roots more stay bound, each with one retained descriptor. */
     crux_file_conformance_limit(&env);
     assert(descriptor_count() == descriptors + 2);
-    /* A limited bind that fails after opening the directory keeps no descriptor. */
+    /* A limited bind refused by the overlap check or by the open keeps no descriptor. */
     assert(crux_file_linux_bind_root_limited(6, base, 1) == CRUX_FILE_ERR_INVALID_STATE);
     char missing[80];
     assert(snprintf(missing, sizeof(missing), "%s/missing", base) > 0);

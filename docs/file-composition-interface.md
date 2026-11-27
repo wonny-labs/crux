@@ -48,7 +48,7 @@ flowchart LR
 |---|---|---|
 | 1 | The target and header keep `zephyr` in their names | A native-free consumer check rejects any target or path that names Zephyr. That is the intended result: the target is for composition code, and application code must not link it. A neutral name would hide the role. |
 | 2 | The target does not link the provider library | The provider is selected by Kconfig and appended to the Zephyr link by the module. The target only gives the header, so a product that selects a provider through Kconfig does not pick a second one by linking. |
-| 3 | Only the declarations that already existed are published | No new function, no rename. The Linux names stay in `file_linux.h`. |
+| 3 | The header published the declarations that already existed, with no rename. Its one later addition is [the root byte limit](#the-root-byte-limit) | The Linux names stay in `file_linux.h`. |
 | 4 | The private header stays | Renaming every user is a larger change with no consumer benefit. |
 | 5 | The header lives under `components/file/ports/zephyr/include/crux/`, not `components/file/include/crux/` | `CONTRIBUTING.md` places public headers in the owning component's `include/crux/`. This header names a provider, so it stays with the port and is exposed only through `crux::file_zephyr`; the portable `<crux/file.h>` is unchanged. `crux::queue_linux` in the native interface policy was a precedent for a documented composition target (removed with Crux Queue on 20 November 2026). The project owner approved the public target and header on 8 November 2026 (option A); the location and the composition role are this change's reading of that approval. |
 | 6 | Management and HTTPS composition are not covered | They need a separate design that also depends on the Zephyr TLS socket route and licence decisions of the owner. |
@@ -72,9 +72,11 @@ A product that wants a strict boundary for its application code needs a composit
 
 ## The root byte limit
 
-Status: **Experimental**, software only. The project owner approved a per-root byte limit that reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units on 27 November 2026; a volume free-space reserve and a product-side partition were not adopted.
+The limit reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units. A volume free-space reserve and a product-side partition were the alternatives, and were not adopted. Its tier is in the [readiness table](component-readiness.md).
 
-`<crux/file_zephyr.h>` gains one function, `crux_file_zephyr_bind_root_limited(root, path, max_bytes)`, and the Linux provider's `file_linux.h` gains its counterpart `crux_file_linux_bind_root_limited`. They bind a root as `crux_file_zephyr_bind_root` and `crux_file_linux_bind_root` do and set the limit in the same call, so a root never runs without its limit once File calls start. Their rules are in [Root byte limits](file-contract.md#root-byte-limits). This is the first function in the header that did not exist before the header was published; it binds and configures a root, which [rule 4](composition-interfaces.md#the-six-rules) allows, and the behaviour it adds is the limit described in the contract.
+`<crux/file_zephyr.h>` gains one function, `crux_file_zephyr_bind_root_limited(root, path, max_bytes)`, and the Linux provider's `file_linux.h` gains its counterpart `crux_file_linux_bind_root_limited`. They bind a root as `crux_file_zephyr_bind_root` and `crux_file_linux_bind_root` do and set the limit in the same call, so a root never runs without its limit once File calls start. Their rules are in [Root byte limits](file-contract.md#root-byte-limits). The function binds and configures a root, which [rule 4](composition-interfaces.md#the-six-rules) allows, and the behaviour it adds is the limit described in the contract.
+
+The author's choice within the approval: each file counts at least one unit, so an empty file is not free and a root holds at most `max_bytes / unit` files. An empty file takes directory space on every supported file system although it may take no data block. The choice can change in a later reviewed change.
 
 `tests/build/test_file_zephyr_public.py` compiles the declaration on the Host. The other tests are listed in the [test guide](../tests/README.md#portable-file-software-slice). No board has run it.
 

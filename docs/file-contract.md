@@ -173,9 +173,6 @@ call, and no retry. The existing functions keep their behaviour on root 0.
 
 ### Root byte limits
 
-Status: Experimental, Host and `native_sim` only. The owner approved the per-root byte limit that
-reuses `CRUX_FILE_ERR_NO_SPACE` and counts whole volume units, on 27 November 2026.
-
 A limit keeps one root's files from taking a shared volume, so that other roots, Configuration and
 the credential store can still save. The composition sets it when it binds the root:
 
@@ -185,41 +182,51 @@ the credential store can still save. The composition sets it when it binds the r
 | Linux Host | `crux_file_linux_bind_root_limited(root, path, max_bytes)` in `file_linux.h` | `f_frsize` of `fstatvfs()` |
 | `crux_file_fake` | `crux_file_fake_bind_root_limited(root, path, max_bytes, unit)` | The given unit |
 
+The LittleFS composition on the flash simulator (`CONFIG_CRUX_FILE_SIMULATOR`) compiles the Zephyr
+binding, and no suite runs it there.
+
 - **Binding.** The rules of the unlimited binding apply, and a `max_bytes` of 0 is INVALID_ARGUMENT.
   The binding lists the root once and needs a free listing handle (NO_RESOURCES otherwise). A
   failure of the volume query or of the listing returns its result. On any error the root stays
   unbound. The limited functions bind once per index like the others; there is no way to change a
   limit later.
 - **What counts.** Each file that a listing of the root reports counts its size rounded up to the
-  unit, and at least one unit, so an empty file costs one unit. Files that the listing skips
-  (foreign names, subdirectories, links) count nothing. Sums saturate at `UINT64_MAX` and never wrap.
+  unit, and at least one unit, so an empty file costs one unit and a root holds at most
+  `max_bytes / unit` files. Files that the listing skips (foreign names, subdirectories, links)
+  count nothing. Sums saturate at `UINT64_MAX` and never wrap.
 - **What is refused.** A write that would take the count above `max_bytes` returns
   `CRUX_FILE_ERR_NO_SPACE` with zero transferred and reaches no provider: the whole write is
   refused, never cut to a part that fits. A write that stays inside the file's last counted unit,
   or overwrites, is accepted at the limit. A `CREATE_REPLACE` open of a new name that would pass the
-  limit returns NO_SPACE before any provider call. Truncating an existing file by `CREATE_REPLACE`,
-  reading and opening with `CRUX_FILE_READ` are never refused by the limit.
+  limit returns NO_SPACE before the provider opens or creates anything. Truncating an existing file
+  by `CREATE_REPLACE`, reading and opening with `CRUX_FILE_READ` are never refused by the limit.
 - **What gives space back.** A remove, and the truncation of `CREATE_REPLACE`. A rename keeps the
   count. A binding that finds the root above its limit is accepted, and then only writes that do
   not grow the count succeed until removes or truncations bring it under.
-- **Order of checks.** The limit check of an open follows the conflict and pool checks. A writer's
-  open on a limited root first reads the file's size with a provider stat, and a remove does the
-  same, so these calls make one more provider call than on an unlimited root and return a failed
-  stat's result. Readers and unlimited roots make no extra call.
+- **Provider calls.** On a limited root, a writer's open first stats the file: a failed stat is the
+  open's result, and the open's limit check follows the conflict and pool checks. A remove stats
+  the file first as well; when that stat fails the remove goes ahead and the count stays. A close
+  of a writer stats the file after the native close. A failed open, a failed remove and a failed
+  write make one more call to read what is left. Readers and unlimited roots make no extra call.
 - **Concurrency.** The check, the provider write and the new count happen under the File lock, so
   callers on the same root cannot pass the limit together.
 - **After a failure.** The common layer counts from a handle's own size and position. After a failed
   write it reads the size again, and when that fails too, the furthest end the write could reach
-  counts. After a failed read, write or seek the position is unknown until the next successful
-  seek: a write then counts as if it started at the end of the file, so it can be refused although
-  it would only overwrite. A failed open or remove counts what a stat finds afterwards. Each of
-  these errs towards counting more.
+  counts until the handle closes. After a failed read, write or seek the position is unknown until
+  the next successful seek: a write then counts as if it started at the end of the file. Either way
+  a write can be refused with NO_SPACE although it would only overwrite, and on a LittleFS handle
+  that keeps its error ([LittleFS block device mapping](#littlefs-block-device-mapping)) NO_SPACE
+  can come in place of the kept error. Nothing is written in either case. A close, a failed open
+  and a failed remove count what a stat finds afterwards.
 - **Power loss and restart.** The count lives in memory only and is made again at each binding from
   what the file system reports, so after a power cut it follows what reached the medium.
 - **Limits of the limit.** It is not free space: it reserves nothing on the volume, and the sum of
   the limits may exceed the volume. Size it below the free space that the composition plans for,
   with room for file system metadata, which the unit rounding approximates but does not measure.
-  Writes made outside File, by another process or a native client, count only at the next binding.
+  Writes made outside File, by another process or a native client, are not counted when they
+  happen. When File later writes, truncates, closes or removes such a file, it counts from what a
+  stat finds, so until the next binding the count can be too high or too low, and File's own
+  files can then pass the limit.
 
 The pattern is a directory-tree quota, as the XFS project quota is
 ([`xfs_quota(8)`](https://man7.org/linux/man-pages/man8/xfs_quota.8.html)), with Crux's own

@@ -12,7 +12,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define UNIT 16u
+#define UNIT ((size_t)16)
 #define ROOT ((crux_file_root_t)0)
 
 static uint8_t data[8 * UNIT];
@@ -186,18 +186,42 @@ static void test_a_failed_write_counts_from_the_end_until_a_seek(void)
     crux_file_t *b = open_file("b", CRUX_FILE_CREATE_REPLACE);
     close_file(&b);
 
-    /* When the size cannot be read either, the furthest end counts: a now counts 2 units, which
-     * leaves no room for c. */
+    /* When the size cannot be read either, the furthest end counts: a counts 2 units while it is
+     * open, which leaves no room for c. Its close counts what the file holds, and c fits. */
     start();
     assert(crux_file_fake_bind_root_limited(ROOT, "/v", 3 * UNIT, UNIT) == CRUX_FILE_OK);
     a = open_file("a", CRUX_FILE_CREATE_REPLACE);
     crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0, CRUX_FILE_ERR_IO);
     crux_file_fake_fail(CRUX_FILE_FAKE_SIZE, 0, CRUX_FILE_ERR_IO);
     assert(crux_file_write(a, data, 2 * UNIT, &count) == CRUX_FILE_ERR_IO);
-    close_file(&a);
     b = open_file("b", CRUX_FILE_CREATE_REPLACE);
     close_file(&b);
     create_refused("c");
+    close_file(&a);
+    crux_file_t *c = open_file("c", CRUX_FILE_CREATE_REPLACE);
+    close_file(&c);
+    create_refused("d");
+
+    /* Retries on a handle whose size stays unreadable, as on a LittleFS handle that keeps its
+     * error, raise its count until it reaches the limit; the close gives all of it back. */
+    start();
+    assert(crux_file_fake_bind_root_limited(ROOT, "/v", 4 * UNIT, UNIT) == CRUX_FILE_OK);
+    a = open_file("a", CRUX_FILE_CREATE_REPLACE);
+    for (unsigned i = 0; i < 2; i++) {
+        crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0, CRUX_FILE_ERR_IO);
+        crux_file_fake_fail(CRUX_FILE_FAKE_SIZE, 0, CRUX_FILE_ERR_IO);
+        assert(crux_file_write(a, data, 2 * UNIT, &count) == CRUX_FILE_ERR_IO);
+    }
+    write_refused(a, 1);
+    create_refused("b");
+    close_file(&a);
+    b = open_file("b", CRUX_FILE_CREATE_REPLACE);
+    write_ok(b, 2 * UNIT);
+    close_file(&b);
+    assert(crux_file_remove_at(ROOT, "a") == CRUX_FILE_OK);
+    c = open_file("c", CRUX_FILE_CREATE_REPLACE);
+    write_ok(c, 2 * UNIT);
+    close_file(&c);
 
     /* A partial write counts the bytes that the provider accepted. */
     start();

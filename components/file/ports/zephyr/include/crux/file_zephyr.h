@@ -65,8 +65,9 @@ crux_file_result_t crux_file_zephyr_bind_root(crux_file_root_t root, const char 
  * CRUX_FILE_ERR_NO_SPACE, and writes nothing then. Each file counts its size rounded up to the
  * f_frsize that fs_statvfs() reports for the path, and at least one such unit. The binding lists
  * the root once to count what is there; files that the listing skips are not counted. The limit
- * reserves no space on the volume, and writes made outside File are counted only at the next
- * binding. docs/file-contract.md, "Root byte limits", has the full rules.
+ * reserves no space on the volume. Writes made outside File are not counted when they happen and
+ * can leave the count too high or too low until the next binding. docs/file-contract.md, "Root
+ * byte limits", has the full rules.
  *
  * @param root Root index below the provider's root limit.
  * @param path Same rules as for crux_file_zephyr_bind().

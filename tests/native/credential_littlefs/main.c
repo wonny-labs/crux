@@ -73,4 +73,49 @@ ZTEST(credential_littlefs, test_saves_survive_a_remount_and_erase_removes_both_s
     zassert_equal(crux_file_stat(TEST_ROOT_B, TEST_SLOT_NAME, &info), CRUX_FILE_ERR_NOT_FOUND);
 }
 
+/*
+ * An application root with a byte limit on the same volume
+ * (docs/file-contract.md#root-byte-limits): once its files reach the limit, a write there gets
+ * CRUX_FILE_ERR_NO_SPACE, and the store still saves a record and makes a key in its own roots.
+ */
+ZTEST(credential_littlefs, test_a_full_limited_root_leaves_room_for_credential_saves)
+{
+    static const uint8_t chunk[512] = {[0 ... 511] = 0x61};
+    static const uint8_t account[] = "saved next to a full root";
+    const crux_file_root_t app = 3;
+    crux_file_t *file = NULL;
+    crux_file_result_t rc = CRUX_FILE_OK;
+    size_t count = 0;
+    unsigned chunks = 0;
+
+    zassert_ok(fs_mkdir("/lfs/app"));
+    zassert_equal(crux_file_zephyr_bind_root_limited(app, "/lfs/app", 32 * sizeof(chunk)),
+                  CRUX_FILE_OK);
+    zassert_equal(crux_file_open_at(app, "data", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    for (; chunks < 2048 && rc == CRUX_FILE_OK; chunks++) {
+        rc = crux_file_write(file, chunk, sizeof(chunk), &count);
+        if (rc == CRUX_FILE_OK) {
+            rc = crux_file_sync(file);
+        }
+    }
+    zassert_equal(rc, CRUX_FILE_ERR_NO_SPACE, "the limit gave %d", rc);
+    zassert_equal(count, 0);
+    zassert_equal(chunks, 33, "32 blocks fit and the 33rd write is refused");
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+
+    test_fresh_empty();
+    zassert_equal(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, account, sizeof(account)),
+                  CRUX_CREDENTIAL_OK);
+    zassert_equal(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY,
+                                             CRUX_CREDENTIAL_KEY_ED25519),
+                  CRUX_CREDENTIAL_OK);
+    test_expect_record(CRUX_CREDENTIAL_RECORD_ACCOUNTS, account, sizeof(account));
+    zassert_equal(credential_test_failures, 0);
+
+    /* Still full: the store's saves took nothing from the application root. */
+    zassert_equal(crux_file_open_at(app, "more", CRUX_FILE_CREATE_REPLACE, &file),
+                  CRUX_FILE_ERR_NO_SPACE);
+    zassert_equal(crux_file_remove_at(app, "data"), CRUX_FILE_OK);
+}
+
 ZTEST_SUITE(credential_littlefs, NULL, setup, NULL, NULL, NULL);

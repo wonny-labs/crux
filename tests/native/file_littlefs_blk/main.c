@@ -521,8 +521,7 @@ ZTEST(file_littlefs_blk, test_configuration_saves_on_the_same_volume)
 /*
  * An application root with a byte limit on the shared volume: when its files reach the limit, a
  * write there gets CRUX_FILE_ERR_NO_SPACE, and a Configuration save and a File write in another
- * root still succeed. The credential store saves through File in its own root in the same way; it
- * is not built into this image.
+ * root still succeed. tests/native/credential_littlefs shows the same for the credential store.
  */
 ZTEST(file_littlefs_blk, test_a_full_limited_root_leaves_room_for_configuration_and_other_roots)
 {

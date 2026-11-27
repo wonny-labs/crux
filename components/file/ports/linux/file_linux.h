@@ -11,7 +11,7 @@ crux_file_result_t crux_file_linux_bind(const char *root);
 crux_file_result_t crux_file_linux_bind_root(crux_file_root_t root, const char *path);
 /* The same, with a byte limit on the files of the root (docs/file-contract.md#root-byte-limits),
  * counted in the volume's f_frsize from fstatvfs. A max_bytes of 0 is
- * CRUX_FILE_ERR_INVALID_ARGUMENT. On any error the root stays unbound. */
+ * CRUX_FILE_ERR_INVALID_ARGUMENT. On any error the root stays unbound and its descriptor closed. */
 crux_file_result_t crux_file_linux_bind_root_limited(crux_file_root_t root, const char *path,
                                                      uint64_t max_bytes);
 crux_file_result_t crux_file_linux_error(int error);
