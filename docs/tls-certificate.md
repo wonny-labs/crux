@@ -101,6 +101,8 @@ the material to `tls_credential_add` for either profile.
 | 5 | `crux_tls_certificate_fingerprint` | The composition prints it on the serial console, for the first connection |
 | 6 | `crux_tls_certificate_material_take`, then `tls_credential_add` for the certificate and the key | Before the TLS listener starts. Nothing is served if this fails. |
 
+`require_existing_identity` in the options, false by default, is for a product that makes the key and the certificate while the device is prepared and never at a normal boot. Set, start refuses with `CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY` when either record is missing, before anything is written, and the product enters its own recovery. An [account-only reset](management-in-a-product.md#account-only-reset) keeps both records, so the next start loads them and the fingerprint stays the same.
+
 ```mermaid
 sequenceDiagram
     participant C as Composition
@@ -109,6 +111,10 @@ sequenceDiagram
     participant P as PSA port
     participant Z as Zephyr TLS credentials
     C->>T: start(options)
+    opt require_existing_identity
+        T->>S: is TLS_KEY stored, is TLS_CERTIFICATE stored
+        T-->>C: NO_IDENTITY if either is missing, nothing written
+    end
     T->>S: key_ensure(TLS_KEY, ECDSA P-256)
     T->>S: read(TLS_KEY), build PKCS #8, clear the copy
     T->>S: read(TLS_CERTIFICATE)
@@ -359,7 +365,7 @@ CI runs. `scripts/test-tls-certificate.sh psa` runs the PSA composition and the 
 | `TlsCertificate.boundary_leak`, `boundary_clean` | A separate project configured twice: a consumer reaching the adapter is refused by the credential boundary rule, and one of the public target is accepted |
 | `tls_certificate_service` | First boot, a later boot, start's arguments and failures, a stored record refused for each reason and recovered, read failures, permissions, the request, regeneration and an address change, the material and its two buffers, contention, no output holding the private key, and the key record and the PKCS #8 copy cleared when start fails |
 | `tls_certificate_install` | The acceptance criteria: each kind of refusal logged with nothing changed, every truncation and flip of another key's certificate, accepted certificates, a failed save, and the checks statement |
-| `tls_certificate_store` | The module on the real credential store: first boot, a power cycle, refused uploads leaving the stored record, an installed certificate across a power cycle, an unusable store, and a store-generated key |
+| `tls_certificate_store` | The module on the real credential store: first boot, a power cycle, refused uploads leaving the stored record, an installed certificate across a power cycle, an unusable store, a store-generated key, the same certificate after an account-only erase, self-signed or installed, and `require_existing_identity` refusing with nothing written |
 | `tls_certificate_events` | Each port event to its record, on the recording fake of the event contract |
 | `tls_certificate_cpp_headers` | Both headers from C++ |
 | `tests/tls_certificate/psa` | The PSA ports on TF-PSA-Crypto: SHA-256 known answer, random draws, a refused zero scalar; a real P-256 key's certificate, request and PKCS #8 key, parsed and verified with TF-PSA-Crypto's key parser. OpenSSL then parses all three, verifies the certificate for the server purpose and the request, matches the key to both, completes a TLS 1.3 handshake, and gives the same fingerprint text. |

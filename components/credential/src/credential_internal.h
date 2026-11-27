@@ -75,4 +75,8 @@ bool crux_credential_payload_set(crux_credential_record_t record, const uint8_t 
                                  size_t data_length, uint8_t *payload, size_t *length,
                                  size_t capacity);
 
+/* Removes a record from a valid payload, which stays valid. Returns whether it was there. */
+bool crux_credential_payload_remove(crux_credential_record_t record, uint8_t *payload,
+                                    size_t *length);
+
 #endif

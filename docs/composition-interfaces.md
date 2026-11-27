@@ -45,13 +45,13 @@ The progress hook of the Crux service threads is a composition interface: target
 ### The credential store erase
 
 The erase of the credential store is a composition interface: target `crux::credential_store_zephyr` and header `<crux/credential_store_zephyr.h>` under `components/credential/ports/zephyr/include/crux/`.
-It publishes one existing declaration, `crux_credential_erase()`, with no new function, for a product's [factory reset](management-in-a-product.md#factory-reset).
+It publishes two declarations for a product's [factory reset](management-in-a-product.md#factory-reset): `crux_credential_erase()`, which removes every record, and `crux_credential_erase_accounts()`, which removes the accounts and keeps the device identity.
 The header includes only `<crux/credential_store.h>` (rule 5: no Zephyr type), and the INTERFACE target `crux_credential_store_zephyr_composition` links the portable `crux_credential_store` and not the STATIC provider `crux_credential_zephyr` (rule 2).
 `tests/build/test_credential_zephyr_boundary.py` is its negative test (rule 3).
 Its name follows the portable name `credential_store` (`crux::credential_store`, `<crux/credential_store.h>`), not the component directory `credential` (rule 1).
-**It departs from rule 4**: the call binds, configures and selects nothing, and the portable header leaves it out so that application code cannot reach it.
+**It departs from rule 4**: neither call binds, configures or selects anything, and the portable header leaves both out so that application code cannot reach them.
 Publishing it to the composition alone is the reason for this form.
-The private adapter header keeps the same declaration for the portable build, and `tests/build/test_credential_zephyr_public.py` holds the two together.
+The private adapter header keeps the same declarations for the portable build, and `tests/build/test_credential_zephyr_public.py` holds the two together.
 The header's `Status:` line gives its tier.
 
 ### Linux Host composition targets

@@ -319,6 +319,23 @@ static crux_tls_certificate_result_t load_key(void)
     return result;
 }
 
+/*
+ * Whether a record is stored, without copying it: a read into no buffer reports TOO_LARGE for a
+ * record that exists. Writes nothing.
+ */
+static crux_tls_certificate_result_t require_stored(crux_credential_record_t record)
+{
+    size_t length = 0;
+    crux_credential_result_t read = crux_credential_read(record, NULL, 0u, &length);
+    if (read == CRUX_CREDENTIAL_ERR_NOT_FOUND) {
+        return CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY;
+    }
+    if (read == CRUX_CREDENTIAL_ERR_TOO_LARGE || read == CRUX_CREDENTIAL_OK) {
+        return CRUX_TLS_CERTIFICATE_OK;
+    }
+    return from_store(read);
+}
+
 /* Decodes the stored record into slot 0. */
 static crux_tls_certificate_result_t load_stored(size_t length)
 {
@@ -350,7 +367,18 @@ crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
         lock_made = true;
     }
     start_options = options;
-    crux_tls_certificate_result_t result = load_key();
+    crux_tls_certificate_result_t result = CRUX_TLS_CERTIFICATE_OK;
+    /* Both are checked before load_key(), which would generate a missing key. */
+    if (options->require_existing_identity) {
+        result = require_stored(CRUX_CREDENTIAL_RECORD_TLS_KEY);
+        if (result == CRUX_TLS_CERTIFICATE_OK) {
+            result = require_stored(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE);
+        }
+        if (result != CRUX_TLS_CERTIFICATE_OK) {
+            return result;
+        }
+    }
+    result = load_key();
     if (result != CRUX_TLS_CERTIFICATE_OK) {
         wipe(key_der, sizeof(key_der));
         return result;

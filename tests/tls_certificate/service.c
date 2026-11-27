@@ -96,7 +96,7 @@ static void test_dated_options(void)
 {
     fixture_boot();
     static const crux_tls_certificate_options_t dated = {
-        {"Crux device", NULL, 0, NULL, 0, NULL, 0}, 1800000000, 825};
+        {"Crux device", NULL, 0, NULL, 0, NULL, 0}, 1800000000, 825, false};
     crux_tls_certificate_start_t how;
     CHECK(crux_tls_certificate_start(&dated, &how) == CRUX_TLS_CERTIFICATE_OK);
     crux_tls_certificate_info_t info;

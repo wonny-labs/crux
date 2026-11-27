@@ -62,6 +62,7 @@ static void test_before_start(void)
     CHECK(roots[0] == 9 && roots[1] == 9);
     expect_refuses(CRUX_CREDENTIAL_ERR_NOT_READY);
     CHECK(crux_credential_erase() == CRUX_CREDENTIAL_ERR_NOT_READY);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_NOT_READY);
     CHECK(!test_slot_exists(TEST_SLOT_A) && !test_slot_exists(TEST_SLOT_B));
 }
 
@@ -531,6 +532,9 @@ static void test_unusable_refuses_all_but_erase(void)
     CHECK(test_slot_read(TEST_SLOT_B, image_b, sizeof(image_b)) == CRUX_CREDENTIAL_SLOT_BYTES);
     expect_refuses(CRUX_CREDENTIAL_ERR_UNUSABLE);
     CHECK(credential_fake_keygen_count() == 0u);
+    /* The account-only erase needs an image it can read, so it refuses too. */
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_UNUSABLE);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_ERASED) == 0u);
 
     /* Nothing changed on the medium. */
     CHECK(test_slot_read(TEST_SLOT_A, large, sizeof(large)) == CRUX_CREDENTIAL_SLOT_BYTES);
@@ -781,6 +785,230 @@ static void test_interrupted_erase_states(void)
     CHECK(crux_credential_erase() == CRUX_CREDENTIAL_OK);
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+}
+
+/* The device identity: both device keys and the certificate, which an account-only erase keeps. */
+static uint8_t tls_key[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
+static uint8_t host_key[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
+static size_t tls_key_length;
+static size_t host_key_length;
+
+static void identity_write(void)
+{
+    tls_key_length = test_key_record(CRUX_CREDENTIAL_KEY_ECDSA_P256, tls_key, 0x31);
+    host_key_length = test_key_record(CRUX_CREDENTIAL_KEY_ED25519, host_key, 0x32);
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_key, tls_key_length) ==
+          CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_key, host_key_length) ==
+          CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate,
+                                sizeof(certificate)) == CRUX_CREDENTIAL_OK);
+}
+
+/* A device in use: accounts, replaced once so that the slots hold different versions, next to the
+ * identity. */
+static void identity_store_with_accounts(void)
+{
+    test_fresh_empty();
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_one,
+                                sizeof(accounts_one)) == CRUX_CREDENTIAL_OK);
+    identity_write();
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_two,
+                                sizeof(accounts_two)) == CRUX_CREDENTIAL_OK);
+}
+
+/* Both slots are valid, neither holds the accounts, and each holds the identity byte for byte. */
+static void expect_slots_keep_only_the_identity(void)
+{
+    for (size_t slot = TEST_SLOT_A; slot <= TEST_SLOT_B; ++slot) {
+        uint32_t records = 0;
+        CHECK(test_slot_records(slot, &records));
+        CHECK((records & (1u << (uint32_t)CRUX_CREDENTIAL_RECORD_ACCOUNTS)) == 0);
+        CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_key, tls_key_length));
+        CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_key,
+                              host_key_length));
+        CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate,
+                              sizeof(certificate)));
+    }
+}
+
+static void expect_identity_readable(void)
+{
+    test_expect_record(CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_key, tls_key_length);
+    test_expect_record(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_key, host_key_length);
+    test_expect_record(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate, sizeof(certificate));
+}
+
+/* The last erased event, which must name the accounts. */
+static const crux_credential_event_t *last_erased_event(void)
+{
+    const crux_credential_event_t *found = NULL;
+    for (size_t index = 0; index < credential_fake_event_count(); ++index) {
+        const crux_credential_event_t *event = credential_fake_event(index);
+        if (event->type == CRUX_CREDENTIAL_EVENT_ERASED) {
+            found = event;
+        }
+    }
+    return found;
+}
+
+/* Decision D-1: the accounts go from both slots, the identity stays, and a reset reopens
+ * first-account setup with the same keys. */
+static void test_erase_accounts(void)
+{
+    identity_store_with_accounts();
+    credential_fake_events_clear();
+    unsigned generated = credential_fake_keygen_count();
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+    expect_slots_keep_only_the_identity();
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_ERASED) == 1u);
+    const crux_credential_event_t *erased = last_erased_event();
+    CHECK(erased != NULL && erased->result == CRUX_CREDENTIAL_OK &&
+          erased->record == CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+    CHECK(crux_credential_test_buffers_clear());
+
+    /* Until the reset nothing is written, so Access cannot save the accounts it holds in RAM. */
+    expect_refuses(CRUX_CREDENTIAL_ERR_UNUSABLE);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_UNUSABLE);
+    expect_slots_keep_only_the_identity();
+
+    /* After it the store is valid, the accounts are absent and no key is generated again. */
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+    expect_identity_readable();
+    CHECK(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY,
+                                     CRUX_CREDENTIAL_KEY_ECDSA_P256) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY,
+                                     CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_keygen_count() == generated);
+
+    /* Damage to either slot cannot bring the accounts back: no slot holds them. */
+    for (size_t damaged = TEST_SLOT_A; damaged <= TEST_SLOT_B; ++damaged) {
+        CHECK(test_slot_read(damaged, image_a, sizeof(image_a)) == CRUX_CREDENTIAL_SLOT_BYTES);
+        test_slot_flip(damaged, CRUX_CREDENTIAL_HEADER_BYTES, 0x80);
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+        expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+        expect_identity_readable();
+        test_slot_write(damaged, image_a, sizeof(image_a));
+    }
+
+    /* The next account is saved next to the kept identity. */
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_one,
+                                sizeof(accounts_one)) == CRUX_CREDENTIAL_OK);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    test_expect_record(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_one, sizeof(accounts_one));
+    expect_identity_readable();
+
+    /* The full erase still takes everything. */
+    CHECK(crux_credential_erase() == CRUX_CREDENTIAL_OK);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+}
+
+/* The other states the account-only erase can start from. */
+static void test_erase_accounts_from_other_states(void)
+{
+    /* EMPTY: nothing to remove and nothing written, and provisioning still waits for a reset. */
+    test_fresh_empty();
+    credential_fake_events_clear();
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+    CHECK(!test_slot_exists(TEST_SLOT_A) && !test_slot_exists(TEST_SLOT_B));
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_ERASED) == 1u);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+
+    /* A store with the identity and no accounts: both slots are written all the same. */
+    test_fresh_empty();
+    identity_write();
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    expect_slots_keep_only_the_identity();
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+    expect_identity_readable();
+
+    /* A store with only the accounts ends with an image that holds no record, and stays VALID. */
+    test_fresh_empty();
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_one,
+                                sizeof(accounts_one)) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    for (size_t slot = TEST_SLOT_A; slot <= TEST_SLOT_B; ++slot) {
+        uint32_t records = 0xFFu;
+        CHECK(test_slot_records(slot, &records));
+        CHECK(records == 0u);
+    }
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+
+    /* An older slot that still holds accounts, as a failed repair leaves it, is written too. */
+    identity_store_with_accounts();
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    uint64_t generation_a = 0;
+    uint64_t generation_b = 0;
+    CHECK(test_slot_generation(TEST_SLOT_A, &generation_a));
+    CHECK(test_slot_generation(TEST_SLOT_B, &generation_b));
+    size_t older = generation_a < generation_b ? TEST_SLOT_A : TEST_SLOT_B;
+    const test_record_t stale[] = {record_accounts_one, record_certificate};
+    test_image_build(image_a, 1, stale, 2);
+    test_slot_write(older, image_a, sizeof(image_a));
+    CHECK(test_any_slot_has(CRUX_CREDENTIAL_RECORD_ACCOUNTS));
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+    CHECK(!test_any_slot_has(CRUX_CREDENTIAL_RECORD_ACCOUNTS));
+    expect_slots_keep_only_the_identity();
+
+    /* An active slot that no longer reads as it did: nothing is written and the state stays. */
+    test_fresh();
+    test_image_build(image_a, 3, &record_accounts_one, 1);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    test_image_build(image_b, 50, &record_accounts_two, 1);
+    test_slot_write(TEST_SLOT_A, image_b, sizeof(image_b));
+    credential_fake_events_clear();
+    CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_ERR_READ);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+    CHECK(!test_slot_exists(TEST_SLOT_B));
+    CHECK(test_slot_read(TEST_SLOT_A, large, sizeof(large)) == CRUX_CREDENTIAL_SLOT_BYTES);
+    CHECK(memcmp(large, image_b, sizeof(large)) == 0);
+    const crux_credential_event_t *erased = last_erased_event();
+    CHECK(erased != NULL && erased->result == CRUX_CREDENTIAL_ERR_READ &&
+          erased->record == CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+}
+
+/*
+ * The state an account-only erase cut between its two writes leaves: the newest slot without the
+ * accounts and the older one with them. The start rewrites the older slot, so that damage to the
+ * newest cannot fall back to the accounts. Only the accounts trigger this: limit A7 and the rule
+ * that the newer slot never takes an older slot's record are unchanged (test_repair_at_start).
+ */
+static void test_repair_removes_stale_accounts(void)
+{
+    const test_record_t older_records[] = {record_accounts_one, record_certificate};
+    for (size_t older = TEST_SLOT_A; older <= TEST_SLOT_B; ++older) {
+        size_t newer = older == TEST_SLOT_A ? TEST_SLOT_B : TEST_SLOT_A;
+        test_fresh();
+        test_image_build(image_a, 3, older_records, 2);
+        test_image_build(image_b, 4, &record_certificate, 1);
+        test_slot_write(older, image_a, sizeof(image_a));
+        test_slot_write(newer, image_b, sizeof(image_b));
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_SAVE_FAILED) == 0u);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+        expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+        CHECK(test_slot_read(older, large, sizeof(large)) == CRUX_CREDENTIAL_SLOT_BYTES);
+        CHECK(memcmp(large, image_b, sizeof(large)) == 0);
+        CHECK(crux_credential_test_buffers_clear());
+
+        test_slot_flip(newer, CRUX_CREDENTIAL_HEADER_BYTES, 0x80);
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+        expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+        test_expect_record(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate,
+                           sizeof(certificate));
+    }
 }
 
 static void test_info_carries_the_declaration(void)
@@ -1154,6 +1382,9 @@ void credential_conformance_run(void)
     test_keys();
     test_erase();
     test_interrupted_erase_states();
+    test_erase_accounts();
+    test_erase_accounts_from_other_states();
+    test_repair_removes_stale_accounts();
     test_info_carries_the_declaration();
     test_provider_that_cannot_run();
     test_swapped_slots();

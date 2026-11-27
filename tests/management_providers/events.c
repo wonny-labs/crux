@@ -377,6 +377,17 @@ static void credential_events(void)
                                                   .result = CRUX_CREDENTIAL_ERR_STORE};
     credential_event_row(&erase_failed, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED,
                          CRUX_SECURITY_EVENT_FAILED, "");
+    /* The account-only erase names the accounts, whatever its result. */
+    const crux_credential_event_t accounts_erased = {.type = CRUX_CREDENTIAL_EVENT_ERASED,
+                                                     .result = CRUX_CREDENTIAL_OK,
+                                                     .record = CRUX_CREDENTIAL_RECORD_ACCOUNTS};
+    credential_event_row(&accounts_erased, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED,
+                         CRUX_SECURITY_EVENT_OK, "accounts");
+    const crux_credential_event_t accounts_unread = {.type = CRUX_CREDENTIAL_EVENT_ERASED,
+                                                     .result = CRUX_CREDENTIAL_ERR_READ,
+                                                     .record = CRUX_CREDENTIAL_RECORD_ACCOUNTS};
+    credential_event_row(&accounts_unread, CRUX_SECURITY_EVENT_ID_CREDENTIAL_ERASED,
+                         CRUX_SECURITY_EVENT_FAILED, "accounts");
 }
 
 /* Issue #242: the command line's events. The record names the session's user and channel, never

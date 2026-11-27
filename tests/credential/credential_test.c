@@ -156,6 +156,59 @@ void test_slot_swap(void)
     test_slot_write(TEST_SLOT_B, io_buffer, length_a);
 }
 
+/* Opens a slot into payload_buffer. Returns its length, or zero unless the slot is valid. */
+static size_t slot_open(size_t slot, uint32_t *records)
+{
+    size_t length = test_slot_read(slot, io_buffer, CRUX_CREDENTIAL_SLOT_BYTES);
+    crux_credential_header_t header;
+    if (length < CRUX_CREDENTIAL_HEADER_BYTES ||
+        crux_credential_header_decode(io_buffer, (uint16_t)CRUX_CREDENTIAL_BASIS_NONE, length,
+                                      &header) != CRUX_CREDENTIAL_HEADER_VALID) {
+        return 0;
+    }
+    const uint8_t *body = io_buffer + CRUX_CREDENTIAL_HEADER_BYTES;
+    if (crux_credential_port_open(io_buffer, CRUX_CREDENTIAL_HEADER_BYTES, body,
+                                  header.payload_length, header.nonce,
+                                  body + header.payload_length,
+                                  payload_buffer) != CRUX_CREDENTIAL_OK ||
+        !crux_credential_payload_valid(payload_buffer, header.payload_length, records)) {
+        return 0;
+    }
+    return header.payload_length;
+}
+
+bool test_slot_records(size_t slot, uint32_t *records)
+{
+    uint32_t found = 0;
+    if (slot_open(slot, &found) == 0) {
+        return false;
+    }
+    *records = found;
+    return true;
+}
+
+bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data,
+                     size_t length)
+{
+    uint32_t records = 0;
+    const uint8_t *found = NULL;
+    size_t found_length = 0;
+    return slot_open(slot, &records) != 0 &&
+           crux_credential_payload_find(payload_buffer, record, &found, &found_length) &&
+           found_length == length && memcmp(found, data, length) == 0;
+}
+
+bool test_any_slot_has(crux_credential_record_t record)
+{
+    for (size_t slot = TEST_SLOT_A; slot <= TEST_SLOT_B; ++slot) {
+        uint32_t records = 0;
+        if (test_slot_records(slot, &records) && (records & (1u << (uint32_t)record)) != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void test_expect_record(crux_credential_record_t record, const void *data, size_t length)
 {
     size_t read_length = 0;

@@ -20,7 +20,8 @@ static const uint8_t fixture_ipv4[][4] = {{192, 0, 2, 10}};
 const crux_tls_certificate_options_t fixture_options = {
     {"Crux device", fixture_dns, 1, fixture_ipv4, 1, NULL, 0},
     CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
-    0};
+    0,
+    false};
 
 static const crux_access_origin_t serial_origin = {CRUX_ACCESS_CHANNEL_SERIAL, {0}, 0};
 

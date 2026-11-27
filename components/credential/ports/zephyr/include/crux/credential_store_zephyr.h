@@ -3,7 +3,8 @@
 
 /**
  * @file
- * @brief Erase of the credential store, for a product's factory reset. A composition interface.
+ * @brief Erase of the credential store, for a product's factory reset, and of its accounts only.
+ * A composition interface.
  *
  * Status: Experimental (ADR-0001 decision 4). A change is listed in the release notes.
  *
@@ -55,6 +56,48 @@ extern "C" {
  * was done.
  */
 crux_credential_result_t crux_credential_erase(void);
+
+/**
+ * Remove the accounts from both slots and keep the device identity: the TLS key, the TLS
+ * certificate, whether self-signed or installed by an operator, and the SSH host key. The accounts
+ * record holds every account, password hash, role and SSH user key, so all of them go.
+ *
+ * Use it only to recover a device for the same owner, for example after every administrator
+ * password is lost. Clients then keep seeing the fingerprints they already trust. The kept private
+ * keys are as readable as the rest of the store to anyone who can read the medium and the chip ID,
+ * so a transfer of ownership, a resale or decommissioning uses the full erase,
+ * crux_credential_erase(), and prepares the device again.
+ *
+ * The caller is the whole protection, as for the full erase: the same triggers and the same rule
+ * against an unauthenticated wipe apply.
+ *
+ * The state is UNUSABLE from this call until the next reset, and then VALID with no accounts, which
+ * opens first-account setup again. Restart the device as soon as the call returns: until then
+ * Access keeps the accounts it loaded in RAM, and sessions stay valid, but nothing more is saved.
+ * The new image reaches both slots before OK, so no copy of the accounts is left in either slot. A
+ * reset during the call can leave them in the older slot, and the next start removes them from
+ * there. If the accounts still load after a reset, repeat the call.
+ *
+ * The same limits as the full erase apply to physical erasure. It changes the credential store
+ * only.
+ *
+ * Thread context only. It waits on storage and on the store lock, holds at most one File handle,
+ * and records the event credential.erased with the subject accounts. Call it after
+ * crux_credential_start().
+ *
+ * @retval CRUX_CREDENTIAL_OK Neither slot holds the accounts, or the store was EMPTY.
+ * @retval CRUX_CREDENTIAL_ERR_STORE A write failed, for example a full File pool or a medium error.
+ * The state is UNUSABLE. Restart, then repeat the call.
+ * @retval CRUX_CREDENTIAL_ERR_ENTROPY No random data for the new image. Nothing was written. The
+ * state is UNUSABLE. Restart, then repeat the call.
+ * @retval CRUX_CREDENTIAL_ERR_READ The active slot could not be read. Nothing was written, and the
+ * state is unchanged. Use the full erase if it persists.
+ * @retval CRUX_CREDENTIAL_ERR_UNUSABLE The state is UNUSABLE, so the identity cannot be read to be
+ * kept. Nothing was done. Use the full erase.
+ * @retval CRUX_CREDENTIAL_ERR_NOT_READY Not started, or the store lock could not be taken. Nothing
+ * was done.
+ */
+crux_credential_result_t crux_credential_erase_accounts(void);
 
 #ifdef __cplusplus
 }

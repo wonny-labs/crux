@@ -248,6 +248,48 @@ bool crux_credential_payload_set(crux_credential_record_t record, const uint8_t 
     return true;
 }
 
+bool crux_credential_payload_remove(crux_credential_record_t record, uint8_t *payload,
+                                    size_t *length)
+{
+    size_t count = get_u16(payload);
+    table_entry_t entries[CRUX_CREDENTIAL_RECORD_KINDS] = {{0, 0}};
+    size_t offset = table_bytes(count);
+    size_t old_offset = 0;
+    size_t old_length = 0;
+    size_t kept = 0;
+    bool found = false;
+    for (size_t index = 0; index < count; ++index) {
+        table_entry_t entry = {entry_id(payload, index), entry_length(payload, index)};
+        if (entry.id == (uint16_t)record) {
+            found = true;
+            old_offset = offset;
+            old_length = entry.length;
+        } else {
+            entries[kept] = entry;
+            kept += 1;
+        }
+        offset += entry.length;
+    }
+    if (!found) {
+        return false;
+    }
+    /* Close the record's gap, then move the remaining records to follow the shorter table. */
+    memmove(payload + old_offset, payload + old_offset + old_length,
+            *length - old_offset - old_length);
+    size_t records_bytes = *length - table_bytes(count) - old_length;
+    memmove(payload + table_bytes(kept), payload + table_bytes(count), records_bytes);
+    put_u16(payload, (uint16_t)kept);
+    put_u16(payload + 2u, 0);
+    for (size_t index = 0; index < kept; ++index) {
+        entry_put(payload, index, entries[index]);
+    }
+    size_t new_length = table_bytes(kept) + records_bytes;
+    /* The bytes behind the new end held the removed record, so they are cleared. */
+    memset(payload + new_length, 0, *length - new_length);
+    *length = new_length;
+    return true;
+}
+
 typedef struct {
     size_t public_length;
     size_t private_length;

@@ -7,7 +7,7 @@ accepted, recorded in [the owner's decision of 3 November 2026](https://github.c
 Owner: `components/credential`. Public header `<crux/credential_store.h>` (Experimental), usage target `crux::credential_store`. It declares the store's
 state and `crux_credential_start`, and nothing that reads or writes a record (ADR-0004, phase 1a). Adapter
 header `crux_credential_adapter.h`, internal target `crux_credential_adapter`. The private ports are in
-`components/credential/src/credential_port.h`. On Zephyr, a product's composition code reaches the erase, and nothing
+`components/credential/src/credential_port.h`. On Zephyr, a product's composition code reaches the two erases, and nothing
 else of the adapter, through `<crux/credential_store_zephyr.h>` and `crux::credential_store_zephyr`
 ([composition interface](composition-interfaces.md#the-credential-store-erase)).
 
@@ -19,7 +19,7 @@ Someone who can read the card and the chip ID can read every secret. See [Limits
 | Item | State | Evidence |
 | --- | --- | --- |
 | Public and adapter contracts | Implemented as proposed, with the changes under [Decisions for review](#decisions-for-review) | C and C++ headers build, boundary check |
-| Portable core: slot format, load states, save sequence, repair, keys, erase | Implemented | Host suites below |
+| Portable core: slot format, load states, save sequence, repair, keys, erase, [account-only erase](#account-only-erase) | Implemented | Host suites below |
 | Store port of `crux_access` | Implemented, target `crux_credential_access_store` | The real Access core on the real store, on Host |
 | Slot access | Crux File, unchanged | Host on the Linux provider and on the fake. See [native\_sim](#tests) for FatFs. |
 | Fake ports | **Test only.** CRC in place of a tag, a keystream that is not encryption, deterministic randomness and key generation | Refuses to compile outside a test composition, and a product core refuses it at start |
@@ -73,7 +73,7 @@ flowchart TB
 | `crux::credential_store` | A product that starts the store, a project that displays the basis, the status service | The public header only, with the File contract that it includes. On Host it links the core, which needs providers, so an image without them does not link. In the Zephyr module (`CONFIG_CRUX_ACCESS`) it is an INTERFACE target that adds the include root and links `crux::base` and `crux::file`, and the module links the library itself. |
 | `crux_credential_adapter` | The bridge, TLS and SSH providers, a composition, always `PRIVATE` | The adapter header. `cmake/CruxCredentialBoundary.cmake` rejects any path by which it reaches a consumer. |
 | `crux_credential_access_store` | A composition | Nothing. It implements a private port of Access. |
-| `crux::credential_store_zephyr` | A product's composition code that wires a [factory reset](management-in-a-product.md#factory-reset). A native-free consumer check rejects it | `<crux/credential_store_zephyr.h>`: `crux_credential_erase()` only, which takes no session |
+| `crux::credential_store_zephyr` | A product's composition code that wires a [factory reset](management-in-a-product.md#factory-reset). A native-free consumer check rejects it | `<crux/credential_store_zephyr.h>`: `crux_credential_erase()` and `crux_credential_erase_accounts()` only, which take no session |
 | `crux_credential_test_composition` and `_small` | Only `tests/credential` | Exist only under `CRUX_BUILD_TESTS`. |
 
 ### Boot order and calls
@@ -124,8 +124,8 @@ stateDiagram-v2
     NotStarted --> VALID: start, a slot opens
     NotStarted --> UNUSABLE: start, any read error, corrupt with no valid slot, or provider cannot run
     EMPTY --> VALID: first successful save, or slot A complete under S7
-    EMPTY --> UNUSABLE: erase
-    VALID --> UNUSABLE: erase
+    EMPTY --> UNUSABLE: erase or account-only erase
+    VALID --> UNUSABLE: erase or account-only erase
     UNUSABLE --> UNUSABLE: erase, every other operation refused
     note right of UNUSABLE
         Only a reset leaves this state,
@@ -177,10 +177,26 @@ sequenceDiagram
 | Absent or undersized slot | `CREATE_REPLACE`, full size with a pending header, sync, the real header, sync | A cut leaves a slot that reads as short. The other slot's FAT chain is at risk here, a stated limit. |
 | Full-size slot, and no valid slot exists | In place, pending header first, real header last | The same reason: a retried first save must still read as `EMPTY` after a cut. See decision 7. |
 | The second slot of a first save | The same image, so a tie | No new nonce is needed for identical bytes |
-| Repair at start | The newer slot's sealed bytes, unchanged | Needs no key and no nonce, and a tie reads the same |
+| Repair at start, when the older slot lacks a record of the newer one, or holds accounts that the newer one lacks | The newer slot's sealed bytes, unchanged | Needs no key and no nonce, and a tie reads the same. The second case is what an account-only erase cut between its writes leaves. |
+| Account-only erase | Both slots, one after the other, as for an added record | `OK` must mean that no slot holds the accounts |
 | `crux_credential_key_ensure` on a key that one slot lacks | The same copy as a repair, before it returns `OK` | `OK` must mean that both slots hold the key. See decision 26. |
 
 The store does not use rename, as the proposal explains.
+
+## Account-only erase
+
+`crux_credential_erase_accounts()` removes the account record and keeps the others, for a device that stays with the same owner ([account-only reset](management-in-a-product.md#account-only-reset)).
+
+| Record | Kept | Why |
+| --- | --- | --- |
+| `ACCOUNTS` | No | It holds every account, password hash, role and SSH user key: the user data to remove |
+| `TLS_KEY` | Yes | The device identity, so that clients keep the fingerprint they trust |
+| `TLS_CERTIFICATE` | Yes, self-signed or installed | It certifies the kept key. A new owner needs the full erase instead. |
+| `SSH_HOST_KEY` | Yes | The device identity, as for TLS |
+
+These four are every kind of record the image can hold. Older versions of the kept records in the other slot are overwritten too, because both slots receive the new image.
+
+It loads the active image and refuses with `ERR_READ`, changing nothing, if it cannot. It then makes the state `UNUSABLE`, so that Access cannot save the accounts it holds in RAM, removes the record and saves the image to the slot that is not active and then to the other, each with a new generation. A cut between the two writes leaves the accounts in the older slot only, and the next start rewrites that slot from the newer one. In an `UNUSABLE` store it refuses, because the identity cannot be read to be kept, and the full erase remains. The event `credential.erased` carries the subject `accounts`, and the full erase's carries none.
 
 ## Decisions for review
 
@@ -246,6 +262,8 @@ These are the proposal's, and each has a test where a Host test can show it.
 | `CVE-2026-6685`, an unsigned range expression on the direct-write path of the pinned FatFs, which every save uses | **Assessed, not applicable.** Its CVE record was rejected by the CNA on 16 July 2026, and the expression is benign. The [dependency review](dependency-review-fatfs-r0.16.md) has the evidence and the six other FatFs identifiers of July 2026. |
 | Erase does not prove physical erasure | **Not shown.** A Host fake cannot. |
 | A reset can undo an interrupted erase. Erase zeroes slot A, then slot B, then removes both files. A reset after slot A is zeroed and before slot B is reached leaves slot B valid, and the next start reads `VALID` with slot B's records, until erase runs again. Only an erase that returned `OK` reached both slots. | `test_interrupted_erase_states` |
+| The account-only erase keeps the device's private keys, which are as readable as the rest of the store on the planned basis. A previous owner who copied the medium could impersonate the device, so a transfer of ownership uses the full erase. | By documentation: the header and the [account-only reset](management-in-a-product.md#account-only-reset) |
+| A reset between the two writes of an account-only erase leaves the accounts in the older slot. The next start removes them. If that repair fails too and the newest slot is then damaged before the next save, the accounts return. | The cut walk and `test_repair_removes_stale_accounts` show the repair. The double failure is **not shown**. |
 | No unauthenticated wipe (S4). Crux has no command and no trigger for erase: a product wires `crux_credential_erase()` to a button or to a command that needs a login ([factory reset](management-in-a-product.md#factory-reset)). Without one, recovery uses a card reader. | By absence: `crux_credential_erase` has no caller in Crux outside `tests/` |
 
 ## Tests
@@ -255,13 +273,13 @@ sources, and the boundary check. The root build also runs the suites as `Credent
 
 | Suite | Slot | Covers |
 | --- | --- | --- |
-| `credential_conformance_fake`, `credential_conformance_linux` | 16 KiB | The same cases on each File provider: before start, every pair of the load table, an unbound root, each record's read and write, limits, generation order and ties, a new record in both slots, repair, `UNUSABLE` refusing all but erase, device keys, erase and its interrupted states, the declaration, swapped slots, wrong device key, other formats and providers, malformed payloads behind a good tag, slot size changes, accepted limits |
-| `credential_concurrency` | 16 KiB | Writers, a reader and a status poller sharing the store on the Linux provider: every save succeeds, and every read finds a whole value |
-| `credential_faults` | 1 KiB | A cut before each File operation, each sector and each byte, with a first save's value longer than a sector and its corrupt cuts counted exactly, of: a first save, a first save over a pending slot, replacing in either direction, adding a record, generating and rotating a key, the repair, erase. Every bit of the header, and each sealed byte. Read errors at start, failed sync and read back with invalidation working and failing, a failed second write at each step, a key used after one, retried and then damaged in either slot, a full File pool, a full medium, an image too large for the slot, a medium that leaves, a status read during a save, a lost lock. |
+| `credential_conformance_fake`, `credential_conformance_linux` | 16 KiB | The same cases on each File provider: before start, every pair of the load table, an unbound root, each record's read and write, limits, generation order and ties, a new record in both slots, repair, `UNUSABLE` refusing all but erase, device keys, erase and its interrupted states, the account-only erase from each state and the repair of stale accounts, the declaration, swapped slots, wrong device key, other formats and providers, malformed payloads behind a good tag, slot size changes, accepted limits |
+| `credential_concurrency` | 16 KiB | Writers, a reader and a status poller sharing the store on the Linux provider: every save succeeds, and every read finds a whole value. An account-only erase among them: it takes effect between two operations, and every later write is refused. |
+| `credential_faults` | 1 KiB | A cut before each File operation, each sector and each byte, with a first save's value longer than a sector and its corrupt cuts counted exactly, of: a first save, a first save over a pending slot, replacing in either direction, adding a record, generating and rotating a key, the repair, erase. Every bit of the header, and each sealed byte. Read errors at start, failed sync and read back with invalidation working and failing, a failed second write at each step, a key used after one, retried and then damaged in either slot, a full File pool, a full medium, an image too large for the slot, a medium that leaves, a status read during a save, a lost lock. A cut at each point of an account-only erase and of the repair of stale accounts, each File operation failing during an account-only erase, and a missing nonce, each followed by damage to either slot. |
 | `credential_faults_default_slot` | 16 KiB | The same walks at the default size, by File operation and sector |
 | `credential_security` | 16 KiB | Nothing plain on the medium, nothing secret in an event, the key event following its save, forged and reused-generation slots, bad tags, a fresh nonce per seal. The fake's cipher is not encryption, so this shows the store's handling only. |
 | `credential_production_refuses` | 16 KiB | A product core linked with the test-only ports: `UNUSABLE` with no slot read or written, for either half of a test declaration, a refused claim and no provider, each in its own process, and two real declarations accepted as a control |
-| `credential_access_store` | 16 KiB | The real Access core on the real store: AC6, AC8, S6 and S7, a cut at each sector of the first account's save, and what the bridge maps each result to |
+| `credential_access_store` | 16 KiB | The real Access core on the real store: AC6, AC8, S6 and S7, a cut at each sector of the first account's save, an account-only erase that reopens first-account setup with the same keys, and what the bridge maps each result to |
 | `credential_file_service_roots` | 16 KiB | The real file service, given the store's roots as its reserved list, refuses an area on either slot and accepts another |
 | `credential_cpp_headers` | | Public and adapter headers from C++ |
 
