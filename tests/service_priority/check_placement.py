@@ -6,7 +6,8 @@ worker that calls the placement as a service worker does. It cannot start the se
 which need their whole composition, and the SSH provider needs wolfSSH. This check covers that part
 statically: which entry calls which identifier, the Kconfig defaults, the map from identifier to
 symbol, the SSH provider's two thread priorities, that no service creates a thread outside this
-list, and that every Zephyr CMake file that compiles a worker links the placement's interface. It is a lexical check of the sources as they are written, not a C parser.
+list, that each worker reports its progress with its own identifier, and that every Zephyr CMake file
+that compiles a worker links the placement's interface. It is a lexical check of the sources as they are written, not a C parser.
 """
 import argparse
 import re
@@ -104,6 +105,14 @@ def worker_errors(root, kconfig, placement):
             errors.append(f"{source}: {entries[0]} must begin with {wanted}, not {statement}")
         if not re.search(r"#ifdef\s+CRUX_SERVICE_PRIORITY_PLACEMENT\s*\n\s*" + re.escape(wanted), body):
             errors.append(f"{source}: the placement must be under #ifdef CRUX_SERVICE_PRIORITY_PLACEMENT")
+        report = f"crux_service_progress_report({identifier});"
+        guarded = re.findall(r"#ifdef\s+CRUX_SERVICE_PRIORITY_PLACEMENT\b(.*?)#endif", text, re.S)
+        if not any(report in block for block in guarded):
+            errors.append(f"{source}: the worker must call {report} under #ifdef CRUX_SERVICE_PRIORITY_PLACEMENT, "
+                          "once per pass of its loop")
+        for other in re.findall(r"\bcrux_service_progress_report\((\w+)\)", text):
+            if other != identifier:
+                errors.append(f"{source}: reports progress as {other}, not {identifier}")
         default = kconfig_default(kconfig, symbol)
         if default != WORKER_DEFAULT:
             errors.append(f"zephyr/Kconfig: {symbol} must default to {WORKER_DEFAULT}, today's priority, "

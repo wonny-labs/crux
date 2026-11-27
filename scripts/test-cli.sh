@@ -27,7 +27,8 @@ fi
 
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(crux_cli_core crux_cli_console cli_parser cli_registry cli_rejection cli_permissions cli_login
-    cli_login_real cli_ssh_shape cli_fuzz cli_console cli_console_pty cli_cpp_headers)
+    cli_login_real cli_ssh_shape cli_fuzz cli_console cli_console_log cli_console_shared cli_console_pty
+    cli_cpp_headers)
 
 for preset in host-debug host-sanitize; do
     cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON

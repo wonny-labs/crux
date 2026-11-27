@@ -1,0 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The console and Logging on LPUART1, the board's debug UART and its zephyr,console. No separate log UART is
+ * chosen: Logging writes to crux-serial0. The RAM disk is the File provider's medium (prj.conf). */
+/ {
+    aliases { crux-serial0 = &lpuart1; };
+
+    console_ram_disk: ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "RAM";
+        sector-size = <512>;
+        sector-count = <1024>;
+    };
+};
+&lpuart1 { status = "okay"; current-speed = <115200>; parity = "none"; };

@@ -16,6 +16,8 @@
 #           test:    the first-account form on, with a password file made here outside the repository: the embedded
 #                    password is in the binary and in no text file of the build. And two refusals at configuration:
 #                    the form with no password file, and with a file inside the repository.
+#           Then the console that shares its UART with Logging, which is no part of this image:
+#           tests/zephyr/cli_console_shared_compile/run.sh cross-builds it for the same board.
 # all:    static, then build.
 set -euo pipefail
 
@@ -140,6 +142,9 @@ run_build() {
     mkdir -p "$(dirname "$inside")"
     cp "$password_file" "$inside"
     refuse 'a password file inside the repository' 'inside the repository' "CRUX_MBED_MGMT_PASSWORD_FILE=$inside"
+
+    CRUX_WORKSPACE="$workspace" CRUX_CONSOLE_SHARED_OUTPUT="$out/console-shared" CRUX_CONSOLE_SHARED_JOBS="$jobs" \
+        "$repo/tests/zephyr/cli_console_shared_compile/run.sh"
 }
 
 case "$mode" in static | all) run_static ;; esac

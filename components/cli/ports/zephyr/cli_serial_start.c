@@ -2,7 +2,11 @@
  * crux_cli_console_run() on port 0, which the devicetree alias crux-serial0 binds. The context, the
  * settings and the thread handle are static, so a product holds none of them and includes neither
  * <crux/serial.h> nor <crux/thread.h>. The thread is a placed service worker (ADR-0002 P3): its
- * entry calls the placement first, so that it runs at CONFIG_CRUX_CLI_CONSOLE_PRIORITY. */
+ * entry calls the placement first, so that it runs at CONFIG_CRUX_CLI_CONSOLE_PRIORITY, and each
+ * pass of its loop reports progress. Under CONFIG_CRUX_CLI_CONSOLE_UART_SHARED the console also
+ * prints the log text of the Logging backend in
+ * components/logging/ports/zephyr/logging_console_backend.c, which shares its UART.
+ */
 #include "cli_console.h"
 #include "cli_internal.h"
 
@@ -12,6 +16,14 @@
 #ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
 #include "service_priority.h"
 #endif
+#ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
+#include "logging_console.h"
+
+/* The rate check of the shared UART is in this directory's CMakeLists.txt, because this source
+ * includes no Zephyr header. */
+_Static_assert(CRUX_LOGGING_CONSOLE_TEXT_MAX == CRUX_CLI_CONSOLE_LOG_TEXT_MAX,
+               "a log entry must fit the console's buffer");
+#endif
 
 /* The one logical port that the Zephyr Serial binding supports: crux-serial0. */
 #define CRUX_CLI_CONSOLE_PORT 0u
@@ -20,6 +32,20 @@ static crux_cli_context_t console_context;
 static crux_cli_console_config_t console_config;
 static crux_thread_t console_thread;
 static bool console_started;
+#ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
+/* The queue of the Logging backend that shares the UART. The console attaches it before each open,
+ * so log text stops going straight to the UART, prints it between reads, and detaches it while no
+ * port is open. */
+static crux_cli_console_log_t console_log;
+#endif
+
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+/* The console's progress, once per pass of its loop (<crux/service_priority_zephyr.h>). */
+static void console_progress(void)
+{
+    crux_service_progress_report(CRUX_SERVICE_THREAD_CLI_CONSOLE);
+}
+#endif
 
 static void console_main(void *argument)
 {
@@ -52,6 +78,16 @@ crux_cli_result_t crux_cli_serial_start(const crux_cli_serial_config_t *config)
     console_config.serial.stop_bits = 1u;
     console_config.serial.parity = CRUX_SERIAL_PARITY_NONE;
     console_config.setup_role = config->setup_role;
+#ifdef CONFIG_CRUX_CLI_CONSOLE_UART_SHARED
+    console_log.next = crux_logging_console.next;
+    console_log.attach = crux_logging_console.attach;
+    console_log.detach = crux_logging_console.detach;
+    console_log.source = NULL;
+    console_config.log = &console_log;
+#endif
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+    console_config.progress = console_progress;
+#endif
     if (crux_thread_create(&options, console_main, NULL, &console_thread) != CRUX_OK) {
         return CRUX_CLI_ERR_FAILED;
     }

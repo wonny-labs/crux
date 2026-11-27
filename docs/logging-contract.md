@@ -52,5 +52,9 @@ EVKB composition chooses LPUART1.
 An image whose log UART is also the Console compiles UART_CONSOLE as the
 pinned backend's prerequisite but disables direct Console stdout, input and
 subsystem helpers, early Console and Shell; printk routes through native Logging.
-Build checks reject other Console-sharing configurations. See validation evidence
+Build checks reject other Console-sharing configurations. A second shape: with
+`CRUX_CLI_CONSOLE_UART_SHARED` the serial console's own backend replaces the UART backend
+(`LOG_BACKEND_UART=n`) on the UART of `crux-serial0`, with the same drop-new rule and the
+console's line redraw; see [the command line contract](cli-contract.md#console-and-logging-on-one-uart).
+See validation evidence
 before adopting a board composition. No physical verification is implied.

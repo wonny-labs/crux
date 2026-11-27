@@ -47,6 +47,31 @@ if(CONFIG_CRUX_CLI_CONSOLE)
     target_link_libraries(crux_cli_zephyr PRIVATE crux::security_event crux_service_priority_placement)
     zephyr_append_cmake_library(crux_cli_zephyr)
 endif()
+# The console and Logging on one UART (Experimental). Logging builds the backend and its queue
+# (components/logging/ports/zephyr/logging_console_backend.c); the start reads its private header. A Kconfig
+# dependency would only warn and build the dedicated mode, so a missing Logging is refused here.
+if(CONFIG_CRUX_CLI_CONSOLE_UART_SHARED)
+    if(NOT CONFIG_CRUX_LOGGING)
+        message(FATAL_ERROR "CONFIG_CRUX_CLI_CONSOLE_UART_SHARED needs CONFIG_CRUX_LOGGING: the console "
+                            "shares its UART with Crux Logging")
+    endif()
+    target_include_directories(crux_cli_zephyr PRIVATE "${CRUX_CLI_COMPONENT_DIR}/../logging/ports/zephyr")
+    # Log text before the console opens the port, and while it is closed, goes at the devicetree's rate, and the
+    # console's at CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE, so the two must be one rate. Logging refuses a missing
+    # crux-serial0 alias itself.
+    dt_alias(crux_cli_console_uart PROPERTY crux-serial0)
+    if(crux_cli_console_uart)
+        dt_prop(crux_cli_console_speed PATH "${crux_cli_console_uart}" PROPERTY current-speed)
+        if(NOT "${crux_cli_console_speed}" STREQUAL "${CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE}")
+            # CMake wraps a long message, so its first line names the two values.
+            message(FATAL_ERROR "CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE (${CONFIG_CRUX_CLI_CONSOLE_BAUD_RATE}) differs "
+                                "from current-speed (${crux_cli_console_speed}) of the crux-serial0 UART in the "
+                                "devicetree. CONFIG_CRUX_CLI_CONSOLE_UART_SHARED needs them equal (both 115200 by "
+                                "default), because log text goes at the devicetree's rate while the console has no "
+                                "port open.")
+        endif()
+    endif()
+endif()
 
 add_library(crux_cli INTERFACE)
 add_library(crux::cli ALIAS crux_cli)

@@ -48,7 +48,7 @@ CRUX_MBED_MGMT_PASSWORD_FILE=~/crux-mbed-password west build -p always -b 'mimxr
     samples/boards/nxp/mimxrt1060_evk/web_management -- -DCONFIG_CRUX_MBED_MGMT_TEST_FIRST_ACCOUNT=y
 ```
 
-`scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`.
+`scripts/test-management-mbed-rt1060.sh` builds both, checks the configuration and the linked image, and checks the refusals ([what is verified](#what-is-verified-and-what-is-not)). The static checks run alone with `scripts/test-management-mbed-rt1060.sh static`. `build` also cross-builds the [console that shares its UART with Logging](cli-contract.md#console-and-logging-on-one-uart), which is not part of this image.
 
 Kconfig settings of the image: `CRUX_MBED_MGMT_IPV4_ADDRESS` (default `192.168.77.2`), `CRUX_MBED_MGMT_IPV4_NETMASK` (default `255.255.255.0`) and the test form. The address is the only one the interface has: the image has no DHCP and no IPv6, and it stops at boot if the interface holds another IPv4 address.
 

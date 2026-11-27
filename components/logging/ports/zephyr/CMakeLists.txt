@@ -5,8 +5,20 @@ if(NOT CRUX_LOGGING_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux Logging unsupported provider: ${CRUX_LOGGING_PROVIDER}")
 endif()
 
-foreach(required LOG LOG_MODE_DEFERRED LOG_PROCESS_THREAD LOG_BACKEND_UART
-                 LOG_BACKEND_UART_AUTOSTART LOG_BACKEND_UART_OUTPUT_TEXT LOG_BACKEND_SHOW_LEVEL)
+# Two backend shapes. By default the native UART backend owns a UART of its own. With
+# CONFIG_CRUX_LOGGING_CONSOLE_BACKEND, which CONFIG_CRUX_CLI_CONSOLE_UART_SHARED selects, the console's backend
+# (logging_console_backend.c) replaces it, on the console's UART, and the native UART backend must be off.
+if(CONFIG_CRUX_LOGGING_CONSOLE_BACKEND)
+    if(CONFIG_LOG_BACKEND_UART)
+        message(FATAL_ERROR "Crux Logging shared with the console requires CONFIG_LOG_BACKEND_UART=n: "
+                            "the console's backend replaces it")
+    endif()
+    set(crux_logging_backend_required)
+else()
+    set(crux_logging_backend_required LOG_BACKEND_UART LOG_BACKEND_UART_AUTOSTART LOG_BACKEND_UART_OUTPUT_TEXT)
+endif()
+foreach(required LOG LOG_MODE_DEFERRED LOG_PROCESS_THREAD ${crux_logging_backend_required}
+                 LOG_BACKEND_SHOW_LEVEL)
     if(NOT CONFIG_${required})
         message(FATAL_ERROR "Crux Logging requires CONFIG_${required}=y")
     endif()
@@ -36,6 +48,9 @@ add_library(crux_logging_zephyr STATIC ../../src/logging.c logging_zephyr.c logg
 target_include_directories(crux_logging_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_logging_zephyr PRIVATE crux_logging_api zephyr_interface)
 zephyr_append_cmake_library(crux_logging_zephyr)
+if(CONFIG_CRUX_LOGGING_CONSOLE_BACKEND)
+    target_sources(crux_logging_zephyr PRIVATE logging_console_backend.c ../../src/logging_console_queue.c)
+endif()
 target_compile_options(crux_logging_zephyr PRIVATE -Wall -Wextra -Werror)
 
 set_property(TARGET crux_logging_zephyr PROPERTY INTERFACE_CRUX_LOGGING_PROVIDER zephyr)

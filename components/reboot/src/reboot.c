@@ -345,6 +345,10 @@ static wait_result_t wait_for_work(void)
             return WAIT_NO_TIMER;
         }
         waited += CRUX_REBOOT_POLL_MS;
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* The settle wait is long, so each of its steps counts as a pass. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_REBOOT_WORKER);
+#endif
     }
 }
 
@@ -424,6 +428,10 @@ static void worker_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);
 #endif
     for (;;) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_REBOOT_WORKER_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_REBOOT_WORKER);
+#endif
         (void)crux_semaphore_take(work_signal, CRUX_REBOOT_WORKER_WAIT_MS);
         while (crux_reboot_work_once()) {
         }
