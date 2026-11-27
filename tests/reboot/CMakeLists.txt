@@ -15,7 +15,7 @@ target_include_directories(reboot_test_fixture PUBLIC .)
 target_link_libraries(reboot_test_fixture PUBLIC reboot_test_logic)
 target_compile_options(reboot_test_fixture PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-foreach(suite IN ITEMS service steps concurrency reason lock_faults start_faults)
+foreach(suite IN ITEMS service steps concurrency reason lock_faults start_faults product_thread)
     add_executable(reboot_${suite} ${suite}.c $<TARGET_OBJECTS:reboot_test_fixture>)
     target_link_libraries(reboot_${suite} PRIVATE reboot_test_fixture)
     target_compile_options(reboot_${suite} PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

@@ -16,9 +16,12 @@
  * per pass of its loop. A pass waits at most about a second for work, so an idle thread reports at
  * least that often. A pass that does work reports when the work ends: the work's own bounds apply,
  * such as a password derivation, a save to storage or the reboot service's settle wait, which
- * reports at each of its steps. A thread that is not started never reports. The HTTP server thread
- * and the SSH threads are not Crux service threads, so they do not report here. A report shows that
- * the thread passed through its loop; it does not show that the service did what it should.
+ * reports at each of its steps. A thread that is not started never reports, with one exception:
+ * crux_reboot_work_once() reports each step of its settle wait as
+ * CRUX_SERVICE_THREAD_REBOOT_WORKER on whatever thread calls it, also when the reboot worker was
+ * not started. The HTTP server thread and the SSH threads are not Crux service threads, so they do
+ * not report here. A report shows that the thread passed through its loop; it does not show that
+ * the service did what it should.
  *
  * The intended use is one task watchdog channel per started thread, fed from the function. See
  * docs/composition-interfaces.md and the supervision recipe it links.
@@ -42,7 +45,7 @@ typedef enum {
 } crux_service_thread_t;
 
 /**
- * A progress report. Called on the reporting service thread, possibly on several threads at once.
+ * A progress report. Called on the reporting thread, possibly on several threads at once.
  * It must return quickly: no wait, no lock that a Crux service may hold, and no call into a Crux
  * service. Feeding a task watchdog channel is the intended work.
  * @param thread The thread that passed through its loop.

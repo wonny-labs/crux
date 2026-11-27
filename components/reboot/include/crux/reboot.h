@@ -177,7 +177,9 @@ CRUX_REBOOT_NODISCARD crux_reboot_result_t crux_reboot_start(const crux_reboot_c
 
 /**
  * Start the one worker thread that carries out requests, at low priority. A composition with no
- * thread calls crux_reboot_work_once() itself.
+ * thread, or one that must know which policy call comes just before the reset, does not call this
+ * and calls crux_reboot_work_once() itself: see "A final check before the reset" in
+ * docs/reboot-service.md.
  *
  * @retval CRUX_REBOOT_OK Started, or already running.
  * @retval CRUX_REBOOT_ERR_NOT_READY Not started, or the thread could not be created.
