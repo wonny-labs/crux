@@ -91,7 +91,7 @@ command and CI runs the variant.
 - The include-directory check looks at directories under the repository's `components/` only, in the compile commands
   of the consumer's own sources.
 - T5 (the symbol off) is a build and a `.config` and image check. The run-time expectation of an absent provider
-  rests on the existing tests (`tests/m5_integrated/zephyr/main.c`), not on a run here.
+  rests on the existing tests (`tests/integrated_smoke/zephyr/main.c`), not on a run here.
 - The run is read with a deadline (90 s by default): an image that goes silent fails with a `check_build: FAIL` line
   and does not block the runner.
 

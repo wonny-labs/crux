@@ -14,7 +14,7 @@ A real clone, made inside Linux or WSL2, is the recommended form. It keeps the e
 
 ~~~sh
 mkdir -p ~/crux-workspace
-git clone <repository-url> ~/crux-workspace/crux-pilot
+git clone <repository-url> ~/crux-workspace/crux
 ~~~
 
 An archive is a fallback with these caveats. If you received one, make it a Git repository from its root:
@@ -40,9 +40,9 @@ Three things are involved, and each has one owner:
 | The Dev Container | Nothing in the parent folder. It mounts the parent folder (`workspaceMount` is `${localWorkspaceFolder}/..` in [`devcontainer.json`](../.devcontainer/devcontainer.json)) at `/workspace` and opens the repository inside it |
 | `scripts/bootstrap.sh`, which the Dev Container runs (through `scripts/bootstrap-zephyr.sh`) | `.west/`, `zephyr/` and `modules/` in the parent folder. It runs `west init -l` there and then `west update`. `bootloader/` appears only when the optional west group `crux-boot` is enabled (for example by `scripts/test-boot-composition.sh`), because `west.yml` filters that group out by default |
 
-The script stops with `Expected repo at <workspace>/crux-pilot` unless the repository folder is named exactly `crux-pilot`. So:
+The script stops with `Expected repo at <workspace>/crux` unless the repository folder is named exactly `crux`. So:
 
-- Name the clone folder `crux-pilot`. A folder such as `crux-pilot-main` or `crux` does not work.
+- Name the clone folder `crux`. A folder such as `crux-main` does not work. An existing clone in a folder named `crux-pilot` still works for now.
 - Make the parent folder an empty folder that is used only for Crux.
 - Do not clone directly into your home directory. Its parent would be your whole home directory, which would be mounted into the container and filled with west checkouts.
 
@@ -50,14 +50,14 @@ One layout, on the host and in the container:
 
 ~~~text
 ~/crux-workspace/          # on the host: you create it; becomes the west workspace
-  crux-pilot/              # you clone the repository here
+  crux/                    # you clone the repository here
   .west/  zephyr/  modules/    # created by the bootstrap (bootloader/ only with the crux-boot group)
 
 /workspace/                # the same folder inside the Dev Container
-  crux-pilot/  zephyr/  modules/    # never /workspace/crux-pilot/crux-pilot
+  crux/  zephyr/  modules/    # never /workspace/crux/crux
 ~~~
 
-Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reopen in Container**. There is one Dev Container, for work with and without a board ([section 6](#6-the-dev-container-sets-itself-up)). The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
+Open `~/crux-workspace/crux` in VS Code and choose **Dev Containers: Reopen in Container**. There is one Dev Container, for work with and without a board ([section 6](#6-the-dev-container-sets-itself-up)). The container's pinned Ubuntu 24.04 amd64 environment, its tools and the arm64 caveat are described in the [Build and Integration Guide](build.md#development-environment).
 
 ## 3. Windows with WSL2
 
@@ -66,7 +66,7 @@ Open `~/crux-workspace/crux-pilot` in VS Code and choose **Dev Containers: Reope
 - Clone inside the WSL2 file system, for example under `~/crux-workspace`. Do not clone under `/mnt/c`. A bind mount from the Windows drive is slow for Zephyr builds, and file modes and line endings are not reliable there.
 - Set `git config --global core.autocrlf false` in WSL2 before cloning. `.gitattributes` keeps LF line endings for shell scripts and the other files that run in Linux.
 - In VS Code on Windows, turn off **Dev › Containers: Mount Wayland Socket** in your user settings (it cannot be set in the repository). The container needs no display, and with the setting on it can fail to start with `bind source path does not exist: /run/user/1000/wayland-0`; after turning it off, run **Dev Containers: Rebuild Container** once.
-- Start VS Code from WSL2 (`code ~/crux-workspace/crux-pilot`) with the Dev Containers extension, then reopen in the container.
+- Start VS Code from WSL2 (`code ~/crux-workspace/crux`) with the Dev Containers extension, then reopen in the container.
 - Give the WSL2 virtual machine more than the container limit (see section 5). Memory and processors for WSL2 are set in `%UserProfile%\.wslconfig`.
 
 ## 4. Network and proxy prerequisites
@@ -116,7 +116,7 @@ After the container is created, it runs `scripts/bootstrap.sh` by itself (`postC
 
 A step that finished is skipped the next time, so reopening or rebuilding the container is quick; a step whose inputs change (the tool pins, `west.yml`, a deleted build folder, a deleted cache volume) runs again. Each step writes its output to `/opt/crux-cache/bootstrap/<step>.log`.
 
-If a download fails, the container still opens. The terminal shows which step failed, its log, and the command that runs it again. Each time VS Code attaches, `scripts/bootstrap.sh status` prints the state of every step. From `/workspace/crux-pilot`:
+If a download fails, the container still opens. The terminal shows which step failed, its log, and the command that runs it again. Each time VS Code attaches, `scripts/bootstrap.sh status` prints the state of every step. From `/workspace/crux`:
 
 ~~~sh
 scripts/bootstrap.sh status      # ok, running, needs rerun, FAILED or not run, with the command to rerun it

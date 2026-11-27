@@ -36,17 +36,17 @@ Use a local run for the narrow checks of the code you changed.
 This guide gives no time estimate.
 For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
 
-Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
+Open `crux/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
 ~~~text
 /workspace/
-  crux-pilot/    # This Git repository
+  crux/          # This Git repository
   .west/         # Created by west init
   zephyr/        # Pinned upstream checkout
   modules/       # Selected Zephyr dependencies
 ~~~
 
-Run the commands below from `/workspace/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspace` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
+Run the commands below from `/workspace/crux` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspace` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
 
@@ -274,7 +274,7 @@ target_link_libraries(my_controller PRIVATE
 From the **external application's directory**, configure and build with an absolute Crux source path:
 
 ~~~sh
-cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot
+cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux
 cmake --build build
 ./build/my_controller
 ~~~

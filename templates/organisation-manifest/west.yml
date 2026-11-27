@@ -22,7 +22,7 @@ manifest:
     # One Crux revision for every product of the organisation. No Crux tag
     # exists yet, so this follows main. Pin a tag or SHA here before any
     # product release, and move it for all products together.
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: main
       import: true

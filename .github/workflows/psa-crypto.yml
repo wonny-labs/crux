@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: crux-pilot
+          path: crux
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -68,7 +68,7 @@ jobs:
 
       - name: Plan the checks of this tier
         id: plan
-        working-directory: crux-pilot
+        working-directory: crux
         run: |
           scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --plan
           echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}" --count)" >> "$GITHUB_OUTPUT"
@@ -96,14 +96,14 @@ jobs:
         env:
           CRUX_GITHUB_TOKEN: ${{ github.token }}
         run: |
-          west init -l crux-pilot
+          west init -l crux
           west config manifest.project-filter -- +mbedtls,+tf-psa-crypto
-          cd crux-pilot
+          cd crux
           scripts/bootstrap-zephyr.sh --install-sdk
 
       - name: Run the checks of this tier
         if: steps.plan.outputs.checks != '0'
-        working-directory: crux-pilot
+        working-directory: crux
         run: scripts/ci/run-tier.sh "$TIER" --job "${{ matrix.job }}"
 
       - name: Upload logs and reports
@@ -112,17 +112,17 @@ jobs:
         with:
           name: ${{ matrix.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            crux-pilot/build/ci/
-            crux-pilot/build/psa-crypto/*.txt
-            crux-pilot/build/psa-crypto/*.log
-            crux-pilot/build/psa-crypto/twister/twister.json
-            crux-pilot/build/tls-offload-probe/*/*.json
-            crux-pilot/build/tls-offload-probe/*/*.txt
-            crux-pilot/build/native-composition/*/*.log
-            crux-pilot/build/native-composition/*/*.txt
-            crux-pilot/build/native-composition/*/*.json
-            crux-pilot/build/web/https-*-results*
-            crux-pilot/build/web-session/*.json
-            crux-pilot/build/web-session/*.log
+            crux/build/ci/
+            crux/build/psa-crypto/*.txt
+            crux/build/psa-crypto/*.log
+            crux/build/psa-crypto/twister/twister.json
+            crux/build/tls-offload-probe/*/*.json
+            crux/build/tls-offload-probe/*/*.txt
+            crux/build/native-composition/*/*.log
+            crux/build/native-composition/*/*.txt
+            crux/build/native-composition/*/*.json
+            crux/build/web/https-*-results*
+            crux/build/web-session/*.json
+            crux/build/web-session/*.log
           if-no-files-found: warn
           retention-days: 14

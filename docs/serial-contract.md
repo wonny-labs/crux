@@ -2,10 +2,10 @@
 
 **Freeze notice (13 November 2026).** Serial is frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision under P9 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md). The product template's [domain include check](../templates/product/README.md#zones-and-the-domain-include-check) rejects the header in a product's domain.
 
-The [approved design](superpowers/specs/2026-10-24-serial-design.md), approved on
+The [approved design](design/serial-design.md), approved on
 24 October 2026, defines the four functions in `<crux/serial.h>` and remains the
-normative detailed contract. The [implementation plan](superpowers/plans/2026-10-24-serial.md)
-and [validation record](serial-validation.md) identify its implementation/evidence.
+normative detailed contract. The [validation record](serial-validation.md) identifies its
+implementation/evidence.
 
 `crux::serial` exposes only Crux Base, C17-compatible values and caller buffers.
 Component-owned common code validates configuration, generations and admission;
@@ -33,7 +33,7 @@ Shell, UART Logging, management and Bluetooth owners at build time. Only native_
 UART emulators and, on any board, enabled nodes of a reviewed UART driver selected by
 compatible (`nxp,lpuart`) are admitted; no board, SoC or revision is checked, and a board
 accepted this way is not qualified. UART sharing is
-unsupported and is not required for M5. `CRUX_SERIAL_PROVIDER` defaults to `host`
+unsupported and is not required for network qualification. `CRUX_SERIAL_PROVIDER` defaults to `host`
 or `zephyr` in the respective native composition; other or empty selections fail
 configuration. Host dynamic TTY binding remains a runtime bootstrap responsibility.
 Direct unregistered native clients violate this composition rule.

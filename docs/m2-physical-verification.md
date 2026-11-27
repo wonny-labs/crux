@@ -78,12 +78,12 @@ separately from the firmware revision, after independent review of this correcti
 
 The separately authorised execution used firmware from clean
 `b6db69673094213fb4df609191dce9aead895d4d`, built by completed
-[Zephyr CI 39078171686](https://github.com/wonny-labs/crux-pilot/actions/runs/39078171686)
-(artefact `12118111089`). Corresponding [Host CI 39078171692](https://github.com/wonny-labs/crux-pilot/actions/runs/39078171692)
+[Zephyr CI 39078171686](https://github.com/wonny-labs/crux/actions/runs/39078171686)
+(artefact `12118111089`). Corresponding [Host CI 39078171692](https://github.com/wonny-labs/crux/actions/runs/39078171692)
 passed Debug/sanitizer 34/34 each, 16 safeguards and configured quality checks. The
 capture correction was committed cleanly at `afb51605be9dc46a81ef64326d33e71b8573da07`;
 its twelve focused controls passed before retry. Subsequently, corrected-runner
-[Host CI 39078980991](https://github.com/wonny-labs/crux-pilot/actions/runs/39078980991)
+[Host CI 39078980991](https://github.com/wonny-labs/crux/actions/runs/39078980991)
 passed Debug/sanitizer 34/34 each, all 18 safeguards and configured quality checks.
 Capture source and firmware source are
 distinct identities: no firmware C, execution configuration or BIN changed for the retry.

@@ -19,7 +19,7 @@ Sets and reads the Crux clock (UTC) from shell commands: a Zephyr shell with the
 
 ## Building and running on `native_sim`
 
-From the repository root (`/workspace/crux-pilot` in the Dev Container):
+From the repository root (`/workspace/crux` in the Dev Container):
 
 ```sh
 west build -p always -b native_sim/native/64 -d build/time samples/time/shell/zephyr -t run

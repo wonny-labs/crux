@@ -74,7 +74,9 @@ class BoardContainerConfigTest(unittest.TestCase):
 
     def test_keeps_the_workspace_cache_and_limits(self):
         self.assertEqual(self.config["workspaceMount"], "source=${localWorkspaceFolder}/..,target=/workspace,type=bind")
-        self.assertEqual(self.config["workspaceFolder"], "/workspace/crux-pilot")
+        # The checkout folder's own name, so a clone named crux or crux-pilot opens the same way.
+        self.assertEqual(self.config["workspaceFolder"], "/workspace/${localWorkspaceFolderBasename}")
+        self.assertEqual(self.config["containerEnv"]["CRUX_REPO"], "/workspace/${localWorkspaceFolderBasename}")
         self.assertEqual(self.config["mounts"], [
             "source=crux-host-cache,target=/opt/crux-cache,type=volume",
             "source=crux-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",

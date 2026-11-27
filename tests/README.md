@@ -36,7 +36,7 @@ The Zephyr scripts take the board from `CRUX_BOARD_TARGET`, a `west build -b` bo
 
 | Scripts | Board |
 | --- | --- |
-| `test-time-periodic.sh`, `test-time-busy-wait.sh`, `test-execution.sh`, `test-portable-execution.sh`, `test-m5-integrated-smoke.sh`, `test-serial.sh`, `test-logging.sh`, `test-system.sh`; `test-zephyr-time.sh`, which also takes it as its argument | `CRUX_BOARD_TARGET`, default `mimxrt1060_evk@B//qspi`. The application decides whether it supports the board: one without an overlay for it fails at configuration. These scripts list the NXP HAL modules, so a board of another vendor also needs its HAL module added |
+| `test-time-periodic.sh`, `test-time-busy-wait.sh`, `test-execution.sh`, `test-portable-execution.sh`, `test-integrated-smoke.sh`, `test-serial.sh`, `test-logging.sh`, `test-system.sh`; `test-zephyr-time.sh`, which also takes it as its argument | `CRUX_BOARD_TARGET`, default `mimxrt1060_evk@B//qspi`. The application decides whether it supports the board: one without an overlay for it fails at configuration. These scripts list the NXP HAL modules, so a board of another vendor also needs its HAL module added |
 | `check-zephyr-smoke.sh` | `CRUX_BOARD_TARGET`; without it the board build is skipped |
 | `build-target.sh`, `build-debug-target.sh`, `test-product-template.sh` | Their argument (CI passes `CRUX_BOARD_TARGET`) |
 | `test-integration-probe-rt1170.sh` | RT1170-EVK Rev A CM7 only |

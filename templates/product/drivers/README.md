@@ -1,6 +1,6 @@
 # Drivers, boards and tests (the driver kit)
 
-The product repository is also a Zephyr module, so that a product can hold its own board, its own drivers and their tests next to the application. [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md) (`docs/writing-a-product-driver.md` in `crux-pilot`) is the guide: when not to write a driver, the layout, the binding, the driver, the emulator, the tests and a checklist. The kit is plain Zephyr. It adds no Crux interface, and nothing in it uses the `crux_` prefix.
+The product repository is also a Zephyr module, so that a product can hold its own board, its own drivers and their tests next to the application. [Writing a product driver](https://github.com/wonny-labs/crux/blob/main/docs/writing-a-product-driver.md) (`docs/writing-a-product-driver.md` in `crux`) is the guide: when not to write a driver, the layout, the binding, the driver, the emulator, the tests and a checklist. The kit is plain Zephyr. It adds no Crux interface, and nothing in it uses the `crux_` prefix.
 
 Paths below are relative to the root of the product repository.
 

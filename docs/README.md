@@ -90,7 +90,7 @@ Known gap: the repository has no security policy file (`SECURITY.md`) and no rec
 
 Platform-wide decisions are recorded as ADRs in [`decisions/`](decisions/README.md), with the [research notes](research/platform-direction-review.md) behind them.
 
-Four approved designs live under `superpowers/specs/`; other pages link them by path. They are current contracts: [Time redesign](superpowers/specs/2026-10-25-time-redesign.md), [Logging design](superpowers/specs/2026-10-24-logging-design.md), [Serial design](superpowers/specs/2026-10-24-serial-design.md) and [System health design](superpowers/specs/2026-10-24-system-health-design.md).
+Four approved designs live under `design/`. They are current contracts: [Time design](design/time-design.md), [Logging design](design/logging-design.md), [Serial design](design/serial-design.md) and [System health design](design/system-health-design.md).
 
 ## Studies, feasibility reports and history
 
@@ -103,7 +103,7 @@ Four approved designs live under `superpowers/specs/`; other pages link them by 
 
 ## Who to ask
 
-Open an [issue](https://github.com/wonny-labs/crux-pilot/issues) for a missing composition interface, a documentation gap or a question about a decision. The repository records no other contact channel.
+Open an [issue](https://github.com/wonny-labs/crux/issues) for a missing composition interface, a documentation gap or a question about a decision. The repository records no other contact channel.
 
 ## Status and limits
 

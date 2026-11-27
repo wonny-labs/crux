@@ -5,7 +5,7 @@
 #
 #   scripts/ci/jenkins/run-job.sh JOB      (the tier comes from $TIER, default auto)
 #
-# The repository must be checked out as <workspace>/crux-pilot. See docs/ci.md#jenkins.
+# The repository must be checked out as <workspace>/crux. See docs/ci.md#jenkins.
 set -euo pipefail
 job=${1:-}
 if [[ -z "$job" || $# -ne 1 ]]; then

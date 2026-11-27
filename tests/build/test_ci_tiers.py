@@ -127,8 +127,8 @@ scripts/test-file-emmc-compile.sh
             ("zephyr-smoke", "scripts/check-zephyr-smoke.sh"),
             ("execution-candidates", "scripts/test-execution.sh"),
             ("early-controller", "scripts/test-controller.sh"),
-            ("rt1170-cross-build", "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-m3-rt1170.sh"),
-            ("m5-integrated-smoke", "./scripts/test-m5-integrated-smoke.sh"),
+            ("rt1170-cross-build", "CRUX_BOARD_TARGET=mimxrt1170_evk@A/mimxrt1176/cm7 scripts/test-controller-probe-rt1170.sh"),
+            ("integrated-smoke", "./scripts/test-integrated-smoke.sh"),
             ("product-template", 'scripts/test-product-template.sh "$CRUX_BOARD_TARGET"'),
             ("networking", """\
 scripts/bootstrap-networking-tests.sh

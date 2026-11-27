@@ -1,11 +1,11 @@
 # PSA Crypto for `crux_access` and the credential store
 
-Status: design for review under [Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). The qualification
+Status: design for review under [Issue #142](https://github.com/wonny-labs/crux/issues/142). The qualification
 results, provider declarations and decisions are in [the qualification record](psa-crypto-qualification.md). The declared API
 subset is in [the native-free consumer policy](native-interface-policy.md#qualified-psa-crypto-subset).
 
 Issue #142 qualified the provider and added no PSA code to a Crux component. This document says how the components reach
-a provider. [#242](https://github.com/wonny-labs/crux-pilot/issues/242) supplied the provider code, and [the composition](native-management-composition.md) holds its results and what stays open.
+a provider. [#242](https://github.com/wonny-labs/crux/issues/242) supplied the provider code, and [the composition](native-management-composition.md) holds its results and what stays open.
 
 ## What is built, faked and untested
 
@@ -115,7 +115,7 @@ Each row uses only the [qualified subset](native-interface-policy.md#qualified-p
 
 ## What the next issue must supply
 
-[#242](https://github.com/wonny-labs/crux-pilot/issues/242) listed the ports and the event providers, and these are the parts that came from what #142 found. [The composition](native-management-composition.md#what-142-asked-of-this-issue) says where each one went.
+[#242](https://github.com/wonny-labs/crux/issues/242) listed the ports and the event providers, and these are the parts that came from what #142 found. [The composition](native-management-composition.md#what-142-asked-of-this-issue) says where each one went.
 
 | # | Piece | Detail |
 | --- | --- | --- |

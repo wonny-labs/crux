@@ -1,7 +1,7 @@
 # System Health and Reset — software validation
 
-Issue [#30](https://github.com/wonny-labs/crux-pilot/issues/30), approved contract
-[`72e5295`](superpowers/specs/2026-10-24-system-health-design.md). This is
+Issue [#30](https://github.com/wonny-labs/crux/issues/30), approved contract
+[`72e5295`](design/system-health-design.md). This is
 software qualification, not physical watchdog/reset acceptance or production
 safety qualification. The Issue stays open; hardware, merge and closure require
 separate human approval.

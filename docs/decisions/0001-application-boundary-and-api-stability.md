@@ -160,7 +160,7 @@ Rule 1 extends the placement that the [File root binding](../file-composition-in
 **Not an escape hatch:**
 
 - Private headers and `ports/` include paths, such as `file_native.h`. A product never uses them.
-- A missing composition interface is a Crux gap. It is reported as an issue against `crux-pilot`, as `crux-controller` already does.
+- A missing composition interface is a Crux gap. It is reported as an issue against `crux`, as `crux-controller` already does.
 
 ## Decision 3: What Crux will and will not abstract
 
@@ -408,7 +408,7 @@ The boundary is refuted when B needs clearly more code and effort and the change
 
 The experiment runs in two phases:
 
-- Phase 1 runs on Host and `native_sim` only, needs no hardware, and belongs in a repository of its own, outside `crux-pilot`, because Crux hosts no product ICs.
+- Phase 1 runs on Host and `native_sim` only, needs no hardware, and belongs in a repository of its own, outside `crux`, because Crux hosts no product ICs.
 - Phase 2 runs on the RT1060-EVKB with an ADS112C04 breakout. It needs the part, and approval of the board run under `AGENTS.md`. Phase 2 is not approved (D10).
 
 ## Consequences
@@ -462,6 +462,6 @@ None of these is part of this ADR. Each is its own reviewed change, and a change
 - **D7.** Deprecation window: after `v1.0`, at least two minor releases and at least six months; before `v1.0`, one tagged release for Unstable (4.3).
 - **D8.** Compatibility evidence: contract tests per provider, `crux-controller` built against main and at each tag, a record of the public surface, and fuller release notes (4.4).
 - **D9.** The three new rules before `v1.0` in 4.5 (every breaking change raises `y` with a migration note, tiers from the first tag, one release of notice for Unstable), and the five criteria for `v1.0`.
-- **D10.** The experiment, phase 1 only: Host and `native_sim`, without hardware, in a new repository outside `crux-pilot`. Phase 2 is not approved: buying the ADS112C04 breakout, the board time and any board run are undecided.
+- **D10.** The experiment, phase 1 only: Host and `native_sim`, without hardware, in a new repository outside `crux`. Phase 2 is not approved: buying the ADS112C04 breakout, the board time and any board run are undecided.
 
 The drafting record, measurements and approval history are in [history/adr-0001-record.md](../history/adr-0001-record.md).

@@ -158,7 +158,7 @@ To enforce the gate, a ruleset on the default branch requires the status check `
 ## Jenkins
 
 The root [`Jenkinsfile`](../Jenkinsfile) is a declarative Multibranch Pipeline with one parallel stage per job.
-Each stage builds the Dev Container image from `.devcontainer/Dockerfile` with `--build-arg CRUX_JLINK=0`, checks the repository out as `<stage workspace>/crux-pilot`, and runs [`scripts/ci/jenkins/run-job.sh`](../scripts/ci/jenkins/run-job.sh), which installs the job's pinned tools, prepares the west workspace and calls the entry point.
+Each stage builds the Dev Container image from `.devcontainer/Dockerfile` with `--build-arg CRUX_JLINK=0`, checks the repository out as `<stage workspace>/crux`, and runs [`scripts/ci/jenkins/run-job.sh`](../scripts/ci/jenkins/run-job.sh), which installs the job's pinned tools, prepares the west workspace and calls the entry point.
 A Docker volume `crux-ci-cache` at `/opt/crux-cache` keeps the Zephyr SDK between builds.
 
 | Need | Why |

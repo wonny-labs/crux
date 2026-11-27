@@ -16,7 +16,7 @@ or performed. No PR merge or issue closure is authorised by this record.
 ## Acceptance traceability
 
 Historical standalone tests were `Monotonic.LinuxPort` and
-`Monotonic.LinuxIntegration`; their [original test guide](https://github.com/wonny-labs/crux-pilot/blob/de3676f182659b37d357a65a31e3b33f57a3d7b8/tests/monotonic/README.md) is preserved in Git. Current typed Time/Thread coverage is in the [test guide](../tests/README.md#monotonic-timing).
+`Monotonic.LinuxIntegration`; their [original test guide](https://github.com/wonny-labs/crux/blob/de3676f182659b37d357a65a31e3b33f57a3d7b8/tests/monotonic/README.md) is preserved in Git. Current typed Time/Thread coverage is in the [test guide](../tests/README.md#monotonic-timing).
 The earlier names below are retained as part of the original qualification record.
 
 | Issue #26 criterion | Implementation | Verification/evidence |

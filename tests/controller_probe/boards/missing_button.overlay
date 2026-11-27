@@ -1,0 +1,6 @@
+/ {
+    /delete-node/ controller_inputs;
+    aliases {
+        /delete-property/ sw0;
+    };
+};

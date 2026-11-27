@@ -191,7 +191,7 @@ The model is `tests/build/test_file_zephyr_boundary.py` and `tests/build/test_fi
 
 Each negative also runs against a weakened guard and must then pass, as the File test does.
 
-**T5, manifest: the licence boundary holds.** A consumer `west.yml` that imports `crux-pilot` with the narrowing of section 6. `west list --all` must contain none of `wolfssl`, `wolfssh`, `wolfpsa`, and a control that enables the group without narrowing must show them active and fail. Needs `west`, so it runs where `west` is installed. The Host job has none (`tests/build/test_product_template.py` skips without it).
+**T5, manifest: the licence boundary holds.** A consumer `west.yml` that imports `crux` with the narrowing of section 6. `west list --all` must contain none of `wolfssl`, `wolfssh`, `wolfpsa`, and a control that enables the group without narrowing must show them active and fail. Needs `west`, so it runs where `west` is installed. The Host job has none (`tests/build/test_product_template.py` skips without it).
 
 **What the guard needs.** A way to say "composition consumer": it accepts the named `*_zephyr` targets and rejects `adapter`, `management` and `session` paths. Whether that is one more alternative in the regex at `cmake/CruxConsumerBoundary.cmake:130` or a new function was not traced, because a change there could flag Crux's own targets that link `crux_web_adapter` publicly. That is implementation work for the follow-up.
 

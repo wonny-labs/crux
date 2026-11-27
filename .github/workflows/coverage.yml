@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: crux-pilot
+          path: crux
           fetch-depth: 2
 
       - uses: actions/setup-python@v5
@@ -121,7 +121,7 @@ jobs:
       - name: Install Zephyr host packages
         run: |
           archives="$HOME/.cache/crux-apt"
-          python3 crux-pilot/scripts/verify-apt-cache.py "$RUNNER_TEMP/apt-uris" "$archives"
+          python3 crux/scripts/verify-apt-cache.py "$RUNNER_TEMP/apt-uris" "$archives"
           mkdir -p "$archives/partial"
           sudo apt-get install -y -o "Dir::Cache::archives=$archives" --no-install-recommends \
             $CI_HOST_PACKAGES
@@ -143,14 +143,14 @@ jobs:
           echo "$GITHUB_WORKSPACE/../crux-tools/bin" >> "$GITHUB_PATH"
 
       - name: Fetch pinned Zephyr workspace and install SDK
-        working-directory: crux-pilot
+        working-directory: crux
         env:
           CRUX_GITHUB_TOKEN: ${{ github.token }}
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
       # A build or test failure fails the job: an empty report must not pass for a measurement.
       - name: Run the native_sim suites with coverage
-        working-directory: crux-pilot
+        working-directory: crux
         run: scripts/coverage-native-sim.sh run
 
       # Only the report step may fail for tool reasons without failing the job. It runs after
@@ -158,7 +158,7 @@ jobs:
       - name: Create the native_sim coverage report
         id: report
         if: ${{ !cancelled() }}
-        working-directory: crux-pilot
+        working-directory: crux
         continue-on-error: true
         run: |
           scripts/coverage-native-sim.sh report
@@ -176,7 +176,7 @@ jobs:
         with:
           name: coverage-native-sim-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            crux-pilot/build/coverage/native-sim/report/
-            crux-pilot/build/coverage/native-sim/twister-*/twister.json
+            crux/build/coverage/native-sim/report/
+            crux/build/coverage/native-sim/twister-*/twister.json
           retention-days: 14
           if-no-files-found: warn

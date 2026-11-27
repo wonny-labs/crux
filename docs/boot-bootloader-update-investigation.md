@@ -7,12 +7,12 @@
 
 | Field | Value |
 | --- | --- |
-| Issue | [#299](https://github.com/wonny-labs/crux-pilot/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
-| Status | **Merged desk record, 7 November 2026 (PR [#302](https://github.com/wonny-labs/crux-pilot/pull/302)). Desk investigation.** Nothing in this record is adopted unless the owner has decided so. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE, round 4 (the narrow re-check of the round 3 fix) PASS; see the [Review record](#review-record). The owner decides. |
+| Issue | [#299](https://github.com/wonny-labs/crux/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
+| Status | **Merged desk record, 7 November 2026 (PR [#302](https://github.com/wonny-labs/crux/pull/302)). Desk investigation.** Nothing in this record is adopted unless the owner has decided so. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE, round 4 (the narrow re-check of the round 3 fix) PASS; see the [Review record](#review-record). The owner decides. |
 | Target | RT1060-EVKB Rev B (`mimxrt1060_evk@B/mimxrt1062/qspi`) for the NOR configuration. RT1170-EVK Rev A1 only where the public sources show a difference. The eMMC configuration is a set of expectations, not a result for any device. |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. The pins are those of the #141 record. |
 | Read on | 7 November 2026, against `main` at `3e0a5d7` |
-| Related | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) and its [record](boot-update-investigation.md) (the boot and update investigation, merged 7 November 2026). [#165](https://github.com/wonny-labs/crux-pilot/issues/165) and [#22](https://github.com/wonny-labs/crux-pilot/issues/22) for NOR writes. [#297](https://github.com/wonny-labs/crux-pilot/issues/297) for the update path. [#298](https://github.com/wonny-labs/crux-pilot/issues/298) for eMMC. |
+| Related | [#141](https://github.com/wonny-labs/crux/issues/141) and its [record](boot-update-investigation.md) (the boot and update investigation, merged 7 November 2026). [#165](https://github.com/wonny-labs/crux/issues/165) and [#22](https://github.com/wonny-labs/crux/issues/22) for NOR writes. [#297](https://github.com/wonny-labs/crux/issues/297) for the update path. [#298](https://github.com/wonny-labs/crux/issues/298) for eMMC. |
 | Evidence | [docs/evidence/boot-bootloader-update/](evidence/boot-bootloader-update/README.md) |
 
 ## Summary for the owner
@@ -44,7 +44,7 @@ option should become a milestone. It does not implement a bootloader update path
 | Any hardware, debugger, reset, erase or fuse operation | #299 boundaries. Fuse programming and closed security configurations remain product decisions. |
 | Any manifest, module or Dev Container change | Not authorised. |
 | Any claim that an option works on hardware | None was run. Every row below is a source reading or an inference. |
-| The eMMC investigation | [#298](https://github.com/wonny-labs/crux-pilot/issues/298) owns the five eMMC questions. This record only states what it expects, and links the rows #298 should check. |
+| The eMMC investigation | [#298](https://github.com/wonny-labs/crux/issues/298) owns the five eMMC questions. This record only states what it expects, and links the rows #298 should check. |
 | Statements about a specific product | The record covers the platform and evaluation boards only. It states no product storage or memory size. |
 
 ## Evidence labels and method

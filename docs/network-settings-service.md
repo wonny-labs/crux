@@ -1,8 +1,8 @@
 # Network settings service
 
-Status: merged in [PR #287](https://github.com/wonny-labs/crux-pilot/pull/287) for Issue #213. Host results, and the routes run over HTTPS on `native_sim` in [the services image](native-composition-242.md) with a no-op apply port. Nothing here has run on a board, and nothing applies an address to a real interface. Host and `native_sim` results are interim
+Status: merged in [PR #287](https://github.com/wonny-labs/crux/pull/287) for Issue #213. Host results, and the routes run over HTTPS on `native_sim` in [the services image](native-composition-242.md) with a no-op apply port. Nothing here has run on a board, and nothing applies an address to a real interface. Host and `native_sim` results are interim
 results, and physical evidence stays tracked apart. Decisions W5 to W8 and W14 of [the frontend foundation
-design](plans/web-frontend-foundation-design.md#network-settings) and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
+design](plans/web-frontend-foundation-design.md#network-settings) and [the owner's approval on #183](https://github.com/wonny-labs/crux/issues/183#issuecomment-6637976084)
 are the basis.
 
 Owner: `components/network_settings`. Public header `<crux/network_settings.h>`, usage target `crux::network_settings`.

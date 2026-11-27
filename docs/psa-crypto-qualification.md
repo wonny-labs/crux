@@ -1,16 +1,16 @@
 # PSA Crypto qualification for Zephyr and Linux Host
 
-**Status: provider results recorded and decisions adopted under the owner's approval, merged in [PR #153](https://github.com/wonny-labs/crux-pilot/pull/153).** This record supports
-[Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). The design of how consumers reach a provider is in
+**Status: provider results recorded and decisions adopted under the owner's approval, merged in [PR #153](https://github.com/wonny-labs/crux/pull/153).** This record supports
+[Issue #142](https://github.com/wonny-labs/crux/issues/142). The design of how consumers reach a provider is in
 [the design document](psa-crypto-design.md), and the declared subset is in [the native-free consumer
 policy](native-interface-policy.md#qualified-psa-crypto-subset). Nothing here is a claim of general PSA Crypto conformance.
 
 | Approval | Covers |
 | --- | --- |
-| [Start of #142, 2 November 2026](https://github.com/wonny-labs/crux-pilot/issues/142#issuecomment-6565912192) | Investigation, test-first development, Draft PR, trial builds |
-| [#198](https://github.com/wonny-labs/crux-pilot/pull/198), merged 3 November 2026 | The provider decision. Its Licences section covers wolfPSA. |
-| [#202](https://github.com/wonny-labs/crux-pilot/pull/202), merged 3 November 2026 | The manifest group, with `mbedtls`, `tf-psa-crypto`, `wolfssl` and `wolfpsa` pinned |
-| [Owner decision, 4 November 2026 17:55 UTC](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) | Literally: PSA as a prerequisite of real HTTPS on `native_sim`, and "the steps that needed asking". **As a reading of that approval:** the Host decision, the subset, and running wolfPSA beyond #142's start approval, which had held it for licence review. The owner did not name these items. Hardware stays excluded. |
+| [Start of #142, 2 November 2026](https://github.com/wonny-labs/crux/issues/142#issuecomment-6565912192) | Investigation, test-first development, Draft PR, trial builds |
+| [#198](https://github.com/wonny-labs/crux/pull/198), merged 3 November 2026 | The provider decision. Its Licences section covers wolfPSA. |
+| [#202](https://github.com/wonny-labs/crux/pull/202), merged 3 November 2026 | The manifest group, with `mbedtls`, `tf-psa-crypto`, `wolfssl` and `wolfpsa` pinned |
+| [Owner decision, 4 November 2026 17:55 UTC](https://github.com/wonny-labs/crux/issues/183#issuecomment-6637976084) | Literally: PSA as a prerequisite of real HTTPS on `native_sim`, and "the steps that needed asking". **As a reading of that approval:** the Host decision, the subset, and running wolfPSA beyond #142's start approval, which had held it for licence review. The owner did not name these items. Hardware stays excluded. |
 
 ## Inputs
 
@@ -29,7 +29,7 @@ the Host archive has the same files as the west checkout.
 
 ## Why the earlier `zephyr` CI run failed
 
-Run [41401511997](https://github.com/wonny-labs/crux-pilot/actions/runs/41401511997), 2 November 2026, failed in the step "Fetch pinned Zephyr
+Run [41401511997](https://github.com/wonny-labs/crux/actions/runs/41401511997), 2 November 2026, failed in the step "Fetch pinned Zephyr
 workspace and install SDK":
 
 ```text
@@ -38,7 +38,7 @@ Exception: Failed to fetch: 403, {"message":"API rate limit exceeded for 20.172.
 ```
 
 `west sdk install` looks up SDK releases through the GitHub API without a token, and the runner shared a rate limit. It had nothing to do
-with PSA, and no test ran. #164 fixed it on `main` by passing `CRUX_GITHUB_TOKEN`. The step passed afterwards, in run [41891057049](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057049).
+with PSA, and no test ran. #164 fixed it on `main` by passing `CRUX_GITHUB_TOKEN`. The step passed afterwards, in run [41891057049](https://github.com/wonny-labs/crux/actions/runs/41891057049).
 
 ## Conformance cases
 
@@ -213,7 +213,7 @@ The script checks the entropy driver, the devicetree node, and the absence of DC
 
 ## Decisions
 
-The manifest and module arrangement and the wolf pins come from [#198](https://github.com/wonny-labs/crux-pilot/pull/198) and [#202](https://github.com/wonny-labs/crux-pilot/pull/202). The rest is adopted on a reading of the [owner's decision](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), [as above](#psa-crypto-qualification-for-zephyr-and-linux-host), for the owner to confirm at merge. Reasons not to take the alternatives are in the table.
+The manifest and module arrangement and the wolf pins come from [#198](https://github.com/wonny-labs/crux/pull/198) and [#202](https://github.com/wonny-labs/crux/pull/202). The rest is adopted on a reading of the [owner's decision](https://github.com/wonny-labs/crux/issues/183#issuecomment-6637976084), [as above](#psa-crypto-qualification-for-zephyr-and-linux-host), for the owner to confirm at merge. Reasons not to take the alternatives are in the table.
 
 ### Manifest and module
 
@@ -285,12 +285,12 @@ Whoever distributes an image that links a provider needs a licence basis that co
 
 ## History
 
-The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Crypto. Its logs stay unchanged in [`docs/evidence/psa-crypto/`](evidence/psa-crypto/) and its plan in
-[`docs/superpowers/plans/`](superpowers/plans/2026-11-02-psa-crypto-qualification.md). Its first run found the `verify_bytes` stub and two assertions that went beyond the documented API.
+The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Crypto. Its logs stay unchanged in [`docs/evidence/psa-crypto/`](evidence/psa-crypto/); its plan is in Git history.
+Its first run found the `verify_bytes` stub and two assertions that went beyond the documented API.
 
 ### Pin move (PR #416, approved 14 November 2026)
 
-The Inputs table and every result above are for the pins of Zephyr's manifest at v4.4.0 and v4.4.2, which are the same pair (`mbedtls` `a3e190fe`, `tf-psa-crypto` `dc575a2d`), and they stay as recorded. [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) moves `mbedtls` to `098e120afb51877ed814bdc04443890ae12e0642` and `tf-psa-crypto` to `fa92349590a54959ee2efc21b668e5afdb144726`, the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) and the [dependency review](dependency-review-mbed-tls-4.1.1.md). None of the results above carries over to the new pair. Its evidence is the CI of that pull request, listed in its description, and one recorded `scripts/test-native-composition.sh e2e-mbed` run on the new pair on 15 November 2026, with the full resolved `.config` of the Mbed HTTPS image, in [`docs/evidence/mbedtls-pin-move-416/`](evidence/mbedtls-pin-move-416/README.md) (`native_sim` only). `scripts/test-psa-crypto.sh` accepts these two revisions, and only these, as security pins that differ from Zephyr's manifest at v4.4.2.
+The Inputs table and every result above are for the pins of Zephyr's manifest at v4.4.0 and v4.4.2, which are the same pair (`mbedtls` `a3e190fe`, `tf-psa-crypto` `dc575a2d`), and they stay as recorded. [PR #416](https://github.com/wonny-labs/crux/pull/416) moves `mbedtls` to `098e120afb51877ed814bdc04443890ae12e0642` and `tf-psa-crypto` to `fa92349590a54959ee2efc21b668e5afdb144726`, the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), under [ADR-0006](decisions/0006-cryptographic-dependency-policy.md) and the [dependency review](dependency-review-mbed-tls-4.1.1.md). None of the results above carries over to the new pair. Its evidence is the CI of that pull request, listed in its description, and one recorded `scripts/test-native-composition.sh e2e-mbed` run on the new pair on 15 November 2026, with the full resolved `.config` of the Mbed HTTPS image, in [`docs/evidence/mbedtls-pin-move-416/`](evidence/mbedtls-pin-move-416/README.md) (`native_sim` only). `scripts/test-psa-crypto.sh` accepts these two revisions, and only these, as security pins that differ from Zephyr's manifest at v4.4.2.
 
 ## Acceptance criteria
 

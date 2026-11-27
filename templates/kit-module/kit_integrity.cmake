@@ -11,7 +11,7 @@
 #     HASH_DIR ${CMAKE_CURRENT_LIST_DIR}/kit-hashes
 #     EXPECT_LINE ${CONFIG_ACMECO_KIT_A_LINE})
 #
-# Rules, all recommendations of docs/vendor-kits.md in crux-pilot:
+# Rules, all recommendations of docs/vendor-kits.md in crux:
 # - The kit is read from DEFAULT_PATH, the west project path, unless the
 #   environment variable named by ENV_VAR is set. That override is for local
 #   development only: it is printed as a warning, and refused in a release build.

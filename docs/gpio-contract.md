@@ -44,7 +44,7 @@ board revision A Cortex-M7 cross-build, which selects the board's own `user_butt
 cross-builds do not qualify pin routing, electrical behaviour, timing or physical
 operation. Neither board is qualified for physical use of this capability.
 
-The representative consumer configures and reads one input. The existing controller M3
+The representative consumer configures and reads one input. The existing controller health and network probe
 `device_input` wrapper remains unchanged in this increment; its native sample
 contract and physical validation status are independent of this new public
 capability.

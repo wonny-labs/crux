@@ -59,10 +59,10 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
 
 4. **VS Code: open the Dev Container.** Run **Dev Containers: Rebuild and Reopen in Container** (**Rebuild Container** if it is already open), so that the image gets the J-Link software. The build log prints `J-Link package: <file>, SHA-256 <hash>`.
 
-5. **In the container: check the probe and the tools.** Run this and every later command in the container from the repository root, the folder VS Code opens (`/workspace/crux-pilot`):
+5. **In the container: check the probe and the tools.** Run this and every later command in the container from the repository root, the folder VS Code opens (`/workspace/crux`):
 
    ~~~sh
-   cd /workspace/crux-pilot
+   cd /workspace/crux
    lsusb -d 1366:
    id -nG
    command -v JLinkExe JLinkGDBServer JLinkGDBServerCLExe
@@ -81,7 +81,7 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
 7. **Read-only check: attach and compare.** Do this before the first write on a new set-up. Build the ELF of the image on the board, here the Time sample (`samples/time/shell`), the image that has been flashed this way; [Part C of the tutorial](tutorial.md#part-c-run-on-your-board) sets which samples to flash and in which order. Then attach without reset or load. `-r jlink` is required, because Zephyr's default runner for this board is LinkServer. The build directory is relative to the repository root.
 
    ~~~sh
-   cd /workspace/crux-pilot
+   cd /workspace/crux
    scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
    west attach -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
@@ -91,7 +91,7 @@ Not run: `scripts/bootstrap.sh board-host`, `--auto-attach`, step 7 (`west attac
 8. **Flash**, only with authorisation that names the operation and the image:
 
    ~~~sh
-   cd /workspace/crux-pilot
+   cd /workspace/crux
    west flash -d build/zephyr/mimxrt1060_evk_B_qspi -r jlink
    ~~~
 

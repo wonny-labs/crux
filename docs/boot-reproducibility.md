@@ -7,7 +7,7 @@
 
 ## What "reproducible" means here
 
-The acceptance text of [issue #296](https://github.com/wonny-labs/crux-pilot/issues/296) asks that the bootloader and a signed reference image "build reproducibly from documented inputs" and that signed outputs "verify against the documented public verification key". It does not ask for byte-identical signed images. The definition used here is the one of Stage 8 of the boot and update investigation:
+The acceptance text of [issue #296](https://github.com/wonny-labs/crux/issues/296) asks that the bootloader and a signed reference image "build reproducibly from documented inputs" and that signed outputs "verify against the documented public verification key". It does not ask for byte-identical signed images. The definition used here is the one of Stage 8 of the boot and update investigation:
 
 | Artifact | Must be | Why |
 | --- | --- | --- |

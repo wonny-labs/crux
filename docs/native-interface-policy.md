@@ -1,7 +1,7 @@
 # Native-free consumer boundary
 
-This policy was adopted under [Issue #24](https://github.com/wonny-labs/crux-pilot/issues/24)
-and merged in [PR #39](https://github.com/wonny-labs/crux-pilot/pull/39).
+This policy was adopted under [Issue #24](https://github.com/wonny-labs/crux/issues/24)
+and merged in [PR #39](https://github.com/wonny-labs/crux/pull/39).
 It defines portable consumer and native provider boundaries without introducing
 a general HAL or runtime service registry.
 
@@ -72,7 +72,7 @@ add a C++ platform API or a stable compiler-independent ABI.
 There is **no generally qualified consumer POSIX subset**. Linux host adapters
 and execution probes may use POSIX internally without qualifying it for consumers.
 Issue #28's approved bounded BSD/POSIX IPv4 client profile was merged in
-[PR #38](https://github.com/wonny-labs/crux-pilot/pull/38). The
+[PR #38](https://github.com/wonny-labs/crux/pull/38). The
 [networking contract](networking-contract.md) qualifies selected socket
 headers/functions and `clock_gettime(CLOCK_MONOTONIC)` for networking deadlines.
 It does not qualify pthreads, general POSIX use or a general clock service.
@@ -81,7 +81,7 @@ separate. No additional socket wrapper is required by this boundary policy.
 
 ### Qualified PSA Crypto subset
 
-[Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142) qualifies the PSA Crypto API functions below for the private
+[Issue #142](https://github.com/wonny-labs/crux/issues/142) qualifies the PSA Crypto API functions below for the private
 providers of `crux_access` and the credential store. This is a declared subset, with a stated reason for each part, and not a Crux
 cryptographic wrapper or a general claim of PSA Crypto conformance. The composition selects the provider. A portable core, a public
 header and an application do not include `<psa/crypto.h>`: they reach cryptography through their component's private ports. See the

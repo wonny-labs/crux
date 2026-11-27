@@ -61,7 +61,7 @@ Rules 3, 4 and 6 also cover a Linux Host composition target, which names `linux`
 ## What is not an escape hatch
 
 - **Private headers and `ports/` include paths**, such as `file_native.h`. A product never uses them, and they are not composition interfaces. A product that finds it needs one reports it.
-- **A missing composition interface** is a Crux gap. It is reported as an issue against `crux-pilot`, as `crux-controller` already does.
+- **A missing composition interface** is a Crux gap. It is reported as an issue against `crux`, as `crux-controller` already does.
 
 ## Adding a composition interface
 

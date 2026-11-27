@@ -111,7 +111,7 @@ class GeneratedDriverTests(unittest.TestCase):
             repository = work / "fixture"
             evidence = repository / "build/evidence"
             evidence.mkdir(parents=True)
-            for name in ("m3-inputs.json", "m3-inputs.after.json"):
+            for name in ("controller-inputs.json", "controller-inputs.after.json"):
                 (evidence / name).write_text("stale success")
             scripts = repository / "scripts"
             scripts.mkdir()
@@ -129,12 +129,12 @@ class GeneratedDriverTests(unittest.TestCase):
                 executable.chmod(0o755)
             env = dict(os.environ, CRUX_TEST_REPO=str(repository), CRUX_WORKSPACE=str(work),
                        PATH=str(commands) + os.pathsep + os.environ["PATH"])
-            result = subprocess.run(["bash", str(ROOT / "scripts/test-m3.sh")], env=env,
+            result = subprocess.run(["bash", str(ROOT / "scripts/test-controller-probe.sh")], env=env,
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-            self.assertFalse((evidence / "m3-inputs.json").exists())
-            self.assertFalse((evidence / "m3-inputs.after.json").exists())
-            self.assertEqual((evidence / "m3-inputs.pending.json").read_text(), "pending inputs")
+            self.assertFalse((evidence / "controller-inputs.json").exists())
+            self.assertFalse((evidence / "controller-inputs.after.json").exists())
+            self.assertEqual((evidence / "controller-inputs.pending.json").read_text(), "pending inputs")
 
     def test_missing_or_duplicate_original_source_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

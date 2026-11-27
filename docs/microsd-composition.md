@@ -1,6 +1,6 @@
 # RT1060-EVKB microSD composition
 
-Issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14), acceptance criterion 2.
+Issue [#14](https://github.com/wonny-labs/crux/issues/14), acceptance criterion 2.
 This records the approved composition and its evidence. The software evidence is below; the
 physical results (one board, one card: mount, reboot persistence, power cuts) are in their own
 sections and under `docs/evidence`. The one card-removal run is under "Physical results, 3 November". Nothing here claims hardware
@@ -183,7 +183,7 @@ uSDHC1 ownership has only the document and photo check below (no measurement); a
 
 ### uSDHC1 ownership check (document and photo only)
 
-Source: [comment on issue #14](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6609663276), posted 2026-11-03 16:33 UTC, after the physical runs above
+Source: [comment on issue #14](https://github.com/wonny-labs/crux/issues/14#issuecomment-6609663276), posted 2026-11-03 16:33 UTC, after the physical runs above
 (which is why the accepted evidence README of those runs says no schematic was available then). The comment was
 posted from the project owner's GitHub account. It reads the board label as `SCH-47858 REV B1`, so the
 schematic SPF-47858 Rev B1 applies. On it, the SD slot reaches `GPIO_SD_B0_00` to `B0_05` (uSDHC1 CMD, CLK, DAT0-3, on

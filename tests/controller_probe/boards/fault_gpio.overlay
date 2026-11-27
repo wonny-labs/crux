@@ -1,0 +1,6 @@
+&controller_fault_gpio {
+    status = "okay";
+};
+&controller_button {
+    gpios = <&controller_fault_gpio 0 GPIO_ACTIVE_LOW>;
+};

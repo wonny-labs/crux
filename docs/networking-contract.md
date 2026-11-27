@@ -1,7 +1,7 @@
 # Qualified portable networking slice
 
 Status: selected architecture approved by the user on 22 October 2026 for
-[Issue #28](https://github.com/wonny-labs/crux-pilot/issues/28). Support claims
+[Issue #28](https://github.com/wonny-labs/crux/issues/28). Support claims
 are limited to the configurations and results in [software evidence](evidence/m5-networking-software.md).
 Physical acceptance remains pending. The approved [design proposal](plans/m5-networking-proposal.md)
 records alternatives and rationale; this document describes consumer use.
@@ -28,7 +28,7 @@ written runtime-shaped adapter lives in `tests/networking/runtime_port.c`.
 Neither establishes complete compatibility with a third-party runtime. Test peer
 servers are fixture code outside the supported client API. Native stack startup,
 addressing, threads, driver correction and resource inspection are controlled
-composition/test responsibilities. Historical M3 source and physical evidence
+composition/test responsibilities. Historical controller health and network probe source and physical evidence
 remain unchanged and do not qualify this new portable path.
 
 ## Socket profile
@@ -142,7 +142,7 @@ up/down, address setter, DHCP control, gateway/mask query or subscriptions exist
 Host/native real-stack tests bind peers explicitly to 127.0.0.1; primary status
 also refers to loopback. Standard routing delivers that traffic locally. The
 configured primary interface does not bind those sockets. The RT1060 build
-uses the isolated M3 topology: static board 192.168.77.2/24, peer 192.168.77.1,
+uses the isolated controller health and network probe topology: static board 192.168.77.2/24, peer 192.168.77.1,
 ports TCP 42420/UDP 42421, no gateway/DHCP/DNS required. Its overlay reserves
 GPIO1.9 for PHY reset and uses the recorded local test MAC. The composition
 reuses the existing generated MDIO completion correction without altering

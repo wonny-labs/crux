@@ -1,6 +1,6 @@
 # Style kit for a product repository
 
-Format, patch-style and include checks that run from the root of a product repository. They add no Crux interface and no dependency, and they do not touch hardware. The rules they check, and what no check covers, are in [Zephyr and driver code in a product repository](https://github.com/wonny-labs/crux-pilot/blob/main/docs/coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository) (`docs/coding-guidelines.md` in `crux-pilot`).
+Format, patch-style and include checks that run from the root of a product repository. They add no Crux interface and no dependency, and they do not touch hardware. The rules they check, and what no check covers, are in [Zephyr and driver code in a product repository](https://github.com/wonny-labs/crux/blob/main/docs/coding-guidelines.md#zephyr-and-driver-code-in-a-product-repository) (`docs/coding-guidelines.md` in `crux`).
 
 | File | Purpose |
 | --- | --- |
@@ -10,7 +10,7 @@ Format, patch-style and include checks that run from the root of a product repos
 | `check-patch.sh` | Runs Zephyr's `checkpatch.pl` from `ZEPHYR_BASE` on the C lines of a Git range, for the `BRACES` rule by default. It does not copy checkpatch, which is GPL-2.0 code |
 | `check-includes.sh` | Runs `check_domain_includes.py --product` on the repository root, with the root resolved from Git |
 | `target.clang-tidy` | An advisory clang-tidy profile for target code: Crux's selection without `-bugprone-easily-swappable-parameters`, and no `WarningsAsErrors`. It has no header filter to edit, and it is not named `.clang-tidy`, so clang-tidy does not pick it up by itself |
-| `check_target_tidy.py` | Runs clang-tidy with that profile on the product's own sources in a Zephyr build's `compile_commands.json`. Findings never fail the run. See [Static analysis of target code](https://github.com/wonny-labs/crux-pilot/blob/main/docs/coding-guidelines.md#static-analysis-of-target-code) |
+| `check_target_tidy.py` | Runs clang-tidy with that profile on the product's own sources in a Zephyr build's `compile_commands.json`. Findings never fail the run. See [Static analysis of target code](https://github.com/wonny-labs/crux/blob/main/docs/coding-guidelines.md#static-analysis-of-target-code) |
 
 ## Use them
 

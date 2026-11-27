@@ -11,62 +11,62 @@ export ZEPHYR_BASE="$workspace/zephyr"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
 board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
 crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
-inputs="$repo/build/evidence/m3-inputs.json"
-pending="$repo/build/evidence/m3-inputs.pending.json"
-after="$repo/build/evidence/m3-inputs.after.json"
+inputs="$repo/build/evidence/controller-inputs.json"
+pending="$repo/build/evidence/controller-inputs.pending.json"
+after="$repo/build/evidence/controller-inputs.after.json"
 rm -f "$inputs" "$pending" "$after"
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$pending"
 python3 "$repo/tests/native/mdio_completion/test_driver.py"
-(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_probe" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
     -T "$repo/tests/controller_integrated" -T "$repo/tests/native/deferred_output" \
     -T "$repo/tests/native/network_output_burst" -T "$repo/tests/native/integrated_output" \
     -T "$repo/tests/native/logger_phase" \
-    -O "$repo/build/zephyr/twister-m3" --inline-logs)
-python3 "$repo/tests/native/deferred_output/verify_output.py" "$repo/build/zephyr/twister-m3"
-python3 "$repo/tests/native/network_output_burst/verify_output.py" "$repo/build/zephyr/twister-m3"
-python3 "$repo/tests/native/integrated_output/verify_output.py" "$repo/build/zephyr/twister-m3"
-python3 "$repo/tests/native/logger_phase/verify_output.py" "$repo/build/zephyr/twister-m3"
+    -O "$repo/build/zephyr/twister-controller" --inline-logs)
+python3 "$repo/tests/native/deferred_output/verify_output.py" "$repo/build/zephyr/twister-controller"
+python3 "$repo/tests/native/network_output_burst/verify_output.py" "$repo/build/zephyr/twister-controller"
+python3 "$repo/tests/native/integrated_output/verify_output.py" "$repo/build/zephyr/twister-controller"
+python3 "$repo/tests/native/logger_phase/verify_output.py" "$repo/build/zephyr/twister-controller"
 for profile in probe normal; do
     configuration="$repo/tests/board_images/integration_probe/device_health_probe.conf"
     if [[ "$profile" == normal ]]; then
         configuration+=";$repo/tests/board_images/integration_probe/without_test_commands.conf"
     fi
     (cd "$workspace" && west build -p always -b "$board" \
-        -d "$repo/build/zephyr/m3-$profile-evkb" "$repo/tests/board_images/integration_probe" -- \
+        -d "$repo/build/zephyr/controller-$profile-evkb" "$repo/tests/board_images/integration_probe" -- \
         -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$configuration" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 done
 (cd "$workspace" && west build -p always -b "$board" \
-    -d "$repo/build/zephyr/m3-network-evkb" "$repo/tests/board_images/integration_probe" -- \
+    -d "$repo/build/zephyr/controller-network-evkb" "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/network_probe.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # Keep the correction opt-in; retain the ordinary upstream-driver build above.
 (cd "$workspace" && west build -p always -b "$board" \
-    -d "$repo/build/zephyr/m3-mdio-candidate-evkb" "$repo/tests/board_images/integration_probe" -- \
+    -d "$repo/build/zephyr/controller-mdio-candidate-evkb" "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/network_probe.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # A separate observation build must not replace the ordinary or corrected probes.
 (cd "$workspace" && west build -p always -b "$board" \
-    -d "$repo/build/zephyr/m3-mdio-trace-evkb" "$repo/tests/board_images/integration_probe" -- \
+    -d "$repo/build/zephyr/controller-mdio-trace-evkb" "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/network_probe.conf;$repo/tests/board_images/integration_probe/phy_diagnostic.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf;$repo/tests/board_images/integration_probe/mdio_failure_trace.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # Deferred output remains a separate, unqualified startup diagnostic.
 (cd "$workspace" && west build -p always -b "$board" \
-    -d "$repo/build/zephyr/m3-deferred-output-evkb" "$repo/tests/board_images/integration_probe" -- \
+    -d "$repo/build/zephyr/controller-deferred-output-evkb" "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/network_probe.conf;$repo/tests/board_images/integration_probe/phy_diagnostic.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf;$repo/tests/board_images/integration_probe/mdio_failure_trace.conf;$repo/tests/board_images/integration_probe/deferred_output.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # Full-network native output candidate, without startup or PHY diagnostic observers.
 (cd "$workspace" && west build -p always -b "$board" \
-    -d "$repo/build/zephyr/m3-native-output-evkb" "$repo/tests/board_images/integration_probe" -- \
+    -d "$repo/build/zephyr/controller-native-output-evkb" "$repo/tests/board_images/integration_probe" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/tests/board_images/integration_probe/network_probe.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf;$repo/tests/board_images/integration_probe/native_output.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
@@ -78,7 +78,7 @@ for profile in integrated-probe integrated-normal; do
         configuration+=";$repo/tests/board_images/integration_probe/without_test_commands.conf"
     fi
     (cd "$workspace" && west build -p always -b "$board" \
-        -d "$repo/build/zephyr/m3-$profile-evkb" "$repo/tests/board_images/integration_probe" -- \
+        -d "$repo/build/zephyr/controller-$profile-evkb" "$repo/tests/board_images/integration_probe" -- \
         -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$configuration" \
         -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)

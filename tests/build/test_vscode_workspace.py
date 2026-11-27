@@ -499,7 +499,7 @@ def sal(path):
 
 class NativeSimGdbScriptTest(unittest.TestCase):
     RUNNER = "/workspace/zephyr/scripts/native_simulator/common/src/main.c"
-    APP = "/workspace/crux-pilot/samples/time/shell/zephyr/src/main.c"
+    APP = "/workspace/crux/samples/time/shell/zephyr/src/main.c"
 
     def program(self, root, uart):
         exe = root / "zephyr.exe"

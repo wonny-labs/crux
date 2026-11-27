@@ -1,7 +1,7 @@
 # Secure boot bench session kit (RT1060-EVK Rev B)
 
 > **Not yet run.** Nothing on this page has been executed on a board. Every duration is an **Estimate**, and every board result named below is a prediction from the sources next to it.
-> **Status:** Proposal for one consolidated bench session of milestone M8 ([issue #296](https://github.com/wonny-labs/crux-pilot/issues/296)). It builds on the merged [secure boot board test procedure](secure-boot-board-test-procedure.md) (T0 to T7) and does not repeat it: where this page says "as procedure section N", that section is the instruction. It decides nothing, grants no approval and adopts no interface.
+> **Status:** Proposal for one consolidated bench session of milestone M8 ([issue #296](https://github.com/wonny-labs/crux/issues/296)). It builds on the merged [secure boot board test procedure](secure-boot-board-test-procedure.md) (T0 to T7) and does not repeat it: where this page says "as procedure section N", that section is the instruction. It decides nothing, grants no approval and adopts no interface.
 > **Verified:** Only that the kit's tools exist and passed their host tests against a fake J-Link and synthetic files in the author's local run (79 tests, macOS, Python 3.9; the CI result is on the pull request; see [section 4](#4-the-kit)). The runbook's own content is documentation.
 > **Not verified:** Every board result, every J-Link Commander behaviour, that the device-control tool passes the probe serial through its environment to a wrapper, and everything marked so below.
 > **Read this first / then:** the [boot overview](boot-overview.md), the [boot composition](boot-composition.md) page and the [procedure](secure-boot-board-test-procedure.md); then this page. The tools are described in the [kit README](../tests/target/boot-bench/README.md).
@@ -10,9 +10,9 @@ Labels: **Verified** (a repository file, a host test or a build says so; the sou
 
 ## 1. Purpose and scope
 
-The owner wants every board-dependent step of the secure boot work in one bench session that they approve once and run once. This page orders those steps, says what each needs and what it produces, and puts the steps that depend on [#165](https://github.com/wonny-labs/crux-pilot/issues/165) (the FlexSPI write path of MCUboot, open) after the steps that do not, so the session can be cut in two without redoing anything.
+The owner wants every board-dependent step of the secure boot work in one bench session that they approve once and run once. This page orders those steps, says what each needs and what it produces, and puts the steps that depend on [#165](https://github.com/wonny-labs/crux/issues/165) (the FlexSPI write path of MCUboot, open) after the steps that do not, so the session can be cut in two without redoing anything.
 
-**In:** preflight, T0, the ROM serial downloader fall-through check ([#309](https://github.com/wonny-labs/crux-pilot/issues/309)), T1 to T5 of the procedure, the boot-time measurement of the tinycrypt backend (follow-up of decision D9), the image-state board case IS-T4 (defined here, **pending**), and the optional T6 power-cut block.
+**In:** preflight, T0, the ROM serial downloader fall-through check ([#309](https://github.com/wonny-labs/crux/issues/309)), T1 to T5 of the procedure, the boot-time measurement of the tinycrypt backend (follow-up of decision D9), the image-state board case IS-T4 (defined here, **pending**), and the optional T6 power-cut block.
 **Out:** fuses, HAB, lifecycle or closed configuration; the RT1170; eMMC; T7 (needs milestone M9); the PSA-backend measurement (a separate session, block M2); any commit of results under `docs/evidence/`; any key, tag or release.
 
 **Naming.** The image-state proposal also has a case named T4 ("shared data present at application start", question Q4). To avoid a clash with the procedure's T4a and T4b (modified image), this page calls it **IS-T4**.
@@ -27,7 +27,7 @@ Blocks run in this order. **Part 1** needs none of #165. **Part 2** starts with 
 | 0 | B0b | Build host work for Part 2: development key, hardware build, test images, manifest. No board | No (but needs H8) | Before G | Not bench time |
 | 1 | P | Preflight: SW4, probe, double backup, slot 1 header check | No | Yes | 20 min |
 | 1 | T0 | Restore point boots, identity | No | Yes | 10 min after P |
-| 1 | N | [#309](https://github.com/wonny-labs/crux-pilot/issues/309): does a damaged first sector fall through to the serial downloader. Open configuration, no fuses | No (the ROM and the probe write; the bootloader does not) | Yes, for the observation. The flashloader recovery is **blocked** (origin and licence not decided) | 30 min without the flashloader recovery, 60 min or more with it |
+| 1 | N | [#309](https://github.com/wonny-labs/crux/issues/309): does a damaged first sector fall through to the serial downloader. Open configuration, no fuses | No (the ROM and the probe write; the bootloader does not) | Yes, for the observation. The flashloader recovery is **blocked** (origin and licence not decided) | 30 min without the flashloader recovery, 60 min or more with it |
 | 2 | G | Gate: the task record states the decision on #165 | | | 0 |
 | 2 | T1 | MCUboot and the signed, confirmed application, two boots | **Yes** (`copy_done` write) | After G | 15 min |
 | 2 | M1 | Boot-time measurement, tinycrypt backend (D9) | **Yes** (needs MCUboot running; Inference: the resets write nothing) | After T1 | 10 min |
@@ -51,7 +51,7 @@ The procedure requires the person who owns the board to approve each hardware st
 
 | ID | What the owner approves | Covers | Default |
 | --- | --- | --- | --- |
-| **D165** | The decision on [#165](https://github.com/wonny-labs/crux-pilot/issues/165): (a) it is closed, reference: ___; or (b) Part 2 runs with the finding open, for T1 to T5, M1 and IS-T4 only; or (c) not approved, the session stops after Part 1 | G, and every block of Parts 2 and 3 | Not approved |
+| **D165** | The decision on [#165](https://github.com/wonny-labs/crux/issues/165): (a) it is closed, reference: ___; or (b) Part 2 runs with the finding open, for T1 to T5, M1 and IS-T4 only; or (c) not approved, the session stops after Part 1 | G, and every block of Parts 2 and 3 | Not approved |
 | **H1** | Connect the approved probe (J-Link PLUS, SWD 400 kHz, 100 kHz as the one retry) and read identification. Read-only | P, T0, all later reads | Not approved |
 | **H2** | Read back flash `0x60000000` to `0x60600000` (backup twice) and the small reads of slot heads and tails (`0x60320000`, `0x60020000`, `0x6031F000`). Read-only | P, T0, Parts 2 and 3 | Not approved |
 | **H3** | Program and verify the restore image R1 (`time-baseline.bin`, at most `0x20000` bytes at `0x60000000`) with the wrapper scripts | T0, N, end-of-session restore | Not approved |
@@ -172,7 +172,7 @@ Regenerate and re-check the manifest after any later change to the hand-off dire
 
 As procedure section 7, T0 with the T0 profile. The R1 programming (H3) now uses `jlink-load.sh` and `jlink-verify.sh` (or the device-control `flash --allow-flash=<H3 reference>`). **Approvals.** H1 to H4. **Stop.** As the procedure's T0. **Restore.** R1 is the restore point. **Duration.** 10 min after P (**Estimate**). **Evidence.** As the procedure's T0.
 
-### N. ROM serial downloader fall-through ([#309](https://github.com/wonny-labs/crux-pilot/issues/309))
+### N. ROM serial downloader fall-through ([#309](https://github.com/wonny-labs/crux/issues/309))
 
 **Purpose.** Turn the main inference of the bootloader update investigation into evidence: that the boot ROM falls through to the serial downloader when the first sector of the QSPI NOR is damaged ([boot bootloader update investigation](boot-bootloader-update-investigation.md), rows 1 to 3; the reference-manual statement is **Verified by public vendor document** there, and that a corrupt first sector counts as an error is **Inference**). Open configuration, no fuses. **Preconditions.** T0 passed in this session, so a backup, R1 and a working console exist. **Approvals.** H1 to H5; H6 only if approved.
 

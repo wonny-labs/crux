@@ -7,8 +7,9 @@ manifest:
   version: "1.2"
 
   remotes:
+    # Replace the placeholder with the host that serves Crux to the module.
     - name: crux
-      url-base: https://github.com/wonny-labs
+      url-base: https://git.example/scm/crux
     # The organisation's internal host, used by the example below.
     #
     # - name: acme
@@ -18,7 +19,7 @@ manifest:
     # Replace the placeholder with the full SHA of the Crux commit that the
     # module is built and tested against. Crux brings Zephyr and its modules at
     # the revisions it pins. To move to another Crux, change this SHA.
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: 0123456789abcdef0123456789abcdef01234567
       import: true

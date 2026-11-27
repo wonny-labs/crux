@@ -28,7 +28,7 @@ Where boards and drivers live, and how products share them through this layer, i
 flowchart TB
     P["Product repository: product-x<br/>west.yml, app/, locks/"]
     O["Organisation manifest (optional)<br/>Only when two or more products share a composition"]
-    C["crux-pilot<br/>Zephyr pin, module allowlist, optional groups"]
+    C["crux<br/>Zephyr pin, module allowlist, optional groups"]
     Z["Zephyr<br/>Module revisions in its own west.yml"]
     M["Allowlisted public modules"]
     V["Product-only modules, and the organisation's forks and vendor repositories<br/>vendor-runtime on git.example"]
@@ -45,7 +45,7 @@ flowchart TB
 
 The product uses west's T2 topology: the product repository is the manifest repository, and Crux and Zephyr are projects in its workspace.
 
-The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux-pilot` entry:
+The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux` entry:
 
 ```yaml
 manifest:
@@ -54,10 +54,10 @@ manifest:
     - name: crux
       url-base: https://github.com/wonny-labs
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       # A template cannot name the Crux commit that holds it, so it follows main.
-      # Pin a tag or SHA: run crux-pilot/scripts/update-crux-pin.py once, then
+      # Pin a tag or SHA: run crux/scripts/update-crux-pin.py once, then
       # let the pin bot move it. See "Keeping the Crux pin current" in the guide.
       revision: main
       import: true
@@ -78,7 +78,7 @@ This resolves Zephyr and every allowlisted module at the revisions Crux pins. Th
 | Enable the boot loader source | `group-filter: [+crux-boot]`, with no revision | `OK` |
 | Add a product-only module | A plain project entry with its revision | `PRODUCT` |
 | Replace a project Crux pins | An entry with the same name, its path, and `userdata: crux-override` | `OVERRIDE` |
-| Use fewer modules | `import: name-allowlist: [...]` on `crux-pilot`, including `zephyr` | `OK` for what remains |
+| Use fewer modules | `import: name-allowlist: [...]` on `crux`, including `zephyr` | `OK` for what remains |
 | Add a Zephyr module Crux did not allow | A plain project entry with its revision | `OK` at the revision in Zephyr's manifest. Another revision needs `crux-override` |
 | Add such a module and own the module list | Redefine `zephyr`, with your own allowlist | `OK` while the Zephyr revision and modules match the contract |
 | Import nothing | [Plain entries](#pinning-by-hand) for Crux, Zephyr and each module | `OK` while the pins match the contract |
@@ -92,7 +92,7 @@ A product may pin Crux and Zephyr itself, with no `import`:
 
 ```yaml
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: <Crux SHA>
       west-commands: scripts/west-commands.yml
@@ -106,7 +106,7 @@ A product may pin Crux and Zephyr itself, with no `import`:
       path: modules/hal/nxp
 ```
 
-- **Commands.** With no import, west loads no commands from these projects. Without the `west-commands` line on `crux-pilot`, `west crux-pins` does not exist. Zephyr's own commands, such as `west build`, need the same line on `zephyr`.
+- **Commands.** With no import, west loads no commands from these projects. Without the `west-commands` line on `crux`, `west crux-pins` does not exist. Zephyr's own commands, such as `west build`, need the same line on `zephyr`.
 - **The contract is unchanged.** `west crux-pins` still reads it from Crux at the pinned revision and from Zephyr at Crux's pin. Another Zephyr gives `MISMATCH`. A Zephyr module outside Crux's allowlist counts as `OK` if it matches Zephyr's manifest at Crux's pin.
 - **The name `zephyr` is required.** Under any other name the command stops with `no zephyr project is pinned`.
 - **Only what the workspace holds is reported.** A module the product left out gives no line.
@@ -115,7 +115,7 @@ A variant imports Zephyr only, with the product's own allowlist, and pins Crux a
 
 ```yaml
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: <Crux SHA>
       west-commands: scripts/west-commands.yml
@@ -193,12 +193,12 @@ The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was rena
 
 ### Module name
 
-`zephyr/module.yml` sets `name: crux`, so the symbols Zephyr generates for the module no longer depend on the folder Crux is checked out in. They are `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig and `ZEPHYR_CRUX_MODULE_DIR` in CMake. Before, Zephyr took the name from the folder, so a `crux-pilot` checkout and a checkout under another folder name gave different symbols. Zephyr keeps no alias for the old names. To migrate a product:
+`zephyr/module.yml` sets `name: crux`, so the symbols Zephyr generates for the module no longer depend on the folder Crux is checked out in. They are `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig and `ZEPHYR_CRUX_MODULE_DIR` in CMake. Before, Zephyr took the name from the folder, so a `crux` checkout and a checkout under another folder name gave different symbols. Zephyr keeps no alias for the old names. To migrate a product:
 
 - Replace `ZEPHYR_CRUX_PILOT_MODULE_DIR` by `ZEPHYR_CRUX_MODULE_DIR` in CMake files.
 - Replace `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` by `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig, `prj.conf`, overlays and C code.
 
-The master switch `CONFIG_CRUX_MODULE` is unchanged. The west project and its folder keep their names: `west.yml` still places Crux at `crux-pilot`, and `scripts/bootstrap-zephyr.sh` still expects that folder.
+The master switch `CONFIG_CRUX_MODULE` is unchanged. `west.yml` places Crux at `crux`. `scripts/bootstrap-zephyr.sh` expects that folder and, until the consumers have moved, also accepts `crux-pilot`.
 
 ## Modifying third-party code
 
@@ -385,7 +385,7 @@ Run the scripts from the Crux checkout at the revision the product pins, as `wes
 
 ```sh
 cd product-x
-python3 ../crux-pilot/scripts/crux-pin-bot.py --host github
+python3 ../crux/scripts/crux-pin-bot.py --host github
 ```
 
 It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, with `--allow-path` defaulting to the manifest, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text but not the commit. It runs the updater and the hook without the token's variable and without the `--user-env` variable, and only `open-pin-pr.py` gets them. It reads `open-pin-pr.py` before the hook runs and runs that copy, because a hook that runs `west update` moves the Crux checkout, the scripts included. It records the SHA-256 of `.git/config` before the hook and passes it as `--git-config-sha256`. After a person's commit on the bot branch the command also exits `0`, with a warning, because it must not overwrite that commit. A bot pull request that stays open and is not refreshed then needs a person's look.
@@ -478,7 +478,7 @@ The stage keeps the token from a build and from the new Crux. It does not protec
 
 ### CI wrappers
 
-Run the command on a schedule, hourly to daily, one run at a time, on fresh checkouts. Turn the schedule on only once the token exists and the pin has reached a Crux commit that holds the scripts. A shallow checkout works, but the script then fetches the whole history, so the examples fetch it at once. These examples use `product-x` and a Crux project named `crux-pilot`, as the template does. Replace both names with your own. Both split the run as above. The GitHub Actions example takes the manifest and the text from the update job, which a person reviews before merging; only the Jenkins example uses `crux-pin-stage.py`, which closes that gap.
+Run the command on a schedule, hourly to daily, one run at a time, on fresh checkouts. Turn the schedule on only once the token exists and the pin has reached a Crux commit that holds the scripts. A shallow checkout works, but the script then fetches the whole history, so the examples fetch it at once. These examples use `product-x` and a Crux project named `crux`, as the template does. Replace both names with your own. Both split the run as above. The GitHub Actions example takes the manifest and the text from the update job, which a person reviews before merging; only the Jenkins example uses `crux-pin-stage.py`, which closes that gap.
 
 GitHub Actions. The update job has no token. The propose job's checkout keeps the token in `.git/config` for the push, so add no other steps to that job.
 
@@ -501,10 +501,10 @@ jobs:
       - id: pin
         run: |
           pip install west==1.4.0
-          west init -l product-x && west update crux-pilot
+          west init -l product-x && west update crux
           mkdir "$RUNNER_TEMP/pin" && cd product-x
           status=0
-          python3 ../crux-pilot/scripts/update-crux-pin.py --summary "$RUNNER_TEMP/pin/message.txt" || status=$?
+          python3 ../crux/scripts/update-crux-pin.py --summary "$RUNNER_TEMP/pin/message.txt" || status=$?
           if [ "$status" = 3 ]; then echo moved=false >> "$GITHUB_OUTPUT"; exit 0; fi
           [ "$status" = 0 ] || exit "$status"
           cp west.yml "$RUNNER_TEMP/pin/" && echo moved=true >> "$GITHUB_OUTPUT"
@@ -526,9 +526,9 @@ jobs:
       - env: {CRUX_PIN_TOKEN: "${{ secrets.CRUX_PIN_TOKEN }}"}
         run: |
           pip install west==1.4.0
-          west init -l product-x && west update crux-pilot
+          west init -l product-x && west update crux
           cp "$RUNNER_TEMP/pin/west.yml" product-x/west.yml
-          cd product-x && python3 ../crux-pilot/scripts/open-pin-pr.py --host github \
+          cd product-x && python3 ../crux/scripts/open-pin-pr.py --host github \
             --message-file "$RUNNER_TEMP/pin/message.txt" --allow-path west.yml
 ```
 
@@ -554,10 +554,10 @@ pipeline {
             env.PRODUCT_COMMIT = sh(returnStdout: true, script: 'git -C product-x rev-parse HEAD').trim()
             env.CRUX_TARGET = sh(returnStdout: true,
                                  script: 'git ls-remote "$CRUX_REMOTE" refs/heads/main | cut -f1').trim()
-            sh 'west init -l product-x && west update crux-pilot'
+            sh 'west init -l product-x && west update crux'
             def status = sh(returnStatus: true, script: '''
               cd product-x
-              python3 ../crux-pilot/scripts/update-crux-pin.py --to "$CRUX_TARGET" --remote-url "$CRUX_REMOTE"
+              python3 ../crux/scripts/update-crux-pin.py --to "$CRUX_TARGET" --remote-url "$CRUX_REMOTE"
             ''')
             // Status 3: the pin is current, so the Propose stage is skipped.
             if (status != 0 && status != 3) { error "update-crux-pin.py failed with status ${status}" }
@@ -707,12 +707,12 @@ cd release-1.2.3
 GIT_CONFIG_GLOBAL="$HOME/mirror.gitconfig" west update
 west crux-pins
 
-python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
+python3 crux/scripts/record-build-provenance.py --repo product-x --workspace . \
     --capture-inputs product-x/build/inputs.json
 west build -b <board> -d product-x/build/app product-x/app -- -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON
 west build -d product-x/build/app -t rom_report
 west build -d product-x/build/app -t ram_report
-python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
+python3 crux/scripts/record-build-provenance.py --repo product-x --workspace . \
     --build-dir product-x/build/app --target <board> --inputs product-x/build/inputs.json
 west spdx -d product-x/build/app
 ```
@@ -754,7 +754,7 @@ A provisional schema and checker for it exist in this repository: the manifest s
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
 
-A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. For the bundle, the checker enforces hashes only by default, and it has no mode that allows an image. It refuses a bundle that holds a file with an image suffix such as `.bin`, `.elf` or `.map`, a file that starts like an ELF, or a file whose SHA-256 equals the manifest's image hash. So in a public product repository the firmware image and the debug files of the table are not bundle items, and the manifest holds the image's hash. A mode for a private product that keeps the image in its bundle does not exist. It would be added when such a product needs it, with its own review. The rule is not a Crux-wide rule. The CI of crux-pilot itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
+A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. For the bundle, the checker enforces hashes only by default, and it has no mode that allows an image. It refuses a bundle that holds a file with an image suffix such as `.bin`, `.elf` or `.map`, a file that starts like an ELF, or a file whose SHA-256 equals the manifest's image hash. So in a public product repository the firmware image and the debug files of the table are not bundle items, and the manifest holds the image's hash. A mode for a private product that keeps the image in its bundle does not exist. It would be added when such a product needs it, with its own review. The rule is not a Crux-wide rule. The CI of crux itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
 
 The checker's no-image rules are structural, its path scan is a pattern and its private-string scan is a substring match, and the manifest is not signed, so the hashes show integrity and not origin. See [What is faked or heuristic](release-bundle-checker.md#what-is-faked-or-heuristic).
 

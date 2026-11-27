@@ -43,7 +43,7 @@ Next: the [Tutorial](docs/tutorial.md).
 
 ## Contributing
 
-Ask a question or report a gap as an [issue](https://github.com/wonny-labs/crux-pilot/issues). Read [CONTRIBUTING.md](CONTRIBUTING.md) for ownership, public interfaces and review rules, and [AGENTS.md](AGENTS.md) for the rules that AI agents follow in this repository.
+Ask a question or report a gap as an [issue](https://github.com/wonny-labs/crux/issues). Read [CONTRIBUTING.md](CONTRIBUTING.md) for ownership, public interfaces and review rules, and [AGENTS.md](AGENTS.md) for the rules that AI agents follow in this repository.
 
 ## License
 

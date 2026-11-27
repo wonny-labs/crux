@@ -1,6 +1,6 @@
 # Crux architecture
 
-This document explains the architecture implemented in `crux-pilot` so that developers can understand the component boundaries and extend the code without access to a separate planning repository. It is an implementation overview, not a complete product architecture or a replacement for individual API contracts.
+This document explains the architecture implemented in `crux` so that developers can understand the component boundaries and extend the code without access to a separate planning repository. It is an implementation overview, not a complete product architecture or a replacement for individual API contracts.
 
 For setup and initial builds, start with the [README](../README.md). For contribution rules, use [CONTRIBUTING](../CONTRIBUTING.md). Current supported behaviour is defined by the public headers, adopted capability contracts, and recorded validation evidence. Historical proposals do not override implemented contracts.
 
@@ -10,7 +10,7 @@ Crux is a reusable embedded software platform organised around small, component-
 
 The current development environments are a Linux Host build and Zephyr, including `native_sim` and the documented RT1060-EVKB Rev B QSPI configuration. Linux Host is a development and test environment, **not** a qualified Embedded Linux product variant. An EVKB cross-build is not proof of physical operation. A component is supported on a given environment only to the extent stated by its contract and validation record. Do not infer that every component has a Zephyr provider or has passed physical qualification.
 
-Consult the repository's [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues, and merged PRs for current delivery status. In particular, later board and independent-consumer qualification work must not be treated as complete merely because a component builds.
+Consult the repository's [GitHub milestones](https://github.com/wonny-labs/crux/milestones), issues, and merged PRs for current delivery status. In particular, later board and independent-consumer qualification work must not be treated as complete merely because a component builds.
 
 ## Architecture model
 
@@ -198,11 +198,11 @@ The two applications decided so far:
 | Name | Purpose | Today |
 | --- | --- | --- |
 | `io_controller` | The basic integrated application: periodic work, I/O, networking, diagnostics and health supervision | the former `samples/controller` (now `tests/time_periodic` and `tests/board_images/integration_probe`) |
-| `managed_controller` | The same, plus secure remote management over HTTPS, SSH and SFTP | Not started as an application: it is the work of milestones M10 to M12. Its parts are the management components in the [capability inventory](#current-capability-integration), and the [integrated image](ssh-integrated-image.md) is a `native_sim` image built from `tests/native/management_ssh`, not this application |
+| `managed_controller` | The same, plus secure remote management over HTTPS, SSH and SFTP | Not started as an application: it is the secure remote management work. Its parts are the management components in the [capability inventory](#current-capability-integration), and the [integrated image](ssh-integrated-image.md) is a `native_sim` image built from `tests/native/management_ssh`, not this application |
 
 **Names.** A name says what the application is for. It is lowercase `snake_case`, and never `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. Its internal layout is not decided here: the earlier `samples/controller` had `core/`, `host/` and `zephyr/`, and this proposal does not change that.
 
-**Boot and update are configurations.** Boot (milestone M8, "Boot platform foundation and verified boot") and update (milestone M9, "Secure firmware update and recovery") are configurations of these two applications, selected as the probe configurations of `tests/board_images/integration_probe` are today. They are not applications of their own, so they do not use up the limit.
+**Boot and update are configurations.** Boot (the boot platform foundation and verified boot work) and update (the secure firmware update and recovery work) are configurations of these two applications, selected as the probe configurations of `tests/board_images/integration_probe` are today. They are not applications of their own, so they do not use up the limit.
 
 ```mermaid
 flowchart TB
@@ -261,7 +261,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Serial | Bounded synchronous UART/TTY byte transfer (frozen for new product code) | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
 | GPIO (frozen as Experimental, to be removed: ADR-0001 D4) | Synchronous input on one statically composed logical line | Host simulation and Zephyr native GPIO driver; no output or interrupt API, no physical qualification | [Contract](gpio-contract.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
-| System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
+| System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](design/system-health-design.md), [validation](system-validation.md) |
 | I2C (frozen as Experimental, to be removed: ADR-0001 D4) | Synchronous 7-bit transfers with one statically composed controller | Host loopback fixture and Zephyr native I2C driver; no bus handle, deadline or Crux lock; no physical qualification | [Contract](i2c-contract.md) |
 | SPI (frozen as Experimental, to be removed: ADR-0001 D4) | Synchronous full-duplex byte exchange with one statically composed peripheral | Host loopback fixture and Zephyr native SPI driver; no handle, deadline or Crux lock; held chip select rejected at build time; no physical qualification | [Contract](spi-contract.md) |
 | Image state | Experimental contract for one image in two slots: query, test request and confirm, with pure version-compare and outcome functions (`CRUX_BUILD_IMAGE_STATE`) | Portable core and a Host test double, merged in #496 for Issue #297; Host tests only. No bootloader provider, no Zephyr composition, no `native_sim` or board run; the update agent is a proposal | [Contract](image-state-contract.md) |
@@ -307,7 +307,7 @@ device discovery or physical qualification:
 | GPIO line 0 | Zephyr `crux-gpio0` Devicetree alias to a node with a `gpios` property; compositions today are the `native_sim` GPIO emulator and RT1060-EVKB (the user button, or Arduino header D2 through an overlay) | One statically selected input. Missing, disabled or malformed selections fail the provider build. See the [GPIO contract](gpio-contract.md). Compile and link evidence only on the board |
 | I2C controller 0 | Zephyr `crux-i2c0` Devicetree alias to the controller node; the target address is supplied per call | One controller; no handle, deadline or Crux lock. Composition is checked on `native_sim` only. See the [I2C contract](i2c-contract.md) |
 | SPI peripheral 0 | Zephyr `crux-spi0` Devicetree alias to the peripheral node (frequency, mode, bit order and chip select come from the node) | One peripheral; held chip select, half-duplex and TI frame format are rejected at build time. Composition is checked on `native_sim` only. See the [SPI contract](spi-contract.md) |
-| Storage | No target-storage binding is added by this section | The current target-storage decision is recorded in [Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14) and is unchanged here. The simulator-only `native_sim` File provider is not evidence for a target Flash layout or permission to enable target storage. |
+| Storage | No target-storage binding is added by this section | The current target-storage decision is recorded in [Issue #14](https://github.com/wonny-labs/crux/issues/14) and is unchanged here. The simulator-only `native_sim` File provider is not evidence for a target Flash layout or permission to enable target storage. |
 
 The Serial consumer composition uses the same runtime consumer sources with
 separate `native_sim/native/64` and `mimxrt1060_evk@B//qspi` overlays; its runner
@@ -334,7 +334,7 @@ Crux uses complementary forms of evidence:
 
 Run tests proportionate to the change. Preserve existing contract and boundary protections, including negative tests. Avoid repeating unrelated full test suites solely for a documentation change. Physical programming, reset and Flash operations require task-specific approval and verified target setup.
 
-Evidence and historical qualification records must retain their original source, board and toolchain identity. Earlier Time Pilot M0–M5 records in [implementation status](implementation-status.md) are **not** the same milestones as the current platform roadmap.
+Evidence and historical qualification records must retain their original source, board and toolchain identity. The initial implementation records in [implementation status](implementation-status.md) do **not** describe the current platform roadmap.
 
 ### Status of a hypothesis or exit criterion
 

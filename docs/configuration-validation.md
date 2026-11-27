@@ -2,13 +2,13 @@
 
 See [the subsequent isolated Settings/NVS candidate](configuration-native-validation.md) for separately authorised native simulator integration. Its copied-source patches remain unadopted; the historical evidence and physical gates below are preserved.
 
-Issue [#16](https://github.com/wonny-labs/crux-pilot/issues/16) now has the
+Issue [#16](https://github.com/wonny-labs/crux/issues/16) now has the
 [approved scalar contract](configuration-contract.md), shared C17 implementation,
 a private deterministic persistence port and independent C17/C++17 consumers.
 This is the software portion of the issue. There is **no adopted native Settings
 provider, persistent production backend or physical qualification** in this change.
 This text records the original software portion. The M4 storage direction in
-[#14](https://github.com/wonny-labs/crux-pilot/issues/14) is now microSD with FatFs and the
+[#14](https://github.com/wonny-labs/crux/issues/14) is now microSD with FatFs and the
 Settings File backend, with no Settings File target provider adopted; QSPI NOR/LittleFS plus
 Settings/NVS is a superseded design candidate. See [the microSD composition](microsd-composition.md).
 

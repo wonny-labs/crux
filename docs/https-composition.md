@@ -1,6 +1,6 @@
 # HTTPS composition on the Wolf and Mbed TLS profiles
 
-Status: merged in [PR #277](https://github.com/wonny-labs/crux-pilot/pull/277) for [Issue #185](https://github.com/wonny-labs/crux-pilot/issues/185). Host and
+Status: merged in [PR #277](https://github.com/wonny-labs/crux/pull/277) for [Issue #185](https://github.com/wonny-labs/crux/issues/185). Host and
 `native_sim` evidence only, an interim result by decision W18. **Nothing here ran on a board.** RT1060-EVKB results are
 compile only, and the handshake time and memory on RT1060 stay open for a separately approved run.
 
@@ -339,7 +339,7 @@ gap: when the #280 late first read's assertion fires first, the case's two later
 free again (`wait_route_free`, in `tests/native/web_http/test_driver.py`), do not run, so a close that sent data would be
 masked in that run. That gap, and Wolf's next-request bound of 2.5 s, loose against the largest wait measured, about 1.0
 to 1.07 s, are declared, and both go away when #280 is fixed. Whether the #280 late first read exists on a target, or with Zephyr's own TCP, is unknown. New issue
-[#280](https://github.com/wonny-labs/crux-pilot/issues/280) tracks it.
+[#280](https://github.com/wonny-labs/crux/issues/280) tracks it.
 
 ## How a product applies the wolfSSL patch
 

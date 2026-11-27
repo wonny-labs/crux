@@ -1,6 +1,6 @@
 # Portable Logging
 
-The [approved design](superpowers/specs/2026-10-24-logging-design.md) defines
+The [approved design](design/logging-design.md) defines
 `<crux/logging.h>` and `crux::logging`. The component depends publicly on Base.
 
 Which code calls `crux_log_write`, and which uses Zephyr logging or `printk`, is in [Logging](coding-guidelines.md#logging).

@@ -175,7 +175,7 @@ class SetupBoardHostTest(unittest.TestCase):
     def test_refused_inside_the_dev_container(self):
         self.lsusb()
         self.node(0o666)
-        result = self.run_script(CRUX_REPO="/workspace/crux-pilot")
+        result = self.run_script(CRUX_REPO="/workspace/crux")
         self.assertEqual(result.returncode, 2)
         self.assertIn("not in the Dev Container", result.stderr)
         self.assertEqual(len(result.stderr.splitlines()), 1, result.stderr)

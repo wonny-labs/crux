@@ -4,17 +4,17 @@ This template moved from `samples/product_template` to `templates/product` on 9 
 
 A starting point for a product repository built on Crux. The repository is its own west manifest repository. Crux and Zephyr are projects in its workspace.
 
-The [Product Composition Guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md) (`docs/product-composition.md` in `crux-pilot`) explains the choices.
+The [Product Composition Guide](https://github.com/wonny-labs/crux/blob/main/docs/product-composition.md) (`docs/product-composition.md` in `crux`) explains the choices.
 
 | File | Purpose |
 | --- | --- |
-| `west.yml` | Imports `crux-pilot`, with comments for the optional group, a product-only module and an override |
+| `west.yml` | Imports `crux`, with comments for the optional group, a product-only module and an override |
 | `app/` | A Zephyr application, the execution shell, that links `crux::time` and calls the domain |
 | `domain/` | The product's own behaviour as plain C, with one product-owned port header |
 | `check_domain_includes.py` | The domain include check, and with `--product` the include check of the whole product repository |
 | `RELEASE.md` | A [release record](RELEASE.md) to copy for each release: dependency inventory, routes for modified upstreams, vendor kits, build environment, support period, release steps, bundle contents, revision and checks |
 | `.gitignore` | Keeps `build/` out of the source tree that the build record hashes |
-| `zephyr/module.yml`, `drivers/`, `dts/bindings/`, `boards/`, `tests/` | The driver kit: the repository as a Zephyr module with an example driver, its emulator and tests, and an example board. See [drivers/README.md](drivers/README.md) and [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md) |
+| `zephyr/module.yml`, `drivers/`, `dts/bindings/`, `boards/`, `tests/` | The driver kit: the repository as a Zephyr module with an example driver, its emulator and tests, and an example board. See [drivers/README.md](drivers/README.md) and [Writing a product driver](https://github.com/wonny-labs/crux/blob/main/docs/writing-a-product-driver.md) |
 
 ## Start a product
 
@@ -22,7 +22,7 @@ Copy this directory into an empty workspace directory, rename `product-x` in `we
 
 ~~~sh
 mkdir acme-workspace
-cp -R crux-pilot/templates/product acme-workspace/product-x
+cp -R crux/templates/product acme-workspace/product-x
 cd acme-workspace
 git -C product-x init
 git -C product-x add .
@@ -35,18 +35,18 @@ west build -b <board> -d product-x/build/app product-x/app
 
 `west crux-pins` compares the workspace with the revisions Crux pins, and fails on a difference with no declared reason. The build warns if the workspace uses another Zephyr release, and stops with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`. The guide lists both checks, how to modify third-party code and how to make a release.
 
-The copied `west.yml` follows Crux `main`. Pin it to a SHA once with `python3 crux-pilot/scripts/update-crux-pin.py --manifest product-x/west.yml`, commit it, and keep it current with the pin bot of [Keeping the Crux pin current](https://github.com/wonny-labs/crux-pilot/blob/main/docs/product-composition.md#keeping-the-crux-pin-current). For each release, copy `RELEASE.md` and fill it in. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux-pilot/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux-pilot`).
+The copied `west.yml` follows Crux `main`. Pin it to a SHA once with `python3 crux/scripts/update-crux-pin.py --manifest product-x/west.yml`, commit it, and keep it current with the pin bot of [Keeping the Crux pin current](https://github.com/wonny-labs/crux/blob/main/docs/product-composition.md#keeping-the-crux-pin-current). For each release, copy `RELEASE.md` and fill it in. For a product that compiles vendor kits, its kit section follows [Vendor kits across repositories](https://github.com/wonny-labs/crux/blob/main/docs/vendor-kits.md) (`docs/vendor-kits.md` in `crux`).
 
 ## Boards
 
 The application is the same for every board: the board is the `-b` argument of `west build`, and `west config build.board <board>` sets a default for a workspace.
 Put what one board needs in `app/boards/<board>.conf` and `app/boards/<board>.overlay`, where `<board>` is the board target with `/` replaced by `_`, and keep `prj.conf` and feature fragments free of board values.
 Kconfig in this repository depends on generic or `DT_HAS_<compatible>_ENABLED` symbols, as `drivers/sensor/example_temp/Kconfig` does, never on a board or SoC symbol.
-The [porting guide](https://github.com/wonny-labs/crux-pilot/blob/main/docs/porting-to-a-new-board.md#board-neutral-conventions) (`docs/porting-to-a-new-board.md` in `crux-pilot`) lists the conventions with their Zephyr references.
+The [porting guide](https://github.com/wonny-labs/crux/blob/main/docs/porting-to-a-new-board.md#board-neutral-conventions) (`docs/porting-to-a-new-board.md` in `crux`) lists the conventions with their Zephyr references.
 
 ## Zones and the domain include check
 
-The template has two zones, after the three questions of [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md).
+The template has two zones, after the three questions of [Choosing an API](https://github.com/wonny-labs/crux/blob/main/docs/choosing-an-api.md).
 
 | Zone | Where | May include | Owns |
 | --- | --- | --- | --- |
@@ -82,7 +82,7 @@ Code that already uses a frozen header and has not moved yet is listed once with
 python3 check_domain_includes.py --product . --exclude app/src/legacy_threads.c
 ~~~
 
-It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for a target that compiles only the product's own sources, as in [Choosing an API](https://github.com/wonny-labs/crux-pilot/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-and-serial).
+It is lexical like the domain check. For code that is compiled, the opt-in compiler warning of the frozen headers is the second layer: it sees what the preprocessor sees, including a header that a macro or another header pulls in. Define `CRUX_WARN_FROZEN_HEADERS` for a target that compiles only the product's own sources, as in [Choosing an API](https://github.com/wonny-labs/crux/blob/main/docs/choosing-an-api.md#frozen-for-new-product-code-thread-sync-and-serial).
 
 ~~~cmake
 target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
@@ -90,7 +90,7 @@ target_compile_definitions(product_adapters PRIVATE CRUX_WARN_FROZEN_HEADERS)
 
 The warning is silent in the targets that Crux's own CMake creates. A Zephyr image usually adds the sources of Crux services to `app`. Those sources include frozen headers on purpose, so they warn if you define the macro on `app` (and fail under the template's `-Werror`). Put the product's adapters in their own library, or accept the warnings from Crux's sources, and rely on `--product` for `app`.
 
-An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. Built as a plain `STATIC` library it can fail to link; see [Writing a product driver](https://github.com/wonny-labs/crux-pilot/blob/main/docs/writing-a-product-driver.md#static-libraries-and-kernel-objects).
+An adapter that calls Zephyr kernel objects (for example `k_msgq_*`) is the exception to that advice. Make it a source of the `app` target (`target_sources(app PRIVATE ...)`) and rely on `--product` for it, because the warning guard cannot be defined on `app`. Built as a plain `STATIC` library it can fail to link; see [Writing a product driver](https://github.com/wonny-labs/crux/blob/main/docs/writing-a-product-driver.md#static-libraries-and-kernel-objects).
 
 `--domain DIR` resolves a quoted include only relative to the including file and to `DIR`, never through an include path. A layout with `include/` beside `src/`, where `#include "name.h"` is found through an include path, therefore fails, even though the header is inside `DIR`. Either spell the include relative to `DIR` (`"include/name.h"`), or leave that directory out of `--domain`. Leaving it out keeps only the frozen-header rule for it, so `<zephyr/...>` includes there are not caught.
 

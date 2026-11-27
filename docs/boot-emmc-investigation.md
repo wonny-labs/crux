@@ -7,9 +7,9 @@
 
 | Field | Value |
 | --- | --- |
-| Issue | [#298](https://github.com/wonny-labs/crux-pilot/issues/298) "Investigate eMMC boot and update feasibility for the boot platform" |
+| Issue | [#298](https://github.com/wonny-labs/crux/issues/298) "Investigate eMMC boot and update feasibility for the boot platform" |
 | Status | **A merged desk record whose conclusions are not adopted unless the owner decided so.** Desk results only. No build, hardware, fuse or debugger operation was run. It makes no eMMC support claim. It adds no M8 or M9 exit criterion. |
-| Pinned upstream | The pins named in [#141](https://github.com/wonny-labs/crux-pilot/issues/141): Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`, `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. **`main` now pins Zephyr v4.4.2** (`dccb09599635bdff17633fa7e9dab014b91dce90`) with MCUboot `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` and `hal_nxp` `7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0`. Every Zephyr, MCUboot and `hal_nxp` file cited (rows P) was compared at both sets of pins and is identical. The Linux, U-Boot, mmc-utils and vendor rows cite one revision each. |
+| Pinned upstream | The pins named in [#141](https://github.com/wonny-labs/crux/issues/141): Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`, `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. **`main` now pins Zephyr v4.4.2** (`dccb09599635bdff17633fa7e9dab014b91dce90`) with MCUboot `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` and `hal_nxp` `7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0`. Every Zephyr, MCUboot and `hal_nxp` file cited (rows P) was compared at both sets of pins and is identical. The Linux, U-Boot, mmc-utils and vendor rows cite one revision each. |
 | crux-pilot read | `main` at `3e0a5d7` |
 | Related records | The #141 record is [boot-update-investigation.md](boot-update-investigation.md) (merged 7 November 2026). The M14 design is [emmc-reliance-design.md](plans/emmc-reliance-design.md). |
 | Evidence | [docs/evidence/boot-emmc/](evidence/boot-emmc/README.md) |
@@ -129,7 +129,7 @@ Each item is an Inference from the rows above unless marked.
 | SD/MMC stack and uSDHC driver in the bootloader | Host driver, stack, clocks, pins, DMA with cache alignment (M14 finding F17: the D-cache line rule and `SDHC_BUFFER_ALIGNMENT`), and the M14 cache-flush correction. | Size, RAM, boot time and stack are **Not measured**. #141 measured the NOR MCUboot at 51,760 B (RAM load with revert) in a 128 KiB partition. That figure says nothing about the SD/MMC stack. |
 | Write semantics | Alignment and ordering rules for the trailer, see section 5. | The eMMC cache needs a flush at the points where MCUboot orders its writes. |
 | First-stage placement | The bootloader is loaded by the ROM into RAM, so it is linked for RAM, not for XIP NOR. | Where in RAM follows the boot data (R3). The boot header for SD or eMMC needs the IVT at `0x400` (R4), see section 1. |
-| Updating the bootloader itself | Boot-partition access, switching and write protection. | None of it exists in Zephyr's stack (P16, E19). This belongs to [#299](https://github.com/wonny-labs/crux-pilot/issues/299). |
+| Updating the bootloader itself | Boot-partition access, switching and write protection. | None of it exists in Zephyr's stack (P16, E19). This belongs to [#299](https://github.com/wonny-labs/crux/issues/299). |
 
 **Read-only variant.** Plain RAM load without test, confirm and revert only reads slots (P24). A read-only backend would be
 smaller, but #141 ranks RAM load with revert first because it provides test, confirm and revert, and those need writes
@@ -193,7 +193,7 @@ more rows of the same manual for the #299 questions, and this record does not re
   any bootloader update and any in-field recovery of that partition. Permanent protection, fuse settings and closed
   configurations stay product decisions. This record recommends nothing about them.
 - **Software gap:** no boot-partition handling exists in Zephyr's stack (P16, E19). The options belong to
-  [#299](https://github.com/wonny-labs/crux-pilot/issues/299), for which this section is the eMMC input.
+  [#299](https://github.com/wonny-labs/crux/issues/299), for which this section is the eMMC input.
 
 ## 4. Which stage initialises SDRAM and the SD/MMC controller
 

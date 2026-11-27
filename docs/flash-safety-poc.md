@@ -2,7 +2,7 @@
 
 > **Status: historical experiment.** A software-only proof of concept, not an adopted design. For the current state see [Component readiness](component-readiness.md).
 
-Experimental, software-only follow-up to [Issue #22](https://github.com/wonny-labs/crux-pilot/issues/22)
+Experimental, software-only follow-up to [Issue #22](https://github.com/wonny-labs/crux/issues/22)
 and the accepted [storage assessment](storage-configuration-assessment.md).
 This is not an adopted Flash driver, partition layout, backend or production recovery policy.
 **Do not program this image.** Its native driver initialization is also unqualified.
