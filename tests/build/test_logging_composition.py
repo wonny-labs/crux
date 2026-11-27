@@ -24,7 +24,16 @@ class LoggingCompositionTest(unittest.TestCase):
             'disabled': ('&logging_test { status = "disabled"; };', '', 'UART must be enabled'),
             'multiple': ('&logging_uarts { uarts = <&logging_test &uart0>; };', '',
                          'requires exactly one UART'),
-            'unsupported': ('&logging_uarts { uarts = <&uart0>; };', '', 'unsupported UART resource'),
+            'unsupported': ('/ { other_uart: other-uart { compatible = "crux,test-other-uart"; '
+                            'status = "okay"; }; };\n&logging_uarts { uarts = <&other_uart>; };', '',
+                            'unsupported UART resource'),
+            # The native PTY UART is accepted under the same mode and owner checks.
+            'pty_speed': ('&logging_uarts { uarts = <&uart0>; };', '', 'unsupported UART mode'),
+            'pty_shell': ('&uart0 { current-speed = <115200>; };\n'
+                          '&logging_uarts { uarts = <&uart0>; };',
+                          'CONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_SERIAL=y\n'
+                          'CONFIG_SHELL_BACKEND_SERIAL_API_POLLING=y\nCONFIG_SHELL_LOG_BACKEND=n\n',
+                          'conflicts with UART Shell'),
             'parity': ('&logging_test { parity = "even"; };', '', 'unsupported UART mode'),
             'flow_control': ('&logging_test { hw-flow-control; };', '', 'unsupported UART mode'),
             # The shared-Console rule is about the Console, not the board: without Logging-only routing
