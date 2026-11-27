@@ -3,7 +3,7 @@ name: ci
 # Runs every CI workflow of a pull request, a merge or the nightly tier in one run, and reports
 # `ci-gate`, the one check that a merge rule needs to require (docs/ci.md#merge-gate).
 # The called workflows are thin wrappers: scripts/ci/run-tier.sh picks and runs the checks of the
-# tier, including the path rules that once were workflow path filters (docs/ci.md).
+# tier and applies the path rules of scripts/ci/checks.toml; no workflow has a path filter (docs/ci.md).
 # tests/build/test_ci_gate.py keeps the gate complete.
 on:
   push:

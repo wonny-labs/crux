@@ -111,7 +111,7 @@ A post-merge run with no previous commit fails the patch style check, which need
 | Change request ready for review, or pushed while ready | `pull_request` types `opened`, `synchronize`, `reopened`, `ready_for_review` | A change request build (`CHANGE_ID` set) | `full` | Target branch (`GITHUB_BASE_REF`, `CHANGE_TARGET`) |
 | Push to a branch without a change request | Not built; open a draft pull request or run the workflow by hand | A branch build | `fast` | `origin/main` |
 | Merge to the default branch | `push` to `main` | A build of `main` | `full` | The previous commit (`before`, `GIT_PREVIOUS_SUCCESSFUL_COMMIT`); none for the first Jenkins build of the branch |
-| Merge queue | `merge_group`, which `auto` handles; the workflows list it once a merge queue is enabled | — | `full` | The queue's base commit |
+| Merge queue | `merge_group`, which `auto` handles; `ci.yml` lists it once a merge queue is enabled | — | `full` | The queue's base commit |
 | Nightly | `schedule`, 02:17 UTC | `cron('H 2 * * *')` on `main`, which sets `CRUX_CI_TRIGGER=timer` | `nightly` | None |
 | By hand | `workflow_dispatch` with the `tier` and `base` inputs | The `TIER` and `BASE` parameters | As chosen | `base` or `BASE` when given; otherwise none for GitHub and derived for Jenkins |
 
@@ -125,7 +125,7 @@ The full tier must pass on a change before it merges.
 On GitHub a draft pull request cannot be merged, and a pull request that is ready runs the full tier on every push and when it is marked ready.
 The check `ci-gate` reports whether it passed ([Merge gate](#merge-gate)); a repository rule that requires it enforces the merge rule, and choosing that rule is the owner's decision.
 Until such a rule exists a ready pull request can be merged while its full run is still pending or after it failed.
-Even with it, an administrator can change or bypass the rule, and a merge does not rerun the full tier on the merged result before it lands (a merge queue would).
+Even with it, an administrator can change the rule, a bypass actor of the rule can merge past it, and a merge does not rerun the full tier on the merged result before it lands (a merge queue would).
 
 ## Merge gate
 
@@ -143,12 +143,12 @@ Each called workflow can still run alone by hand.
 | --- | --- |
 | Required status checks and auto-merge | Standard GitHub features: [troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), [automatically merging a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) |
 | One workflow calling the others | Standard: [reusing workflow configurations](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations) |
-| A job with `needs` and `always()` as the only required check | Documented building blocks ([workflow syntax, `needs`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)); one aggregate check is this project's choice |
+| A job with `needs` and `always()` as the only required check | Documented but optional: built from documented features ([workflow syntax, `needs`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)); one aggregate check is this project's choice |
 | Another name for fast runs | Project-specific: a job name may use the `github` and `inputs` contexts ([contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)) |
 
 Limits:
 
-- A pull request can change `ci.yml` itself and so its own gate, as with any check that a workflow reports; review of `.github/` changes is the guard.
+- A pull request can change `ci.yml`, or add a workflow with a job named `ci-gate`, and so pass its own gate, as with any check that a workflow reports; review of `.github/` changes is the guard.
 - When a ready pull request is turned into a draft and back without a new commit, the earlier full run's `ci-gate` stays on that commit while the new run works. Which of two same-named checks GitHub uses is not documented.
 - A pull request opened before `ci.yml` existed reports no `ci-gate` until it gets a new commit or is rebased.
 

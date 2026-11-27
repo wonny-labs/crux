@@ -256,7 +256,7 @@ class ZephyrShardsTest(unittest.TestCase):
                 with self.subTest(check=check["id"]):
                     self.assertEqual("psa-crypto", check.get("scope"))
 
-    def test_the_review_records_that_the_pin_check_reads_start_the_psa_crypto_workflow(self):
+    def test_the_review_records_that_the_pin_check_reads_select_the_psa_crypto_checks(self):
         records = re.findall(r"'(docs/[^']+)'", PSA_SCRIPT.read_text())
         self.assertTrue(records)
         for record in records:
@@ -285,7 +285,7 @@ class ZephyrShardsTest(unittest.TestCase):
 
 @unittest.skipUnless(WORKFLOWS.is_dir(), NO_GITHUB)
 class TierTriggersTest(unittest.TestCase):
-    """Every tier workflow starts on the events of the tier model, the same way."""
+    """ci.yml starts every tier workflow on the events of the tier model; each also runs by hand."""
 
     def test_the_ci_workflow_starts_every_tier_workflow_nightly(self):
         # ci.yml calls the tier workflows (test_ci_gate.py), so only it has a schedule.

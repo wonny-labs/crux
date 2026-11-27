@@ -246,7 +246,7 @@ class WiringTest(unittest.TestCase):
                         self.assertIsNone(condition)
 
     def test_a_web_job_without_checks_skips_its_steps_after_the_plan(self):
-        # The web jobs now run for every change; without checks they must not set up Node.js or
+        # The web jobs run for every change; without checks they must not set up Node.js or
         # require the SBOM that only a check writes.
         for job, lines in jobs((WORKFLOWS / "web.yml").read_text()).items():
             steps = re.split(r"\n(?=      - )", "\n".join(lines))

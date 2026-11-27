@@ -6,11 +6,14 @@ The Zephyr checks run in eight parallel jobs, called shards: the `zephyr-*` jobs
 
 ```mermaid
 flowchart LR
-    event["Push to main or pull request"] --> filter{"Only docs/** or **.md changed?"}
+    event["ci.yml: push to main, pull request or nightly"] --> shards
     manual["Manual run"] --> shards
-    filter -- "Yes" --> skip["Zephyr workflow does not run<br/>Host and link checks still run"]
-    filter -- "No" --> shards["eight shards in parallel:<br/>emmc, runtime, controller, integration,<br/>storage, io, system, file"]
-    shards --> summary["zephyr<br/>passes only if every shard passed"]
+    shards["eight shards in parallel:<br/>emmc, runtime, controller, integration,<br/>storage, io, system, file"] --> plan{"Checks selected?"}
+    plan -- "Yes" --> run["set up and run them"]
+    plan -- "No, e.g. only docs/** or **.md changed" --> pass["skip the set-up and pass"]
+    run --> summary["zephyr<br/>passes only if every shard passed"]
+    pass --> summary
+    summary --> gate["ci-gate"]
 ```
 
 Each shard is a separate runner with its own checkout, Zephyr workspace and SDK. Shards share nothing, and each uploads its own artifact, named `zephyr-<shard>-<run>-<attempt>`. A failing shard does not cancel the others, so one run reports every failing area. Within a shard, the first failing check stops the checks after it. A shard whose tier selects no check skips its set-up and passes. The matrix lists the longest shards first, so that they start first when runners are short.
@@ -54,7 +57,7 @@ Follow [Add a check](ci.md#add-a-check), with the job `zephyr-<shard>`:
 | The summary job accepts anything but `success` | A cancelled or skipped shard would look like a pass |
 | A tier workflow gets a path filter | `ci-gate` would wait for a workflow that never reports |
 | `host.yml` gets a `paths-ignore` filter | Nothing would run the tests that read documentation |
-| `ci.yml` lacks `ready_for_review` or the nightly schedule, or a tier workflow lacks the manual tier input | A ready pull request or the nightly run would miss the full set |
+| `ci.yml` lacks the nightly schedule, or a tier workflow lacks the manual tier input | The nightly or a manual run would miss the full set |
 | A workflow job with a matrix of map file jobs names a fixed job | One job would run in every entry while the others never run |
 
 `tests/build/test_ci_tiers.py` holds the checks of every job with their commands, so a deleted or changed check fails it, and it requires a check that enables an optional west group to be the last of its job. The shard test cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
@@ -92,5 +95,5 @@ A later pair with a working cache, on identical source, gave the second run 99.2
 ## Limits
 
 - Total runner time rises because each shard repeats the set-up.
-- Each run uses nine jobs (eight shards and the summary). A full run of a code change uses 15 jobs across the workflows, 19 with the web jobs, and GitHub's free plan runs at most 20 at once ([limits](https://docs.github.com/en/actions/reference/limits)), so two runs at once queue some shards. In the first trial the `emmc` shard waited while another pull request's run held runners.
+- Each run uses nine Zephyr jobs (eight shards and the summary). Every run of `ci.yml` starts 20 jobs, at most 18 at once because the summary and `ci-gate` start last; a job with no checks ends within about a minute. GitHub's free plan runs at most 20 jobs at once ([limits](https://docs.github.com/en/actions/reference/limits)), so two runs at once queue some shards. In the first trial the `emmc` shard waited while another pull request's run held runners.
 - The shard sizes come from past timings and will drift. Rebalance them when one shard stays clearly the longest.
