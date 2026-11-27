@@ -168,8 +168,7 @@ static size_t slot_open(size_t slot, uint32_t *records)
     }
     const uint8_t *body = io_buffer + CRUX_CREDENTIAL_HEADER_BYTES;
     if (crux_credential_port_open(io_buffer, CRUX_CREDENTIAL_HEADER_BYTES, body,
-                                  header.payload_length, header.nonce,
-                                  body + header.payload_length,
+                                  header.payload_length, header.nonce, body + header.payload_length,
                                   payload_buffer) != CRUX_CREDENTIAL_OK ||
         !crux_credential_payload_valid(payload_buffer, header.payload_length, records)) {
         return 0;
@@ -188,8 +187,7 @@ bool test_slot_records(size_t slot, uint32_t *records)
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): every helper takes the slot first.
-bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data,
-                     size_t length)
+bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data, size_t length)
 {
     uint32_t records = 0;
     const uint8_t *found = NULL;

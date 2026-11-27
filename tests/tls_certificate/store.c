@@ -29,11 +29,10 @@ static const char *const admin_permissions[] = {CRUX_ACCESS_PERMISSION_MANAGE,
                                                 CRUX_TLS_CERTIFICATE_PERMISSION_MANAGE};
 static const crux_access_role_t roles[] = {{"administrator", admin_permissions, 2}};
 static const crux_access_policy_t policy = {roles, 1, 15u * 60u, 8u * 3600u, NULL};
-static const crux_tls_certificate_options_t options = {
-    {"Crux device", NULL, 0, NULL, 0, NULL, 0},
-    CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
-    0,
-    false};
+static const crux_tls_certificate_options_t options = {{"Crux device", NULL, 0, NULL, 0, NULL, 0},
+                                                       CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
+                                                       0,
+                                                       false};
 static crux_access_session_t admin;
 
 static void boot_access(void)
@@ -209,10 +208,7 @@ static void test_account_erase_keeps_the_identity(void)
 }
 
 static const crux_tls_certificate_options_t existing_only = {
-    {"Crux device", NULL, 0, NULL, 0, NULL, 0},
-    CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
-    0,
-    true};
+    {"Crux device", NULL, 0, NULL, 0, NULL, 0}, CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S, 0, true};
 
 /* Decision D-4: with require_existing_identity, a missing key or certificate is refused and the
  * store is left exactly as it was, so a product can enter its own recovery instead. */
@@ -225,15 +221,13 @@ static void test_require_existing_identity(void)
     fake_ports_reset();
     test_fresh();
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
-    CHECK(crux_tls_certificate_start(&existing_only, &how) ==
-          CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
     CHECK(credential_fake_keygen_count() == 0u);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
     CHECK(!test_slot_exists(0) && !test_slot_exists(1));
     CHECK(crux_tls_certificate_material_take(&material) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);
     /* A refusal leaves the module not started, so start can be called again. */
-    CHECK(crux_tls_certificate_start(&existing_only, &how) ==
-          CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
 
     /* A key and no certificate: no certificate is made, and neither slot changes. */
     fresh_medium();
@@ -241,8 +235,7 @@ static void test_require_existing_identity(void)
         CHECK(test_slot_read(slot, slot_before[slot], sizeof(slot_before[slot])) ==
               sizeof(slot_before[slot]));
     }
-    CHECK(crux_tls_certificate_start(&existing_only, &how) ==
-          CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
     for (size_t slot = 0; slot < 2u; ++slot) {
         CHECK(test_slot_read(slot, slot_after, sizeof(slot_after)) == sizeof(slot_after));
         CHECK(memcmp(slot_after, slot_before[slot], sizeof(slot_after)) == 0);

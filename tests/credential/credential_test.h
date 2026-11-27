@@ -77,8 +77,7 @@ void test_slot_swap(void);
  * leaving records alone, unless the slot is valid. */
 bool test_slot_records(size_t slot, uint32_t *records);
 /* Whether a valid slot holds the record with exactly these bytes. */
-bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data,
-                     size_t length);
+bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data, size_t length);
 /* Whether any valid slot holds the record. */
 bool test_any_slot_has(crux_credential_record_t record);
 

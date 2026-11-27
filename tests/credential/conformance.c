@@ -825,8 +825,8 @@ static void expect_slots_keep_only_the_identity(void)
         CHECK(test_slot_records(slot, &records));
         CHECK((records & (1u << (uint32_t)CRUX_CREDENTIAL_RECORD_ACCOUNTS)) == 0);
         CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_key, tls_key_length));
-        CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_key,
-                              host_key_length));
+        CHECK(
+            test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_key, host_key_length));
         CHECK(test_slot_holds(slot, CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate,
                               sizeof(certificate)));
     }

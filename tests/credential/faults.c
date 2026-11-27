@@ -875,10 +875,9 @@ static void test_failed_erase_steps(void)
  */
 static void test_failed_erase_accounts_steps(void)
 {
-    static const crux_file_fake_op_t ops[] = {CRUX_FILE_FAKE_STAT,  CRUX_FILE_FAKE_OPEN,
-                                              CRUX_FILE_FAKE_READ,  CRUX_FILE_FAKE_WRITE,
-                                              CRUX_FILE_FAKE_SEEK,  CRUX_FILE_FAKE_SYNC,
-                                              CRUX_FILE_FAKE_CLOSE, CRUX_FILE_FAKE_TRUNCATE};
+    static const crux_file_fake_op_t ops[] = {
+        CRUX_FILE_FAKE_STAT, CRUX_FILE_FAKE_OPEN, CRUX_FILE_FAKE_READ,  CRUX_FILE_FAKE_WRITE,
+        CRUX_FILE_FAKE_SEEK, CRUX_FILE_FAKE_SYNC, CRUX_FILE_FAKE_CLOSE, CRUX_FILE_FAKE_TRUNCATE};
     unsigned failures_seen = 0;
     for (size_t op = 0; op < sizeof(ops) / sizeof(ops[0]); ++op) {
         for (unsigned skip = 0; skip < 12u; ++skip) {

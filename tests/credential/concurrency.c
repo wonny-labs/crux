@@ -194,8 +194,8 @@ static void test_erase_accounts_while_others_use_the_store(void)
 
     erase_writer_t writers[] = {{CRUX_CREDENTIAL_RECORD_ACCOUNTS, 0x20, -1, 0},
                                 {CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, 0x40, -1, 0}};
-    static const crux_credential_record_t read_records[] = {
-        CRUX_CREDENTIAL_RECORD_ACCOUNTS, CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE};
+    static const crux_credential_record_t read_records[] = {CRUX_CREDENTIAL_RECORD_ACCOUNTS,
+                                                            CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE};
     pthread_t writer_threads[2];
     pthread_t reader_threads[2];
     pthread_t status_thread;

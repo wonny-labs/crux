@@ -334,8 +334,8 @@ static void test_account_erase_reopens_provisioning_and_keeps_keys(void)
                                      CRUX_CREDENTIAL_KEY_ECDSA_P256) == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY,
                                      CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
-    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_before,
-                                     sizeof(tls_before), &tls_length) == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_TLS_KEY, tls_before, sizeof(tls_before),
+                                     &tls_length) == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_key_public(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, host_before,
                                      sizeof(host_before), &host_length) == CRUX_CREDENTIAL_OK);
     CHECK(boot_both() == CRUX_ACCESS_OK);
