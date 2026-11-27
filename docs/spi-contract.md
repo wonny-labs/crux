@@ -1,5 +1,7 @@
 # SPI contract
 
+> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries the opt-in frozen-header warning, and no tag exists. New product code uses the Zephyr `spi_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
+
 `crux_spi_transceive` exchanges equal-length TX/RX byte buffers with the peripheral selected by
 the Zephyr composition's `crux-spi0` alias. Both buffers must be non-null, distinct, and
 non-overlapping; length must be greater than zero. Buffers are borrowed through the synchronous
@@ -31,7 +33,11 @@ running (pre-kernel or early startup) are not supported but are not detected. Bl
 CS behavior, and serialization depend on the selected driver. Crux adds no lock. Buffer overlap is a caller
 precondition and is not checked.
 
-The Host provider is a deterministic loopback fixture, not a bus model. The `native_sim` test uses
+The Host provider is a deterministic loopback fixture, not a bus model: received bytes echo the
+transmitted bytes (`components/spi/host/spi_port_host.c`), and a Zephyr build cannot select it
+(`zephyr/CMakeLists.txt:95-97` adds only `ports/zephyr`). The retirement of this capability is
+follow-up change 4 of [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the
+plan, not yet done. The `native_sim` test uses
 Zephyr's SPI emulation controller and a test peripheral to verify data exchange, the composed
 frequency, mode, bit-order and chip-select values, the provider's fixed 8-bit word size, and native
 error mapping. No physical SPI peripheral

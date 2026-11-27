@@ -1,4 +1,4 @@
-> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), issues and pull requests; see also [Project status](../README.md#project-status-and-contributing) in the README.
+> **Historical record.** This file mainly records the evidence of the Time Pilot milestones M0–M5 and also holds some later records (for example "Current platform roadmap M1" and the consumer-build follow-ups). Its last evidence update is 2026-10-17. It is not the current platform status. Current delivery status is in the [GitHub milestones](https://github.com/wonny-labs/crux/milestones), issues and pull requests; see also [Project status](../README.md#contributing) in the README.
 
 # Crux implementation status
 
@@ -17,15 +17,15 @@ Development Plan uses different milestones. Its M1 readiness assessment is recor
 in [platform M1 readiness](platform-m1-readiness.md), against planning source
 `7d2287bdb5a252ee5e1fc51c7142813ba37800d6`.
 
-The follow-up for issues [#2](https://github.com/wonny-labs/crux-pilot/issues/2) and
-[#3](https://github.com/wonny-labs/crux-pilot/issues/3) preserves the Pilot implementation
+The follow-up for issues [#2](https://github.com/wonny-labs/crux/issues/2) and
+[#3](https://github.com/wonny-labs/crux/issues/3) preserves the Pilot implementation
 and adds owned-target compiler-warning controls in Zephyr. Local verification and
 integration status are recorded in the [M1 exit evidence](baseline.md#platform-m1-exit-verification-2026-10-17).
 M2 implementation has not started as part of this work.
 
 Current platform M1 technical exit criteria are **Satisfied** at reviewed implementation
 revision `5c7bcd4`: clean Host/Zephyr CI, preserved target evidence, completed warning
-controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux-pilot/pull/4)
+controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux/pull/4)
 tracks final-head CI and review/integration; #2/#3 remain open until merge. This is an
 M1 exit candidate, not a declaration that unmerged changes are already in `main`.
 
@@ -37,7 +37,7 @@ M1 exit candidate, not a declaration that unmerged changes are already in `main`
 | M0-02 | pass | Inspected host tools, architecture, Docker resources and dependency access. First-push preparation observed 19 GiB free; this is below the advisory 30–40 GiB working-headroom target. No user files were removed. See baseline. |
 | M0-03 | pass | Zephyr `v4.4.0` and example reference commits, GoogleTest `v1.15.2` commit/archive hash, installed SDK `v1.0.1`, west `1.4.0`, CMake/Ninja/clang-format/Clang identities and immutable base-image digest are recorded in [baseline](baseline.md#selected-pinned-inputs). |
 | M0-04 | pass | RTC startup write/sample metadata, Shell/C++ sample, module split, RT1062 alias, RTC fields and generic counter conversion assessed in [upstream-reuse](upstream-reuse.md). DTS tracing identifies the `zephyr,rtc-counter` child under `nxp,imx-snvs-rtc` and MCUX SNVS counter provider; no build is claimed. |
-| M0-05 | pass | User confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF, and no HyperFlash rework was performed. J-Link PLUS S/N 602003106 and UART `/dev/cu.usbmodem11102` are recorded. See [hardware assessment](baseline.md#hardware-and-range-assessment) and [QSPI download evidence](baseline.md#m4-qspi-download-and-breakpoint-verification-2026-10-17). |
+| M0-05 | pass | User confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF, and no HyperFlash rework was performed. J-Link PLUS S/N `<probe-serial>` and UART `/dev/cu.usbmodem11102` are recorded. See [hardware assessment](baseline.md#hardware-and-range-assessment) and [QSPI download evidence](baseline.md#m4-qspi-download-and-breakpoint-verification-2026-10-17). |
 | M0-06 | pass | Source-level 2000–2099 assessment, including 32-bit seconds guard and `time_t` conversion, is recorded in [baseline](baseline.md#hardware-and-range-assessment). Native simulation covers the post-2038 conversion; physical post-2038/upper-range acceptance subsequently passed under M4-05. Source inspection is not target proof. |
 | M1-01 | pass | C17 libraries and a C++17 GoogleTest executable build through root CMake; actual Time API tests consume public C headers. A separate generic smoke fixture is no longer maintained. The host-only library configure also succeeds without enabling C++ or fetching GoogleTest; see [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
 | M1-02 | pass | `scripts/check-host.sh` configures/builds/tests on Linux with Zephyr unavailable and the pinned GoogleTest already cached. That recorded check passed 26/26 CTest cases and the host sample scenario; final review and hosted verification later passed 27/27; current evidence is in [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
@@ -81,11 +81,14 @@ M1 exit candidate, not a declaration that unmerged changes are already in `main`
 | M3-07 | pass | The clean-source EVKB QSPI sample build passed with C17 and board-specific RTC init priority 61. Linker allocation is 65,964 B FLASH and 8,448 B RAM. Current ELF SHA-256 is `3b75f71b…68aa84a`. This software verification did not flash; the earlier downloaded image is identified separately under M4-01. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
 | M3-08 | pass | [Current evidence](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17) distinguishes passing native simulation/Shell execution, target compilation and unexecuted physical SNVS tests, and preserves the original manifest failures and their cause. |
 
+The `samples/time` application named in M3-03 is now `samples/time/shell` after the samples layout change;
+the recorded result above is unchanged and refers to the old path at its tested revision.
+
 ## M4 Physical EVK verification
 
 | AC | Status | Evidence / next action |
 | --- | --- | --- |
-| M4-01 | pass | Reconfirmed the connected J-Link S/N 602003106, Cortex-M7 and ~3.33 V against the previously confirmed EVKB B / QSPI setup. Downloaded hosted clean-source `df48e61` ELF `362ccac5…a9ab889`; final rom_start/text/rodata comparisons matched. See [physical evidence](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17). |
+| M4-01 | pass | Reconfirmed the connected J-Link S/N `<probe-serial>`, Cortex-M7 and ~3.33 V against the previously confirmed EVKB B / QSPI setup. Downloaded hosted clean-source `df48e61` ELF `362ccac5…a9ab889`; final rom_start/text/rodata comparisons matched. See [physical evidence](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17). |
 | M4-02 | pass | Final pytest captured readiness after reset and initial `ERR NOT_SET`, with ELF/manifest identity and verified flash log. Physical target Ztest 2/2 includes successful repeated init after valid set/read. The generic marker is associated externally with the image, not treated as a unique build ID. |
 | M4-03 | pass | Four physical UART reads advanced 1792238400→1792238403 over 3.056239 monotonic host seconds, non-decreasing and within the 5-second limit. Raw RX/TX and assertions retained in `build/evidence/m4/uart-run-02/`. |
 | M4-04 | pass | Seven measured set-to-get intervals 0.101427–0.110739 s; all read deltas 0 s, within the measured interval plus the fixed one-second RTC tick allowance. 34 command responses 0.050255–0.055399 s, bounded by a 2-second command timeout. This includes host serial polling, not CPU execution timing. |
@@ -100,7 +103,7 @@ M1 exit candidate, not a declaration that unmerged changes are already in `main`
 | --- | --- | --- |
 | M5-01 | pass | Latest final-review Host Debug and ASan/UBSan checks each passed 27/27 and the sample scenario. Hosted clean-checkout verification for commit `df48e61` passed Host 27/27, native_sim 4/4, and native_sim/EVKB sample builds. The review corrected a test-only successful-read injection path. See [final source review](baseline.md#final-source-review-before-publication-2026-10-17) and [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-02 | pass | A temporary malformed C++ source made `scripts/check-format.sh` fail with exit 1 and line diagnostics; the probe was removed, then the normal format check passed. The log is retained under ignored `build/evidence/`. |
-| M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux-pilot/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux-pilot/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
+| M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-04 | pass | Hosted provenance identifies clean/recoverable source commit `df48e61`, 4 pinned clean dependencies, runner image identity and matching successful tests. All 19 artifact/report hashes and sizes were verified after download. Earlier mismatch/failure/invalidation probes remain recorded. The hosted ELF hash differs from the local build; BIN hashes match, without a claim of bit-identical ELF reproduction. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Physical M4 UART pytest and on-target Ztest now support the timing/range/reset and repeated-init acceptance criteria. |
 | M5-06 | pass | Hardware, external CI, complete clean reproduction and artefact provenance gaps and next actions are recorded. The manifest blocker is resolved with before/after evidence. No policy was generalised beyond this Time slice. |

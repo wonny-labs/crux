@@ -1,8 +1,8 @@
 # Crux Time API contract
 
 Time provides typed clocks, authority state and Gregorian UTC conversion. The
-[accepted redesign](superpowers/specs/2026-10-25-time-redesign.md) replaces the
-original Pilot's whole-second RTC-backed get/set contract. The initial plan and
+[accepted redesign](design/time-design.md) replaces the
+original Time Pilot's whole-second RTC-backed get/set contract. The initial plan and
 [baseline](baseline.md) retain historical evidence; those physical results do
 not qualify this redesigned API or its native system realtime implementation.
 
@@ -70,7 +70,7 @@ Follow the [repository dependency rules](../CONTRIBUTING.md#public-headers-and-m
 | `components/time/ports/linux/` | Native monotonic clock, pthread lock and optional CLOCK_REALTIME provider |
 | `components/time/ports/zephyr/` | Native uptime/system realtime/lock and optional RTC adapter |
 | `tests/time/*.h` | Private test controls, excluded from public usage roots |
-| `samples/time/include/` | Sample-owned command interface |
+| `samples/time/shell/common/` | Sample-owned command interface and handler |
 
 External Linux applications select `CRUX_BUILD_TIME=ON` and explicitly choose
 `CRUX_TIME_PROVIDER=memory` or `linux`. Top-level development builds default to

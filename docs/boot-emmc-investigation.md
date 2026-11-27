@@ -7,9 +7,9 @@
 
 | Field | Value |
 | --- | --- |
-| Issue | [#298](https://github.com/wonny-labs/crux-pilot/issues/298) "Investigate eMMC boot and update feasibility for the boot platform" |
+| Issue | [#298](https://github.com/wonny-labs/crux/issues/298) "Investigate eMMC boot and update feasibility for the boot platform" |
 | Status | **A merged desk record whose conclusions are not adopted unless the owner decided so.** Desk results only. No build, hardware, fuse or debugger operation was run. It makes no eMMC support claim. It adds no M8 or M9 exit criterion. |
-| Pinned upstream | The pins named in [#141](https://github.com/wonny-labs/crux-pilot/issues/141): Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`, `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. **`main` now pins Zephyr v4.4.2** (`dccb09599635bdff17633fa7e9dab014b91dce90`) with MCUboot `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` and `hal_nxp` `7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0`. Every Zephyr, MCUboot and `hal_nxp` file cited (rows P) was compared at both sets of pins and is identical. The Linux, U-Boot, mmc-utils and vendor rows cite one revision each. |
+| Pinned upstream | The pins named in [#141](https://github.com/wonny-labs/crux/issues/141): Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`, `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. **`main` now pins Zephyr v4.4.2** (`dccb09599635bdff17633fa7e9dab014b91dce90`) with MCUboot `6d3b3d2c38ab20c242e5b9abb04d050086383eb2` and `hal_nxp` `7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0`. Every Zephyr, MCUboot and `hal_nxp` file cited (rows P) was compared at both sets of pins and is identical. The Linux, U-Boot, mmc-utils and vendor rows cite one revision each. |
 | crux-pilot read | `main` at `3e0a5d7` |
 | Related records | The #141 record is [boot-update-investigation.md](boot-update-investigation.md) (merged 7 November 2026). The M14 design is [emmc-reliance-design.md](plans/emmc-reliance-design.md). |
 | Evidence | [docs/evidence/boot-emmc/](evidence/boot-emmc/README.md) |
@@ -18,7 +18,7 @@
 ## Purpose and scope
 
 #298 asks whether the boot and update approach recommended in #141 can serve a platform that boots from eMMC, loads firmware
-into external SDRAM and executes from SDRAM, without assuming that a NOR-based result carries over. The pilot hardware boots
+into external SDRAM and executes from SDRAM, without assuming that a NOR-based result carries over. The reference hardware (RT1060-EVKB) boots
 from QSPI NOR, so everything here for eMMC is either a source reading or an expectation from public documents. It informs the
 public milestones M8 "Boot platform foundation and verified boot" and M9 "Secure firmware update and recovery".
 
@@ -129,7 +129,7 @@ Each item is an Inference from the rows above unless marked.
 | SD/MMC stack and uSDHC driver in the bootloader | Host driver, stack, clocks, pins, DMA with cache alignment (M14 finding F17: the D-cache line rule and `SDHC_BUFFER_ALIGNMENT`), and the M14 cache-flush correction. | Size, RAM, boot time and stack are **Not measured**. #141 measured the NOR MCUboot at 51,760 B (RAM load with revert) in a 128 KiB partition. That figure says nothing about the SD/MMC stack. |
 | Write semantics | Alignment and ordering rules for the trailer, see section 5. | The eMMC cache needs a flush at the points where MCUboot orders its writes. |
 | First-stage placement | The bootloader is loaded by the ROM into RAM, so it is linked for RAM, not for XIP NOR. | Where in RAM follows the boot data (R3). The boot header for SD or eMMC needs the IVT at `0x400` (R4), see section 1. |
-| Updating the bootloader itself | Boot-partition access, switching and write protection. | None of it exists in Zephyr's stack (P16, E19). This belongs to [#299](https://github.com/wonny-labs/crux-pilot/issues/299). |
+| Updating the bootloader itself | Boot-partition access, switching and write protection. | None of it exists in Zephyr's stack (P16, E19). This belongs to [#299](https://github.com/wonny-labs/crux/issues/299). |
 
 **Read-only variant.** Plain RAM load without test, confirm and revert only reads slots (P24). A read-only backend would be
 smaller, but #141 ranks RAM load with revert first because it provides test, confirm and revert, and those need writes
@@ -193,7 +193,7 @@ more rows of the same manual for the #299 questions, and this record does not re
   any bootloader update and any in-field recovery of that partition. Permanent protection, fuse settings and closed
   configurations stay product decisions. This record recommends nothing about them.
 - **Software gap:** no boot-partition handling exists in Zephyr's stack (P16, E19). The options belong to
-  [#299](https://github.com/wonny-labs/crux-pilot/issues/299), for which this section is the eMMC input.
+  [#299](https://github.com/wonny-labs/crux/issues/299), for which this section is the eMMC input.
 
 ## 4. Which stage initialises SDRAM and the SD/MMC controller
 
@@ -301,7 +301,7 @@ status changes.
 | "Recovery of a corrupted bootloader" Not verified | Narrowed (section 3). The manual copy gives the error path to the serial downloader, the recovery device and manufacture mode order, the redundant image mechanism and the Enter Bootloader API. Behaviour on a board is still Not verified. |
 | Stage 3 A13: open-configuration behaviour of the ROM Not verified | Narrowed. The manual copy says that in Open configuration HAB runs, errors are logged and the image runs even without authentication data, and that Closed configuration aborts to the serial downloader (R8), after a switch to the secondary image where redundant boot is set up (R9). The HAB event content for a blank SRK hash is still Not verified. |
 | Stage 3 D10: the ROM runs the bootloader DCD before the application, Not verified | For SD and MMC boot the manual says the ROM performs a DCD check and extraction before it copies the image (R3), from which the order of the DCD writes is an Inference. Whether it holds for the NOR path was not read. |
-| Rank 1, RAM load with revert, and the staging variant (c) with a NOR slot | Unaffected for the pilot hardware. For an eMMC platform the slot lives on eMMC and variant (b) becomes the staging path, with the cost in section 2. The NOR evidence (#22 data closure, write extents) probably does not carry over to eMMC, and the eMMC ordering and atomicity questions in section 5 are new (Inference). |
+| Rank 1, RAM load with revert, and the staging variant (c) with a NOR slot | Unaffected for the reference hardware. For an eMMC platform the slot lives on eMMC and variant (b) becomes the staging path, with the cost in section 2. The NOR evidence (#22 data closure, write extents) probably does not carry over to eMMC, and the eMMC ordering and atomicity questions in section 5 are new (Inference). |
 | Write inventory by actor | On eMMC the bootloader writes through a block device with a cache, not through FlexSPI during XIP, so the #22 closure matrix does not apply. It is replaced by the flush and atomicity questions of section 5 (Inference). |
 | Trial builds | They were NOR builds. None was run for eMMC. |
 | Pins | #141 names Zephyr v4.4.0. `main` pins v4.4.2. Its cited files are identical at both. Its build trial used the older tree, as it states. |
@@ -313,7 +313,7 @@ status changes.
 | 1 | The reference manual was read only in a third-party-hosted Rev. 3 copy, and the JEDEC eMMC standard not at all. Can the owner supply the `nxp.com` manual (to compare R1 to R12, X8) and JESD84-B51x (for Y1)? | Supply both. A comparison of the manual copy is cheap. The JEDEC text settles the atomicity and reset questions of sections 3 and 5. |
 | 2 | Scope for an eMMC flash-area backend (variant (b) for eMMC) in the bootloader, as the next step after this record | Do not start before question 1. Then decide between a read-only RAM-load first stage and a full backend, and decide where the driver lives (Zephyr, Crux module or out of tree). |
 | 3 | Software-only replay of MCUboot's trailer sequences on the existing eMMC simulator, to test ordering and alignment assumptions (section 5) | Issue #310 exists. A model-only replay of RAM load with revert is recorded in the [trailer replay record](evidence/boot-emmc/trailer-replay/README.md). It needs no hardware. A run through a driver and the C simulator on `native_sim` waits for a backend scope decision (question 2). |
-| 4 | Is there an eMMC-bearing RT1060 or RT1062 target for M8 and M9 validation, or does the pilot hardware remain the only one? | Owner decision. Until one exists, eMMC boot and update stay unvalidated, and the NOR results stay the only evidence. |
+| 4 | Is there an eMMC-bearing RT1060 or RT1062 target for M8 and M9 validation, or does the reference hardware remain the only one? | Owner decision. Until one exists, eMMC boot and update stay unvalidated, and the NOR results stay the only evidence. |
 | 5 | Fuse programming, closed configuration and permanent boot-partition protection | Remain product decisions, as in #141 and #299. Nothing in this record needs them. |
 | 6 | Input to #299 | Section 3 is the eMMC input. The first gap to close there is whether the ROM's secondary image mechanism (R9) and the Enter Bootloader API (R12) work with eMMC boot partitions, and what the ROM does with an invalid image in Open configuration. |
 

@@ -1,6 +1,6 @@
 # Every management service on `native_sim`
 
-Status: delivered on `native_sim` in [PR #291](https://github.com/wonny-labs/crux-pilot/pull/291), under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242). This is the
+Status: delivered on `native_sim` in [PR #291](https://github.com/wonny-labs/crux/pull/291), under [Issue #242](https://github.com/wonny-labs/crux/issues/242). This is the
 second part of #242. The first, merged in #263, composed Access, the credential store, security events, status and
 configuration on real PSA providers, and is described in [the management composition](native-management-composition.md).
 This part composes every other management service on the same providers, behind the HTTPS listener of #185, in one
@@ -18,7 +18,7 @@ that the protocols and the algorithms run for real. It does not mean that any se
 | PSA ports: Access, store, web sessions, TLS certificate | **Real**, the qualified providers: TF-PSA-Crypto on the Mbed profile, wolfPSA on the Wolf profile | Image check reads each from its source |
 | Event providers of the command line and the file service | **Built here**, `crux_cli_security_events` and `crux_file_service_security_events`, [mapped](security-event-contract.md#from-the-command-line-and-file-service-ports) like the existing providers | Host against the recording fake, `native_sim` end to end |
 | Network settings apply port | **No-op provider** of #287, `network_settings_no_apply.c`. Nothing is applied to an interface, and no Zephyr `net_if` port is written. | `native_sim` |
-| Configuration and network saves | **No provider**, decision C6 until #16. A configuration save reports `not_supported`, and a network change gets `501 not_supported`, as #281 and #287 define. | `native_sim` |
+| Configuration and network saves | **No provider**: this image links no Configuration provider (decision C6). A configuration save reports `not_supported`, and a network change gets `501 not_supported`, as #281 and #287 define. | `native_sim` |
 | Listener certificate | **The declared test certificate** of #263, as in #185's image. The TLS certificate module's own certificate is generated and checked, and **not handed to the listener**: see [how #242 relies on #284](#how-this-relies-on-the-tls-certificate-decisions). | Named in results |
 | First account | **Declared test step**: serial provisioning called directly, in place of the console of #181 | Named in results |
 | Command line transport | **Test transport**: `crux_cli_exec` on the serial channel into a buffer. The serial console over Crux Serial is not composed on `native_sim`, as the [CLI contract](cli-contract.md) records. | `native_sim` |
@@ -278,7 +278,7 @@ sections and the build directory.
 | --- | --- |
 | The listener serves the declared test certificate, not the module's | Decision B is open |
 | The CLI runs over a test transport, not the serial console | No `native_sim` console exists |
-| No save provider, so network and configuration changes cannot persist | Decision C6, until #16 |
+| No save provider, so network and configuration changes cannot persist | Decision C6: this image links no Configuration provider |
 | The apply port applies nothing, and `GET /api/v1/network` reports no running address | #287 wrote no `net_if` port |
 | Entropy is test-only: keys, tokens and nonces repeat for a seed | Declared, and guarded |
 | Timing, connection limits and memory are the host's and the simulator's | Not device evidence |

@@ -20,11 +20,11 @@ else()
     FIXTURE_HEADER="fixture_reliance.h"
     configuration_settings_file=configuration_settings_reliance)
 endif()
-target_sources(app PRIVATE ${CRUX_ROOT}/samples/storage_emmc/emmc_storage.c
-  ${CRUX_ROOT}/samples/storage_emmc/emmc_configuration.c)
+target_sources(app PRIVATE ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_storage.c
+  ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_configuration.c)
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr crux::configuration)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}
-  ${CRUX_ROOT}/samples/storage_emmc ${CRUX_ROOT}/zephyr/fs/reliance_edge
+  ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file
   ${CRUX_ROOT}/components/configuration/ports/zephyr)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # The settings initialisation is counted. Faults and compactions are seen at the VFS calls the
@@ -32,5 +32,5 @@ target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 target_link_options(app PUBLIC -Wl,--wrap=settings_subsys_init)
 if(NOT CONFIG_SETTINGS_RELIANCE_TEST_INIT_FAILURE)
   target_link_options(app PUBLIC -Wl,--wrap=fs_read -Wl,--wrap=fs_write -Wl,--wrap=fs_open
-    -Wl,--wrap=fs_close)
+    -Wl,--wrap=fs_close -Wl,--wrap=fs_stat)
 endif()

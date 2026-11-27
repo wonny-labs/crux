@@ -1,6 +1,6 @@
 # Portable File contract
 
-Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated. The [additions for roots, stat, size, rename and listing](#additions-for-roots-stat-size-rename-and-listing) come from decisions F1, F2, F3 and F6 of [the File extension proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206), with F4 keeping the name rule, accepted by [the owner on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) for Host and `native_sim` work. Target and physical work on them stays behind M7 and needs its own approval.
+Status: approved for software-only development by the human Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated. The [additions for roots, stat, size, rename and listing](#additions-for-roots-stat-size-rename-and-listing) come from decisions F1, F2, F3 and F6 of [the File extension proposal, PR #206](https://github.com/wonny-labs/crux/pull/206), with F4 keeping the name rule, accepted by [the owner on 3 November 2026](https://github.com/wonny-labs/crux/pull/209#issuecomment-6616400894) for Host and `native_sim` work. Target and physical work on them stays behind the reference composition work and needs its own approval.
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
@@ -136,7 +136,8 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   symbolic link in a composition's paths is not caught. An unbound or out-of-range root
   returns NOT_READY, after argument checks. `CRUX_FILE_ROOTS_MAX` is a build setting, default 8.
   The conflict rule compares the root and the name together. Roots separate names. They are
-  not a security sandbox, as for the name rule above.
+  not a security sandbox, as for the name rule above. A root can carry a byte limit
+  ([Root byte limits](#root-byte-limits)).
 - **Stat.** Regular files only: a directory or a Linux symbolic link is NOT_FOUND. The size is
   what the provider last recorded, so a file with an open writer may report an older size.
 - **Size.** A handle's current size, which includes unsynced writes and leaves the position
@@ -148,8 +149,17 @@ call, and no retry. The existing functions keep their behaviour on root 0.
   No other Crux File call sees a partial state, because it runs under the File lock. **It is not
   atomic across power loss**: on FAT, a cut between the two directory writes of `f_rename` can
   leave two names on one cluster chain. This comes from reading `ff.c` and has not been
-  reproduced here. Native clients that bypass File can race the destination check.
-- **Listing.** A bounded pool of `CRUX_FILE_DIR_POOL_SIZE` handles, default 2, gives NO_RESOURCES
+  reproduced here. On Linux the provider renames with `renameat2(..., RENAME_NOREPLACE)`, so the
+  kernel refuses a destination that another process creates at the last moment. When the kernel
+  or the file system lacks that flag (ENOSYS or EINVAL), the provider falls back to a check and a
+  replacing `renameat`, and another process can then create the destination in between and lose
+  it. A container whose seccomp profile refuses `renameat2` with EPERM gets ACCESS
+  from every rename, with no fallback. Zephyr has no rename that refuses an existing destination, so the Zephyr providers check the
+  destination with `fs_stat` and then call `fs_rename`: a native client that bypasses File and
+  creates the destination between the two has its file replaced. File callers cannot race either
+  check, because both run under the File lock.
+- **Listing.** A bounded pool of `CRUX_FILE_DIR_POOL_SIZE` handles, default 2 (see
+  [Pool size and handle budget](#pool-size-and-handle-budget)), gives NO_RESOURCES
   when full. `crux_file_dir_read` returns entries in provider order and sets `end` at the finish,
   which then repeats without a provider call. It yields only regular files whose names pass the
   name rule, so subdirectories, Linux symbolic links and foreign files are skipped without an
@@ -161,6 +171,67 @@ call, and no retry. The existing functions keep their behaviour on root 0.
 - **Pool size.** `CRUX_FILE_POOL_SIZE` is also a public compile definition of `crux::file`, so
   that a consumer can size what it leaves free at build time.
 
+### Root byte limits
+
+A limit keeps one root's files from taking a shared volume, so that other roots, Configuration and
+the credential store can still save. The composition sets it when it binds the root:
+
+| Provider | Binding | Unit |
+| --- | --- | --- |
+| Zephyr (FatFs, LittleFS on a block device, Reliance Edge) | `crux_file_zephyr_bind_root_limited(root, path, max_bytes)` in `<crux/file_zephyr.h>` | `f_frsize` of `fs_statvfs()`: the FatFs cluster, the LittleFS block, the Reliance Edge block |
+| Linux Host | `crux_file_linux_bind_root_limited(root, path, max_bytes)` in `file_linux.h` | `f_frsize` of `fstatvfs()` |
+| `crux_file_fake` | `crux_file_fake_bind_root_limited(root, path, max_bytes, unit)` | The given unit |
+
+The LittleFS composition on the flash simulator (`CONFIG_CRUX_FILE_SIMULATOR`) compiles the Zephyr
+binding, and no suite runs it there.
+
+- **Binding.** The rules of the unlimited binding apply, and a `max_bytes` of 0 is INVALID_ARGUMENT.
+  The binding lists the root once and needs a free listing handle (NO_RESOURCES otherwise). A
+  failure of the volume query or of the listing returns its result. On any error the root stays
+  unbound. The limited functions bind once per index like the others; there is no way to change a
+  limit later.
+- **What counts.** Each file that a listing of the root reports counts its size rounded up to the
+  unit, and at least one unit, so an empty file costs one unit and a root holds at most
+  `max_bytes / unit` files. Files that the listing skips (foreign names, subdirectories, links)
+  count nothing. Sums saturate at `UINT64_MAX` and never wrap.
+- **What is refused.** A write that would take the count above `max_bytes` returns
+  `CRUX_FILE_ERR_NO_SPACE` with zero transferred and reaches no provider: the whole write is
+  refused, never cut to a part that fits. A write that stays inside the file's last counted unit,
+  or overwrites, is accepted at the limit. A `CREATE_REPLACE` open of a new name that would pass the
+  limit returns NO_SPACE before the provider opens or creates anything. Truncating an existing file
+  by `CREATE_REPLACE`, reading and opening with `CRUX_FILE_READ` are never refused by the limit.
+- **What gives space back.** A remove, and the truncation of `CREATE_REPLACE`. A rename keeps the
+  count. A binding that finds the root above its limit is accepted, and then only writes that do
+  not grow the count succeed until removes or truncations bring it under.
+- **Provider calls.** On a limited root, a writer's open first stats the file: a failed stat is the
+  open's result, and the open's limit check follows the conflict and pool checks. A remove stats
+  the file first as well; when that stat fails the remove goes ahead and the count stays. A close
+  of a writer stats the file after the native close. A failed open, a failed remove and a failed
+  write make one more call to read what is left. Readers and unlimited roots make no extra call.
+- **Concurrency.** The check, the provider write and the new count happen under the File lock, so
+  callers on the same root cannot pass the limit together.
+- **After a failure.** The common layer counts from a handle's own size and position. After a failed
+  write it reads the size again, and when that fails too, the furthest end the write could reach
+  counts until the handle closes. After a failed read, write or seek the position is unknown until
+  the next successful seek: a write then counts as if it started at the end of the file. Either way
+  a write can be refused with NO_SPACE although it would only overwrite, and on a LittleFS handle
+  that keeps its error ([LittleFS block device mapping](#littlefs-block-device-mapping)) NO_SPACE
+  can come in place of the kept error. Nothing is written in either case. A close, a failed open
+  and a failed remove count what a stat finds afterwards.
+- **Power loss and restart.** The count lives in memory only and is made again at each binding from
+  what the file system reports, so after a power cut it follows what reached the medium.
+- **Limits of the limit.** It is not free space: it reserves nothing on the volume, and the sum of
+  the limits may exceed the volume. Size it below the free space that the composition plans for,
+  with room for file system metadata, which the unit rounding approximates but does not measure.
+  Writes made outside File, by another process or a native client, are not counted when they
+  happen. When File later writes, truncates, closes or removes such a file, it counts from what a
+  stat finds, so until the next binding the count can be too high or too low, and File's own
+  files can then pass the limit.
+
+The pattern is a directory-tree quota, as the XFS project quota is
+([`xfs_quota(8)`](https://man7.org/linux/man-pages/man8/xfs_quota.8.html)), with Crux's own
+counting and error.
+
 The `crux_file_fake` test library is an in-memory provider behind the same private port, for
 tests of code built on File. It injects faults and cuts power at a chosen mutation, under a
 simple model stated in `tests/file/fake_file.h`. Results from it say nothing about FatFs or a card.
@@ -171,13 +242,15 @@ The FatFs provider stores a name as `f` followed by the hex of its bytes. Listin
 skips anything else, including upper-case hex and an encoded NUL, so one file has one identity.
 `fatfs_rename` in Zephyr's `subsys/fs/fat_fs.c` calls `f_unlink` on an existing destination before
 `f_rename`, so the provider calls `fs_stat` on the destination first under the File lock and never
-reaches that path. The Linux provider uses `fstatat` and then `renameat` for the same reason.
+reaches that path. The Linux provider uses `renameat2` with `RENAME_NOREPLACE`, and the check
+followed by `renameat` only where the kernel or file system lacks that flag (see **Rename** above).
 `CONFIG_FS_FATFS_NUM_DIRS` must be at least the listing pool, and the build checks this.
 
-`struct fs_dirent` has no modification time, which is why decision F6 leaves time out. On
-`native_sim` these additions have run on FatFs and on Reliance Edge, over a RAM disk. The LittleFS
-simulator composition compiles them and has not run them. Earlier physical runs do not extend to
-them.
+`struct fs_dirent` has no modification time, which is why decision F6 leaves time out.
+`native_sim` suites run these additions on FatFs, on Reliance Edge and on
+[LittleFS over a block device](#littlefs-block-device-mapping), each over a RAM disk.
+The LittleFS composition on the flash simulator (`CONFIG_CRUX_FILE_SIMULATOR`) compiles them and no suite calls them there.
+Physical results for File do not cover them.
 
 ### Reliance Edge mapping
 
@@ -208,10 +281,62 @@ What differs is the mapping:
 The selection works on any board that has the file system and excludes the other File selections.
 The run on `native_sim` is a software result, and no physical-board result exists for it.
 
+### LittleFS block device mapping
+
+`CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV` selects the same provider over the LittleFS file system of the Zephyr VFS on a disk (`CONFIG_FS_LITTLEFS_BLK_DEV`).
+It needs an enabled `zephyr,sdmmc-disk` node with the SD card disk driver, or an enabled `zephyr,mmc-disk` node with the eMMC disk driver, on any board.
+On `native_sim` a RAM disk is accepted too, for tests.
+It excludes the other File selections, and the build refuses FatFs in the same image.
+It mounts and formats nothing by itself: see [Mounting a LittleFS volume](#mounting-a-littlefs-volume).
+
+Every statement of the contract above holds. What differs is the mapping:
+
+- A name is stored as it is, with no encoding. A name that fails the File name rule, or a directory, is not listed.
+- The destination of a rename is checked first under the File lock, as on FatFs, because LittleFS's own rename replaces an existing file.
+- A full volume gives `CRUX_FILE_ERR_NO_SPACE`, at a write, a sync or the creation of a file.
+  LittleFS reports a creation that finds no room as a name-too-long error, which Zephyr returns as an I/O error: after such an error with fewer than two free blocks, the provider returns NO_SPACE.
+- **A writable handle keeps its first native error.** After a failed write, sync, read, seek or size call on a handle opened with `CRUX_FILE_READ_WRITE` or `CRUX_FILE_CREATE_REPLACE`, every later call on that handle returns the same error without a native call.
+  `crux_file_close` still closes the native file and returns an error: a native close error if one comes, otherwise the kept error.
+  The reason: LittleFS closes a file whose write failed without committing it, and reports success.
+  Close the handle, open the file again and read its size before retrying.
+  A refused argument, such as a seek past the end, does not count as a failure.
+- LittleFS commits a file's data and size at a sync or a close. Data that no successful sync or close followed is lost at a reset.
+- File offers no atomic replace here either. The [rename limits](#rename-limits) apply.
+
+| Setting | Rule | Checked |
+| --- | --- | --- |
+| `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` | Above 63, or unset. A longer native name is cut in a directory entry, and the cut name must not be a File name | At build |
+| `CONFIG_FS_LITTLEFS_NUM_FILES` | At least `CONFIG_CRUX_FILE_POOL_SIZE`. Add the files that other code holds open: two for a Settings File save | The pool at build, the rest not |
+| `CONFIG_FS_LITTLEFS_NUM_DIRS` | At least `CONFIG_CRUX_FILE_DIR_POOL_SIZE` | At build |
+| `CONFIG_FS_LITTLEFS_CACHE_SIZE` | At least 512, one sector. The selection defaults it to 512 | At build |
+| `CONFIG_CRUX_MMC_CACHE_FLUSH` | `y` on an eMMC disk, because a sync does not otherwise flush the eMMC cache | At configuration |
+
+[Configuration](configuration-contract.md) can save on the same volume through `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS`, in a directory that no File root covers.
+
+Limits of LittleFS on a large disk, from its upstream design and not measured here:
+its block allocator scans the file system to find free blocks, a free-space query traverses the whole file system, and one block is one sector.
+Expect slow first writes after a mount on a large card; a small partition or a larger lookahead buffer shortens them.
+LittleFS assumes that the disk keeps what it synced: what a card does with its own mapping at a power cut is outside that.
+
+The `native_sim` suites use a RAM disk and an eMMC simulator, and they are software results.
+No physical-board result exists for this selection; the [power-cut evidence plan](plans/littlefs-power-cut-evidence-plan.md) says what a product would need.
+
 ## Recipes for consumers
 
 This section is guidance. It restates the contract above and adds no function, option or
 promise. Where it states a limit, the source is named.
+
+### Shared limits to plan for
+
+Every File user in an image, the credential store and the file service included, shares these:
+
+- One global File lock, held around each provider call, so one slow write delays every other File caller
+  ([File service limits](file-service-contract.md#limits)).
+- One handle pool and one listing pool, 4 handles and 2 listings by default
+  ([Pool size and handle budget](#pool-size-and-handle-budget)).
+- A writer excludes every other handle on its name, readers included ([Public contract](#public-contract)).
+- No free-space query ([Free space](#free-space)).
+- No atomic replace ([Pool size and handle budget](#pool-size-and-handle-budget), [Rename limits](#rename-limits)).
 
 ### Append
 
@@ -250,16 +375,22 @@ nothing more about it.
 - Every open file holds one slot of a pool of `CRUX_FILE_POOL_SIZE` handles. When all are in use,
   `crux_file_open` returns `CRUX_FILE_ERR_NO_RESOURCES`, before any provider call
   (`components/file/src/file.c:96-102`). A listing uses a separate pool, `CRUX_FILE_DIR_POOL_SIZE`.
-- `CRUX_FILE_POOL_SIZE` is a public compile definition of `crux::file`, so a product can state its
+- `CRUX_FILE_POOL_SIZE` and `CRUX_FILE_DIR_POOL_SIZE` are compile definitions of `crux::file`, so a product can state its
   budget at build time, for example `_Static_assert(PRODUCT_MAX_OPEN_FILES <= CRUX_FILE_POOL_SIZE,
   "...")`. Count the most handles that the product's code holds at once, and add those that other
   Crux services in the same image hold.
-- Today the value is 4 in every provider's CMake (`components/file/CMakeLists.txt:4` and
-  `components/file/ports/zephyr/CMakeLists.txt`), and 4 is the minimum
-  (`components/file/src/file.c:5`). A product cannot change it with a Kconfig symbol or a CMake
-  cache option, and none exists in the repository. [File validation](file-validation.md) says the private
-  `file_port.h` permits a provider build override, which is not a product setting. Whether to
-  expose one is a Crux decision and is not made here.
+- A Zephyr image sets the pools with `CONFIG_CRUX_FILE_POOL_SIZE` (default 4, range 4 to 32) and
+  `CONFIG_CRUX_FILE_DIR_POOL_SIZE` (default 2, range 1 to 8) in `zephyr/Kconfig`. The Host build has
+  the CMake cache variables `CRUX_FILE_POOL_SIZE` and `CRUX_FILE_DIR_POOL_SIZE` with the same
+  defaults and ranges (`components/file/CMakeLists.txt`). 4 is the minimum that File itself
+  requires (`components/file/src/file.c:5`). One value holds for the whole image: every user of
+  File shares the pool, including the Access credential store, which takes one handle while it
+  saves or reads a record, and the file service. The file system must hold the handles as well:
+  on FatFs `CONFIG_FS_FATFS_NUM_FILES` must cover the handle pool and any native files of the
+  image, and `CONFIG_FS_FATFS_NUM_DIRS` the listing pool (the build checks the listings only). With
+  Reliance Edge, `CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT` must cover both pools, and the build
+  checks it. On `native_sim`, the FatFs suite runs with a pool of 8 as well as the default
+  (`tests/native/file_fatfs/testcase.yaml`).
 - **The reserved handle is a known limit, not a guarantee.** The file service accepts at most
   `CRUX_FILE_SERVICE_TRANSFER_MAX` transfers (default 3) and the build fails unless that is below
   `CRUX_FILE_POOL_SIZE`, so one handle stays free for the credential store and the project. Project
@@ -280,6 +411,47 @@ nothing more about it.
   NO_RESOURCES. `CREATE_REPLACE` truncates an existing destination when it opens, so a copy over an
   existing name loses the old content at once and is not a safe replace.
 
+### Mounting a LittleFS volume
+
+Zephyr's `littlefs` mount **formats a volume that it cannot mount**, unless the mount has `FS_MOUNT_FLAG_NO_FORMAT` (a devicetree `zephyr,fstab` entry: the `no-format` property).
+A corrupt card, a card of another file system or a blank card would otherwise be erased at boot.
+
+1. Mount with both flags, and never call `fs_mkfs` on the path of a failed mount.
+2. After a failed mount, report it and leave File unbound.
+3. Format only as a separate action that an authorised person starts, never as part of the start sequence.
+4. Create the directories when the volume is provisioned, not at each boot. Check that they exist before binding.
+
+```c
+FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(product_littlefs);
+
+static struct fs_mount_t mount = {
+    .type = FS_LITTLEFS,
+    .mnt_point = "/lfs",
+    .fs_data = &product_littlefs,
+    .storage_dev = (void *)"SD", /* the disk-name of the devicetree node */
+    .flags = FS_MOUNT_FLAG_USE_DISK_ACCESS | FS_MOUNT_FLAG_NO_FORMAT,
+};
+
+int product_storage_start(void)
+{
+    struct fs_dirent entry;
+    int result = fs_mount(&mount);
+
+    if (result != 0) {
+        return result; /* report it: no format here */
+    }
+    if (fs_stat("/lfs/files", &entry) != 0 || entry.type != FS_DIR_ENTRY_DIR ||
+        crux_file_zephyr_bind("/lfs/files") != CRUX_FILE_OK) {
+        (void)fs_unmount(&mount);
+        return -ENOENT;
+    }
+    return 0;
+}
+```
+
+`tests/native/file_littlefs_blk` shows that the mount with the flag leaves a blank and a damaged disk as they are, and that the same mount without it formats the damaged one.
+`samples/file/basic` formats after a failed mount because its partition is simulated; do not copy that into a product.
+
 ### Rename limits
 
 `crux_file_rename(root, from, to)` works inside one root. Checks run in this order: arguments,
@@ -296,10 +468,11 @@ See [Additions](#additions-for-roots-stat-size-rename-and-listing).
 `crux_file_info_t` holds only a size, and `crux_file_stat` and `crux_file_size` report one file.
 A product learns that a volume is full from `CRUX_FILE_ERR_NO_SPACE` on a write or a create, and on
 Reliance Edge also for an empty file when no inode is left ([Reliance Edge mapping](#reliance-edge-mapping)).
-The FatFs provider does call `fs_statvfs` internally, only to map a refused create on a full
-volume to NO_SPACE, and it returns no value (`components/file/ports/zephyr/file_native.c:277-284`, the call on line 281).
+The FatFs and LittleFS block-device providers both call `fs_statvfs` internally, only to map a
+refused create on a full volume to NO_SPACE, and neither returns the value
+(`crux_file_impl_open` in `components/file/ports/zephyr/file_native.c`).
 The file service's area counters are limits that it enforces, not free space on the medium
-([File service](file-service-contract.md#capacity)). A public volume-information call would be a
+([File service](file-service-contract.md#capacity)), and so is a [root byte limit](#root-byte-limits). A public volume-information call would be a
 new Experimental function and an owner decision under [AGENTS.md](../AGENTS.md), and this section
 promises none. A product that needs the figure now can call Zephyr's `fs_statvfs()` on its mount
 point in its own adapter, outside File's lock and tests. That call is not verified with a File
@@ -345,3 +518,20 @@ handling. Compare named values from the declaring API, never cast or compare
 against base enum values, and do not treat every nonzero value as an error.
 Any necessary composition-level translation uses an explicit switch; no generic
 conversion service or change to base status values is introduced.
+
+## Migration notes
+
+### Board-neutral names of the FatFs selections
+
+The Zephyr selections of the FatFs provider on a real medium were renamed after what they select, and their dependencies are generic devicetree and disk facts instead of the RT1062 SoC and the RT1060-EVK board and revision.
+
+| Old Kconfig symbol | Replacement | The replacement needs |
+| --- | --- | --- |
+| `CONFIG_CRUX_FILE_FATFS_RT1060` | `CONFIG_CRUX_FILE_FATFS_SDMMC` | An enabled `zephyr,sdmmc-disk` node and `CONFIG_DISK_DRIVER_SDMMC` |
+| `CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK` | `CONFIG_CRUX_FILE_FATFS_RAM_DISK` | An enabled `zephyr,ram-disk` node and `CONFIG_DISK_DRIVER_RAM`, with no SD card driver, SD host driver or flash disk |
+| `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` | `CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK` | As `CONFIG_CRUX_FILE_FATFS_SDMMC` |
+
+Each old symbol still works: it has the dependencies of its replacement, selects it, and selects Zephyr's `DEPRECATED` symbol, so the build prints `Deprecated symbol ... is enabled`.
+The old symbols stay through the first tagged Crux release that carries them and will be removed in the tagged release after it, which gives one tagged release of notice ([ADR-0001](decisions/0001-application-boundary-and-api-stability.md#43-deprecation-window)).
+To move, replace the old name with the new one in `prj.conf` and in any CMake or C check of the image.
+An image on another board than the RT1060-EVKB now gets the selection whenever its devicetree has the disk; the RT1060-EVKB images build as before.

@@ -55,6 +55,36 @@ invariant is asserted on both profiles, I3 meaning that the active settings file
 the flush, early acknowledgement and damaged image controls must fail as required. A temporary
 (.cmp) left behind by a cut is counted and is not a failure; an active file that is missing is.
 
+With --workload W8, W8 and W8C (W8-control) run, on images built with a Crux File provider
+(file.conf on Reliance Edge, fatfs-file.conf on FatFs), with their own JSON (reliance-w8.json,
+fatfs-w8.json). Both write each generation of atomic/w8 to atomic/w8.tmp through File (create,
+write, sync, close). W8 then renames it onto atomic/w8 with the VFS rename, the data path of an
+atomic replace; W8C removes atomic/w8 with File and then renames with File, which is all File allows
+today. I3 is that atomic/w8 is one complete generation, I2 that it is not older than acknowledged.
+The verifier reports missing=1 when atomic/w8 does not exist, and w2=0 when settings/w2, which W8
+never touches, is damaged (a violation of its own). On red-fix-file, W8 must keep every invariant
+and read_error=0 on both profiles. A W8C case is a window case when its only violations are I2 and
+I3, the target is missing, and the cut lies inside the replace of the generation after the
+acknowledged one: after the first metaroot sector of its unlink commit and not after the end of its
+rename commit (the closing flush on the cached profile, the last metaroot sector without a cache).
+Any other W8C violation is a failure. W8C must show a window case at a cached lost cut in every
+generation (the window control); if it does not, the workload cannot see the window. The flush,
+early acknowledgement and damaged image controls run on W8 and must fail as required. On FatFs both
+workloads are recorded as observations, a missing target is counted with no span check (FatFs has
+no metaroot), only the damaged image control runs, and no fat-nofix image is needed. In a W8 run
+every cut case is listed in the JSON with its position and seed.
+
+--fs littlefs runs one named workload on LittleFS over a block device, each with its own JSON
+(littlefs-w4.json, littlefs-w5.json, littlefs-w8.json). W4 runs on images built from littlefs.conf
+and settings_littlefs.conf, under the Settings File selection that does not depend on Reliance Edge.
+W5 and W8 run on images built from littlefs.conf and littlefs-file.conf, with the Crux File provider:
+W5 appends records through File, and W8 runs W8 and W8C as above. Every invariant is asserted on
+both profiles as on Reliance Edge. The flush, early acknowledgement and damaged image controls must
+fail as required, and for W8 the window control on W8C as well. LittleFS has no metaroot, so no
+position is mandatory beyond the flushes and the marks, a W8C window case has no span check, and the
+damaged image is the baseline with both blocks of the superblock pair (sectors 0 and 1, one sector
+per block on a block device) overwritten: mount=0.
+
 The profile commits when a file is created, so a W3 step that creates a file commits twice and a
 cut between the two can leave the new file present and empty. On Reliance Edge the W3 verifier runs
 with --create-may-be-empty, which accepts exactly that state in the step after the acknowledged
@@ -94,7 +124,7 @@ METAROOT_MODELS = ('prefix', 'torn', 'reordered')
 FIELDS = ('mount', 'data', 'read_error', 'replace', 'untouched', 'recommit')
 VIOLATIONS = {'mount': 'I1', 'data': 'I2', 'replace': 'I3', 'untouched': 'I4', 'recommit': 'I5'}
 LINE = re.compile(r'POWERCUT ' + ' '.join(f'{field}=([01])' for field in FIELDS) +
-                  r'(?: created_empty=([01]))?(?: cmp=([01]))?')
+                  r'(?: created_empty=([01]))?(?: cmp=([01]))?(?: missing=([01]) w2=([01]))?')
 TIMEOUT = 60
 # On W1 the other copy of the file's inode is a valid older inode and file data has no check, so a
 # draw that keeps the new metaroot only gives data=0, which an older state explains: the barrier
@@ -108,9 +138,21 @@ W3_CREATE_STEPS = {2: 'files/w3b', 4: 'files/w3dir/e', 6: 'files/w3c', 11: 'file
 W3_FILES = {'files/w3a': 0, 'files/w3b': 1, 'files/w3c': 2, 'files/w3d': 3, 'files/w3dir/e': 5}
 W3_STEPS = 12
 W4_STEPS = 24
+# W8 and W8C replace atomic/w8 this many times, as in workloads.c.
+W8_GENERATIONS = 8
+W8_WORKLOADS = ('W8', 'W8C')
+# The only violations a W8C case may show, and only with the target missing: the window.
+WINDOW_VIOLATIONS = {'I2', 'I3'}
 IMAGES = {'fatfs': {'fix': 'fat-fix', 'nofix': 'fat-nofix'},
           'reliance': {'fix': 'red-fix', 'nofix': 'red-nofix'},
-          'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'}}
+          'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'},
+          'littlefs-w4': {'fix': 'lfs-fix-settings', 'nofix': 'lfs-nofix-settings'},
+          'littlefs-w5': {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'},
+          'littlefs-w8': {'fix': 'lfs-fix-file', 'nofix': 'lfs-nofix-file'},
+          'reliance-w8': {'fix': 'red-fix-file', 'nofix': 'red-nofix-file'},
+          'fatfs-w8': {'fix': 'fat-fix-file', 'nofix': None}}
+# LittleFS on a block device: one block per 512-byte sector, and the superblock pair is blocks 0 and 1.
+LITTLEFS_SUPERBLOCK_SECTORS = (0, 1)
 
 
 def derive(*parts):
@@ -123,6 +165,8 @@ def violations(result):
     found = [invariant for field, invariant in VIOLATIONS.items() if result[field] == 0]
     if result['read_error']:
         found.append('read_error')
+    if result.get('w2') == 0:
+        found.append('w2')
     return found
 
 
@@ -135,16 +179,22 @@ class Replay:
         self.args = args
         self.exes = {'fix': args.exe_fix, 'nofix': args.exe_nofix}
         self.w4 = args.workload == 'W4'
-        self.tag = args.fs + ('-w4' if self.w4 else '')
-        self.workloads = ('W4',) if self.w4 else WORKLOADS
+        self.w5 = args.workload == 'W5'
+        self.w8 = args.workload == 'W8'
+        self.tag = args.fs + {'W4': '-w4', 'W5': '-w5', 'W8': '-w8'}.get(args.workload, '')
+        self.workloads = (('W4',) if self.w4 else ('W5',) if self.w5 else
+                          W8_WORKLOADS if self.w8 else WORKLOADS)
         self.work = os.path.join(args.out, f'work-{self.tag}')
         self.kept = os.path.join(args.out, f'failed-{self.tag}')
         self.image = os.path.join(self.work, 'medium.bin')
         self.reliance = args.fs == 'reliance'
+        # The file systems that claim the invariants, so that each violation is a failure.
+        self.asserting = args.fs in ('reliance', 'littlefs')
         self.names = IMAGES[self.tag]
         self.metaroot = metaroot_sectors() if self.reliance else frozenset()
         self.traces = {}
         self.created_empty = []
+        self.window = []
         self.memo = {}
         self.cases = 0
         self.processes = 0
@@ -201,6 +251,7 @@ class Replay:
             self.cases += 1
         create_empty = self.reliance and workload == 'W3'
         has_cmp = workload == 'W4'
+        has_missing = workload in W8_WORKLOADS
         key = (exe, workload, acked, acked_only, hashlib.sha256(image).digest())
         if key in self.memo:
             return self.memo[key]
@@ -214,7 +265,8 @@ class Replay:
         lines = [LINE.fullmatch(line) for line in out]
         if (rc != 0 or len(out) != 1 or lines[0] is None or
                 (lines[0].group(len(FIELDS) + 1) is not None) != create_empty or
-                (lines[0].group(len(FIELDS) + 2) is not None) != has_cmp):
+                (lines[0].group(len(FIELDS) + 2) is not None) != has_cmp or
+                (lines[0].group(len(FIELDS) + 3) is not None) != has_missing):
             answer = (None, f'rc {rc} {out} {err[-500:]}')
             print(f'verifier gave no result: {answer[1]}', file=sys.stderr)
         else:
@@ -223,6 +275,9 @@ class Replay:
                 result['created_empty'] = int(lines[0].group(len(FIELDS) + 1))
             if has_cmp:
                 result['cmp'] = int(lines[0].group(len(FIELDS) + 2))
+            if has_missing:
+                result['missing'] = int(lines[0].group(len(FIELDS) + 3))
+                result['w2'] = int(lines[0].group(len(FIELDS) + 4))
             answer = (result, None)
         self.memo[key] = answer
         return answer
@@ -257,7 +312,7 @@ class Replay:
         if profile == 'cached':
             for position in mandatory_positions(events):
                 chosen += [(position, model) for model in FLUSH_MODELS]
-        if profile == 'cached' and self.reliance:
+        if profile == 'cached' and self.asserting:
             chosen += [(index + 1, 'lost') for index, event in enumerate(events)
                        if event.kind == 'mark']
         models = METAROOT_MODELS if profile == 'cached' else PROFILE_MODELS[profile]
@@ -298,14 +353,51 @@ class Replay:
             if not ok:
                 self.fail(record, 'the verifier does not pass on an uncut image', image)
 
+    def w8c_spans(self, events, profile):
+        """For each W8C generation, the cut positions where its target may be missing.
+
+        The trace holds four commits per generation (create, sync, unlink, rename), each a run of
+        metaroot sector writes. Generation n's window starts after the first metaroot sector of its
+        unlink commit and ends with its rename commit: at the closing flush on the cached profile,
+        at the last metaroot sector without a cache. Returns {generation: (first, last)}, both
+        positions inclusive.
+        """
+        runs = []
+        index = 0
+        while index < len(events):
+            if events[index].kind == 'write' and events[index].sector in self.metaroot:
+                end = index
+                while (end < len(events) and events[end].kind == 'write' and
+                       events[end].sector in self.metaroot):
+                    end += 1
+                runs.append((index, end - 1))
+                index = end
+            else:
+                index += 1
+        if len(runs) != 4 * W8_GENERATIONS:
+            raise RunError(f'W8C {profile}: {len(runs)} metaroot writes, not four per generation')
+        spans = {}
+        for generation in range(1, W8_GENERATIONS + 1):
+            unlink = runs[4 * (generation - 1) + 2]
+            rename = runs[4 * (generation - 1) + 3]
+            last = rename[1] + 1
+            if profile == 'cached':
+                last = next(i for i in range(rename[1] + 1, len(events))
+                            if events[i].kind == 'flush')
+            spans[generation] = (unlink[0] + 1, last)
+        return spans
+
     def observe(self, events, workload, profile):
         groups = {}
         failed = []
+        spans = self.w8c_spans(events, profile) if workload == 'W8C' and self.reliance else None
         for position, model in self.positions(events, workload, profile):
             record, image, result = self.case('fix', events, workload, profile, model, position)
             group = groups.setdefault(model, {'cases': 0, 'passed': 0, 'no_result': 0,
                                               'violations': {}})
             group['cases'] += 1
+            if self.w8:
+                group.setdefault('positions', []).append([position, record['seed']])
             if model == 'torn':
                 tore = position < len(events) and events[position].kind == 'write'
                 group['tore'] = group.get('tore', 0) + tore
@@ -319,8 +411,22 @@ class Replay:
             if result.get('created_empty'):
                 self.created_empty.append(dict(record, result=result))
                 group['created_empty'] = group.get('created_empty', 0) + 1
+            if result.get('missing'):
+                group['target_missing'] = group.get('target_missing', 0) + 1
             if not found:
                 group['passed'] += 1
+                continue
+            in_span = spans is None or (
+                record['acked'] + 1 in spans and
+                spans[record['acked'] + 1][0] <= position <= spans[record['acked'] + 1][1])
+            if (workload == 'W8C' and result.get('missing') and
+                    set(found) <= WINDOW_VIOLATIONS and in_span):
+                # The window that remove-then-rename opens on purpose: not a failure of the
+                # file system, and the window control needs it.
+                group['window'] = group.get('window', 0) + 1
+                self.window.append(dict(record, result=result,
+                                        span=None if spans is None else
+                                        list(spans[record['acked'] + 1])))
                 continue
             for invariant in found:
                 group['violations'][invariant] = group['violations'].get(invariant, 0) + 1
@@ -330,9 +436,9 @@ class Replay:
                 key = 'I2_acknowledged_intact' if intact else 'I2_acknowledged_lost'
                 group[key] = group.get(key, 0) + 1
             failed.append(dict(record, result=result))
-            if self.reliance:
+            if self.asserting:
                 self.fail(dict(record, result=result),
-                          f'red-fix violates {" ".join(found)}', image)
+                          f'{self.names["fix"]} violates {" ".join(found)}', image)
         return groups, failed
 
     def acknowledged_intact(self, image, record):
@@ -469,6 +575,44 @@ class Replay:
                                      ('data', 0))},
             'honoured_passed': all(case['honoured_passed'] for case in cases),
         }
+
+    def window_control(self):
+        """red-fix-file, W8C, cached, lost: atomic/w8 missing inside every generation's replace.
+
+        A lost cut keeps everything before the last flush. Right after the removal's commit, and
+        before the rename's, that is the volume without atomic/w8. Each generation n has such a cut,
+        with n - 1 generations acknowledged, among the mandatory positions (each side of every
+        flush), so each must show missing=1 with mount=1, at a position inside generation n's
+        span from its unlink commit to its rename commit (checked when the case is classified). If
+        one does not, the replay cannot see the window and W8 passing proves nothing.
+        """
+        cases = [case for case in self.window
+                 if case['profile'] == 'cached' and case['model'] == 'lost']
+        seen = sorted({case['acked'] + 1 for case in cases})
+        required = list(range(1, W8_GENERATIONS + 1))
+        ok = seen == required and all(case['result']['mount'] == 1 for case in cases)
+        if not ok:
+            self.failures.append({'reason': 'the window control did not find atomic/w8 missing '
+                                            f'in every generation: {seen}'})
+            print(f'FAIL the window control found atomic/w8 missing in generations {seen} only')
+        return {
+            'name': 'window', 'image': self.names['fix'], 'workload': 'W8C', 'profile': 'cached',
+            'model': 'lost',
+            'required': 'mount=1, missing=1 and I3 failing in every generation\'s replace',
+            'generations_with_missing_target': seen,
+            'positions': sorted(case['position'] for case in cases),
+            'spans': {str(case['acked'] + 1): case['span'] for case in cases},
+            'cases': cases, 'failed_as_required': ok,
+        }
+
+    def window_report(self):
+        """Every W8C window case by profile and model, with the generation it was in."""
+        counts = {}
+        for case in self.window:
+            key = f'{case["profile"]} {case["model"]}'
+            counts[key] = counts.get(key, 0) + 1
+        return {'cases': len(self.window), 'by_profile_model': dict(sorted(counts.items())),
+                'generations': sorted({case['acked'] + 1 for case in self.window})}
 
     def created_empty_report(self):
         """The W3 cases that passed only as a created, still empty file, and checks that can fail.
@@ -645,6 +789,40 @@ class Replay:
                                                               'second metaroot')},
                 'failed_as_required': ok}
 
+    def damaged_superblock_control(self, workload='W4'):
+        """lfs-fix, the baseline with both blocks of the superblock pair overwritten, must not mount.
+
+        Each block overwritten alone is recorded too: LittleFS keeps a pair, so one alone is expected
+        to leave a volume that mounts, which shows that the damage hit the superblock.
+        """
+        regions = {'first superblock': LITTLEFS_SUPERBLOCK_SECTORS[:1],
+                   'second superblock': LITTLEFS_SUPERBLOCK_SECTORS[1:],
+                   'both superblocks': LITTLEFS_SUPERBLOCK_SECTORS}
+        if b'littlefs' not in self.baseline[:2 * SECTOR]:
+            raise RunError('sectors 0 and 1 of the baseline hold no LittleFS superblock')
+        results = {}
+        for name, sectors in regions.items():
+            image = bytearray(self.baseline)
+            for sector in sectors:
+                image[sector * SECTOR:(sector + 1) * SECTOR] = b'\xa5' * SECTOR
+            image = bytes(image)
+            result, reason = self.verify('fix', image, workload, 0)
+            record = {'exe': 'fix', 'workload': workload, 'acked': 0,
+                      'damage': f'sectors {sectors[0]} to {sectors[-1]} = 0xa5'}
+            if result is None:
+                record['no_result'] = reason
+            results[name] = (dict(record, result=result), image)
+        record, image = results['both superblocks']
+        ok = record['result'] is not None and record['result']['mount'] == 0
+        if not ok:
+            self.fail(record, 'the damaged image control did not report mount=0', image)
+        return {'name': 'damaged image', 'image': self.names['fix'], 'required': 'mount=0',
+                'case': record,
+                'single_superblock_observations': {name: results[name][0]
+                                                   for name in ('first superblock',
+                                                                'second superblock')},
+                'failed_as_required': ok}
+
     def damaged_control(self):
         """fat-fix, the baseline with its boot sector overwritten, must not mount."""
         boot = self.baseline[:SECTOR]
@@ -658,7 +836,7 @@ class Replay:
             record['no_result'] = reason
         if not ok:
             self.fail(record, 'the damaged image control did not report mount=0', image)
-        return {'name': 'damaged image', 'image': 'fat-fix', 'required': 'mount=0',
+        return {'name': 'damaged image', 'image': self.names['fix'], 'required': 'mount=0',
                 'case': dict(record, result=result), 'failed_as_required': ok}
 
     def execute(self):
@@ -684,11 +862,29 @@ class Replay:
                 groups, failed = self.observe(events, workload, profile)
                 report['observations'].setdefault(workload, {})[profile] = groups
                 report['observed_failures'] += failed
-        if self.w4:
+        if self.w8 and self.asserting:
+            report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
+            report['workload'] = 'W8'
+            damaged = (self.damaged_metaroot_control() if self.reliance
+                       else self.damaged_superblock_control('W8'))
+            report['controls'] = [self.flush_control('W8'), self.early_ack_control('W8'),
+                                  self.window_control(), damaged]
+            report['window'] = self.window_report()
+        elif self.w5:
+            report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
+            report['workload'] = 'W5'
+            report['controls'] = [self.flush_control('W5'), self.early_ack_control('W5'),
+                                  self.damaged_superblock_control('W5')]
+        elif self.w8:
+            report['workload'] = 'W8'
+            report['controls'] = [self.damaged_control()]
+            report['window'] = self.window_report()
+        elif self.w4:
             report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
             report['workload'] = 'W4'
-            report['controls'] = [self.flush_control('W4'), self.early_ack_control('W4'),
-                                  self.damaged_metaroot_control()]
+            damaged = (self.damaged_metaroot_control() if self.reliance
+                       else self.damaged_superblock_control())
+            report['controls'] = [self.flush_control('W4'), self.early_ack_control('W4'), damaged]
             report['staged_w4'] = self.staged_w4_checks()
         elif self.reliance:
             report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
@@ -719,7 +915,7 @@ def summarise(report):
             for model, group in groups.items():
                 found = ' '.join(f'{k}={v}' for k, v in sorted(group['violations'].items()))
                 for key in ('tore', 'I2_acknowledged_intact', 'I2_acknowledged_lost',
-                            'created_empty', 'cmp_leftover'):
+                            'created_empty', 'cmp_leftover', 'target_missing', 'window'):
                     if key in group:
                         found += f' {key}={group[key]}'
                 print(f'{workload} {profile:7} {model:9} cases {group["cases"]:4} '
@@ -735,6 +931,10 @@ def summarise(report):
         print(f'barrier draw on {observed["workload"]}, recorded: {observed["positions"]} '
               f'positions, {observed["unexplained"]} unexplained, '
               f'{observed["unexplained_by_field"]}')
+    window = report.get('window')
+    if window is not None:
+        print(f'W8C target missing (window): {window["cases"]} cases in generations '
+              f'{window["generations"]}, {window["by_profile_model"]}')
     staged = report.get('staged_w4')
     if staged is not None:
         print('W4 staged states (intact, leftover temporary, missing active file): '
@@ -758,13 +958,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--exe-fix', required=True,
-                        help='image built with the flush correction (fat-fix or red-fix)')
-    parser.add_argument('--exe-nofix', required=True,
-                        help='image built without it (fat-nofix or red-nofix)')
-    parser.add_argument('--fs', required=True, choices=('fatfs', 'reliance'))
-    parser.add_argument('--workload', choices=('W4',),
-                        help='run W4 alone, on images with the Settings File backend; without it '
-                             'W1 to W3 run')
+                        help='image built with the flush correction (fat-fix, red-fix or lfs-fix)')
+    parser.add_argument('--exe-nofix',
+                        help='image built without it (fat-nofix, red-nofix or lfs-nofix); not used '
+                             'by --fs fatfs --workload W8')
+    parser.add_argument('--fs', required=True, choices=('fatfs', 'reliance', 'littlefs'))
+    parser.add_argument('--workload', choices=('W4', 'W5', 'W8'),
+                        help='run W4 alone, on images with the Settings File backend, W5 alone, on '
+                             'LittleFS images with the File provider, or W8 and W8C, on images '
+                             'with a File provider; without it W1 to W3 run')
     parser.add_argument('--seed', type=int, required=True)
     parser.add_argument('--samples', type=int, required=True,
                         help='sampled positions per workload, profile and model')
@@ -773,8 +975,14 @@ def main():
     args = parser.parse_args()
     if args.samples < 0:
         parser.error('--samples must not be negative')
-    if args.workload == 'W4' and args.fs != 'reliance':
-        parser.error('--workload W4 needs --fs reliance')
+    if args.workload == 'W4' and args.fs not in ('reliance', 'littlefs'):
+        parser.error('--workload W4 needs --fs reliance or --fs littlefs')
+    if args.workload == 'W5' and args.fs != 'littlefs':
+        parser.error('--workload W5 needs --fs littlefs')
+    if args.fs == 'littlefs' and args.workload is None:
+        parser.error('--fs littlefs runs W4, W5 or W8: name one with --workload')
+    if args.exe_nofix is None and not (args.workload == 'W8' and args.fs == 'fatfs'):
+        parser.error('--exe-nofix is required, except with --fs fatfs --workload W8')
 
     os.makedirs(args.out, exist_ok=True)
     replay = Replay(args)

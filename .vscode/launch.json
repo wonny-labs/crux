@@ -2,70 +2,73 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "EVKB QSPI: Flash",
-      "type": "cppdbg",
+      "name": "Board: Debug",
+      "type": "cortex-debug",
       "request": "launch",
-      "program": "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf",
+      "servertype": "jlink",
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build firmware",
-      "MIMode": "gdb",
-      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
-      "setupCommands": [
-        {
-          "text": "set remotetimeout 60",
-          "description": "Allow time for external QSPI flash programming",
-          "ignoreFailures": false
-        }
+      "executable": "${workspaceFolder}/build/zephyr/${config:crux.boardKey}--current/zephyr/zephyr.elf",
+      "device": "${config:crux.jlinkDevice}",
+      "interface": "swd",
+      "serverArgs": [
+        "-speed",
+        "auto"
       ],
-      "launchCompleteCommand": "exec-continue",
-      "stopAtEntry": true,
-      "externalConsole": false,
-      "miDebuggerServerAddress": "host.docker.internal:2331",
-      "postRemoteConnectCommands": [
-        {
-          "text": "monitor reset",
-          "description": "Reset and halt the target before programming",
-          "ignoreFailures": false
-        },
-        {
-          "text": "-target-download",
-          "description": "Program the QSPI image through the J-Link flash loader",
-          "ignoreFailures": false
-        }
-      ]
+      "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "preLaunchTask": "Board: Check probe and build",
+      "runToEntryPoint": "main"
     },
     {
-      "name": "EVKB QSPI: Attach",
+      "name": "Board: Attach",
+      "type": "cortex-debug",
+      "request": "attach",
+      "servertype": "jlink",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/zephyr/${config:crux.boardKey}--current/zephyr/zephyr.elf",
+      "device": "${config:crux.jlinkDevice}",
+      "interface": "swd",
+      "serverArgs": [
+        "-speed",
+        "auto"
+      ],
+      "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "preLaunchTask": "Board: Check probe"
+    },
+    {
+      "name": "Board: Attach (external)",
+      "type": "cortex-debug",
+      "request": "attach",
+      "servertype": "external",
+      "gdbTarget": "host.docker.internal:2331",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/zephyr/${config:crux.boardKey}--current/zephyr/zephyr.elf",
+      "device": "${config:crux.jlinkDevice}",
+      "gdbPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
+    },
+    {
+      "name": "native_sim: Debug",
       "type": "cppdbg",
       "request": "launch",
-      "targetArchitecture": "arm",
-      "program": "${input:cruxElf}",
+      "program": "${workspaceFolder}/build/native_sim/zephyr/zephyr.exe",
       "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "unknownBreakpointHandling": "stop",
+      "externalConsole": false,
       "MIMode": "gdb",
-      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
-      "customLaunchSetupCommands": [
+      "miDebuggerPath": "/usr/bin/gdb",
+      "setupCommands": [
         {
-          "text": "-file-exec-and-symbols \"${input:cruxElf}\"",
-          "description": "Load symbols for the firmware already on the board",
-          "ignoreFailures": false
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
         },
         {
-          "text": "-target-select remote host.docker.internal:2331",
-          "description": "Connect to the Mac-hosted GDB Server without downloading",
+          "description": "Pass -uart_stdinout if the program accepts it; stop at the application main",
+          "text": "source ${workspaceFolder}/.vscode/native_sim_debug.py",
           "ignoreFailures": false
         }
       ],
-      "launchCompleteCommand": "None",
-      "stopAtConnect": true,
-      "stopAtEntry": false,
-      "externalConsole": false
-    }
-  ],
-  "inputs": [
-    {
-      "id": "cruxElf",
-      "type": "promptString",
-      "description": "Container path to the ELF matching the firmware already on the board"
+      "preLaunchTask": "native_sim: Build"
     }
   ]
 }

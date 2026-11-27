@@ -33,7 +33,18 @@ For application/composition responsibilities, see the [architecture](architectur
   No global service locator or consumer-accessible native object lookup is added.
 - Pools are bounded at build time. Default resource profile: four thread
   slots, eight mutexes, eight semaphores, 4096 usable stack bytes per Zephyr worker.
-  These are defaults, not a platform-wide product resource budget. Creation failure
+  These are defaults, not a platform-wide product resource budget. The ceilings that
+  stay fixed (they are internals of Crux's services; product code uses Zephyr threads
+  and locks, see [choosing an API](choosing-an-api.md)): Zephyr thread slots are 1 to 64
+  by `CONFIG_CRUX_THREAD_COUNT`, but all slots share one compile-time stack of
+  `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`),
+  and the per-thread stack option only rejects a larger request. Host thread slots are
+  fixed at 4, each with a 64 KiB stack (raised to the libc minimum where that is larger) and the priority ignored
+  (`components/thread/src/thread_internal.h:10-11`,
+  `components/thread/ports/linux/thread_native.c:77-90`). Only the LOW, NORMAL and HIGH
+  priorities exist. On the Host, Sync is fixed at 8 mutexes and 8 semaphores
+  (`components/sync/src/sync_internal.h:10-13`); on Zephyr `CONFIG_CRUX_SYNC_MUTEX_COUNT` and
+  `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` set 1 to 64 each (`zephyr/Kconfig:150-161`). Creation failure
   leaves the output invalid and rolls back reservations. No public allocator.
 - Operations return `crux_status_t`. Relevant values include
   `CRUX_ERR_BUSY=-6`, `CRUX_ERR_TIMEOUT=-7`, `CRUX_ERR_NO_RESOURCES=-8`,
@@ -171,7 +182,7 @@ CONFIG_CRUX_SSH_WORKER_PRIORITY=13
 
 The numbers are an illustration, not a measured recommendation. The web session worker at 11 still preempts the HTTP server thread at 14, as it does at its default.
 
-**Stability.** These are Kconfig symbols, which are interface under rule 5 of [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#42-change-rules). No Zephyr image outside `tests/` starts the services they place: the security event drain, the network settings worker and the two web workers are started only by images under `tests/native` and `tests/zephyr`, and no Zephyr image starts the reboot worker or the serial console thread at all. By [Decision 4.1](decisions/0001-application-boundary-and-api-stability.md#41-tiers) they therefore start as Experimental. `components/service_priority` is private.
+**Stability.** These are Kconfig symbols, which are interface under rule 5 of [ADR-0001 Decision 4](decisions/0001-application-boundary-and-api-stability.md#42-change-rules). No Zephyr image outside `tests/` starts the services they place: the security event drain, the network settings worker and the two web workers are started only by images under `tests/native` and `tests/zephyr`, and no Zephyr image starts the reboot worker or the serial console thread at all. By [Decision 4.1](decisions/0001-application-boundary-and-api-stability.md#41-tiers) they therefore start as Experimental. `components/service_priority` is private, except the progress hook of the same six threads, a composition interface ([the service thread progress](composition-interfaces.md#the-service-thread-progress)).
 
 **Evidence.** `tests/service_priority/zephyr` reads the priorities back with `k_thread_priority_get()` on `native_sim`, from a `LOW` Crux Thread worker that places itself as a service worker does, at the defaults and with every worker moved (0 to 14). It also checks that the class mapping stays 4/5/6. The services and the SSH provider are not started there, as they need their whole composition and SSH needs wolfSSH, so `tests/service_priority/check_placement.py` checks statically which entry calls which identifier, the defaults, the SSH provider's two priorities and that no service creates a thread outside this table. Nothing has been measured on a target.
 
@@ -244,7 +255,7 @@ Sync keeps its slot metadata with atomics and has no metadata lock. It used to t
 private kernel mutex in every call, and `crux_mutex_unlock` released the native mutex
 inside it. On Zephyr, releasing that metadata mutex restored the priority saved when it
 was taken, so a holder kept an inherited priority after unlock.
-[Draft PR #174](https://github.com/wonny-labs/crux-pilot/pull/174) locked the scheduler
+[Draft PR #174](https://github.com/wonny-labs/crux/pull/174) locked the scheduler
 instead; the owner chose on 13 November 2026 to remove the lock (decision P6
 of the platform direction review), with the pools unchanged.
 
@@ -370,11 +381,11 @@ worst-case stack headroom, fairness, bounded inversion or stuck-worker recovery.
 
 | Record | Meaning |
 | --- | --- |
-| [PR #36](https://github.com/wonny-labs/crux-pilot/pull/36), [archived validation](history/execution-validation.md) and [retained evidence](evidence/m5-execution/README.md) | Original combined Execution implementation, qualification revisions, failures, follow-up corrections and measurements; results apply only to those inputs |
-| [PR #52](https://github.com/wonny-labs/crux-pilot/pull/52), reviewed HEAD `210a7cdd`, merged as `2b33fbcd50e3fc3ff77b955791e36aaa32b5f554` | Thread/Sync separation, current ownership and independent consumer evidence |
-| [Pre-cleanup snapshot](https://github.com/wonny-labs/crux-pilot/tree/ab3a7f545d62b619a09801fccde8d6d22792c396/docs) | Original document paths/content before this consolidation; archived files link to their exact original versions |
+| [PR #36](https://github.com/wonny-labs/crux/pull/36), [archived validation](history/execution-validation.md) and [retained evidence](evidence/m5-execution/README.md) | Original combined Execution implementation, qualification revisions, failures, follow-up corrections and measurements; results apply only to those inputs |
+| [PR #52](https://github.com/wonny-labs/crux/pull/52), reviewed HEAD `210a7cdd`, merged as `2b33fbcd50e3fc3ff77b955791e36aaa32b5f554` | Thread/Sync separation, current ownership and independent consumer evidence |
+| [Pre-cleanup snapshot](https://github.com/wonny-labs/crux/tree/ab3a7f545d62b619a09801fccde8d6d22792c396/docs) | Original document paths/content before this consolidation; archived files link to their exact original versions |
 
 Historical Issue #24/#25 dependency statements and earlier test totals are retained
 with their original revisions, not asserted as current issue status. This document
-adds no new runtime test result or physical qualification. Historical M2 measurements
+adds no new runtime test result or physical qualification. Historical measurements of the first physical verification of the reference controller
 and simulated/cross-build evidence do not satisfy a later physical acceptance gate.

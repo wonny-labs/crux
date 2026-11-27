@@ -2,73 +2,163 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build firmware",
-      "type": "process",
-      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
-      "args": [
-        "mimxrt1060_evk@B//qspi"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      }
-    },
-    {
-      "label": "Build firmware (application, -Og)",
-      "type": "process",
-      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
-      "args": [
-        "mimxrt1060_evk@B//qspi",
-        "--app",
-        "${input:cruxApplication}",
-        "--debug-optimizations"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$gcc",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "clear": true
-      }
-    },
-    {
-      "label": "Clean firmware",
+      "label": "Board: Build",
       "type": "process",
       "command": "bash",
       "args": [
         "-c",
-        "rm -f \"$1/provenance.json\" && cmake --build \"$1\" --target clean",
-        "_",
-        "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi"
+        "key=$(printf %s \"$1\" | sed -E 's/[^A-Za-z0-9_.-]+/_/g'); [ -n \"$2\" ] && [ \"$2\" = \"$key\" ] || { echo \"Set crux.boardKey to $key in .vscode/settings.json.\" >&2; exit 1; }; app=${3%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $3; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec scripts/build-debug-target.sh \"$1\" --app \"$app\"",
+        "bash",
+        "${config:crux.board}",
+        "${config:crux.boardKey}",
+        "${input:sample}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "group": "build",
       "problemMatcher": "$gcc",
-      "group": {
-        "kind": "clean",
-        "isDefault": true
-      },
       "presentation": {
         "reveal": "always",
         "panel": "shared",
         "clear": true
       }
+    },
+    {
+      "label": "Board: Flash",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "grep -qsx 1366 /sys/bus/usb/devices/*/idVendor || { echo 'No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> (Getting started, section 7).' >&2; exit 1; }; exec west flash -d build/zephyr/${config:crux.boardKey}--current -r jlink"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Board: Clean",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "case \"$1\" in ''|.*|*/*) echo 'Set crux.boardKey in .vscode/settings.json.' >&2; exit 1;; esac; rm -rf -- \"build/zephyr/$1\" \"build/zephyr/$1\"--*",
+        "bash",
+        "${config:crux.boardKey}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "clean",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Build",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "app=${1%/}; [ -f \"$app/CMakeLists.txt\" ] || app=$app/zephyr; [ -f \"$app/CMakeLists.txt\" ] || { echo \"No Zephyr application at $1; enter samples/<name>/zephyr.\" >&2; exit 1; }; exec west build -p auto -b native_sim/native/64 -d build/native_sim \"$app\" -- -DCONFIG_NO_OPTIMIZATIONS=y",
+        "bash",
+        "${input:sample}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Run",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "if [ ! -f build/native_sim/CMakeCache.txt ]; then echo 'Run native_sim: Build first.' >&2; exit 1; fi; west build -p never -d build/native_sim || exit; exe=build/native_sim/zephyr/zephyr.exe; if \"$exe\" -h 2>&1 | grep -q -- -uart_stdinout; then exec \"$exe\" -uart_stdinout; fi; exec \"$exe\""
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "native_sim: Clean",
+      "type": "process",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "--",
+        "build/native_sim"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "clean",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Board: Check probe",
+      "hide": true,
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "grep -qsx 1366 /sys/bus/usb/devices/*/idVendor || { echo 'No J-Link probe found. Attach it to WSL2: usbipd attach --wsl --busid <BUSID> (Getting started, section 7).' >&2; exit 1; }"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Board: Check probe and build",
+      "hide": true,
+      "dependsOn": [
+        "Board: Check probe",
+        "Board: Build"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     }
   ],
   "inputs": [
     {
-      "id": "cruxApplication",
+      "id": "sample",
       "type": "promptString",
-      "description": "Application directory, relative to the repository",
-      "default": "samples/time"
+      "description": "Sample folder, relative to the repository",
+      "default": "samples/hello_crux/zephyr"
     }
   ]
 }

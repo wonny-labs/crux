@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Link only: the eMMC reference composition (samples/storage_emmc) on the RT1060-EVKB Rev B image,
+# Link only: the eMMC reference composition (samples/boards/nxp/mimxrt1060_evk/emmc_file) on the RT1060-EVKB Rev B image,
 # without and with the mount at boot, and with Configuration on the Settings File backend.
 # The EVKB has no eMMC. The overlay of the sample names an MMC disk so that the stack, the flush
 # correction and Reliance Edge link together; nothing is programmed, reset or run, and no image is
@@ -23,6 +23,9 @@ if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
     exit 2
 fi
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+crux_board_require "$(crux_board_target 'mimxrt1060_evk@B/mimxrt1062/qspi')" 'mimxrt1060_evk@B/mimxrt1062/qspi'
 board='mimxrt1060_evk@B/mimxrt1062/qspi'
 # The name does not start with twister-, so the CI step that collects Twister evidence does not
 # match this directory: it holds the map of an image that links GPLv2 source.
@@ -31,7 +34,7 @@ output="${CRUX_FILE_EMMC_OUTPUT:-$repo/build/zephyr/file-emmc-link}"
 if [[ "${CRUX_FILE_EMMC_SKIP_BUILD:-0}" != 1 ]]; then
     # All three scenarios must build and link: the mount sequence compiled out, compiled in, and
     # compiled in with Configuration's settings initialised after the layout check.
-    (cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_emmc" \
+    (cd "$workspace" && west twister -p "$board" -T "$repo/samples/boards/nxp/mimxrt1060_evk/emmc_file" \
         --build-only -O "$output" --inline-logs)
 fi
 
@@ -47,8 +50,8 @@ from pathlib import Path
 output, board, repo, zephyr = (Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3]), Path(sys.argv[4]))
 suites = json.load(open(output / 'twister.json'))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_emmc', 'crux.sample.storage_emmc.settings',
-            'crux.sample.storage_emmc.start']
+expected = ['crux.sample.boards.mimxrt1060_evk.emmc_file', 'crux.sample.boards.mimxrt1060_evk.emmc_file.settings',
+            'crux.sample.boards.mimxrt1060_evk.emmc_file.start']
 if (names != expected or any(s['platform'] != board or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 eMMC link check did not build the three scenarios: '
@@ -78,11 +81,11 @@ REQUIRED = ['CONFIG_DISK_DRIVER_MMC=y', 'CONFIG_MMC_STACK=y', 'CONFIG_CRUX_MMC_C
             'CONFIG_SDHC_BUFFER_ALIGNMENT=32', 'CONFIG_CRUX_FS_RELIANCE_EDGE=y',
             'CONFIG_CRUX_FILE_RELIANCE_EDGE=y']
 UNSET = ['CONFIG_DISK_DRIVER_SDMMC', 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT', 'CONFIG_FAT_FILESYSTEM_ELM',
-         'CONFIG_CRUX_FILE_FATFS_RT1060']
+         'CONFIG_CRUX_FILE_FATFS_RT1060', 'CONFIG_CRUX_FILE_FATFS_SDMMC']
 
 # Each scenario is (name, mount at boot, Configuration on the Settings File backend).
-SCENARIOS = [('crux.sample.storage_emmc', False, False), ('crux.sample.storage_emmc.start', True, False),
-             ('crux.sample.storage_emmc.settings', True, True)]
+SCENARIOS = [('crux.sample.boards.mimxrt1060_evk.emmc_file', False, False), ('crux.sample.boards.mimxrt1060_evk.emmc_file.start', True, False),
+             ('crux.sample.boards.mimxrt1060_evk.emmc_file.settings', True, True)]
 # The Settings scenario: the target selection and its path under the volume's mount point.
 SETTINGS_REQUIRED = ['CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE=y', 'CONFIG_SETTINGS=y',
                      'CONFIG_SETTINGS_FILE=y']
@@ -141,7 +144,7 @@ for name, start, settings in SCENARIOS:
     commands = json.loads((build / 'compile_commands.json').read_text())
     files = [str(Path(entry['directory'], entry['file']).resolve()) for entry in commands]
     # The Settings File image is built from the corrected copies of the three backend sources, which
-    # tests/native/configuration_settings_file stages, and not from the pinned originals.
+    # zephyr/settings_file.cmake stages, and not from the pinned originals.
     staged = sorted(Path(f).name for f in files if '/settings-file-candidate/' in f)
     pinned = [f for f in files if f.startswith(str((zephyr / 'subsys/settings/src').resolve()))]
     if settings and (staged != sorted(SETTINGS_SOURCES) or
@@ -177,7 +180,7 @@ expect_cmake_failure() {
     shift 2
     local log="$directory.log"
     if (cd "$workspace" && west build --cmake-only -p always -b "$board" -d "$directory" \
-            "$repo/samples/storage_emmc" -- "$@") >"$log" 2>&1; then
+            "$repo/samples/boards/nxp/mimxrt1060_evk/emmc_file" -- "$@") >"$log" 2>&1; then
         printf 'The eMMC composition configured with %s\n' "$*" >&2
         exit 1
     fi
@@ -204,13 +207,13 @@ expect_cmake_failure "$repo/build/zephyr/file-emmc-settings-control" \
     -DCRUX_SETTINGS_FILE_CONTROL=ON
 
 # Link only: the Stage A images of the eMMC physical gate, which run Reliance Edge on the EVKB's own
-# microSD slot (samples/storage_reliance_sd): the default image that calls no mount, the mount
+# microSD slot (tests/board_images/sd_card_power_cut_sequence): the default image that calls no mount, the mount
 # check, the append and replace tests, and the one-shot format image. Nothing is programmed, reset or run, and no image is kept
 # or uploaded: each image links GPLv2 source and is a test image. The ELF SHA-256 of each image goes
 # to the log only. The same CRUX_FILE_EMMC_SKIP_BUILD=1 rule applies to this output directory.
 sd_output="${CRUX_FILE_RELIANCE_SD_OUTPUT:-$repo/build/zephyr/file-reliance-sd-link}"
 if [[ "${CRUX_FILE_EMMC_SKIP_BUILD:-0}" != 1 ]]; then
-    (cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_reliance_sd" \
+    (cd "$workspace" && west twister -p "$board" -T "$repo/tests/board_images/sd_card_power_cut_sequence" \
         --build-only -O "$sd_output" --inline-logs)
 fi
 
@@ -225,9 +228,9 @@ from pathlib import Path
 output, board = Path(sys.argv[1]), sys.argv[2]
 suites = json.load(open(output / 'twister.json'))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_reliance_sd', 'crux.sample.storage_reliance_sd.append',
-            'crux.sample.storage_reliance_sd.format', 'crux.sample.storage_reliance_sd.replace',
-            'crux.sample.storage_reliance_sd.start']
+expected = ['crux.file.sd_card_power_cut_sequence', 'crux.file.sd_card_power_cut_sequence.append',
+            'crux.file.sd_card_power_cut_sequence.format', 'crux.file.sd_card_power_cut_sequence.replace',
+            'crux.file.sd_card_power_cut_sequence.start']
 if (names != expected or any(s['platform'] != board or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 microSD Stage A link check did not build the five scenarios: '
@@ -240,20 +243,20 @@ OPTIONS = ['CONFIG_SAMPLE_EMMC_START', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
            'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST', 'CONFIG_SAMPLE_RELIANCE_SD_FORMAT']
 # The Reliance Edge formatter (red_format) is compiled only for the format image, which sets
 # CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT through its option; every other image must have neither.
-FORMAT_SCENARIO = 'crux.sample.storage_reliance_sd.format'
+FORMAT_SCENARIO = 'crux.file.sd_card_power_cut_sequence.format'
 FORMAT_SYMBOL = 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT'
 # Each scenario is (name, the one option it sets, symbols that must be linked, symbols that must not
 # be). The default image calls none of the four, so nothing in it starts a mount or a write of the
 # card (the file system code is still linked). The format image does not mount through
 # emmc_storage_start: it has its own mount and the one function that formats.
 SCENARIOS = [
-    ('crux.sample.storage_reliance_sd', None, [],
+    ('crux.file.sd_card_power_cut_sequence', None, [],
      ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation', 'reliance_format_once']),
-    ('crux.sample.storage_reliance_sd.start', 'CONFIG_SAMPLE_EMMC_START', ['emmc_storage_start'],
+    ('crux.file.sd_card_power_cut_sequence.start', 'CONFIG_SAMPLE_EMMC_START', ['emmc_storage_start'],
      ['sd_interrupt_append', 'sd_replace_generation', 'reliance_format_once']),
-    ('crux.sample.storage_reliance_sd.append', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
+    ('crux.file.sd_card_power_cut_sequence.append', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
      ['emmc_storage_start', 'sd_interrupt_append'], ['sd_replace_generation', 'reliance_format_once']),
-    ('crux.sample.storage_reliance_sd.replace', 'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST',
+    ('crux.file.sd_card_power_cut_sequence.replace', 'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST',
      ['emmc_storage_start', 'sd_replace_generation'], ['sd_interrupt_append', 'reliance_format_once']),
     (FORMAT_SCENARIO, 'CONFIG_SAMPLE_RELIANCE_SD_FORMAT', ['reliance_format_once'],
      ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation']),

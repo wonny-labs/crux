@@ -1,6 +1,6 @@
 # HTTPS composition on the Wolf and Mbed TLS profiles
 
-Status: merged in [PR #277](https://github.com/wonny-labs/crux-pilot/pull/277) for [Issue #185](https://github.com/wonny-labs/crux-pilot/issues/185). Host and
+Status: merged in [PR #277](https://github.com/wonny-labs/crux/pull/277) for [Issue #185](https://github.com/wonny-labs/crux/issues/185). Host and
 `native_sim` evidence only, an interim result by decision W18. **Nothing here ran on a board.** RT1060-EVKB results are
 compile only, and the handshake time and memory on RT1060 stay open for a separately approved run.
 
@@ -212,7 +212,7 @@ next client served and a share under 0.5. At `4ed6eb9` it only recorded, and was
 **The fix, test image only.** Zephyr's own TCP reports `POLLHUP` once the peer has closed (`sock_is_eof` in
 `sockets_inet.c`), and the server closes a client on `POLLHUP`. `tests/native/web_https/nsos_rdhup.cmake` builds a copy of
 the offload's host side, `nsos_adapt.c`, that also asks `epoll` for `EPOLLRDHUP` and reports it as `POLLHUP`: three
-edits, each on an anchor that must occur once, after a SHA-256 check of the v4.4.2 file. The West checkout is not
+edits, each on an anchor that must occur once, after a SHA-256 check of the v4.5.0 file. The West checkout is not
 edited, and the plain HTTP image keeps the driver as it is. **This is a `native_sim` limit, not a target one.** It is
 worth offering upstream as a one-line change to the driver's map.
 
@@ -283,6 +283,8 @@ the same five headers and body, over one kept connection, 60 requests each.
 | Headers in one value | 9 | 9 | 49.7 ms | 49.8 ms | 51.6 and 52.8 ms |
 | One by one, with `TCP_NODELAY` on the connection | 21 | 21 | 0.6 ms | 0.8 ms | 0.8 and 1.3 ms |
 
+These figures are from Zephyr v4.4.2. Zephyr v4.5.0 assembles the header block in one buffer and gathers it with the body, so both variants make the same number of sends (3 server sends and 7 TCP sends each on Mbed in CI), and `tls_sends_of_a_small_response` now requires them to be equal. The decision stands, with one reason fewer.
+
 **Decision: do not halve the sends.**
 
 | For halving | Against, and why it decides |
@@ -337,7 +339,7 @@ gap: when the #280 late first read's assertion fires first, the case's two later
 free again (`wait_route_free`, in `tests/native/web_http/test_driver.py`), do not run, so a close that sent data would be
 masked in that run. That gap, and Wolf's next-request bound of 2.5 s, loose against the largest wait measured, about 1.0
 to 1.07 s, are declared, and both go away when #280 is fixed. Whether the #280 late first read exists on a target, or with Zephyr's own TCP, is unknown. New issue
-[#280](https://github.com/wonny-labs/crux-pilot/issues/280) tracks it.
+[#280](https://github.com/wonny-labs/crux/issues/280) tracks it.
 
 ## How a product applies the wolfSSL patch
 

@@ -1,0 +1,14 @@
+/ {
+    chosen { zephyr,log-uart = &smoke_logging_uarts; };
+    smoke_logging_uarts: smoke-logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&smoke_logging_uart>;
+    };
+    smoke_logging_uart: smoke-logging-uart {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        rx-fifo-size = <16>;
+        tx-fifo-size = <1024>;
+        status = "okay";
+    };
+};

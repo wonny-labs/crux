@@ -358,6 +358,10 @@ static void worker_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_WEB_SESSION_WORKER);
 #endif
     for (;;) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_WEB_SESSION_WORKER_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_WEB_SESSION_WORKER);
+#endif
         (void)crux_semaphore_take(attempt_signal, CRUX_WEB_SESSION_WORKER_WAIT_MS);
         while (web_session_work_once()) {
         }

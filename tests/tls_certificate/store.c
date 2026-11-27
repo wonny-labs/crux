@@ -29,8 +29,10 @@ static const char *const admin_permissions[] = {CRUX_ACCESS_PERMISSION_MANAGE,
                                                 CRUX_TLS_CERTIFICATE_PERMISSION_MANAGE};
 static const crux_access_role_t roles[] = {{"administrator", admin_permissions, 2}};
 static const crux_access_policy_t policy = {roles, 1, 15u * 60u, 8u * 3600u, NULL};
-static const crux_tls_certificate_options_t options = {
-    {"Crux device", NULL, 0, NULL, 0, NULL, 0}, CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S, 0};
+static const crux_tls_certificate_options_t options = {{"Crux device", NULL, 0, NULL, 0, NULL, 0},
+                                                       CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S,
+                                                       0,
+                                                       false};
 static crux_access_session_t admin;
 
 static void boot_access(void)
@@ -160,6 +162,106 @@ static void test_generated_key(void)
                                &length) == CRUX_CREDENTIAL_ERR_NOT_FOUND);
 }
 
+/* From the credential suites' helpers and fake ports, which this suite links. */
+bool test_slot_exists(size_t slot);
+size_t test_slot_read(size_t slot, void *data, size_t capacity);
+unsigned credential_fake_keygen_count(void);
+
+static uint8_t slot_before[2][CRUX_CREDENTIAL_SLOT_BYTES];
+static uint8_t slot_after[CRUX_CREDENTIAL_SLOT_BYTES];
+
+/* Decisions D-1 to D-3: an account-only erase keeps the key and the certificate, self-signed or
+ * installed, so the next start loads them and clients see the same fingerprint. */
+static void test_account_erase_keeps_the_identity(void)
+{
+    for (int installed = 0; installed <= 1; ++installed) {
+        crux_tls_certificate_test_reset();
+        fresh_medium();
+        crux_tls_certificate_start_t how;
+        CHECK(crux_tls_certificate_start(&options, &how) == CRUX_TLS_CERTIFICATE_OK);
+        if (installed) {
+            CHECK(crux_tls_certificate_install(admin, fixture_ec_by_rsa, sizeof(fixture_ec_by_rsa),
+                                               NULL) == CRUX_TLS_CERTIFICATE_OK);
+        }
+        crux_tls_certificate_info_t before;
+        CHECK(crux_tls_certificate_get(admin, &before) == CRUX_TLS_CERTIFICATE_OK);
+        CHECK(crux_credential_erase_accounts() == CRUX_CREDENTIAL_OK);
+
+        power_cycle();
+        unsigned generated = credential_fake_keygen_count();
+        CHECK(crux_tls_certificate_start(&options, &how) == CRUX_TLS_CERTIFICATE_OK);
+        CHECK(how == CRUX_TLS_CERTIFICATE_STARTED);
+        CHECK(credential_fake_keygen_count() == generated);
+        char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
+        CHECK(crux_tls_certificate_fingerprint(fingerprint) == CRUX_TLS_CERTIFICATE_OK);
+        CHECK(strcmp(fingerprint, before.fingerprint_text) == 0);
+        uint8_t record[16];
+        size_t length = 0;
+        CHECK(crux_credential_read(CRUX_CREDENTIAL_RECORD_ACCOUNTS, record, sizeof(record),
+                                   &length) == CRUX_CREDENTIAL_ERR_NOT_FOUND);
+        boot_access();
+        crux_tls_certificate_info_t after;
+        CHECK(crux_tls_certificate_get(admin, &after) == CRUX_TLS_CERTIFICATE_OK);
+        CHECK(after.source == before.source);
+        CHECK(memcmp(after.fingerprint, before.fingerprint, 32) == 0);
+    }
+}
+
+static const crux_tls_certificate_options_t existing_only = {
+    {"Crux device", NULL, 0, NULL, 0, NULL, 0}, CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S, 0, true};
+
+/* Decision D-4: with require_existing_identity, a missing key or certificate is refused and the
+ * store is left exactly as it was, so a product can enter its own recovery instead. */
+static void test_require_existing_identity(void)
+{
+    crux_tls_certificate_start_t how = CRUX_TLS_CERTIFICATE_STARTED;
+    crux_tls_certificate_material_t material;
+
+    /* Nothing stored: no key is generated, and the store stays EMPTY with no slot written. */
+    fake_ports_reset();
+    test_fresh();
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+    CHECK(credential_fake_keygen_count() == 0u);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+    CHECK(!test_slot_exists(0) && !test_slot_exists(1));
+    CHECK(crux_tls_certificate_material_take(&material) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);
+    /* A refusal leaves the module not started, so start can be called again. */
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+
+    /* A key and no certificate: no certificate is made, and neither slot changes. */
+    fresh_medium();
+    for (size_t slot = 0; slot < 2u; ++slot) {
+        CHECK(test_slot_read(slot, slot_before[slot], sizeof(slot_before[slot])) ==
+              sizeof(slot_before[slot]));
+    }
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY);
+    for (size_t slot = 0; slot < 2u; ++slot) {
+        CHECK(test_slot_read(slot, slot_after, sizeof(slot_after)) == sizeof(slot_after));
+        CHECK(memcmp(slot_after, slot_before[slot], sizeof(slot_after)) == 0);
+    }
+    CHECK(fake_ports_sign_count() == 0u);
+    CHECK(crux_tls_certificate_material_take(&material) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);
+
+    /* Both stored: it starts as without the setting. */
+    CHECK(crux_tls_certificate_start(&options, &how) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(how == CRUX_TLS_CERTIFICATE_GENERATED);
+    crux_tls_certificate_info_t first;
+    CHECK(crux_tls_certificate_get(admin, &first) == CRUX_TLS_CERTIFICATE_OK);
+    power_cycle();
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(how == CRUX_TLS_CERTIFICATE_STARTED);
+    char fingerprint[CRUX_TLS_CERTIFICATE_FINGERPRINT_TEXT_SIZE];
+    CHECK(crux_tls_certificate_fingerprint(fingerprint) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(strcmp(fingerprint, first.fingerprint_text) == 0);
+
+    /* An unusable store is still NOT_READY, as without the setting. */
+    crux_tls_certificate_test_reset();
+    fresh_medium();
+    CHECK(crux_credential_erase() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_tls_certificate_start(&existing_only, &how) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);
+}
+
 static void finish_case(void)
 {
     tls_test_failures += access_test_failures + credential_test_failures;
@@ -177,9 +279,13 @@ CASE(test_refused_upload_leaves_the_record)
 CASE(test_installed_across_power_cycle)
 CASE(test_unusable_store)
 CASE(test_generated_key)
+CASE(test_account_erase_keeps_the_identity)
+CASE(test_require_existing_identity)
 
 int main(void)
 {
+    tls_test_case("account erase keeps the identity", case_test_account_erase_keeps_the_identity);
+    tls_test_case("require existing identity", case_test_require_existing_identity);
     tls_test_case("first boot and power cycle", case_test_first_boot_and_power_cycle);
     tls_test_case("refused upload leaves the record", case_test_refused_upload_leaves_the_record);
     tls_test_case("installed across power cycle", case_test_installed_across_power_cycle);

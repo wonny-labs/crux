@@ -75,7 +75,9 @@ typedef enum {
      * record, a failed save can still win at the next boot if the store could not invalidate it.
      */
     CRUX_TLS_CERTIFICATE_ERR_STORE = -10,
-    CRUX_TLS_CERTIFICATE_ERR_CRYPTO = -11 /**< Hash, signature or random source failed. */
+    CRUX_TLS_CERTIFICATE_ERR_CRYPTO = -11, /**< Hash, signature or random source failed. */
+    /** Start was told to require a stored key and certificate, and one is missing. */
+    CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY = -12
 } crux_tls_certificate_result_t;
 
 /** Where the active certificate came from. */

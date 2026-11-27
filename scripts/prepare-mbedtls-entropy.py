@@ -7,8 +7,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-BASE_SHA256 = "302e373808c9bc019ab92523e92cdebb05bc45f0bf6e30c6a942bdce19982e6d"
-PATCHED_SHA256 = "65ed87b0d7878df4e3a80a514a4244ecbae2908246e715fd77c19f30f6fc0403"
+BASE_SHA256 = "0f0b8deb712706ac7bd108a635fd598880c43ab243915126fb0ee104bd492f47"
+PATCHED_SHA256 = "417617f65bb5541da86d6928004ab370b94b4a43678fee3f20c8f5dfb78c98c0"
 RELATIVE_SOURCE = Path("modules/mbedtls/zephyr_entropy.c")
 PATCH = Path(__file__).resolve().parents[1] / "patches/zephyr/mbedtls-entropy-fail-closed.patch"
 

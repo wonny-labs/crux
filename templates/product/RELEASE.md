@@ -17,7 +17,7 @@ List every upstream project of the release: each project in the frozen manifest 
 
 | Project | Source | Pinned revision | Licence | End of support (optional) |
 | --- | --- | --- | --- | --- |
-| `crux-pilot` | `<remote or URL>` | `<commit SHA>` | `<SPDX identifier>` | `<date, or empty>` |
+| `crux` | `<remote or URL>` | `<commit SHA>` | `<SPDX identifier>` | `<date, or empty>` |
 | `zephyr` | `<remote or URL>` | `<commit SHA>` | `<SPDX identifier>` | `<date, or empty>` |
 | `<project>` | `<remote or URL>` | `<commit SHA>` | `<SPDX identifier>` | `<date, or empty>` |
 
@@ -38,6 +38,42 @@ Record the route chosen for each upstream that the product changes, and why that
 
 If nothing is modified, replace the table with the sentence "Nothing is modified in this release."
 
+## Vendor kits
+
+Fill this section for each vendor kit that the release compiles, following the recommended, Experimental convention of `docs/vendor-kits.md` in `crux`. If the release compiles no vendor kit, replace the tables with the sentence "No vendor kit is compiled in this release."
+
+Take the line, the delivery and the hash list digest from the configure output of the kit module, and the commit SHA from the frozen manifest. For a kit whose sources are held outside Git, write "sources held outside Git" in the Location column, leave the work tag and the commit SHA empty, and give the archive hash and where the archive is kept in the Receipt column.
+
+| Kit | Kit line | Delivery tag | Work tag | Commit SHA | Hash list digest | Location | Receipt | Licence record |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `<kit>` | `<line>` | `<vendor/delivery>` | `<work/delivery-orgN, or empty>` | `<commit SHA>` | `<SHA-256 printed by the module>` | `<west project, or sources held outside Git>` | `<receipt hash, archive location>` | `<SPDX identifier or LicenseRef, and where the licence text is kept>` |
+
+| Module | Tag | Commit SHA | Kit lines built | Kit lines tested on a board |
+| --- | --- | --- | --- | --- |
+| `<kit module>` | `<module tag>` | `<commit SHA>` | `<lines>` | `<lines, or none>` |
+
+Licence and identity inputs that no repository holds are recorded by hash only, never as files:
+
+- `<input name>`: expected SHA-256 `<hash>`, found `<hash>`, kept at `<location, readable by role>`
+
+Also record:
+
+- Release build flag set (`-DPRODUCT_RELEASE_BUILD=ON`): `<yes or no>`
+- Kit path overrides or extra Zephyr modules in the release build: `<none, or why>`
+- Frozen manifest with internal URLs, if the product repository is public: `<where the internal copy is kept>`
+
+## Build environment
+
+Record what the build record does not hold, so that the release can be rebuilt.
+
+- Build image digest: `<container or runner image digest, not a tag>`
+- Toolchain archive hash: `<SHA-256 of the SDK or toolchain archive>`
+- West, Python and Python dependency lock: `<versions, and the hash of the lock file>`
+- Build command, configuration fragments and overlays: `<command, and the hash of each file>`
+- Board revision: `<revision>`
+- Signing key identifier: `<identifier, never the key>`
+- Rebuild identity: `<result of two builds from the frozen manifest in fresh workspaces at different paths: same image hash and firmware identity, or the difference>`
+
 ## Support period
 
 The product sets the support period. Crux does not set one for a product, and this template names none.
@@ -53,8 +89,8 @@ Compare the period with the optional end-of-support column of the dependency inv
 
 Follow the release section of the guide at the Crux revision that this release pins. Replace `<crux-revision>` with that tag or commit SHA. Never link a moving branch from a record, because the text behind the link would change under it.
 
-- Guide: `https://github.com/wonny-labs/crux-pilot/blob/<crux-revision>/docs/product-composition.md`
-- Release section: `https://github.com/wonny-labs/crux-pilot/blob/<crux-revision>/docs/product-composition.md#release`
+- Guide: `https://github.com/wonny-labs/crux/blob/<crux-revision>/docs/product-composition.md`
+- Release section: `https://github.com/wonny-labs/crux/blob/<crux-revision>/docs/product-composition.md#release`
 
 The steps in order, with the one command that each is known by. Tick each step when it is done.
 
@@ -62,11 +98,11 @@ The steps in order, with the one command that each is known by. Tick each step w
 2. [ ] Run `west crux-pins`, so that a failure does not burn a tag.
 3. [ ] Freeze the manifest with `west manifest --freeze --active-only`, commit the lock on a release branch and tag it.
 4. [ ] In a fresh workspace, initialise from the tagged frozen manifest, run `west update` and run `west crux-pins` again. That first extension command adds `zephyr.base` to `.west/config`, which the build record hashes, so it must come before the capture in step 5. `west config zephyr.base zephyr` writes the same line.
-5. [ ] With mirror rewrites off, capture the build inputs with `crux-pilot/scripts/record-build-provenance.py --capture-inputs` and run `west spdx --init`, both before the build. Leave `.west/config` as it is until step 7.
+5. [ ] With mirror rewrites off, capture the build inputs with `crux/scripts/record-build-provenance.py --capture-inputs` before the build. Leave `.west/config` as it is until step 7.
 6. [ ] Build with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, or record here why another Zephyr release is used on purpose.
-7. [ ] Write the build record with `crux-pilot/scripts/record-build-provenance.py`, using the captured inputs.
+7. [ ] Write the build record with `crux/scripts/record-build-provenance.py`, using the captured inputs.
 8. [ ] Write the SBOM with `west spdx`, and reduce it before it goes outward.
-9. [ ] Assemble the release bundle and check it with `crux-pilot/scripts/check-release-bundle.py`, as described under Bundle contents.
+9. [ ] Assemble the release bundle and check it with `crux/scripts/check-release-bundle.py`, as described under Bundle contents.
 10. [ ] Fill in the revision and the checks below.
 
 ## Bundle contents
@@ -90,7 +126,7 @@ Mark each item as in this bundle, as a hash only, or as not in it.
 | Full SBOM | Internal, and given to authorities on request | `<yes or no>` |
 | Debug files (`.elf` and `.map`) | Internal only, and never in a public product repository | `<no, or a private location>` |
 
-The manifest follows the schema in `docs/schemas/release-manifest.schema.json` of `crux-pilot`, and the checker is `scripts/check-release-bundle.py`. Both are provisional and not frozen before a product's first real release, so their shape can still change. Run the checker as `python3 crux-pilot/scripts/check-release-bundle.py <bundle-dir>`. Its limits are in `docs/release-bundle-checker.md`.
+The manifest follows the schema in `docs/schemas/release-manifest.schema.json` of `crux`, and the checker is `scripts/check-release-bundle.py`. Both are provisional and not frozen before a product's first real release, so their shape can still change. Run the checker as `python3 crux/scripts/check-release-bundle.py <bundle-dir>`. Its limits are in `docs/release-bundle-checker.md`.
 
 Fields that only this product needs go in the `extensions` object of the manifest.
 
@@ -122,6 +158,6 @@ Record every check of this release, including those that failed. A check that wa
 
 ## Vulnerability check
 
-Placeholder. A procedure for checking the dependencies against known vulnerabilities in the SBOM before a release is not defined yet. It is an open item of the Crux platform, tracked in `wonny-labs/crux-pilot` issue 301. Record "not run" here until a procedure exists, and do not treat this line as a check.
+Placeholder. A procedure for checking the dependencies against known vulnerabilities in the SBOM before a release is not defined yet. It is an open item of the Crux platform, tracked in `wonny-labs/crux` issue 301. Record "not run" here until a procedure exists, and do not treat this line as a check.
 
 - Result: `<not run>`

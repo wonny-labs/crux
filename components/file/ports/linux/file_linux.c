@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 
 _Static_assert(sizeof(off_t) >= sizeof(int64_t), "Host requires 64-bit offsets");
@@ -79,6 +80,30 @@ crux_file_result_t crux_file_linux_bind_root(crux_file_root_t root, const char *
     roots[root].fd = fd;
     roots[root].bound = true;
     return CRUX_FILE_OK;
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in file_linux.h
+crux_file_result_t crux_file_linux_bind_root_limited(crux_file_root_t root, const char *r,
+                                                     uint64_t max_bytes)
+{
+    if (max_bytes == 0) {
+        return CRUX_FILE_ERR_INVALID_ARGUMENT;
+    }
+    crux_file_result_t result = crux_file_linux_bind_root(root, r);
+    if (result != CRUX_FILE_OK) {
+        return result;
+    }
+
+    struct statvfs volume;
+    result = fstatvfs(roots[root].fd, &volume) == 0
+                 ? crux_file_limit_root(root, max_bytes, volume.f_frsize)
+                 : crux_file_linux_error(errno);
+    if (result != CRUX_FILE_OK) {
+        roots[root].bound = false;
+        (void)close(roots[root].fd);
+        roots[root].fd = -1;
+    }
+    return result;
 }
 
 crux_file_result_t crux_file_linux_bind(const char *r)
@@ -231,8 +256,23 @@ crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, c
         return result;
     }
 
-    /* renameat replaces its destination, so this check under the File lock is what refuses one. A
-     * link or directory counts as existing. */
+    /* The kernel refuses an existing destination of any type, a link or directory included, in
+     * the same step as the rename, so no other writer can slip in a file between a check and the
+     * rename. */
+    if (renameat2(roots[r].fd, from, roots[r].fd, to, RENAME_NOREPLACE) == 0) {
+        return CRUX_FILE_OK;
+    }
+    if (errno == EEXIST || errno == ENOTEMPTY) {
+        return CRUX_FILE_ERR_EXISTS;
+    }
+    if (errno != EINVAL && errno != ENOSYS) {
+        return crux_file_linux_error(errno);
+    }
+
+    /* Fallback for a kernel without renameat2 (ENOSYS) or a file system without
+     * RENAME_NOREPLACE (EINVAL): check, then a replacing renameat. Under the File lock no File
+     * caller can come between the two, but another process or a native client of the same
+     * directory can, and its file is then replaced (docs/file-contract.md). */
     struct stat st;
     if (fstatat(roots[r].fd, to, &st, AT_SYMLINK_NOFOLLOW) == 0) {
         return CRUX_FILE_ERR_EXISTS;

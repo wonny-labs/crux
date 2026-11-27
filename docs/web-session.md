@@ -1,6 +1,6 @@
 # Web login, sessions and request forgery protection
 
-Status: merged in [PR #278](https://github.com/wonny-labs/crux-pilot/pull/278) for Issue #186. Nothing here has run on a board. #186's own test image uses plain HTTP, and the sessions have since run over HTTPS on both TLS profiles in [the services image](native-composition-242.md) and in the [browser runs of #220](e2e-native-220.md). Host and `native_sim` results are interim results, and physical evidence stays tracked apart.
+Status: merged in [PR #278](https://github.com/wonny-labs/crux/pull/278) for Issue #186. Nothing here has run on a board. #186's own test image uses plain HTTP, and the sessions have since run over HTTPS on both TLS profiles in [the services image](native-composition-242.md) and in the [browser runs of #220](e2e-native-220.md). Host and `native_sim` results are interim results, and physical evidence stays tracked apart.
 
 Owner: `components/web`. The settings type, the start calls and the authentication function are public in `<crux/web_session.h>` (target `crux::web_session`, ADR-0004 phase 1a, Experimental). The rest, the counters and token sizes, is in the internal header `components/web/session/crux_web_session.h`, for a composition only, like
 `crux_web_adapter.h`. Sources in `components/web/session/`, listed by `sources.cmake`. Ports on PSA Crypto in
@@ -21,7 +21,7 @@ Owner: `components/web`. The settings type, the start calls and the authenticati
 | Idle and absolute expiry | Host only. The limits are 15 minutes and 8 hours in the composition, too long for a `native_sim` run. | |
 | HTTPS | **Not in #186's own image**: plain HTTP on loopback. Over HTTPS: [HTTPS composition](https-composition.md) and [the services image](native-composition-242.md). | |
 | Header capture on Safari | **Not run.** Safari cannot run unattended on this machine. The criterion stays open. A by-hand observation of the `Secure` cookie on the mock is under decision 14. | |
-| RT1060 | Compiled as objects in CI. Linked in the Mbed management image (`samples/management_rt1060_mbed`), which `psa-crypto.yml` cross-builds on each pull request and push to `main`, and in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build), which refuses to start. Neither has run on a board | |
+| RT1060 | Compiled as objects in CI. Linked in the Mbed management image (`samples/boards/nxp/mimxrt1060_evk/web_management`), which `psa-crypto.yml` cross-builds on each pull request and push to `main` that changes more than documentation, and in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build), which refuses to start. Neither has run on a board | |
 | Anything on a board | Not run. No hardware was operated. | |
 
 ## How a login flows
@@ -89,7 +89,7 @@ stateDiagram-v2
 
 ## Security events for a refused CSRF token or Origin
 
-Decided by the owner on 2026-11-14 on [Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319): emit an event for a refused CSRF token and for a refused `Origin`, from the session layer, rate-limited so that a flood cannot fill the event ring.
+Decided by the owner on 2026-11-14 on [Issue #319](https://github.com/wonny-labs/crux/issues/319): emit an event for a refused CSRF token and for a refused `Origin`, from the session layer, rate-limited so that a flood cannot fill the event ring.
 
 ```mermaid
 flowchart LR

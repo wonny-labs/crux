@@ -1,6 +1,6 @@
 # SSH provider contract
 
-Status: merged in [PR #239](https://github.com/wonny-labs/crux-pilot/pull/239) for Issue #205, part of gate #183, which has
+Status: merged in [PR #239](https://github.com/wonny-labs/crux/pull/239) for Issue #205, part of gate #183, which has
 passed. It fixes what the SSH, CLI and SFTP session channels share, and [the wolfSSH provider](ssh-wolf-provider.md), the
 [command line over SSH](cli-over-ssh.md) and [SFTP](sftp-design.md) now implement it. It authorises no hardware operation.
 
@@ -148,7 +148,7 @@ A session belongs to one SSH connection. `crux_access_touch` is the caller's job
 
 ### Security events from the access adapter
 
-[Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317) gives the SSH identifiers an emitter, on the owner's decision of
+[Issue #317](https://github.com/wonny-labs/crux/issues/317) gives the SSH identifiers an emitter, on the owner's decision of
 2026-11-14: option A for `ssh.auth_limit` and `ssh.host_key_missing`, and option B for refusals before a first callback, which stay
 unemitted and **reserved**. The adapter does not name the Security event component. It reports to a port, `crux_ssh_access_port_event()`
 in [`crux_ssh_access_port.h`](../components/ssh/access/crux_ssh_access_port.h), and an image links one provider of it. The

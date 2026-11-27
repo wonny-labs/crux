@@ -8,10 +8,10 @@ so does an entry with no route, so the list changes with the code and shows up i
 
     scripts/check-web-routes.py [--reviewed FILE] [SOURCE ...]
 
-With no source it reads every tracked source outside tests/ that uses the macro, which cannot see a
-generated source: for those, name the list at build, with crux_web_routes(... REVIEWED file). A sample
-under samples/ that keeps its own reviewed-routes.txt beside its sources, as a product would (Issue #220),
-is checked against that list in place of the default one, by the same comparison, and that list must be
+With no source it reads every tracked source that uses the macro outside tests/, and in the project
+folders of PROJECT_ROOTS under tests/. That scan cannot see a generated source: for those, name the list
+at build, with crux_web_routes(... REVIEWED file). A project under samples/ or another PROJECT_ROOTS
+folder that keeps its own reviewed-routes.txt beside its sources, as a product would (Issue #220), is checked against that list in place of the default one, by the same comparison, and that list must be
 named after REVIEWED in a tracked CMake file, so that a list no build uses exempts nothing. The list's
 `public GET @assets` line is left to the build, which sees the packaged folder's generated source. A line of
 the reviewed list reads `public POST /api/v1/session`, and # starts a comment.
@@ -32,16 +32,22 @@ SPEC.loader.exec_module(web_routes)
 METHOD_NAME = {token: token.removeprefix("CRUX_WEB_") for token in web_routes.METHODS}
 DEFAULT_LIST = REPO / "components/web/reviewed-routes.txt"
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".inc", ".def"}
+# Folders whose projects may keep their own reviewed-routes.txt.
+PROJECT_ROOTS = ("samples", "tests/web/project_sample/project")
 
 
 def own_list(path, root=REPO):
     """The reviewed list a sample keeps beside its sources, or None."""
-    samples = root / "samples"
-    for parent in path.parents:
-        if parent == samples or samples not in parent.parents:
-            return None
-        if (parent / "reviewed-routes.txt").is_file():
-            return parent / "reviewed-routes.txt"
+    for base in (root / name for name in PROJECT_ROOTS):
+        if base not in path.parents:
+            continue
+        for parent in path.parents:
+            if parent == base and base.name == "samples":
+                return None
+            if (parent / "reviewed-routes.txt").is_file():
+                return parent / "reviewed-routes.txt"
+            if parent == base:
+                return None
     return None
 
 
@@ -77,21 +83,26 @@ def sample_errors(owned, root=REPO):
     return errors
 
 
-def default_sources():
-    tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", "--cached", "--others",
+def default_sources(root=REPO):
+    tracked = subprocess.run(["git", "-C", str(root), "ls-files", "--cached", "--others",
                               "--exclude-standard"], stdout=subprocess.PIPE, text=True, check=True)
     found, owned = [], {}
     for name in tracked.stdout.splitlines():
-        path = REPO / name
-        if (path.suffix not in SOURCE_SUFFIXES or name.startswith("tests/") or not path.is_file() or
-                path == REPO / "components/web/include/crux/web.h"):
+        path = root / name
+        in_tests = name.startswith("tests/")
+        if (path.suffix not in SOURCE_SUFFIXES or not path.is_file() or
+                path == root / "components/web/include/crux/web.h"):
+            continue
+        # Under tests/, only a project of PROJECT_ROOTS with its own list is read.
+        if in_tests and not any(name.startswith(base + "/") for base in PROJECT_ROOTS):
             continue
         if web_routes.MACRO.search(web_routes.strip_comments(path.read_text(encoding="utf-8"))):
-            listing = own_list(path)
+            listing = own_list(path, root)
             if listing is not None:
                 owned.setdefault(listing, []).append(path)
                 continue
-            found.append(path)
+            if not in_tests:
+                found.append(path)
     return found, owned
 
 

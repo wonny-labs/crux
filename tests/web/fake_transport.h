@@ -1,6 +1,6 @@
 /* A stand-in for the Zephyr HTTP server, so that Host tests drive the real web core.
  *
- * It models what the server does with resources at v4.4.2: the exact pass, the wildcard pass in
+ * It models what the server does with resources at v4.5.0: the exact pass, the wildcard pass in
  * generated order with FNM_PATHNAME and FNM_LEADING_DIR, the method mask, the one holder per
  * resource with its plain 409 and close, a plain 404 and 405, and releasing a holder when a client
  * goes away. The native_sim suite holds these same rules to the real server. */

@@ -1,10 +1,10 @@
 # Portable Configuration contract
 
-Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated.
+Status: approved for software-only development by the human Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated.
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
-[String parameters](#string-parameters) and `crux_config_key` were added under decisions C1 and C2 of Issue #180, on Host and `native_sim`. The [services above this mechanism](status-configuration-services.md) use them. No target provider exists: [a composition selects the no-provider port](#no-provider-port) until #16 decides one.
+[String parameters](#string-parameters) and `crux_config_key` were added under decisions C1 and C2 of Issue #180, on Host and `native_sim`. The [services above this mechanism](status-configuration-services.md) use them. One target provider exists: the Settings File provider, selected by `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` or `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS`. Its tier, evidence and limits are in the `configuration` row of [component readiness](component-readiness.md). A composition without it selects [the no-provider port](#no-provider-port).
 
 ## Recommendation and alternatives
 
@@ -184,7 +184,7 @@ Load keeps the existing rules. A record whose length is under 4, or whose text w
 
 ## No-provider port
 
-`crux_config_save` and `crux_config_load` call the private port directly, and no target provider exists, so an image using Configuration on a target would fail to link. A composition links `crux_configuration_no_provider` to fix this. Both port functions return `CRUX_CONFIG_ERR_NOT_SUPPORTED`, which `crux_config_load` and `crux_config_save` pass on, and each parameter keeps its default from init. The application treats that as running on defaults. It is objects, so a final link always takes it, and a second provider is a duplicate symbol. Issue #16 decides the real provider.
+`crux_config_save` and `crux_config_load` call the private port directly, so an image that uses Configuration with no provider would fail to link. A composition without the Settings File provider links `crux_configuration_no_provider` to fix this. Both port functions return `CRUX_CONFIG_ERR_NOT_SUPPORTED`, which `crux_config_load` and `crux_config_save` pass on, and each parameter keeps its default from init. The application treats that as running on defaults. It is objects, so a final link always takes it, and a second provider is a duplicate symbol.
 
 ## Application-owned controller example
 
@@ -194,7 +194,7 @@ controller core with two application descriptors: `diagnostics_enabled` BOOL
 These are qualification choices for reporting policy, not new production defaults.
 The application captures accepted configuration at its chosen cycle boundary;
 updating/loading parameters alone does not change that captured runtime snapshot.
-The example does not alter accepted M3 schedules, watchdog policy or evidence.
+The example does not alter accepted controller health and network probe schedules, watchdog policy or evidence.
 
 
 ## Result convention

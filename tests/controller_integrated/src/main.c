@@ -189,7 +189,7 @@ static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now)
 #undef shell_error
 #define shell_print(shell, ...) (ARG_UNUSED(shell), fake_print(__VA_ARGS__))
 #define shell_error(shell, ...) (ARG_UNUSED(shell), fake_print(__VA_ARGS__))
-#include "../../../samples/controller/zephyr/m3_main.c"
+#include "../../../tests/board_images/integration_probe/probe_main.c"
 #undef main
 
 static int fake_sleep(k_timeout_t timeout)

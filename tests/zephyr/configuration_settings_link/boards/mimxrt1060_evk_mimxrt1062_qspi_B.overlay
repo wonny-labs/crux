@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* This overlay exists to link only, as the one of samples/boards/nxp/mimxrt1060_evk/emmc_file. The RT1060-EVKB has no
+ * eMMC: it swaps the microSD disk on uSDHC1 for a four-bit MMC disk so that the MMC stack, the flush
+ * correction, LittleFS on the block device and the Settings File provider link into one image. It
+ * does not describe any board, and the image must not be flashed to an EVKB. Card detection goes,
+ * because a soldered device has none. */
+&usdhc1 {
+    /delete-property/ cd-gpios;
+    /delete-node/ sdmmc;
+
+    mmc {
+        compatible = "zephyr,mmc-disk";
+        disk-name = "MMC";
+        bus-width = <4>;
+        status = "okay";
+    };
+};

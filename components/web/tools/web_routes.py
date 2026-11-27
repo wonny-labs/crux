@@ -6,7 +6,7 @@ Reads the CRUX_WEB_ROUTE() uses in the named source files and writes:
 - the route table the portable core looks routes up in, and
 - one registered resource per path, with its methods merged, in the order the Zephyr server needs.
 
-The server's order rules come from its source at v4.4.2. Its exact pass runs first. Its wildcard pass
+The server's order rules come from its source at v4.5.0. Its exact pass runs first. Its wildcard pass
 then takes the first match in section order, sorted by name, with FNM_LEADING_DIR, so a resource also
 matches every deeper path. Generated names are therefore numbered: wildcard resources first, deeper
 before shallower, then fixed resources, deeper before shallower. A duplicate resource for a path would

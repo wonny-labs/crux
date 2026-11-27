@@ -1,0 +1,83 @@
+name: ci
+
+# Runs every CI workflow of a pull request, a merge or the nightly tier in one run, and reports
+# `ci-gate`, the one check that a merge rule needs to require (docs/ci.md#merge-gate).
+# The called workflows are thin wrappers: scripts/ci/run-tier.sh picks and runs the checks of the
+# tier and applies the path rules of scripts/ci/checks.toml; no workflow has a path filter (docs/ci.md).
+# tests/build/test_ci_gate.py keeps the gate complete.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (docs/ci.md)"
+        type: choice
+        options: [full, fast, nightly]
+        default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
+
+# Supersede only older runs for this PR. Main/manual runs are unique.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    uses: ./.github/workflows/docs.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
+  host:
+    uses: ./.github/workflows/host.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
+  zephyr:
+    uses: ./.github/workflows/zephyr.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
+  psa-crypto:
+    uses: ./.github/workflows/psa-crypto.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
+  web:
+    uses: ./.github/workflows/web.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
+  # Passes only when every job above succeeded. A fast run (a draft pull request, or a manual
+  # fast run) reports under another name, so that its result never stands in for the full tier
+  # on the same commit.
+  ci-gate:
+    name: ${{ (github.event.pull_request.draft || inputs.tier == 'fast') && 'ci-gate (fast)' || 'ci-gate' }}
+    needs: [docs, host, zephyr, psa-crypto, web]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci
+          persist-credentials: false
+      - name: Require every CI job to succeed
+        env:
+          CI_GATE_NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/ci_gate.py

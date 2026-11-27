@@ -1,0 +1,433 @@
+{
+  "comment": "Page types and marker allowlist for tests/build/test_docs_page_types.py. Recorded by docs/plans/documentation-audit-2026-11.md. Lower a count when a page is fixed; never raise one.",
+  "types": {
+    "docs/README.md": "entry",
+    "docs/access-contract.md": "reference",
+    "docs/architecture.md": "explanation",
+    "docs/board-image-profiles.md": "reference",
+    "docs/board-jlink-usbipd.md": "how-to",
+    "docs/boards/README.md": "reference",
+    "docs/boards/mimxrt1060_evkb.md": "how-to",
+    "docs/boot-bootloader-update-investigation.md": "record",
+    "docs/boot-composition.md": "reference",
+    "docs/boot-emmc-investigation.md": "record",
+    "docs/boot-hab-status.md": "record",
+    "docs/boot-image-inspection.md": "how-to",
+    "docs/boot-overview.md": "explanation",
+    "docs/boot-porting-rt1062.md": "how-to",
+    "docs/boot-reproducibility.md": "how-to",
+    "docs/boot-update-investigation.md": "record",
+    "docs/build.md": "how-to",
+    "docs/choosing-an-api.md": "reference",
+    "docs/ci-zephyr-shards.md": "how-to",
+    "docs/ci.md": "reference",
+    "docs/cli-contract.md": "reference",
+    "docs/cli-over-ssh.md": "reference",
+    "docs/coding-guidelines.md": "reference",
+    "docs/compatibility-table.md": "reference",
+    "docs/component-readiness.md": "reference",
+    "docs/composition-interfaces.md": "reference",
+    "docs/configuration-contract.md": "reference",
+    "docs/configuration-native-validation.md": "record",
+    "docs/configuration-validation.md": "record",
+    "docs/credential-store.md": "reference",
+    "docs/dependency-review-fatfs-r0.16.md": "record",
+    "docs/dependency-review-mbed-tls-4.1.1.md": "record",
+    "docs/dependency-review-wolf-pins.md": "record",
+    "docs/dependency-review.md": "how-to",
+    "docs/documentation-guidelines.md": "reference",
+    "docs/driver-review-checklist.md": "how-to",
+    "docs/e2e-native-220.md": "how-to",
+    "docs/emmc-reliance-composition.md": "reference",
+    "docs/emmc-reliance-file-service-assessment.md": "record",
+    "docs/emmc-reliance-physical-gate.md": "how-to",
+    "docs/execution-profile.md": "record",
+    "docs/file-composition-interface.md": "reference",
+    "docs/file-contract.md": "reference",
+    "docs/file-native-validation.md": "record",
+    "docs/file-service-contract.md": "reference",
+    "docs/file-validation.md": "record",
+    "docs/first-hour.md": "tutorial",
+    "docs/flash-safety-acceptance.md": "record",
+    "docs/flash-safety-poc.md": "record",
+    "docs/flash-xip-evidence.md": "record",
+    "docs/getting-started.md": "entry",
+    "docs/glossary.md": "reference",
+    "docs/gpio-contract.md": "reference",
+    "docs/https-composition.md": "reference",
+    "docs/i2c-contract.md": "reference",
+    "docs/image-state-contract.md": "reference",
+    "docs/implementation-status.md": "record",
+    "docs/logging-contract.md": "reference",
+    "docs/logging-validation.md": "record",
+    "docs/m2-physical-verification.md": "record",
+    "docs/m3-validation.md": "record",
+    "docs/m5-pilot-validation-plan.md": "record",
+    "docs/management-glossary.md": "reference",
+    "docs/management-in-a-product.md": "how-to",
+    "docs/messaging-contract.md": "reference",
+    "docs/messaging-validation.md": "record",
+    "docs/microsd-composition.md": "record",
+    "docs/microsd-physical-gate.md": "how-to",
+    "docs/native-composition-242.md": "reference",
+    "docs/native-interface-policy.md": "reference",
+    "docs/native-management-composition.md": "reference",
+    "docs/network-settings-service.md": "reference",
+    "docs/networking-contract.md": "reference",
+    "docs/networking-physical-preparation.md": "record",
+    "docs/nvs-capacity-investigation.md": "record",
+    "docs/nvs-startup-read-investigation.md": "record",
+    "docs/physical-verification-plan.md": "record",
+    "docs/platform-m1-readiness.md": "record",
+    "docs/porting-to-a-new-board.md": "how-to",
+    "docs/product-composition.md": "how-to",
+    "docs/psa-crypto-design.md": "explanation",
+    "docs/psa-crypto-qualification.md": "record",
+    "docs/reboot-service.md": "reference",
+    "docs/release-bundle-checker.md": "reference",
+    "docs/rt1060-bench-file-backend.md": "record",
+    "docs/rt1060-bench-first-account.md": "record",
+    "docs/rt1060-bench-freeze-and-capture-design.md": "record",
+    "docs/rt1060-bench-image-plan.md": "record",
+    "docs/rt1060-bench-network-buffers.md": "record",
+    "docs/rt1060-bench-trim-rsa.md": "record",
+    "docs/rt1060-isn-fail-closed.md": "record",
+    "docs/rt1060-management-image-feasibility.md": "record",
+    "docs/rt1060-mbed-management-image.md": "record",
+    "docs/rt1060-wolf-entropy.md": "record",
+    "docs/rt1170-evk-a1-feasibility.md": "record",
+    "docs/secure-boot-and-update-review.md": "explanation",
+    "docs/secure-boot-bench-session.md": "how-to",
+    "docs/secure-boot-board-test-procedure.md": "how-to",
+    "docs/secure-boot-verification-ladder.md": "explanation",
+    "docs/secure-management-review.md": "explanation",
+    "docs/security-event-contract.md": "reference",
+    "docs/serial-contract.md": "reference",
+    "docs/serial-validation.md": "record",
+    "docs/settings-error-investigation.md": "record",
+    "docs/sftp-design.md": "explanation",
+    "docs/shared-hardware-modules.md": "how-to",
+    "docs/spi-contract.md": "reference",
+    "docs/ssh-integrated-image.md": "reference",
+    "docs/ssh-provider-contract.md": "reference",
+    "docs/ssh-wolf-provider.md": "reference",
+    "docs/static-analysis-coverage.md": "record",
+    "docs/status-configuration-services.md": "reference",
+    "docs/storage-configuration-assessment.md": "record",
+    "docs/storage-pilot-software-handoff.md": "record",
+    "docs/design/logging-design.md": "reference",
+    "docs/design/serial-design.md": "reference",
+    "docs/design/system-health-design.md": "reference",
+    "docs/design/time-design.md": "reference",
+    "docs/system-validation.md": "record",
+    "docs/test-foundation-proposal.md": "record",
+    "docs/thread-sync.md": "reference",
+    "docs/time-busy-wait.md": "reference",
+    "docs/time-contract.md": "reference",
+    "docs/tls-certificate.md": "reference",
+    "docs/tutorial.md": "tutorial",
+    "docs/upstream-reuse.md": "record",
+    "docs/vendor-kits.md": "how-to",
+    "docs/web-advanced-flows.md": "record",
+    "docs/web-assets.md": "reference",
+    "docs/web-config-flow.md": "record",
+    "docs/web-contract.md": "reference",
+    "docs/web-management-apis.md": "reference",
+    "docs/web-session.md": "reference",
+    "docs/writing-a-product-driver.md": "how-to",
+    "patches/zephyr/README.md": "reference",
+    "samples/README.md": "how-to",
+    "samples/messaging/README.md": "how-to",
+    "samples/time/shell/README.md": "how-to",
+    "samples/web/angular/README.md": "how-to",
+    "samples/web_project/README.md": "how-to",
+    "templates/hardware-module/README.md": "how-to",
+    "templates/kit-module/README.md": "how-to",
+    "templates/organisation-manifest/README.md": "how-to",
+    "templates/product/CONTRIBUTING.md": "template",
+    "templates/product/README.md": "how-to",
+    "templates/product/RELEASE.md": "template",
+    "templates/product/drivers/README.md": "how-to",
+    "templates/product/style/README.md": "how-to",
+    "tests/README.md": "reference",
+    "tests/consumer_poc/README.md": "reference",
+    "tests/consumer_system/README.md": "reference",
+    "tests/controller_network_stack/README.md": "reference",
+    "tests/execution_runtime/README.md": "reference",
+    "tests/messaging_consumer/README.md": "reference",
+    "tests/native/integrated_output/README.md": "reference",
+    "tests/native/logger_phase/README.md": "reference",
+    "tests/native/tls_offload_probe/credentials/README.md": "reference",
+    "tests/target/boot-bench/README.md": "how-to",
+    "tools/device_control/README.md": "reference",
+    "web/README.md": "how-to",
+    "web/api/README.md": "reference"
+  },
+  "allowlist": {
+    "docs/access-contract.md": {
+      "history": 1,
+      "provenance": 1,
+      "status": 2
+    },
+    "docs/architecture.md": {
+      "history": 3,
+      "provenance": 14,
+      "status": 20
+    },
+    "docs/board-image-profiles.md": {
+      "status": 14
+    },
+    "docs/boot-composition.md": {
+      "status": 1
+    },
+    "docs/boot-image-inspection.md": {
+      "status": 1
+    },
+    "docs/boot-overview.md": {
+      "provenance": 3,
+      "status": 5
+    },
+    "docs/boot-porting-rt1062.md": {
+      "provenance": 2,
+      "status": 1
+    },
+    "docs/build.md": {
+      "history": 3,
+      "status": 2
+    },
+    "docs/choosing-an-api.md": {
+      "history": 1,
+      "provenance": 3,
+      "status": 8
+    },
+    "docs/ci-zephyr-shards.md": {
+      "history": 1
+    },
+    "docs/cli-contract.md": {
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/cli-over-ssh.md": {
+      "history": 1,
+      "provenance": 2
+    },
+    "docs/coding-guidelines.md": {
+      "status": 1
+    },
+    "docs/compatibility-table.md": {
+      "provenance": 1
+    },
+    "docs/component-readiness.md": {
+      "history": 1,
+      "provenance": 1
+    },
+    "docs/composition-interfaces.md": {
+      "history": 2,
+      "provenance": 2,
+      "status": 5
+    },
+    "docs/configuration-contract.md": {
+      "history": 1,
+      "provenance": 1
+    },
+    "docs/credential-store.md": {
+      "provenance": 2,
+      "status": 1
+    },
+    "docs/driver-review-checklist.md": {
+      "status": 2
+    },
+    "docs/e2e-native-220.md": {
+      "history": 2,
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/emmc-reliance-physical-gate.md": {
+      "provenance": 2,
+      "status": 1
+    },
+    "docs/file-composition-interface.md": {
+      "history": 2,
+      "provenance": 4,
+      "status": 5
+    },
+    "docs/file-contract.md": {
+      "provenance": 2,
+      "status": 1
+    },
+    "docs/file-service-contract.md": {
+      "provenance": 2
+    },
+    "docs/gpio-contract.md": {
+      "status": 6
+    },
+    "docs/https-composition.md": {
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/i2c-contract.md": {
+      "status": 6
+    },
+    "docs/image-state-contract.md": {
+      "history": 1,
+      "provenance": 2,
+      "status": 3
+    },
+    "docs/logging-contract.md": {
+      "history": 1
+    },
+    "docs/management-glossary.md": {
+      "status": 1
+    },
+    "docs/management-in-a-product.md": {
+      "status": 22
+    },
+    "docs/microsd-physical-gate.md": {
+      "provenance": 1
+    },
+    "docs/native-composition-242.md": {
+      "status": 1
+    },
+    "docs/native-interface-policy.md": {
+      "history": 1,
+      "provenance": 3,
+      "status": 2
+    },
+    "docs/native-management-composition.md": {
+      "provenance": 1,
+      "status": 2
+    },
+    "docs/network-settings-service.md": {
+      "provenance": 1,
+      "status": 2
+    },
+    "docs/networking-contract.md": {
+      "provenance": 1
+    },
+    "docs/porting-to-a-new-board.md": {
+      "history": 1,
+      "status": 8
+    },
+    "docs/product-composition.md": {
+      "history": 3,
+      "status": 4
+    },
+    "docs/reboot-service.md": {
+      "history": 1,
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/release-bundle-checker.md": {
+      "history": 2,
+      "provenance": 1,
+      "status": 3
+    },
+    "docs/secure-boot-and-update-review.md": {
+      "provenance": 13,
+      "status": 9
+    },
+    "docs/secure-boot-bench-session.md": {
+      "status": 1
+    },
+    "docs/secure-boot-board-test-procedure.md": {
+      "provenance": 2,
+      "status": 1
+    },
+    "docs/secure-boot-verification-ladder.md": {
+      "status": 6
+    },
+    "docs/secure-management-review.md": {
+      "status": 4
+    },
+    "docs/security-event-contract.md": {
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/serial-contract.md": {
+      "status": 2
+    },
+    "docs/sftp-design.md": {
+      "provenance": 3,
+      "status": 1
+    },
+    "docs/shared-hardware-modules.md": {
+      "history": 1
+    },
+    "docs/spi-contract.md": {
+      "status": 6
+    },
+    "docs/ssh-integrated-image.md": {
+      "provenance": 1
+    },
+    "docs/ssh-provider-contract.md": {
+      "history": 1,
+      "provenance": 2
+    },
+    "docs/ssh-wolf-provider.md": {
+      "history": 3,
+      "provenance": 1
+    },
+    "docs/status-configuration-services.md": {
+      "provenance": 3
+    },
+    "docs/design/logging-design.md": {
+      "provenance": 2
+    },
+    "docs/design/serial-design.md": {
+      "history": 1,
+      "provenance": 1
+    },
+    "docs/design/system-health-design.md": {
+      "history": 1,
+      "provenance": 1
+    },
+    "docs/thread-sync.md": {
+      "history": 1,
+      "provenance": 2,
+      "status": 6
+    },
+    "docs/time-contract.md": {
+      "status": 1
+    },
+    "docs/tls-certificate.md": {
+      "history": 1,
+      "provenance": 1,
+      "status": 5
+    },
+    "docs/vendor-kits.md": {
+      "history": 1,
+      "status": 2
+    },
+    "docs/web-assets.md": {
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/web-contract.md": {
+      "history": 2,
+      "provenance": 1,
+      "status": 1
+    },
+    "docs/web-management-apis.md": {
+      "provenance": 1,
+      "status": 2
+    },
+    "docs/web-session.md": {
+      "provenance": 1,
+      "status": 6
+    },
+    "docs/writing-a-product-driver.md": {
+      "status": 3
+    },
+    "samples/messaging/README.md": {
+      "status": 1
+    },
+    "templates/product/README.md": {
+      "history": 1,
+      "provenance": 1,
+      "status": 7
+    },
+    "tools/device_control/README.md": {
+      "history": 1
+    }
+  }
+}

@@ -1,0 +1,65 @@
+/*
+ * Pin settings of the example board: the external flash, the console UART and one I2C bus.
+ * The pins and the electrical settings are those of the vendor board that the board is modelled on
+ * (boards/nxp/mimxrt1060_evk/mimxrt1060_evk-pinctrl.dtsi of Zephyr v4.4.0, Copyright (c) 2022,
+ * NXP). A real board takes them from its schematic.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <nxp/imxrt/imxrt10xx/pinctrl/mimxrt1062dvl6a-pinctrl.dtsi>
+
+&pinctrl {
+	pinmux_flexspi1: pinmux_flexspi1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_sd_b1_05_flexspi_a_dqs>;
+			drive-strength = "r0-6";
+			input-schmitt-enable;
+			bias-pull-down;
+			bias-pull-down-value = "100k";
+			slew-rate = "fast";
+			nxp,speed = "200-mhz";
+			input-enable;
+		};
+
+		group1 {
+			pinmux = <&iomuxc_gpio_sd_b1_03_flexspi_b_data0>,
+				 <&iomuxc_gpio_sd_b1_00_flexspi_b_data3>,
+				 <&iomuxc_gpio_sd_b1_01_flexspi_b_data2>,
+				 <&iomuxc_gpio_sd_b1_02_flexspi_b_data1>,
+				 <&iomuxc_gpio_sd_b1_04_flexspi_b_sclk>,
+				 <&iomuxc_gpio_sd_b1_06_flexspi_a_ss0_b>,
+				 <&iomuxc_gpio_sd_b1_07_flexspi_a_sclk>,
+				 <&iomuxc_gpio_sd_b1_08_flexspi_a_data0>,
+				 <&iomuxc_gpio_sd_b1_09_flexspi_a_data1>,
+				 <&iomuxc_gpio_sd_b1_10_flexspi_a_data2>,
+				 <&iomuxc_gpio_sd_b1_11_flexspi_a_data3>;
+			drive-strength = "r0-6";
+			slew-rate = "fast";
+			nxp,speed = "200-mhz";
+			input-enable;
+		};
+	};
+
+	pinmux_lpi2c1: pinmux_lpi2c1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_ad_b1_01_lpi2c1_sda>,
+				 <&iomuxc_gpio_ad_b1_00_lpi2c1_scl>;
+			drive-strength = "r0-6";
+			drive-open-drain;
+			slew-rate = "slow";
+			nxp,speed = "100-mhz";
+			input-enable;
+		};
+	};
+
+	pinmux_lpuart1: pinmux_lpuart1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_ad_b0_13_lpuart1_rx>,
+				 <&iomuxc_gpio_ad_b0_12_lpuart1_tx>;
+			drive-strength = "r0-6";
+			slew-rate = "slow";
+			nxp,speed = "100-mhz";
+		};
+	};
+};

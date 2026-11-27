@@ -1,6 +1,6 @@
 # SFTP over the file service
 
-Status: merged in [PR #264](https://github.com/wonny-labs/crux-pilot/pull/264), with the WinSCP runs of [PR #303](https://github.com/wonny-labs/crux-pilot/pull/303) and [PR #308](https://github.com/wonny-labs/crux-pilot/pull/308), for Issue #194. It runs on Host, on `native_sim` against the provider of #192, and in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313). [Gate #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497) has passed, and the owner approved this work in advance. It authorises no hardware operation.
+Status: merged in [PR #264](https://github.com/wonny-labs/crux/pull/264), with the WinSCP runs of [PR #303](https://github.com/wonny-labs/crux/pull/303) and [PR #308](https://github.com/wonny-labs/crux/pull/308), for Issue #194. It runs on Host, on `native_sim` against the provider of #192, and in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux/pull/313). [Gate #183](https://github.com/wonny-labs/crux/issues/183#issuecomment-6617722497) has passed, and the owner approved this work in advance. It authorises no hardware operation.
 
 This document says what is built, what is faked, what is untested, and which decisions were taken for lack of an answer. The evidence is of six kinds, and none implies another.
 
@@ -157,7 +157,7 @@ The design asks for a refusal status and a security event for a rejected file op
 | A session that has ended, by logout or otherwise | `FAILURE`, then the connection ends at the next poll | `access.session_invalid`, **one or more** by request: usually two; one for `STAT` of a missing area, `REMOVE /` and `MKDIR /`; three for `STAT` of an area or a refused name, `SETSTAT` of a file and `MKDIR` in an area; four for `OPEN`, counting wolfSSH's own `stat`; five for a rename across areas | Each comes from the port's `crux_access_touch` or a service check. A close asks nothing |
 | A session that the idle limit ended | The same | `access.session_expired` once, from the touch, and `access.session_invalid` from the service. Each later request is as above | Access |
 
-Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_the_service_records_for_an_area_used_as_a_file` and `case_a_refused_name_is_recorded_once_with_no_text`, `case_a_session_that_has_ended_is_recorded` and `case_a_session_that_expired_is_recorded_first_as_expired` on Host, and `wire_a_refused_name_is_recorded_with_no_text` on both servers, for `file.name_rejected`. The rows with no event are read from the code. The port reaches events only through the file service: its event port is private, and an identifier for the rows that have none would be a change to the file service and #182, which is outside the files of #194, so I did not add one. [#270](https://github.com/wonny-labs/crux-pilot/issues/270) lists them, as a shared change under G-A and #182.
+Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_the_service_records_for_an_area_used_as_a_file` and `case_a_refused_name_is_recorded_once_with_no_text`, `case_a_session_that_has_ended_is_recorded` and `case_a_session_that_expired_is_recorded_first_as_expired` on Host, and `wire_a_refused_name_is_recorded_with_no_text` on both servers, for `file.name_rejected`. The rows with no event are read from the code. The port reaches events only through the file service: its event port is private, and an identifier for the rows that have none would be a change to the file service and #182, which is outside the files of #194, so I did not add one. [#270](https://github.com/wonny-labs/crux/issues/270) lists them, as a shared change under G-A and #182.
 
 #### The decision for the refusals with no event (#270)
 
@@ -179,7 +179,7 @@ On 2026-11-14 the project owner accepted a direction as recommended (the recomme
 | 12 | `SYMLINK`, `READLINK` and other requests with no handler | No event | No port call exists. The same separate decision |
 | 13 | A path of 256 bytes or more | No event | wolfSSH stops it before the port. The same separate decision |
 
-What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux-pilot/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is **not yet met**: the owner accepted the direction, not each row, so it needs the owner's decision on this table row by row, or a follow-up that records it. The criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
+What the table leaves open: a wolfSSH patch for rows 11 to 13 (not decided), and whether the web adapter, which has no file routes yet ([#188](https://github.com/wonny-labs/crux/issues/188)), must follow the same decisions when it gets them (it must: the issue asks the two adapters to behave the same for what they share). The criterion of #270 "each row has a recorded decision" is **not yet met**: the owner accepted the direction, not each row, so it needs the owner's decision on this table row by row, or a follow-up that records it. The criteria about a new identifier, its test and the adapters belong to the implementation of row 6.
 
 ### Long paths
 
@@ -425,7 +425,7 @@ Each was taken without asking, as the narrow and safer choice.
 | 14 | A Linux proof server and its cases live in `tests/ssh/sftp/openssh` | The issue asks for proof first, and #192 did not exist when this began. It builds only from its script. It stays because a run takes seconds, and because only it can look at the medium itself | Remove it now that the image runs |
 | 15 | The `native_sim` image is in `tests/ssh/sftp/native_sim`, and reuses #192's test Access ports and keys by path | So that it stays within the files of #194, and adds no copy of them. It needs the provider, which `main` holds since #265, and on a tree without it the script says so | Add cases to `tests/zephyr/ssh_provider`, as #192's document suggests, which changes #192's files |
 | 16 | The port records direct use of a hidden area with a service `stat` that stops at the permission, and sends `REMOVE` and `RENAME` of an area to the service with an empty name | So that Hiding holds with no new interface, and the one rule that decides stays in the service | A new service call for each |
-| 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in [#270](https://github.com/wonny-labs/crux-pilot/issues/270), as a shared change under G-A and #182 |
+| 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in [#270](https://github.com/wonny-labs/crux/issues/270), as a shared change under G-A and #182 |
 | 18 | The upload past the per-file limit is documented as a limit, and no code changes for it | No cause was found, so a change would be a guess. A debug build with wolfSSH logging needs no wolfSSH edit. Only a diagnostic patch inside wolfSSH would, and that needs the owner's approval | A diagnostic wolfSSH build, or a composition change (a larger window, which costs heap per connection), neither with evidence that it helps |
 
 ## Follow-ups on #179
@@ -435,7 +435,7 @@ They are in the file service, outside the files of #194, and none blocks this.
 | Item | Effect here |
 | --- | --- |
 | A STAT hook test for `rename` during the stale rule | None. It is a test of the service |
-| `scripts/test-file-service.sh` is not in CI | None |
+| `scripts/test-file-service.sh` was not in CI | Done: the host job runs it since 2026-11-18 |
 | A client removal during the stale rule gives one false `ERR_LIMIT`, and a retry succeeds | One write can fail with "Write File Error". An SFTP client stops that transfer, and a retry resumes it. The service's rule stands |
 
 ## Acceptance

@@ -5,11 +5,11 @@
 # what a target's stack does. The West checkout is not edited. --no-rdhup turns it off, as a control.
 # See docs/https-composition.md.
 set(nsos_source "${ZEPHYR_BASE}/drivers/net/nsos_adapt.c")
-# The driver at Zephyr v4.4.2. Another hash means the base moved, so review the edit again.
-set(nsos_sha256 c4fe7d2f83f151ab2598dcd3c86d6e5e3646347bcd52c1673622954c28017365)
+# The driver at Zephyr v4.5.0. Another hash means the base moved, so review the edit again.
+set(nsos_sha256 75dabbeb67eccfded419b4e1a105e1d9838c431c985035459bf94af071bb70c0)
 file(SHA256 "${nsos_source}" nsos_actual)
 if(NOT nsos_actual STREQUAL nsos_sha256)
-  message(FATAL_ERROR "${nsos_source} is not the reviewed v4.4.2 file: ${nsos_actual}")
+  message(FATAL_ERROR "${nsos_source} is not the reviewed v4.5.0 file: ${nsos_actual}")
 endif()
 file(READ "${nsos_source}" nsos_text)
 # Each anchor must appear exactly once. The texts hold semicolons, so they are not a CMake list.

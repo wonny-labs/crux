@@ -32,6 +32,15 @@ hosted test/build artifacts independently.
 - `*-evkb.config`, `*-evkb.map.gz`, `*-compile-commands.json`,
   `target-resources-and-tools.txt`: generated configuration, compressed full maps,
   selected consumer/provider commands, ELF symbol allocation and compiler identity.
+  In the two `*-evkb.config` copies, the absolute path of the author's workspace in
+  the two `m5-execution` comment lines of each file was replaced by `<workspace>`
+  to remove a personal identifier. No setting changed. The `sha256` and `bytes`
+  values of these two build files in `input-hashes.json` describe the original
+  files and are kept unchanged. The redacted copies have these values:
+  `execution_runtime-evkb.config` sha256
+  `1267124db853dbc0408c6dfbc2865ebaedd9eaf384d817fff717553496319c13`, 37285 bytes;
+  `portable_execution-evkb.config` sha256
+  `4516485510b51efa1f499658e1c2deec88a934b6d9fc413aa9100bcbc58a85f6`, 37302 bytes.
 
 Negative history is deliberately retained. `poll-red.txt` records an earlier
 conformance expectation that a poll must consume a token despite internal lock

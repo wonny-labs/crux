@@ -131,8 +131,12 @@ crux_reboot_result_t crux_reboot_start(const crux_reboot_config_t *config)
         return checked;
     }
     if (!sync_created) {
-        if (crux_mutex_create(&state_lock) != CRUX_OK ||
-            crux_semaphore_create(0u, 1u, &work_signal) != CRUX_OK) {
+        if (crux_mutex_create(&state_lock) != CRUX_OK) {
+            return CRUX_REBOOT_ERR_NOT_READY;
+        }
+        if (crux_semaphore_create(0u, 1u, &work_signal) != CRUX_OK) {
+            /* Give the mutex back, so that a retry does not use up another Sync slot. */
+            (void)crux_mutex_destroy(&state_lock);
             return CRUX_REBOOT_ERR_NOT_READY;
         }
         sync_created = true;
@@ -233,12 +237,20 @@ static bool policy_allows(char shown[CRUX_REBOOT_REASON_SIZE])
 
 /* Request. */
 
+/* Joins the pending job: nothing new starts, and the request is recorded. Called with the lock held
+ * by the section that found the job pending, and releases it. */
+static crux_reboot_result_t join_pending_and_unlock(crux_access_session_t session)
+{
+    unlock_state();
+    crux_reboot_port_event(CRUX_REBOOT_EVENT_REQUESTED, session);
+    return CRUX_REBOOT_OK;
+}
+
 crux_reboot_result_t crux_reboot_request(crux_access_session_t session,
                                          char reason[CRUX_REBOOT_REASON_SIZE])
 {
     crux_reboot_result_t allowed;
     char shown[CRUX_REBOOT_REASON_SIZE];
-    bool pending;
 
     if (!svc.started) {
         return CRUX_REBOOT_ERR_NOT_READY;
@@ -250,13 +262,16 @@ crux_reboot_result_t crux_reboot_request(crux_access_session_t session,
     if (!lock_state(CRUX_REBOOT_LOCK_WAIT_MS)) {
         return CRUX_REBOOT_ERR_BUSY;
     }
-    pending = svc.state == CRUX_REBOOT_STATE_PENDING;
+    /* A request made while another is pending runs no policy: the pending one's second check
+     * decides. It joins here, so that the job cannot end in between and leave this request to start
+     * one that no first check allowed. */
+    if (svc.state == CRUX_REBOOT_STATE_PENDING) {
+        return join_pending_and_unlock(session);
+    }
     unlock_state();
 
-    /* A request made while another is pending runs no policy: the pending one's second check
-     * decides. Otherwise the application decides, with no lock held, because it is the
-     * application's code. */
-    if (!pending && !policy_allows(shown)) {
+    /* Otherwise the application's code decides, with no lock held. */
+    if (!policy_allows(shown)) {
         if (!lock_state(CRUX_REBOOT_LOCK_WAIT_MS)) {
             return CRUX_REBOOT_ERR_BUSY;
         }
@@ -277,11 +292,9 @@ crux_reboot_result_t crux_reboot_request(crux_access_session_t session,
     if (!lock_state(CRUX_REBOOT_LOCK_WAIT_MS)) {
         return CRUX_REBOOT_ERR_BUSY;
     }
+    /* Another request may have been accepted while the policy was asked. */
     if (svc.state == CRUX_REBOOT_STATE_PENDING) {
-        /* Accepted, and nothing new starts. It is still a request that someone made. */
-        unlock_state();
-        crux_reboot_port_event(CRUX_REBOOT_EVENT_REQUESTED, session);
-        return CRUX_REBOOT_OK;
+        return join_pending_and_unlock(session);
     }
     svc.state = CRUX_REBOOT_STATE_PENDING;
     memset(svc.reason, 0, sizeof(svc.reason));
@@ -341,6 +354,10 @@ static wait_result_t wait_for_work(void)
             return WAIT_NO_TIMER;
         }
         waited += CRUX_REBOOT_POLL_MS;
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* The settle wait is long, so each of its steps counts as a pass. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_REBOOT_WORKER);
+#endif
     }
 }
 
@@ -420,6 +437,10 @@ static void worker_main(void *argument)
     crux_service_priority_place(CRUX_SERVICE_THREAD_REBOOT_WORKER);
 #endif
     for (;;) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_REBOOT_WORKER_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_REBOOT_WORKER);
+#endif
         (void)crux_semaphore_take(work_signal, CRUX_REBOOT_WORKER_WAIT_MS);
         while (crux_reboot_work_once()) {
         }

@@ -8,7 +8,7 @@ separate; no programming, reset, UART access or hardware measurement was perform
 
 The baseline is merged `main` `6a58145` (Serial PR #58); the approved contract was
 recorded at `ed6f3bd`. See the [contract](logging-contract.md),
-[design](superpowers/specs/2026-10-24-logging-design.md),
+[design](design/logging-design.md),
 [reproduction/evidence](evidence/m5-logging/README.md) and
 [independent reviews](evidence/m5-logging/reviews.md).
 

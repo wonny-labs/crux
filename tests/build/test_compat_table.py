@@ -5,7 +5,8 @@ The table is derived from a west manifest and from nothing else. These tests hol
 for an invented manifest, the structure of the table for the repository's own west.yml (no commit is
 spelled out here, because the pins move), the refusals, the determinism and the marking of optional
 groups. Nothing here needs west, git or the network. The cases that parse a manifest need PyYAML, which
-west installs and the host CI job does not, so they skip without it, as in test_product_template.py.
+west installs. The host CI job installs both, so the cases skip only on a machine without PyYAML, as in
+test_product_template.py.
 """
 import ast
 import contextlib
@@ -146,7 +147,7 @@ class RealManifestTest(unittest.TestCase):
 
     def test_versions_come_from_the_trailing_comments(self):
         row = self.out.splitlines()[2]
-        for version in ("v4.4.2", "v5.9.4-stable", "v1.6.0-stable", "v3.0"):
+        for version in ("v4.5.0", "v5.9.4-stable", "v1.6.0-stable", "v3.0"):
             self.assertIn(f"({version})", row)
 
     def test_the_imported_hal_is_not_given_a_commit(self):

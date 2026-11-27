@@ -2,13 +2,13 @@
 
 See [the subsequent isolated Settings/NVS candidate](configuration-native-validation.md) for separately authorised native simulator integration. Its copied-source patches remain unadopted; the historical evidence and physical gates below are preserved.
 
-Issue [#16](https://github.com/wonny-labs/crux-pilot/issues/16) now has the
+Issue [#16](https://github.com/wonny-labs/crux/issues/16) now has the
 [approved scalar contract](configuration-contract.md), shared C17 implementation,
 a private deterministic persistence port and independent C17/C++17 consumers.
 This is the software portion of the issue. There is **no adopted native Settings
 provider, persistent production backend or physical qualification** in this change.
 This text records the original software portion. The M4 storage direction in
-[#14](https://github.com/wonny-labs/crux-pilot/issues/14) is now microSD with FatFs and the
+[#14](https://github.com/wonny-labs/crux/issues/14) is now microSD with FatFs and the
 Settings File backend, with no Settings File target provider adopted; QSPI NOR/LittleFS plus
 Settings/NVS is a superseded design candidate. See [the microSD composition](microsd-composition.md).
 
@@ -46,7 +46,7 @@ composition without exposing provider headers/types to consumers.
 
 ## Application activation example
 
-`samples/controller/configuration/scenario.c` uses the existing portable
+`tests/configuration/controller_scenario.c` uses the existing portable
 controller core and application-owned `report_every_cycles` (default 5, range
 1–100) and `diagnostics_enabled` (default false). It demonstrates missing defaults,
 read/update/save/load, rejected updates, and a runtime snapshot captured at cycle
@@ -140,7 +140,7 @@ scripts/check-dependencies.sh
 scripts/analyze-host.sh
 clang-tidy-18 -p build/linux/debug components/configuration/src/configuration.c \
   tests/configuration/conformance.c tests/configuration/fault_provider.c \
-  samples/controller/configuration/scenario.c
+  tests/configuration/controller_scenario.c
 ```
 
 Additional focused manual gate for changes to this mechanism or pinned Settings

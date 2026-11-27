@@ -40,12 +40,12 @@ REGIONS = (
 )
 ROOTS = ("flash_flexspi_nor_write", "flash_flexspi_nor_erase")
 # Relative to the Zephyr checkout, or to the hal_nxp checkout for the path under mcux/. The digests are the
-# ones of scripts/prepare-flash-poc.py (NOR_HASH, MEMC_HASH, HAL_HASH), which were also found unchanged at
-# Zephyr v4.4.2 (see issue #165).
+# ones of scripts/prepare-flash-poc.py (NOR_HASH, MEMC_HASH, HAL_HASH), at Zephyr v4.5.0 and its hal_nxp pin.
+# All three files changed from v4.4.2; the physical results of issue #165 were recorded on v4.4.x.
 PINNED_FILES = {
-    "drivers/flash/flash_mcux_flexspi_nor.c": "25733356c1b06bf03178e78431b697ad8736553b63a42dc725a1a5173486c5fa",
-    "drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
-    "mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+    "drivers/flash/flash_mcux_flexspi_nor.c": "9331e05799b447716203cb7ce838f9e6c413f73e3fd3d8ad95f85ae17f2d3cf0",
+    "drivers/memc/memc_mcux_flexspi.c": "432c578152d8d921a334ca3c4ab927075a4251c8e6a97b6bcd522c3f0e8ca50d",
+    "mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c": "96af77b8f02eacbf1eee2d8b8fe98b592cbfc6dc0d5d89d5c3c30745ee96d8f9",
 }
 DEVICE_PREFIX = "__device_dts_ord_"
 CONFIG_PREFIX = "memc_flexspi_config_"

@@ -44,16 +44,19 @@ NOT_COMPILED_RULES = (
         r"(^|/)(ports/zephyr|zephyr|zephyr_[a-z_]+|[a-z0-9_]+_zephyr|evkb|native_sim)(/|$)"
         r"|^tests/(native|zephyr)/|^tests/support/emmc_sim/"
         r"|^samples/(storage_[a-z_]+|flash_safety_poc|product_template)/"
-        r"|^tests/(controller_integrated|controller_m3|controller_network|controller_network_stack|m5_integrated"
-        r"|networking_physical|networking_physical_native|gpio_physical|messaging_resources|psa_entropy)/"
+        r"|^tests/(controller_integrated|controller_m3|controller_probe|controller_network|controller_network_stack|m5_integrated"
+        r"|networking_physical|networking_physical_native|gpio_physical|psa_entropy)/"
         r"|^tests/external_application/main\.c$|^tests/execution/src/native\.c$"
         r"|^tests/networking_consumer/main\.c$|^tests/ssh/cli/(compile|openssh)/"
-        r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$")),
+        r"|^tests/ssh/sftp/native_sim/|^components/ssh/sftp/port/|^samples/time/src/(main|time_shell)\.c$"
+        # Board images, board test images and sample Zephyr applications (samples/README.md).
+        r"|^samples/boards/nxp/mimxrt1060_evk/(emmc_file|sd_card_file|web_management)/|^tests/board_images/"
+        r"|^tests/(probe_device_health|integrated_smoke)/"
+        r"|^samples/.*/zephyr/")),
     ("psa-crypto-composition", re.compile(
         r"(^|/)ports/psa/|^tests/psa_(crypto|ports)/|^tests/tls_certificate/psa/|^tests/ssh/sftp/openssh/")),
     ("boundary-probe-or-consumer-fixture", re.compile(
         r"^tests/[a-z_]+_consumer/|^tests/consumer_(boundary|poc)/|^tests/external_application/")),
-    ("orphan-no-build-reference", re.compile(r"^tests/queue/red_stub\.c$")),
 )
 
 
@@ -468,6 +471,40 @@ class SelfTest(unittest.TestCase):
         self.assertEqual(classify_not_compiled("components/time/ports/zephyr/x.c"), "zephyr-or-native_sim-only")
         self.assertEqual(classify_not_compiled("tests/web_consumer/rejected/a.c"), "boundary-probe-or-consumer-fixture")
         self.assertEqual(classify_not_compiled("components/new/src/new.c"), "unclassified")
+
+    def test_classify_old_and_new_sample_paths(self) -> None:
+        # The paths before the samples/README.md layout and the current paths classify the
+        # same way, so older trees measure the same.
+        zephyr = "zephyr-or-native_sim-only"
+        for old, new in (
+                ("samples/storage_emmc/main.c", "samples/boards/nxp/mimxrt1060_evk/emmc_file/main.c"),
+                ("samples/storage_sd/sd_storage.c", "samples/boards/nxp/mimxrt1060_evk/sd_card_file/sd_storage.c"),
+                ("samples/storage_sd_interrupt/main.c", "tests/board_images/sd_card_power_cut_append/main.c"),
+                ("samples/storage_sd_replace/main.c", "tests/board_images/sd_card_power_cut_replace/main.c"),
+                ("samples/storage_sd_probe/sd_probe.c", "tests/board_images/sd_card_probe/sd_probe.c"),
+                ("samples/storage_reliance_sd/format.c", "tests/board_images/sd_card_power_cut_sequence/format.c"),
+                ("samples/flash_safety_poc/main.c", "tests/board_images/flash_safety_check/main.c"),
+                ("samples/controller/zephyr/m3_main.c", "tests/board_images/integration_probe/probe_main.c"),
+                ("samples/controller/zephyr/network_probe.c",
+                 "tests/board_images/integration_probe/network_probe.c"),
+                ("samples/controller/zephyr/main.c", "tests/time_periodic/zephyr/main.c"),
+                ("samples/networking/zephyr/main.c", "samples/networking/echo_client/zephyr/src/main.c"),
+                ("samples/time/src/main.c", "samples/time/shell/zephyr/src/main.c"),
+                ("samples/time/src/time_shell.c", "samples/time/shell/zephyr/src/time_shell.c"),
+                ("tests/controller_m3/src/main.c", "tests/probe_device_health/src/main.c"),
+                ("tests/controller_m3/src/main.c", "tests/controller_probe/src/main.c"),
+                ("tests/m5_integrated/src/main.c", "tests/integrated_smoke/src/main.c")):
+            with self.subTest(old=old):
+                self.assertEqual(classify_not_compiled(old), zephyr)
+                self.assertEqual(classify_not_compiled(new), zephyr)
+        # Host-compiled code keeps no reason at either path.
+        for path in ("samples/time/src/time_command.c", "samples/time/shell/common/time_command.c",
+                     "samples/time/shell/linux/main.c", "tests/time_periodic/host/main.c",
+                     "tests/time_periodic/core/controller.c",
+                     "samples/networking/echo_client/linux/main.c",
+                     "samples/networking/echo_client/common/client.c"):
+            with self.subTest(path=path):
+                self.assertEqual(classify_not_compiled(path), "unclassified")
 
     def test_invocation_parsing(self) -> None:
         with tempfile.TemporaryDirectory() as root:

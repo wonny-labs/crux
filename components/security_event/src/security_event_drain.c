@@ -137,6 +137,10 @@ static void drain_main(void *argument)
     unsigned written = 0;
     bool may_report = true;
     while (drain_should_run()) {
+#ifdef CRUX_SERVICE_PRIORITY_PLACEMENT
+        /* Once per pass, which waits at most CRUX_SECURITY_EVENT_DRAIN_WAIT_MS. */
+        crux_service_progress_report(CRUX_SERVICE_THREAD_SECURITY_EVENT_DRAIN);
+#endif
         crux_status_t waited = crux_semaphore_take(STATE.signal, CRUX_SECURITY_EVENT_DRAIN_WAIT_MS);
         if (waited == CRUX_ERR_TIMEOUT) {
             /* A whole wait with nothing signalled gave the log buffer time to empty. */

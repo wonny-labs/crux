@@ -1,10 +1,10 @@
 # Storage configuration assessment
 
-**Historical assessment — superseded for M4 storage selection.** The QSPI NOR/LittleFS and separate Settings/NVS preference below was replaced by the [30 October 2026 M4 decision in Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14). The selected Pilot File path is microSD with Zephyr VFS/FatFs, while Settings file-backed persistence remains conditional on qualification. Preserve this assessment as earlier technical and Flash/XIP safety evidence, not as the current storage recommendation.
+**Historical assessment — superseded for M4 storage selection.** The QSPI NOR/LittleFS and separate Settings/NVS preference below was replaced by the [30 October 2026 M4 decision in Issue #14](https://github.com/wonny-labs/crux/issues/14). The selected Pilot File path is microSD with Zephyr VFS/FatFs, while Settings file-backed persistence remains conditional on qualification. Preserve this assessment as earlier technical and Flash/XIP safety evidence, not as the current storage recommendation.
 
 **Status: recommendation for independent review and human decision; not adopted.**
-Scope: [Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14) under the
-existing [Storage and configuration milestone](https://github.com/wonny-labs/crux-pilot/milestone/3).
+Scope: [Issue #14](https://github.com/wonny-labs/crux/issues/14) under the
+existing [Storage and configuration milestone](https://github.com/wonny-labs/crux/milestone/3).
 The current task permits investigation and non-destructive software checks only.
 No partition, file system, Settings backend, public interface or hardware operation
 is authorised by this assessment. Issues #15 and #16 remain behind their affected
@@ -261,10 +261,10 @@ Reproduce the two relevant cross-builds inside the documented Linux environment:
 
 ```sh
 repo="$PWD"
-common="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-native-output.conf;$repo/samples/controller/zephyr/m3-normal.conf"
-overlay="$repo/samples/controller/zephyr/m3-network.overlay"
+common="$repo/tests/board_images/integration_probe/device_health_probe.conf;$repo/tests/board_images/integration_probe/integrated.conf;$repo/tests/board_images/integration_probe/mdio_completion_fix.conf;$repo/tests/board_images/integration_probe/native_output.conf;$repo/tests/board_images/integration_probe/without_test_commands.conf"
+overlay="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay"
 west build -b 'mimxrt1060_evk@B//qspi' \
-  -d build/storage-assessment/reference-normal samples/controller/zephyr -- \
+  -d build/storage-assessment/reference-normal tests/board_images/integration_probe -- \
   -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$common" -DDTC_OVERLAY_FILE="$overlay"
 cat > build/storage-assessment/flash-compile.conf <<'CONF'
 CONFIG_FLASH=y
@@ -274,7 +274,7 @@ CONFIG_FLASH_LOG_LEVEL_OFF=y
 CONFIG_MEMC_LOG_LEVEL_OFF=y
 CONF
 west build -b 'mimxrt1060_evk@B//qspi' \
-  -d build/storage-assessment/flash-driver samples/controller/zephyr -- \
+  -d build/storage-assessment/flash-driver tests/board_images/integration_probe -- \
   -DZEPHYR_EXTRA_MODULES="$repo" \
   -DEXTRA_CONF_FILE="$common;$repo/build/storage-assessment/flash-compile.conf" \
   -DDTC_OVERLAY_FILE="$overlay"

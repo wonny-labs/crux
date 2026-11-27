@@ -21,16 +21,27 @@ Product code meant to run on both Zephyr and Linux may use a POSIX subset; that 
 | A temperature sensor | A Zephyr driver or `i2c_dt_spec` code behind a product port such as `temperature_read(&millikelvin)`; an emulator on `native_sim` | The status service for a remote reading; Configuration or File for limits | Filtering, limits and hysteresis, tested with a fake of the port |
 | An SSH service | The product's priority map places Crux's SSH listener and workers with `CONFIG_CRUX_SSH_LISTENER_PRIORITY` and `CONFIG_CRUX_SSH_WORKER_PRIORITY` (P3) | The `CONFIG_CRUX_SSH`, `CONFIG_CRUX_SSH_CLI` and `CONFIG_CRUX_SSH_SFTP` options; Access; the credential store | Which commands exist and who may run them |
 
-## Frozen for new product code: Thread, Sync, Queue and Serial
+## Frozen for new product code: Thread, Sync and Serial
 
-Do not use `<crux/thread.h>`, `<crux/sync.h>`, `<crux/queue.h>` or `<crux/serial.h>` in new product code. Question 1 covers what they offered: use Zephyr threads, locks, message queues and UART drivers in the product's Zephyr code.
+Do not use `<crux/thread.h>`, `<crux/sync.h>` or `<crux/serial.h>` in new product code. Crux has no queue API: use Zephyr `k_msgq` ([messaging contract](messaging-contract.md)). Question 1 covers what they offered: use Zephyr threads, locks, message queues and UART drivers in the product's Zephyr code.
 
 - **Frozen means:** no new features and no real-time extension. It adds no promise and removes none. The contracts, tests and evidence stay as they are, and existing users keep working.
 - **Why:** threads and locks decide scheduling, through priorities, inheritance and pools. Two kinds of them in one image is a design problem. Time, Logging, File, Configuration and System carry policy or serve both of today's product consumers, and none of them decides scheduling, so they stay public contracts.
-- **Direction ([ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md), the P9 result, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Queue and Serial are decided separately. Until then nothing is removed, and the freeze stays.
-- **Checked by a script:** `templates/product/check_domain_includes.py` rejects these four headers, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. With `--product ROOT` it also rejects the four headers in every source file of a product repository, adapters included, and `--exclude PATH` lists legacy files that have not moved yet. See [the template README](../templates/product/README.md#check-the-whole-product-repository).
-- **Checked by the compiler, if the product asks:** define `CRUX_WARN_FROZEN_HEADERS` for the product's own targets and each of the four headers emits a `#warning` that names it and points here. The default is off, so no existing build changes, including a `-Werror` build. The targets that Crux's own CMake creates define `CRUX_INTERNAL_BUILD` as a private directory definition, so the warning stays silent in them and the definition reaches no consumer. Crux sources that a composition compiles into the product's own target, such as the service sources that a Zephyr image adds to `app`, are not covered and do warn, so define the macro only for targets that compile no Crux source, or accept the warnings there. A product that adds `-Werror` turns the warning into an error, and GCC with `-Wpedantic` in C17 mode adds its own note that `#warning` is an extension.
-- **Not checked:** Crux's own trees and D10's Build B are exempt, and a product that does not run either check is not stopped.
+- **Direction ([ADR-0003](decisions/0003-p9-result-services-keep-narrow-thread-sync.md), the P9 result, O4):** Crux's services keep a narrow Crux Thread and Sync inside, and Thread and Sync are to become internal to Crux. That switch is a later, separate change that needs the owner's approval. Serial is decided separately. Queue was decided separately and removed on 20 November 2026. Until then nothing else is removed, and the freeze stays.
+- **Checked by a script:** `templates/product/check_domain_includes.py` rejects these three headers and the removed `<crux/queue.h>`, every `<zephyr/...>` header and the Crux composition interfaces in a product's domain, and the template's tests run it. With `--product ROOT` it also rejects those four headers in every source file of a product repository, adapters included, and `--exclude PATH` lists legacy files that have not moved yet. See [the template README](../templates/product/README.md#check-the-whole-product-repository).
+- **Checked by the compiler, if the product asks:** define `CRUX_WARN_FROZEN_HEADERS` for the product's own targets and each of the six frozen headers (these three and the GPIO, I2C and SPI headers below) emits a `#warning` that names it and points here. The default is off, so no existing build changes, including a `-Werror` build. The targets that Crux's own CMake creates define `CRUX_INTERNAL_BUILD` as a private directory definition, so the warning stays silent in them and the definition reaches no consumer. Crux sources that a composition compiles into the product's own target, such as the service sources that a Zephyr image adds to `app`, are not covered and do warn, so define the macro only for targets that compile no Crux source, or accept the warnings there. A product that adds `-Werror` turns the warning into an error, and GCC with `-Wpedantic` in C17 mode adds its own note that `#warning` is an extension.
+- **Fixed resource ceilings (service internals, not product design):** Crux Thread and Sync are a narrow layer for Crux's own services, and their ceilings are fixed by that use. Do not size product threads or locks against them; a product uses Zephyr threads and locks (Question 1).
+  - Zephyr: `CONFIG_CRUX_THREAD_COUNT` sets 1 to 64 thread slots (`zephyr/Kconfig:51-58`), but every slot has the same compile-time stack of `CONFIG_CRUX_THREAD_STACK_BYTES` (`components/thread/ports/zephyr/thread_native.c:7`). The per-thread `stack_size_bytes` option only rejects a request above that size (`thread_native.c:94`); it never gives one thread a larger or smaller stack.
+  - Host: 4 thread slots (`components/thread/src/thread_internal.h:10-11`), one 64 KiB stack for every thread, raised to the libc minimum where that is larger, and the priority is ignored (`components/thread/ports/linux/thread_native.c:77-90`).
+  - Priorities: only `LOW`, `NORMAL` and `HIGH` exist (`components/thread/include/crux/thread.h:34-36`).
+  - Sync: the Host build is fixed at 8 mutexes and 8 semaphores with no option to change them (`components/sync/src/sync_internal.h:10-13`). On Zephyr `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` set 1 to 64 each (`zephyr/Kconfig:150-161`).
+- **Not checked:** Crux's own trees and the Build B of ADR-0001 decision D10 (the experiment build that uses Crux with an adapter, in a separate repository) are exempt, and a product that does not run either check is not stopped.
+
+## Frozen, then removed: GPIO, I2C and SPI
+
+`<crux/gpio.h>`, `<crux/i2c.h>` and `<crux/spi.h>` are frozen as Experimental by [ADR-0001](decisions/0001-application-boundary-and-api-stability.md) (owner decision D4, accepted 12 November 2026). The ADR's plan is to announce their deprecation at the first tag and remove them in the next tagged release. The removal is follow-up change 4 and is not done: no tag exists, and the three headers carry the same opt-in frozen-header warning as the three above ([component readiness](component-readiness.md) records the same status).
+
+For new product code, including an SPI backplane or other bus I/O, use the Zephyr APIs directly in an adapter (Question 1): `gpio_dt_spec`, `i2c_dt_spec` and `spi_dt_spec`, with a product port above them. Do not build on `crux::gpio`, `crux::i2c` or `crux::spi`.
 
 ## Coexistence in one image
 
@@ -40,7 +51,7 @@ When Zephyr code and Crux run together:
 2. **The product sets Crux's resource budgets:** thread and mutex pools, and one stack size for every worker. Product callbacks that run on a Crux worker use those stacks.
 3. **One lock kind per piece of state.** Do not guard the same state with both a Crux lock and a Zephyr lock. Do not hold a lock across a Crux call that can call back into code that takes it.
 4. **No unbounded scheduler or interrupt lock in Crux.** Any such section must state a bound measured on the target.
-5. **Real-time code calls only Crux APIs that take no lock,** such as the monotonic clock read. Realtime Time, File, System, Queue and Serial take global locks.
+5. **Real-time code calls only Crux APIs that take no lock,** such as the monotonic clock read. Realtime Time, File, System and Serial take global locks.
 
 Rules 1 and 4 describe the direction the platform follows. The per-service priority settings of rule 1 exist (P3). The scheduler-lock review is separate, later work and is not part of this guide.
 
@@ -60,4 +71,6 @@ The product template shows the pattern in `templates/product/app/src/main.c`: on
 - [Architecture overview](architecture.md), with the three layers and the capability inventory
 - [Native-free consumer policy](native-interface-policy.md)
 - [Component readiness](component-readiness.md)
-- [Thread and Sync contract](thread-sync.md), [messaging contract](messaging-contract.md) and [serial contract](serial-contract.md) (frozen for new product code)
+- [Thread and Sync contract](thread-sync.md), [serial contract](serial-contract.md) (frozen for new product code), and the [messaging contract](messaging-contract.md) (queues use Zephyr `k_msgq`)
+- [GPIO](gpio-contract.md), [I2C](i2c-contract.md) and [SPI](spi-contract.md) contracts (frozen, to be removed)
+- [Glossary](glossary.md), for decision codes such as P1, O4 and D10

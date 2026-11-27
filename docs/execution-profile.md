@@ -101,12 +101,12 @@ The initial Zephyr POSIX build exposed a `<mqueue.h>`/signal-type configuration 
 
 ## Recorded intermediate evidence
 
-At `4d002b37`, hosted Linux run [39074635017](https://github.com/wonny-labs/crux-pilot/actions/runs/39074635017)
+At `4d002b37`, hosted Linux run [39074635017](https://github.com/wonny-labs/crux/actions/runs/39074635017)
 passed 28/28 CTest cases and the existing sample/quality/provenance checks. The POSIX
 periodic probe recorded six releases, 80 ms aggregate and two skipped phase points.
 These millisecond observations are not jitter bounds.
 
-Zephyr run [39074635116](https://github.com/wonny-labs/crux-pilot/actions/runs/39074635116)
+Zephyr run [39074635116](https://github.com/wonny-labs/crux/actions/runs/39074635116)
 passed the existing Time path and native execution 4/4, but failed to compile the POSIX
 probe for the configuration/name defects recorded above. Native periodic output was
 100 ms aggregate, four skipped phase points and zero recorded millisecond lateness;
@@ -122,7 +122,7 @@ During local preparation, the first direct static-analysis run found a reserved 
 Independent reviewer `/root/m2_reviewer` returned **PASS for provisional composition-local
 native Zephyr selection and #7 software start only**, after reconstructing requirements
 and inspecting source, actual reports and downloaded maps/configurations. The recorded
-[decision gate](https://github.com/wonny-labs/crux-pilot/issues/6#issuecomment-6242385007)
+[decision gate](https://github.com/wonny-labs/crux/issues/6#issuecomment-6242385007)
 retained the initial hardware/merge prohibitions and physical Pending status; subsequent explicit hardware authorisation and results are recorded separately below. Initial REVISE
 findings concerning per-release/overrun observations, stack recovery, wake-up and join
 bounds were corrected and independently re-reviewed. This is not platform-wide adoption.
@@ -144,7 +144,7 @@ comparison, not physical scheduling/stack guarantees. Static pool ownership and 
 uptime fit the demonstrated consumer without a common OS dependency; this is the basis
 for the scoped native choice. POSIX remains an option for another evidenced consumer.
 
-The [early controller](../samples/controller/README.md) implements this bounded choice.
+The early controller (now the periodic scenario [`tests/time_periodic`](../tests/time_periodic/README.md), formerly `samples/controller`) implements this bounded choice.
 At that software checkpoint physical target execution/timing/stack/resource validation
 remained **Pending** and could not be replaced by software checks or used to close #7/M2.
 
@@ -152,7 +152,7 @@ remained **Pending** and could not be replaced by software checks or used to clo
 ## Controller software verification
 
 At `8fab8f20`, hosted Host run
-[39076149309](https://github.com/wonny-labs/crux-pilot/actions/runs/39076149309)
+[39076149309](https://github.com/wonny-labs/crux/actions/runs/39076149309)
 passed Debug and ASan/UBSan **34/34** each, including the 20-cycle host scenario and five
 controller unit cases. All six build-boundary/runner/provenance safeguard cases,
 configured formatting, expanded static analysis and dependency checks passed. The
@@ -165,7 +165,7 @@ the 30-second exit limit. This failure is retained; its cause is unconfirmed. Th
 retry passed 1/1 and the full unmodified sanitizer retry passed 34/34. No timeout increase,
 source workaround or sanitizer suppression was applied.
 
-Local `scripts/test-controller.sh` passed normal and missing-RTC native_sim scenarios
+Local `scripts/test-time-periodic.sh` passed normal and missing-RTC native_sim scenarios
 and the EVKB B/QSPI cross-build. It began at `4a2feaa`; the subsequent `8fab8f20` change
 only repairs host CTest discovery and records that failure, leaving all Zephyr compiled
 inputs unchanged. Normal simulation recorded 20 cycles, unset Time at cycles 0–1, valid
@@ -176,7 +176,7 @@ worker stack and configured heap zero. Simulated 4056-byte unused-stack accounti
 not a target stack measurement. Physical execution and resource sufficiency were still Pending at that checkpoint.
 
 At the same clean `8fab8f203f1ab5587f76648877d5c127fc6cb278`, hosted Zephyr run
-[39076149315](https://github.com/wonny-labs/crux-pilot/actions/runs/39076149315)
+[39076149315](https://github.com/wonny-labs/crux/actions/runs/39076149315)
 passed execution probes **9/9**, both candidate EVKB cross-builds, both controller
 native_sim scenarios, the controller EVKB cross-build and existing Time native_sim
 **4/4** plus sample builds. Downloaded artefact `12117605940` contains the actual

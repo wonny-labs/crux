@@ -1,0 +1,35 @@
+sample:
+  name: Crux File write and read
+  description: >-
+    Writes a file through the Crux File API and reads it back. The two scenarios build the
+    same application source and differ only in the Kconfig fragment and devicetree overlay
+    that select the File provider. Both providers are Experimental.
+common:
+  tags: [crux, sample, file]
+  platform_allow:
+    - native_sim/native/64
+  integration_platforms:
+    - native_sim/native/64
+  harness: console
+tests:
+  crux.sample.file.basic.simulator:
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "Storage: LittleFS on the flash simulator, bound at /lfs/files"
+        - "Wrote 24 bytes to greeting.txt"
+        - "Read 24 bytes: Hello from Crux File API"
+        - "CRUX_FILE_WRITE_READ_OK provider=simulator"
+  crux.sample.file.basic.fatfs_ram_disk:
+    extra_args:
+      - EXTRA_CONF_FILE=fatfs_ram_disk.conf
+      - EXTRA_DTC_OVERLAY_FILE=fatfs_ram_disk.overlay
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "Storage: FatFs on a RAM disk, bound at /RAM:/files"
+        - "Wrote 24 bytes to greeting.txt"
+        - "Read 24 bytes: Hello from Crux File API"
+        - "CRUX_FILE_WRITE_READ_OK provider=fatfs_ram_disk"

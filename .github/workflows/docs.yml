@@ -1,26 +1,57 @@
 name: docs-links
 
+# A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
+# ci.yml calls it for pull requests, merges and the nightly tier, and its ci-gate job needs it
+# (docs/ci.md#merge-gate). It can also run alone by hand.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
+    inputs:
+      tier:
+        description: "Tier to run; empty runs the tier of the event (docs/ci.md)"
+        type: string
+        default: ""
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
   workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (docs/ci.md)"
+        type: choice
+        options: [full, fast, nightly]
+        default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
+
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
 
 jobs:
   links:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      TIER: ${{ inputs.tier || 'auto' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install pinned lychee
-        run: python3 scripts/check_docs.py --install
-      - name: Verify document-selection rules and real lychee behaviour
-        run: python3 -m unittest discover -s tests/docs -v
-      - name: Check maintained Markdown links and anchors
-        run: python3 scripts/check_docs.py
+      - name: Run the checks of this tier
+        run: scripts/ci/run-tier.sh "$TIER" --job docs
+      - name: Upload the check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn

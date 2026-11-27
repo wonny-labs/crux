@@ -1,5 +1,7 @@
 # Portable GPIO contract
 
+> **Frozen as Experimental, to be removed.** [ADR-0001](decisions/0001-application-boundary-and-api-stability.md), owner decision D4 (accepted 12 November 2026): this API is frozen now as Experimental, its deprecation is announced at the first tag, and it is removed in the next tagged release. The freeze is in effect. The deprecation and removal work (follow-up change 4 of the ADR) is not done: the header carries the opt-in frozen-header warning, and no tag exists. New product code uses the Zephyr `gpio_dt_spec` in an adapter instead (see [Choosing an API](choosing-an-api.md#frozen-then-removed-gpio-i2c-and-spi)). The text below stays as the record of the contract.
+
 `crux::gpio` provides synchronous access to one statically composed logical
 line through `<crux/gpio.h>`. The initial profile supports input configuration
 and logical input reads only. The selected Devicetree `gpios` property owns the
@@ -26,7 +28,11 @@ native driver does, and no latency bound is guaranteed. Null output pointers ret
 `-EINVAL`, maps to `CRUX_ERR_IO`.
 
 The Host provider is an in-memory test simulation with private input-drive and
-failure-injection controls. The Zephyr provider uses `gpio_dt_spec` and native
+failure-injection controls. It is a loopback test double: a read returns the value that a test
+stored (`components/gpio/ports/host/gpio_host.c`), and it models no GPIO hardware. A Zephyr
+build cannot select it (`zephyr/CMakeLists.txt:105-107` adds only `ports/zephyr`). The retirement
+of this capability is follow-up change 4 of
+[ADR-0001](decisions/0001-application-boundary-and-api-stability.md), the plan, not yet done. The Zephyr provider uses `gpio_dt_spec` and native
 GPIO drivers. A composition must select the line with the `crux-gpio0`
 Devicetree alias; a missing, disabled or malformed selection fails the provider
 build. Current software configurations are Zephyr `native_sim/native/64` using
@@ -38,7 +44,7 @@ board revision A Cortex-M7 cross-build, which selects the board's own `user_butt
 cross-builds do not qualify pin routing, electrical behaviour, timing or physical
 operation. Neither board is qualified for physical use of this capability.
 
-The representative consumer configures and reads one input. The existing controller M3
+The representative consumer configures and reads one input. The existing controller health and network probe
 `device_input` wrapper remains unchanged in this increment; its native sample
 contract and physical validation status are independent of this new public
 capability.

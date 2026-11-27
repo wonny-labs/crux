@@ -1,0 +1,12 @@
+/* A 64 KiB partition of the native_sim flash simulator for the default scenario (.simulator).
+ * It sits after the board's own partitions, which end at 0x100000.
+ */
+&flash0 {
+    partitions {
+        file_sample_partition: partition@100000 {
+            compatible = "zephyr,mapped-partition";
+            label = "file-sample";
+            reg = <0x100000 0x10000>;
+        };
+    };
+};

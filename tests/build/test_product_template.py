@@ -14,7 +14,7 @@ from unittest import mock
 from test_crux_pins import git
 
 try:
-    import yaml  # west depends on it. The host CI job installs neither.
+    import yaml  # west depends on it, and the host CI job installs both.
 except ImportError:
     yaml = None
 
@@ -161,8 +161,8 @@ class TemplateLocationTest(unittest.TestCase):
 
     def test_the_copy_command_names_the_new_location(self):
         text = (TEMPLATE / "README.md").read_text()
-        self.assertIn("cp -R crux-pilot/templates/product acme-workspace/product-x", text)
-        self.assertNotIn("cp -R crux-pilot/samples/", text)
+        self.assertIn("cp -R crux/templates/product acme-workspace/product-x", text)
+        self.assertNotIn("cp -R crux/samples/", text)
 
 
 class TemplateScriptTest(unittest.TestCase):
@@ -280,7 +280,7 @@ int main(void)
 
 
 class DomainIncludeCheckTest(unittest.TestCase):
-    """The check rejects the four frozen Crux headers and every Zephyr header in the domain."""
+    """The check rejects the three frozen Crux headers, the removed queue header and every Zephyr header in the domain."""
 
     @classmethod
     def setUpClass(cls):
@@ -367,7 +367,8 @@ class DomainIncludeCheckTest(unittest.TestCase):
         self.assertEqual([], self.violations_of(text))
 
     def test_a_crux_composition_interface_fails(self):
-        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h"):
+        for header in ("crux/file_zephyr.h", "crux/queue_linux.h", "crux/anything_zephyr.h",
+                       "crux/file_reliance_edge_zephyr.h"):
             with self.subTest(header=header):
                 found = self.violations_of(f"#include <{header}>\n")
                 self.assertEqual([header], [v.include for v in found])
@@ -901,7 +902,7 @@ FORBIDDEN_NAMES = (
     "codesys", "wolfssl", "wolfssh", "nxp", "mcuxpresso", "datalight", "reliance",
     "crux-controller", "crux-codesys", "bitbucket", "employer",
 )
-ALLOWED_URL_PREFIXES = ("https://github.com/wonny-labs/crux-pilot/", "https://git.example/")
+ALLOWED_URL_PREFIXES = ("https://github.com/wonny-labs/crux/", "https://git.example/")
 
 
 class ReleaseTemplateTest(unittest.TestCase):
@@ -986,7 +987,7 @@ class ReleaseTemplateTest(unittest.TestCase):
         self.assertTrue(urls)
         for url in urls:
             with self.subTest(url=url):
-                self.assertTrue(url.startswith("https://github.com/wonny-labs/crux-pilot/blob/<crux-revision>/"), url)
+                self.assertTrue(url.startswith("https://github.com/wonny-labs/crux/blob/<crux-revision>/"), url)
         self.assertNotRegex(self.text, r"/(blob|tree)/(main|master|HEAD)\b")
         self.assertIn("## Release", GUIDE.read_text().splitlines())
         self.assertIn("product-composition.md#release`", self.text)
@@ -1005,8 +1006,11 @@ class ReleaseTemplateTest(unittest.TestCase):
 
     def test_release_steps_keep_the_guides_order_around_the_build(self):
         steps = release_section("Release steps")
+        # Zephyr v4.5.0 prepares the SBOM inputs in a build with CONFIG_BUILD_OUTPUT_META and
+        # deprecates `west spdx --init`, so no step runs it.
+        self.assertNotIn("spdx --init", steps)
         order = ["west crux-pins", "west manifest --freeze --active-only", "--capture-inputs",
-                 "west spdx --init", "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
+                 "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
                  "`west spdx`", "check-release-bundle", "checks below"]
         positions = []
         for marker in order:
@@ -1114,19 +1118,19 @@ class ManifestTest(unittest.TestCase):
 
     def test_manifest_imports_crux_and_names_the_product(self):
         projects = {entry["name"]: entry for entry in self.product["projects"]}
-        self.assertIs(True, projects["crux-pilot"]["import"])
+        self.assertIs(True, projects["crux"]["import"])
         self.assertEqual("product-x", self.product["self"]["path"])
 
     def test_crux_revision_is_main_with_a_note_to_pin_for_releases(self):
         projects = {entry["name"]: entry for entry in self.product["projects"]}
-        self.assertEqual("main", projects["crux-pilot"]["revision"])
+        self.assertEqual("main", projects["crux"]["revision"])
         self.assertRegex(self.text, r"(?i)pin a tag or (a )?sha")
 
     def test_manifest_pins_nothing_the_crux_manifest_already_pins(self):
         pinned = {entry["name"] for entry in self.crux["projects"]}
         zephyr = next(entry for entry in self.crux["projects"] if entry["name"] == "zephyr")
         pinned.update(zephyr["import"]["name-allowlist"])
-        own = {entry["name"] for entry in self.product["projects"]} - {"crux-pilot"}
+        own = {entry["name"] for entry in self.product["projects"]} - {"crux"}
         self.assertEqual(set(), own & pinned)
 
     def test_examples_parse_and_show_group_module_and_override(self):
@@ -1156,11 +1160,11 @@ class ManifestTest(unittest.TestCase):
         # and reports a workspace whose checkout differs from it. For an explicit Crux entry
         # the contract is Crux's own west.yml, so crux-pins does not compare the revision with
         # Zephyr's manifest. The literal below is the revision in Zephyr's west.yml at the
-        # pinned v4.4.2, copied by hand. Nothing checks it against Zephyr's manifest after a
+        # pinned v4.5.0, copied by hand. Nothing checks it against Zephyr's manifest after a
         # Zephyr bump; the same gap exists for mbedtls and tf-psa-crypto.
         projects = {entry["name"]: entry for entry in self.crux["projects"]}
         self.assertEqual(["crux-boot"], projects["mcuboot"].get("groups"))
-        self.assertEqual("6d3b3d2c38ab20c242e5b9abb04d050086383eb2", projects["mcuboot"]["revision"])
+        self.assertEqual("725d63c9d5bc1bb572d802e7a768daf504186daf", projects["mcuboot"]["revision"])
         self.assertIn("-crux-boot", self.crux["group-filter"])
         self.assertNotIn("mcuboot", projects["zephyr"]["import"]["name-allowlist"])
 
@@ -1238,7 +1242,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
             if entry is zephyr_entry:
                 cls.zephyr = fake
         base = cls.remote_base().removeprefix(PUBLIC_BASE)
-        directory = cls.root / f"public/{base}/crux-pilot"
+        directory = cls.root / f"public/{base}/crux"
         directory.mkdir(parents=True)
         git(directory, "init", "-q", env=cls.env)
         # West writes bytecode beside the command, which the real repository ignores.
@@ -1255,7 +1259,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
     @staticmethod
     def remote_base():
         product = yaml.safe_load(MANIFEST.read_text())["manifest"]
-        crux = next(entry for entry in product["projects"] if entry["name"] == "crux-pilot")
+        crux = next(entry for entry in product["projects"] if entry["name"] == "crux")
         return next(remote["url-base"] for remote in product["remotes"]
                     if remote["name"] == crux["remote"])
 
@@ -1298,7 +1302,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
         workspace = self.workspace()
         output = self.assert_pins_pass(workspace)
         self.assertIn(f"OK zephyr {self.zephyr[:12]}", output)
-        self.assertRegex(output, r"(?m)^CONTRACT crux-pilot [0-9a-f]{12}$")
+        self.assertRegex(output, r"(?m)^CONTRACT crux [0-9a-f]{12}$")
         for name in self.allowlist:
             self.assertIn(f"OK {name} {self.modules[name][:12]}", output)
         self.assertNotIn(OUTSIDE, output)
@@ -1316,7 +1320,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
         manifest = yaml.safe_load(text)["manifest"]
         remotes = {remote["name"]: remote["url-base"] for remote in manifest["remotes"]}
         for entry in manifest["projects"]:
-            if entry["name"] == "crux-pilot":
+            if entry["name"] == "crux":
                 continue
             relative = remotes[entry["remote"]].removeprefix(INTERNAL_BASE) + "/" + entry["name"]
             target = self.root / "internal" / relative
@@ -1607,7 +1611,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
                 f"    - name: crux\n      url-base: {self.remote_base()}\n"
                 f"    - name: zephyrproject-rtos\n      url-base: {PUBLIC_BASE}zephyrproject-rtos\n"
                 "  projects:\n"
-                f"    - name: crux-pilot\n      remote: crux\n      revision: {crux or self.crux}\n"
+                f"    - name: crux\n      remote: crux\n      revision: {crux or self.crux}\n"
                 f"{west_commands}"
                 f"    - name: {name}\n      remote: zephyrproject-rtos\n      repo-path: zephyr\n"
                 f"      revision: {zephyr or self.zephyr}\n"
@@ -1617,7 +1621,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
 
     def test_a_hand_pinned_product_passes_while_its_pins_match(self):
         output = self.assert_pins_pass(self.workspace(self.hand_pinned()))
-        self.assertRegex(output, rf"(?m)^CONTRACT crux-pilot {self.crux[:12]}$")
+        self.assertRegex(output, rf"(?m)^CONTRACT crux {self.crux[:12]}$")
         self.assertIn(f"OK zephyr {self.zephyr[:12]}", output)
         self.assertIn(f"OK {self.allowlist[0]} {self.modules[self.allowlist[0]][:12]}", output)
         # Outside Crux's allowlist, but in Zephyr's manifest at Crux's pin.
@@ -1859,7 +1863,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
         chosen = [self.allowlist[0], OUTSIDE]
         workspace = self.workspace(self.hand_pinned(modules=[], zephyr_import=chosen))
         output = self.assert_pins_pass(workspace)
-        self.assertRegex(output, rf"(?m)^CONTRACT crux-pilot {self.crux[:12]}$")
+        self.assertRegex(output, rf"(?m)^CONTRACT crux {self.crux[:12]}$")
         self.assertIn(f"OK zephyr {self.zephyr[:12]}", output)
         self.assertIn(f"OK {self.allowlist[0]} {self.modules[self.allowlist[0]][:12]}", output)
         self.assertIn(f"OK {OUTSIDE} {self.modules[OUTSIDE][:12]}", output)

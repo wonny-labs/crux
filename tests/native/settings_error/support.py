@@ -4,7 +4,13 @@ import hashlib
 from pathlib import Path
 import subprocess
 
-PIN = "dccb09599635bdff17633fa7e9dab014b91dce90"
+PIN = "41d10b59730406bbab4ca9f1fbbe9e96aafb4966"
+# The settings_store.c correction is the module's own, because a product build stages it too
+# (zephyr/settings_file.cmake). The NVS correction is this experiment's.
+CANDIDATE_PATCHES = (
+    Path(__file__).resolve().parents[3] / "patches/zephyr/settings-store-error.patch",
+    Path(__file__).resolve().with_name("settings_nvs.patch"),
+)
 CALLBACKS = '\n#ifndef PROBE_SETTINGS_H\n#define PROBE_SETTINGS_H\n#include <stddef.h>\n#include <stdint.h>\n#include <sys/types.h>\n#include <zephyr/sys/slist.h>\ntypedef ssize_t (*settings_read_cb)(void *, void *, size_t);\ntypedef int (*settings_load_direct_cb)(const char *, size_t, settings_read_cb,\n                                       void *, void *);\n'
 PROTOTYPES = '\nstruct settings_handler_static {\n    const char *name;\n    int (*h_export)(int (*save)(const char *, const void *, size_t));\n};\nint settings_load_subtree(const char *);\nint settings_commit_subtree(const char *);\nint settings_save_subtree(const char *);\nint settings_load_subtree_direct(const char *, settings_load_direct_cb, void *);\nssize_t settings_load_one(const char *, void *, size_t);\nint settings_save_one(const char *, const void *, size_t);\nvoid settings_store_init(void);\nvoid settings_src_register(struct settings_store *);\nvoid settings_dst_register(struct settings_store *);\nint settings_name_next(const char *, const char **);\nint settings_name_steq(const char *, const char *, const char **);\n#endif\n'
 SLIST = '\n#ifndef PROBE_SLIST_H\n#define PROBE_SLIST_H\n#include <stddef.h>\ntypedef struct probe_node { struct probe_node *next; } sys_snode_t;\ntypedef struct { sys_snode_t *head; sys_snode_t *tail; } sys_slist_t;\nstatic inline void sys_slist_init(sys_slist_t *list) {\n    list->head = NULL; list->tail = NULL;\n}\nstatic inline void sys_slist_append(sys_slist_t *list, sys_snode_t *node) {\n    node->next = NULL;\n    if (list->tail != NULL) list->tail->next = node; else list->head = node;\n    list->tail = node;\n}\n#define SYS_SLIST_FOR_EACH_CONTAINER(list, item, field) \\\n    for ((item) = (void *)(list)->head; (item) != NULL; \\\n         (item) = (void *)(item)->field.next)\n#endif\n'
@@ -46,14 +52,12 @@ def prepare(zephyr, work, candidate=False):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text)
     if candidate:
-        for name in ("settings_store", "settings_nvs"):
-            patch = Path(__file__).with_name(name + ".patch")
+        for patch in CANDIDATE_PATCHES:
             if not patch.exists():
                 raise RuntimeError("Missing candidate patch: " + patch.name)
-            if patch.exists():
-                applied = run(["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i", str(patch.resolve())], cwd=work)
-                if applied.returncode:
-                    raise RuntimeError(applied.stdout + applied.stderr)
+            applied = run(["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i", str(patch)], cwd=work)
+            if applied.returncode:
+                raise RuntimeError(applied.stdout + applied.stderr)
     return hashes
 
 def nvs_headers(work):

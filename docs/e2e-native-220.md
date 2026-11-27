@@ -1,6 +1,6 @@
 # The web examples end to end on `native_sim`
 
-Status: merged in [PR #293](https://github.com/wonny-labs/crux-pilot/pull/293) for [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220). Host and
+Status: merged in [PR #293](https://github.com/wonny-labs/crux/pull/293) for [Issue #220](https://github.com/wonny-labs/crux/issues/220). Host and
 `native_sim` evidence only. **Nothing here ran on a board, and nothing here is device timing, memory or physical
 evidence.** Measuring on RT1060-EVKB is separately approved and is not part of this work. Preact and Angular are examples,
 and Crux promises no product-ready interface.
@@ -25,7 +25,7 @@ deep-link fallback, connection limits, the real session clock, the real `409` an
 | Listener certificate | **The declared test certificate** of #263, as in #242 | Chrome accepts its key alone, [below](#how-the-browser-trusts-the-test-certificate) |
 | Configuration save | **No provider**, decision C6: a save fails with `not_supported`, and a network change gets `501` | The cases that need a successful save are skipped on `native_sim` and say why |
 | Reboot | **Not composed.** #214's service is merged on `main` (479342f) but is not composed in the services image, whose image check holds exactly the 12 component routes. **The reboot flow is mock-only**, and results say so. | Skipped with that reason |
-| The small example project, `samples/web_project` | **Built**: a page and a project route through the public route contract, with no native header | Host: `Web.project_sample` |
+| The small example project, `tests/web/project_sample/project` | **Built**: a page and a project route through the public route contract, with no native header | Host: `Web.project_sample` |
 | Firefox, Safari, Edge | **Not run.** Chrome only. | |
 | Anything on RT1060-EVKB | **Not run, not compiled here** | |
 
@@ -320,7 +320,7 @@ reboot predate the Angular network settings and restart screens of #243. The sha
 
 ## The small example project
 
-`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native header. What it uses, and what a composition writes, are in [its README](../samples/web_project/README.md). The checks below are the evidence.
+`tests/web/project_sample/project` adds a page and an API route of a project's own, with Crux's public contracts and no native header. What it uses, and what a composition writes, are in [its README](../tests/web/project_sample/project/README.md). The checks below are the evidence.
 
 | Check | Level | Result |
 | --- | --- | --- |

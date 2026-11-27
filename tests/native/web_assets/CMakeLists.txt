@@ -26,7 +26,8 @@ target_sources(app PRIVATE src/main.c src/api_route.c src/probe_route.c ${WEB_HT
   ${WEB_HTTP_SRC}/socket_shim.c)
 target_sources(native_simulator INTERFACE ${WEB_HTTP_SRC}/host_socket.c)
 target_include_directories(app PRIVATE ${WEB_HTTP_SRC})
-target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown -Wl,--wrap=z_impl_zsock_sendto)
+target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown -Wl,--wrap=z_impl_zsock_sendto
+  -Wl,--wrap=z_impl_zsock_sendmsg)
 target_link_libraries(app PRIVATE crux_web_adapter)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 

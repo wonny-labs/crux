@@ -46,28 +46,31 @@
  					 char *rdname, size_t len)
  {
  	uint16_t name_hash = crc16_ccitt(0xffff, name, strlen(name));
-@@ -103,11 +133,16 @@
+@@ -103,16 +133,17 @@
  		}
  
  		rc = nvs_read(&cf->cf_nvs, cf->cache[i].name_id, rdname, len);
+-		if (rc < 0) {
 +		if (rc == -ENOENT) {
-+			continue;
-+		}
- 		if (rc < 0) {
--			continue;
--		}
+ 			continue;
+ 		}
 -
--		rdname[rc] = '\0';
+-		if ((size_t)rc >= len) {
+-			continue;
++		if (rc < 0) {
 +			return rc;
-+		}
+ 		}
 +		rc = settings_nvs_name_validate(rdname, rc, len);
 +		if (rc) {
 +			return rc;
 +		}
  
+-		rdname[rc] = '\0';
+-
  		if (strcmp(name, rdname)) {
  			continue;
-@@ -155,44 +190,43 @@
+ 		}
+@@ -159,48 +190,43 @@
  		 * setting's value.
  		 */
  		rc1 = nvs_read(&cf->cf_nvs, name_id, &name, sizeof(name));
@@ -93,29 +96,16 @@
 -				cf->last_name_id--;
 -				nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID,
 -					  &cf->last_name_id, sizeof(uint16_t));
+-			}
+-
+-			continue;
 +		if (rc2 < 0 && rc2 != -ENOENT) {
 +			return rc2;
 +		}
 +		if (rc2 == 0) {
 +			return -EBADMSG;
-+		}
-+
-+		if (rc1 == -ENOENT || rc2 == -ENOENT) {
-+			/* Repair only confirmed missing records, never hard read errors. */
-+			if (rc1 != -ENOENT || rc2 != -ENOENT) {
-+				ret = nvs_delete(&cf->cf_nvs, name_id);
-+				if (ret < 0) {
-+					return ret;
-+				}
-+				ret = nvs_delete(&cf->cf_nvs, name_id + NVS_NAME_ID_OFFSET);
-+				if (ret < 0) {
-+					return ret;
-+				}
- 			}
--
--			continue;
--		}
--
+ 		}
+ 
 -		if ((rc1 <= 0) || (rc2 <= 0)) {
 -			/* Settings item is not stored correctly in the NVS.
 -			 * NVS entry for its name or value is either missing
@@ -129,23 +119,36 @@
 -				cf->last_name_id--;
 -				nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID,
 -					  &cf->last_name_id, sizeof(uint16_t));
++		if (rc1 == -ENOENT || rc2 == -ENOENT) {
++			/* Repair only confirmed missing records, never hard read errors. */
++			if (rc1 != -ENOENT || rc2 != -ENOENT) {
++				ret = nvs_delete(&cf->cf_nvs, name_id);
++				if (ret < 0) {
++					return ret;
++				}
++				ret = nvs_delete(&cf->cf_nvs, name_id + NVS_NAME_ID_OFFSET);
++				if (ret < 0) {
++					return ret;
++				}
+ 			}
+-
 +			ret = settings_nvs_count_decrement(cf, name_id);
 +			if (ret) {
 +				return ret;
- 			}
--
++			}
+ 			continue;
+ 		}
+ 
+-		if ((size_t)rc1 >= sizeof(name)) {
 -			continue;
 -		}
 -
 -		/* Found a name, this might not include a trailing \0 */
 -		name[rc1] = '\0';
-+			continue;
-+		}
-+
  		read_fn_arg.fs = &cf->cf_nvs;
  		read_fn_arg.id = name_id + NVS_NAME_ID_OFFSET;
  
-@@ -231,7 +265,11 @@
+@@ -239,7 +265,11 @@
  #if CONFIG_SETTINGS_NVS_NAME_CACHE
  	bool name_in_cache = false;
  
@@ -158,33 +161,36 @@
  	if (name_id != NVS_NAMECNT_ID) {
  		write_name_id = name_id;
  		write_name = false;
-@@ -259,15 +297,17 @@
+@@ -267,20 +297,18 @@
  
  		rc = nvs_read(&cf->cf_nvs, name_id, &rdname, sizeof(rdname));
  
-+		if (rc == -ENOENT) {
-+			write_name_id = name_id;
-+			continue;
-+		}
- 		if (rc < 0) {
+-		if (rc < 0) {
 -			/* Error or entry not found */
 -			if (rc == -ENOENT) {
 -				write_name_id = name_id;
 -			}
--			continue;
--		}
++		if (rc == -ENOENT) {
++			write_name_id = name_id;
+ 			continue;
+ 		}
 -
--		rdname[rc] = '\0';
+-		if ((size_t)rc >= sizeof(rdname)) {
+-			continue;
++		if (rc < 0) {
 +			return rc;
-+		}
+ 		}
 +		rc = settings_nvs_name_validate(rdname, rc, sizeof(rdname));
 +		if (rc) {
 +			return rc;
 +		}
  
+-		rdname[rc] = '\0';
+-
  		if (strcmp(name, rdname)) {
  			continue;
-@@ -372,9 +412,15 @@
+ 		}
+@@ -384,9 +412,15 @@
  
  	rc = nvs_read(&cf->cf_nvs, NVS_NAMECNT_ID, &last_name_id,
  		      sizeof(last_name_id));

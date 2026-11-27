@@ -80,7 +80,7 @@ crux_mgmt_status_config_t fixture_config(void)
 {
     crux_mgmt_status_config_t config = {
         .platform_version = "1.2.3",
-        .project_version = "pilot-7",
+        .project_version = "demo-7",
         .boot_reset_cause_status = CRUX_OK,
         .boot_reset_cause = {.supported = CRUX_RESET_CAUSE_POR | CRUX_RESET_CAUSE_WATCHDOG |
                                           CRUX_RESET_CAUSE_PIN,

@@ -7,9 +7,7 @@ boundary test of that record: not "does the System module build" (that is `tests
 consumer that cannot see Crux's private files show a start, a feed cycle, a missed feed with its restart, and a
 second boot".
 
-Status: **Experimental** (the symbol it uses is Experimental, ADR-0001 Decision 4). A simulated watchdog is **not
-hardware evidence**: a pass says that a product calls System in the right order and handles the answers in simulated
-kernel time, and says nothing about a board.
+A simulated watchdog is not hardware evidence: a pass says that a product calls System in the right order in simulated kernel time, and nothing about a board.
 
 ## Layout
 
@@ -28,7 +26,7 @@ kernel time, and says nothing about a board.
 directory to a temporary directory **outside** the repository, builds it with `west build -b native_sim/native/64`
 and `-DZEPHYR_EXTRA_MODULES=<repo>` as `scripts/test-product-template.sh` does, applies `check_build.py`, runs the
 image until its last line, builds it again with the symbol off, and then applies each variant. `scripts/test-system.sh`
-calls it, so the Zephyr runtime shard runs it. No hardware, programming, reset or board is involved.
+calls it, so [Zephyr CI](../../docs/ci-zephyr-shards.md#shards) runs it. No hardware, programming, reset or board is involved.
 
 ## Use it from outside the repository
 
@@ -79,12 +77,9 @@ A product repository can start from this directory:
 | `frozen_symbol_in_prj_conf` | a Thread symbol named in `prj.conf` |
 
 A wrap of a Zephyr symbol such as `sys_reboot` is not refused: ADR-0005 S6 leaves a product's own wraps alone.
-In the Host test, each variant is also run with only the check function it relies on (`header_violations`,
-`link_violations`, `wrap_violations` or `conf_violations`) replaced by one that finds nothing, and the variant is then
-accepted. So each refusal is that function's. The include variant needs a build, so it has no such control on the
-Host; its function is tested on a hand-made compile command, and CI runs the variant. Non-vacuity of the whole
-fixture also rests on the clean-fixture test (the fixture passes every check) and on the message that each variant
-must produce.
+In the Host test, each variant is also run with its check function replaced by one that finds nothing, and is then accepted,
+so each refusal is that function's. The include variant needs a build; its function is tested on a hand-made compile
+command and CI runs the variant.
 
 ## Limits of the checks
 
@@ -96,7 +91,7 @@ must produce.
 - The include-directory check looks at directories under the repository's `components/` only, in the compile commands
   of the consumer's own sources.
 - T5 (the symbol off) is a build and a `.config` and image check. The run-time expectation of an absent provider
-  rests on the existing tests (`tests/m5_integrated/zephyr/main.c`), not on a run here.
+  rests on the existing tests (`tests/integrated_smoke/zephyr/main.c`), not on a run here.
 - The run is read with a deadline (90 s by default): an image that goes silent fails with a `check_build: FAIL` line
   and does not block the runner.
 

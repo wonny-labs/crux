@@ -16,7 +16,7 @@ if(CONFIG_CRUX_ACCESS AND NOT CONFIG_HWINFO)
                         "comes from it")
 endif()
 
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
 
@@ -29,12 +29,12 @@ endif()
 
 # The per-service priority placement of the services' workers (ADR-0002 P3). It exposes nothing by
 # itself: a composition links crux_service_priority_placement to the target that compiles a worker.
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/service_priority"
         "${CMAKE_CURRENT_BINARY_DIR}/service_priority")
 endif()
 
-if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
+if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
         "${CMAKE_CURRENT_BINARY_DIR}/interrupt")
 endif()
@@ -58,7 +58,7 @@ endif()
 
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
-if(CONFIG_CRUX_PILOT_MODULE)
+if(CONFIG_CRUX_MODULE)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::base)
 endif()
 if(CONFIG_CRUX_TIME)
@@ -74,11 +74,6 @@ if(CONFIG_CRUX_NETIF)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/netif/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/netif")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::netif)
-endif()
-
-if(CONFIG_CRUX_QUEUE)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/queue/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/queue")
 endif()
 
 
@@ -118,13 +113,31 @@ if(CONFIG_CRUX_SYSTEM)
 endif()
 
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
-   CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
+   CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
+   CONFIG_CRUX_FILE_FATFS_SDMMC_COMPILE_CHECK OR CONFIG_CRUX_FILE_RELIANCE_EDGE OR
+   CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+    # The guard of the eMMC flush correction for every File composition on an MMC disk. A File
+    # sync is the provider's flush, and without the correction a disk sync does not flush a
+    # turned-on eMMC cache, whatever the file system. An image with Reliance Edge is refused by the
+    # adapter's own guard (fs/reliance_edge), with its own message, so this one leaves it to that.
+    # CRUX_EMMC_FLUSH_CONTROL is the same test-fixture variable, honoured on native_sim only.
+    set(CRUX_EMMC_FLUSH_CONTROL OFF CACHE BOOL
+        "Test fixtures only: allow an MMC disk without the cache flush correction on native_sim")
+    if(CRUX_EMMC_FLUSH_CONTROL AND NOT CONFIG_BOARD_NATIVE_SIM)
+        message(FATAL_ERROR "CRUX_EMMC_FLUSH_CONTROL is a native_sim test fixture setting and is "
+            "refused on any other board")
+    endif()
+    if(CONFIG_DISK_DRIVER_MMC AND NOT CONFIG_CRUX_MMC_CACHE_FLUSH AND
+       NOT CRUX_EMMC_FLUSH_CONTROL AND NOT CONFIG_CRUX_FS_RELIANCE_EDGE)
+        message(FATAL_ERROR "A Crux File composition on an MMC disk requires "
+            "CONFIG_CRUX_MMC_CACHE_FLUSH=y, because without it a File sync does not flush the "
+            "eMMC cache")
+    endif()
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-       CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK OR
-       CONFIG_CRUX_FILE_RELIANCE_EDGE)
+       CONFIG_CRUX_FILE_FATFS_SDMMC OR CONFIG_CRUX_FILE_FATFS_RAM_DISK OR
+       CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()
 endif()
@@ -133,26 +146,34 @@ if(CONFIG_CRUX_MMC_CACHE_FLUSH)
     include("${CMAKE_CURRENT_LIST_DIR}/mmc_cache_flush.cmake")
 endif()
 
+# Every image with Zephyr's own TCP and the RFC 6528 initial sequence number gets the build-local tcp.c
+# that refuses a connection when the key read or the hash fails, instead of falling back to
+# sys_rand32_get(). There is no option: a tcp.c it does not know stops the configuration.
+if(CONFIG_NET_NATIVE_TCP AND CONFIG_NET_TCP_ISN_RFC6528)
+    include("${CMAKE_CURRENT_LIST_DIR}/tcp_isn_fail_closed.cmake")
+endif()
+
 if(CONFIG_CRUX_FS_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
 endif()
 
-if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+# Either Settings File selection of Configuration: on Reliance Edge (CRUX_CONFIGURATION_SETTINGS_FILE)
+# or on another mounted file system, never FatFs (CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS).
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_PROVIDER)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/configuration")
     # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with
-    # the corrected build-local copies of its sources, which the fixture of
-    # tests/native/configuration_settings_file also uses, so a product build reaches a file under
-    # tests/. CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the fixture's negative
-    # control only.
+    # the corrected build-local copies of its sources (settings_file.cmake, patches/zephyr).
+    # CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the negative controls of the
+    # test fixtures only.
     if(CRUX_SETTINGS_FILE_CONTROL)
         if(NOT CONFIG_BOARD_NATIVE_SIM)
             message(FATAL_ERROR "CRUX_SETTINGS_FILE_CONTROL is a native_sim test fixture setting "
                 "and is refused on any other board")
         endif()
     else()
-        include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
+        include("${CMAKE_CURRENT_LIST_DIR}/settings_file.cmake")
     endif()
 endif()
 

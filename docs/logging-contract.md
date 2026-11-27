@@ -1,7 +1,9 @@
 # Portable Logging
 
-The [approved design](superpowers/specs/2026-10-24-logging-design.md) defines
+The [approved design](design/logging-design.md) defines
 `<crux/logging.h>` and `crux::logging`. The component depends publicly on Base.
+
+Which code calls `crux_log_write`, and which uses Zephyr logging or `printk`, is in [Logging](coding-guidelines.md#logging).
 
 Submit completed text with `crux_log_write(level, tag, text)`; configure the
 process/boot-local threshold with `crux_log_set_level(maximum_level)`. Defaults
@@ -10,7 +12,10 @@ Invalid setters preserve the old level. Each valid submission samples the level
 once; later filter changes do not withdraw already submitted native records.
 
 Tags contain 1–24 ASCII letters, digits, `_`, `-` or `.`. Text contains 0–256
-bytes without CR or LF. Limits exclude the terminating NUL. Both strings must
+bytes with no control byte: every byte below 0x20 (CR, LF and TAB included) and
+0x7F are rejected, so a record stays one line and cannot carry a terminal
+sequence. Bytes from 0x80 are accepted as they are, so UTF-8 text passes
+unchecked. Limits exclude the terminating NUL. Both strings must
 be readable and unchanged until return. The caller may modify or free both strings after return. Zephyr packages
 writable strings and can reference immutable image-resident strings. Percent characters are literal; applications own any
 formatting they perform before submission. Invalid inputs are rejected even
@@ -40,11 +45,23 @@ The initial Zephyr provider maps to native LOG_ERR/WRN/INF/DBG with an explicit
 DEBUG source ceiling, visible severity, a native line boundary and the common Crux filter. It requires deferred native
 processing, UART TEXT output, autostart, drop-new, no capacity wait, no runtime
 native filter or extra backend. An explicit single enabled chosen log UART is
-required. Native_sim uses a dedicated UART emulator separate from its harness
-Console. The approved revision-B EVKB LPUART1 profile (the EVKB accepts no other log UART),
-and any other RT1062 board under the same conditions (any enabled LPUART, accepted by SoC and
-devicetree), compiles UART_CONSOLE as the
+required. On `native_sim` it is a UART emulator or Zephyr's native PTY UART
+(`zephyr,native-pty-uart`), such as `uart0`, the board's Console. For `uart0` the
+product overlay names it in `zephyr,log-uart` and sets `current-speed = <115200>`
+(the board's value is a placeholder), and the image sets `LOG_BACKEND_NATIVE_POSIX=n`
+and follows the Console rule below. By default the log appears on that UART's
+pseudo-terminal. For stdout, set `CONFIG_UART_NATIVE_PTY_0_ON_STDINOUT=y` (the first
+PTY UART) or run the executable with `-uart_stdinout`. Of these three ways,
+`crux.logging.native_pty` tests only the Kconfig option.
+On any board the log UART is the enabled node that the devicetree chooses, of a reviewed
+UART driver selected by compatible (`nxp,lpuart`); no board, SoC or revision is checked. The
+EVKB composition chooses LPUART1.
+An image whose log UART is also the Console compiles UART_CONSOLE as the
 pinned backend's prerequisite but disables direct Console stdout, input and
 subsystem helpers, early Console and Shell; printk routes through native Logging.
-Build checks reject other Console-sharing configurations. See validation evidence
+Build checks reject other Console-sharing configurations. A second shape: with
+`CRUX_CLI_CONSOLE_UART_SHARED` the serial console's own backend replaces the UART backend
+(`LOG_BACKEND_UART=n`) on the UART of `crux-serial0`, with the same drop-new rule and the
+console's line redraw; see [the command line contract](cli-contract.md#console-and-logging-on-one-uart).
+See validation evidence
 before adopting a board composition. No physical verification is implied.

@@ -4,7 +4,7 @@ Status: PLAN revision 4a after the first independent check of revision 4 (REVISE
 
 ## 1. What B2 found (2026-11-08T08:01Z, `stage1-run-2/identify`, read-only)
 
-- Identity probe matched: CPUID `0x411FC271` (Cortex-M7 r1p1), DPIDR `0x0BD11477`, probe S/N 602003106, VTref 3.322 V. The fixed lsof ownership checks passed on real hardware: `01-identity-only-owners-cu.txt` = exit 0, `p31421`, `f5`; `...-owners-tty.txt` = exit 1, nothing.
+- Identity probe matched: CPUID `0x411FC271` (Cortex-M7 r1p1), DPIDR `0x0BD11477`, probe S/N `<probe-serial>`, VTref 3.322 V. The fixed lsof ownership checks passed on real hardware: `01-identity-only-owners-cu.txt` = exit 0, `p31421`, `f5`; `...-owners-tty.txt` = exit 1, nothing.
 - `verifybin` of the integrated normal image (`ad729684…1e02f`, 107,872 bytes) at `0x60000000`: `Verify failed @ address 0x60001024. Expected 60 read 40` and Commander exited non-zero (so the wrapper reported "Probe exited unsuccessfully"). The flash does **not** hold the integrated normal image; what it holds is unknown. The driver stopped as designed (plan B2b). No flash write, reset or power action took place. The core may have been left halted by the connect.
 - Resolved unknown: a verify mismatch makes Commander exit non-zero. Still unknown: `IsHalted` text (never reached), active-adapter `ifconfig`/`route`.
 - Record: `stage1-run-2/identify/` (including `failure.json`, `01-identity-only.log`, `02-candidate-integrated-normal.log`) and `stage1-run-2/identify.console`; kept as evidence, not reused (mode markers consumed).

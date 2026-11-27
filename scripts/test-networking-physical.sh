@@ -17,6 +17,10 @@ fi
 repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+board="$(crux_board_target 'mimxrt1060_evk@B//qspi')"
+crux_board_require "$board" 'mimxrt1060_evk@B//qspi'
 : "${CRUX_CACHE_DIR:?Set CRUX_CACHE_DIR}"
 pico="${CRUX_PICOLIBC_MODULE:-$CRUX_CACHE_DIR/networking/picolibc}"
 [[ -f "$pico/zephyr/module.yml" ]]
@@ -48,14 +52,14 @@ cat "$evidence/native-scenario.log"
 grep -q 'PROJECT EXECUTION SUCCESSFUL' "$evidence/native-scenario.log"
 modules="$repo;$workspace/modules/hal/cmsis;$workspace/modules/hal/cmsis_6;$workspace/modules/hal/nxp"
 # --cmake forces regeneration of the source identity banner even without source edits.
-(cd "$workspace" && west build --cmake -b 'mimxrt1060_evk@B//qspi' \
+(cd "$workspace" && west build --cmake -b "$board" \
     -d "$target_build" "$repo/tests/networking_physical" -- \
     -DZEPHYR_MODULES="$modules" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay")
+    -DDTC_OVERLAY_FILE="$repo/samples/boards/nxp/mimxrt1060_evk/common/network.overlay")
 if "$freeze"; then
     cmake --build "$target_build" --target rom_report ram_report
     python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" \
-        --build-dir "$target_build" --target 'mimxrt1060_evk@B//qspi' \
+        --build-dir "$target_build" --target "$board" \
         --inputs "$frozen/inputs.json"
     python3 "$repo/tests/target/prepare_m5_network.py" prepare --repo "$repo" \
         --build "$target_build" --inputs "$frozen/inputs.json" \

@@ -1,6 +1,6 @@
 # One `native_sim` image with HTTPS, the command line over SSH and SFTP
 
-Status: merged in [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313), the first part of [Issue #197](https://github.com/wonny-labs/crux-pilot/issues/197). It is
+Status: merged in [PR #313](https://github.com/wonny-labs/crux/pull/313), the first part of [Issue #197](https://github.com/wonny-labs/crux/issues/197). It is
 the integration that [the wolfSSH provider](ssh-wolf-provider.md#decisions-for-review) (decision 25) and
 [the command line over SSH](cli-over-ssh.md) left open: the provider beside the TLS socket backend and wolfPSA in one image, selected by a
 Kconfig symbol, on the real Access core and the real PSA providers. It authorises no hardware operation, and **nothing here ran on a
@@ -104,7 +104,7 @@ code, which puts them into `crux_ssh_config_t`: this image's is `crux_native_man
 
 | Symbol | Default | What it does |
 | --- | --- | --- |
-| `CONFIG_CRUX_SSH` | off | Depends on `CRUX_PILOT_MODULE`, `NETWORKING`, `NET_IPV4`, `NET_SOCKETS`, `MULTITHREADING` and `WOLFSSH`. The module then refuses the Mbed profile and a missing `crux_wolfssh_settings.h` at configuration. |
+| `CONFIG_CRUX_SSH` | off | Depends on `CRUX_MODULE`, `NETWORKING`, `NET_IPV4`, `NET_SOCKETS`, `MULTITHREADING` and `WOLFSSH`. The module then refuses the Mbed profile and a missing `crux_wolfssh_settings.h` at configuration. |
 | `CONFIG_CRUX_SSH_CLI` | on, with SSH | Links the real CLI entry points. The composition then links the CLI core. Off: every shell and `exec` is refused with 255. |
 | `CONFIG_CRUX_SSH_SFTP` | on, with SSH | Links the real SFTP entry points and the wolfSSH file port. The composition then links the file service. Off: SFTP is refused. |
 | `CONFIG_CRUX_SSH_PORT` | 22 | The composition puts it in `crux_ssh_config_t`. This image sets 2222. |

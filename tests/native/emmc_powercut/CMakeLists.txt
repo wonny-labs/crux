@@ -11,9 +11,18 @@ if(CONFIG_FAT_FILESYSTEM_ELM)
 elseif(CONFIG_CRUX_FS_RELIANCE_EDGE)
   target_sources(app PRIVATE fs_reliance.c)
   target_include_directories(app PRIVATE ${CRUX_ROOT}/zephyr/fs/reliance_edge)
+elseif(CONFIG_FILE_SYSTEM_LITTLEFS)
+  target_sources(app PRIVATE fs_littlefs.c)
 else()
   message(FATAL_ERROR "emmc_powercut needs a file system: build with "
-    "-DEXTRA_CONF_FILE=fatfs.conf or -DEXTRA_CONF_FILE=reliance.conf")
+    "-DEXTRA_CONF_FILE=fatfs.conf, -DEXTRA_CONF_FILE=reliance.conf or "
+    "-DEXTRA_CONF_FILE=littlefs.conf")
+endif()
+# W5, W8 and W8C use the Crux File provider, selected by file.conf, fatfs-file.conf or
+# littlefs-file.conf.
+if(CONFIG_CRUX_FILE_RELIANCE_EDGE OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
+   CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV)
+  target_link_libraries(app PRIVATE crux::file_zephyr)
 endif()
 crux_emmc_sim_add(app)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

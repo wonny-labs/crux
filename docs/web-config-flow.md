@@ -1,6 +1,6 @@
 # Web examples: the core configuration flow
 
-Status: merged in [PR #288](https://github.com/wonny-labs/crux-pilot/pull/288) and [PR #289](https://github.com/wonny-labs/crux-pilot/pull/289) for Issue #243. It shows the core configuration flow end to end on the **mock server only**,
+Status: merged in [PR #288](https://github.com/wonny-labs/crux/pull/288) and [PR #289](https://github.com/wonny-labs/crux/pull/289) for Issue #243. It shows the core configuration flow end to end on the **mock server only**,
 in both web examples. Nothing here ran on a device, over TLS or on `native_sim`, and nothing was run on a
 board. Mock results are mock evidence and stand in for none of those. [#220](e2e-native-220.md) ran the shared browser cases against real HTTPS on `native_sim`: 38 of the 65 shared cases ran and passed on each example, and a successful save is not shown there, because the image has no Configuration save provider.
 

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class OutputTests(unittest.TestCase):
     def config(self):
-        lines = (ROOT / 'samples/controller/zephyr/m3-deferred-output.conf').read_text().splitlines()
+        lines = (ROOT / 'tests/board_images/integration_probe/deferred_output.conf').read_text().splitlines()
         return '\n'.join(lines + ['CONFIG_CRUX_M3_NETWORK_PROBE=y',
             'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y', 'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y',
             'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y'])
@@ -59,7 +59,7 @@ class OutputTests(unittest.TestCase):
                     phy_diagnostic_mode(path, diagnostic)
 
     def test_native_network_profile_and_diagnostic_exclusion(self):
-        text=(ROOT/'samples/controller/zephyr/m3-native-output.conf').read_text()
+        text=(ROOT/'tests/board_images/integration_probe/native_output.conf').read_text()
         text+='\nCONFIG_CRUX_M3_NETWORK_PROBE=y\nCONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y\n'
         self.check(text)
         for extra in ('CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y','CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y',

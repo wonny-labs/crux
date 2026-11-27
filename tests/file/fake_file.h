@@ -43,6 +43,14 @@ void crux_file_fake_reset(void);
 
 /* The same checks as the real providers, against path text only. */
 crux_file_result_t crux_file_fake_bind_root(crux_file_root_t root, const char *path);
+/* The same with a byte limit, as the real limited bindings, counted in the given unit. */
+crux_file_result_t crux_file_fake_bind_root_limited(crux_file_root_t root, const char *path,
+                                                    uint64_t max_bytes, uint64_t unit);
+/* Unbind every root and keep the storage, as a program that starts again finds it. No File handle
+ * may be open. */
+void crux_file_fake_unbind_all(void);
+/* A file that File did not write, already on the medium, of this many bytes of zeros. */
+void crux_file_fake_add_file(crux_file_root_t root, const char *name, size_t size);
 
 /* Entries that File did not create. A raw name is stored as given, and it need not pass the rule.
  */

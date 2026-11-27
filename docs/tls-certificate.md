@@ -1,6 +1,6 @@
 # TLS certificate model
 
-Status: merged in [PR #284](https://github.com/wonny-labs/crux-pilot/pull/284) for [Issue #190](https://github.com/wonny-labs/crux-pilot/issues/190), and gate #183 has passed. **Nothing here ran on a board.** The evidence of #190 is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
+Status: merged in [PR #284](https://github.com/wonny-labs/crux/pull/284) for [Issue #190](https://github.com/wonny-labs/crux/issues/190), and gate #183 has passed. **Nothing here ran on a board.** The evidence of #190 is Host suites on fakes and on the real credential store, and a Linux Host composition of the PSA
 ports on TF-PSA-Crypto whose output OpenSSL checks. The module ran later on `native_sim` on both profiles, including wolfPSA, in [the services image](native-composition-242.md) of #242: see the rows below. The listener there still serves the declared test certificate. The design follows the
 [certificate model](plans/secure-management-web-design.md#certificate-model) of the web design.
 
@@ -41,7 +41,7 @@ provider only. Private ports in `components/tls_certificate/src/tls_certificate_
 | Registration with Zephyr's TLS credentials, on either profile | **Not built in the `native_sim` images**, which keep the declared test certificate of #263. The adapter is the interface a composition uses. The RT1060 bench image builds it (`crux_mgmt_rt1060_tls_credentials`, compile-only): it still refuses to start in `main()` and has not run on a board ([feasibility report](rt1060-management-image-feasibility.md)). | None |
 | wolfPSA signing, wolfSSL parsing the key and the certificate | **Not run by #190.** Run in [the services image](native-composition-242.md) on wolfPSA: the certificate is generated at first boot, loaded at the second with the same fingerprint, and OpenSSL verified it. A run, not a qualification. | `native_sim` |
 | Browsers accepting the self-signed profile | **Not run** | None |
-| RT1060-EVKB | **Compiled and linked** in the Mbed management image (`samples/management_rt1060_mbed`), which `psa-crypto.yml` cross-builds on each pull request and push to `main`, and in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build), which refuses to start. Neither has run on a board | None for a run |
+| RT1060-EVKB | **Compiled and linked** in the Mbed management image (`samples/boards/nxp/mimxrt1060_evk/web_management`), which `psa-crypto.yml` cross-builds on each pull request and push to `main` that changes more than documentation, and in the bench image (`tests/zephyr/management_rt1060_compile`, one local cross-build), which refuses to start. Neither has run on a board | None for a run |
 
 ## Structure
 
@@ -101,6 +101,8 @@ the material to `tls_credential_add` for either profile.
 | 5 | `crux_tls_certificate_fingerprint` | The composition prints it on the serial console, for the first connection |
 | 6 | `crux_tls_certificate_material_take`, then `tls_credential_add` for the certificate and the key | Before the TLS listener starts. Nothing is served if this fails. |
 
+`require_existing_identity` in the options, false by default, is for a product that makes the key and the certificate while the device is prepared and never at a normal boot. Set, start refuses with `CRUX_TLS_CERTIFICATE_ERR_NO_IDENTITY` when either record is missing, before anything is written, and the product enters its own recovery. An [account-only reset](management-in-a-product.md#account-only-reset) keeps both records, so the next start loads them and the fingerprint stays the same.
+
 ```mermaid
 sequenceDiagram
     participant C as Composition
@@ -109,6 +111,10 @@ sequenceDiagram
     participant P as PSA port
     participant Z as Zephyr TLS credentials
     C->>T: start(options)
+    opt require_existing_identity
+        T->>S: is TLS_KEY stored, is TLS_CERTIFICATE stored
+        T-->>C: NO_IDENTITY if either is missing, nothing written
+    end
     T->>S: key_ensure(TLS_KEY, ECDSA P-256)
     T->>S: read(TLS_KEY), build PKCS #8, clear the copy
     T->>S: read(TLS_CERTIFICATE)
@@ -267,7 +273,7 @@ certificate a user has accepted is **not tested**, because no browser ran. A com
 
 | Where | Form | Who can reach it |
 | --- | --- | --- |
-| Credential store, `TLS_KEY` record | 32-byte scalar, sealed with the image | The store's adapter, linked privately. On the pilot basis someone with the medium and the chip ID can read it, as the [store declares](credential-store.md#limits). |
+| Credential store, `TLS_KEY` record | 32-byte scalar, sealed with the image | The store's adapter, linked privately. On the planned basis someone with the medium and the chip ID can read it, as the [store declares](credential-store.md#limits). |
 | This module's RAM | One PKCS #8 copy of 138 bytes, for the life of the program | The TLS stack, through the material, which the product's registration code takes with `crux_tls_certificate_material_take()` (ADR-0004 C4, A1), and the signature port. The copy read from the store is cleared at once. |
 | Zephyr TLS credentials | A pointer to that copy | The socket backend, which parses it per connection |
 | Signature port | The scalar, for one signature | PSA imports it into a volatile key slot, signs and destroys the slot |
@@ -359,7 +365,7 @@ CI runs. `scripts/test-tls-certificate.sh psa` runs the PSA composition and the 
 | `TlsCertificate.boundary_leak`, `boundary_clean` | A separate project configured twice: a consumer reaching the adapter is refused by the credential boundary rule, and one of the public target is accepted |
 | `tls_certificate_service` | First boot, a later boot, start's arguments and failures, a stored record refused for each reason and recovered, read failures, permissions, the request, regeneration and an address change, the material and its two buffers, contention, no output holding the private key, and the key record and the PKCS #8 copy cleared when start fails |
 | `tls_certificate_install` | The acceptance criteria: each kind of refusal logged with nothing changed, every truncation and flip of another key's certificate, accepted certificates, a failed save, and the checks statement |
-| `tls_certificate_store` | The module on the real credential store: first boot, a power cycle, refused uploads leaving the stored record, an installed certificate across a power cycle, an unusable store, and a store-generated key |
+| `tls_certificate_store` | The module on the real credential store: first boot, a power cycle, refused uploads leaving the stored record, an installed certificate across a power cycle, an unusable store, a store-generated key, the same certificate after an account-only erase, self-signed or installed, and `require_existing_identity` refusing with nothing written |
 | `tls_certificate_events` | Each port event to its record, on the recording fake of the event contract |
 | `tls_certificate_cpp_headers` | Both headers from C++ |
 | `tests/tls_certificate/psa` | The PSA ports on TF-PSA-Crypto: SHA-256 known answer, random draws, a refused zero scalar; a real P-256 key's certificate, request and PKCS #8 key, parsed and verified with TF-PSA-Crypto's key parser. OpenSSL then parses all three, verifies the certificate for the server purpose and the request, matches the key to both, completes a TLS 1.3 handshake, and gives the same fingerprint text. |
@@ -448,6 +454,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | Limit | Shown by |
 | --- | --- |
 | No certificate chain: intermediates are neither kept nor served | By design. The record holds one certificate. |
+| A release names material by its buffer and generation, not by the take. A stale release after the buffer was reused is refused, but a second release of material from the current generation decrements another holder's count of the same material. Closing that needs a per-take token, a public API change. | `test_stale_release_after_slot_reuse` shows the refused stale release. The double release within a generation is **not shown**. |
 | The private key is in RAM as PKCS #8 for the program's life | By design, for Zephyr's TLS credentials. The store's confidentiality basis applies to the stored copy. |
 | Mbed profile: the signature port and TLS share one PSA core with no lock, as the [PSA design](psa-crypto-design.md#what-a-provider-must-take-care-of) states | **Not shown by #190.** The module ran in [the services image](native-composition-242.md), but no case was written for this race. |
 | `psa_sign_hash` is outside the qualified subset | Run here on TF-PSA-Crypto on Host only. #142 ran it in tests on both providers. |

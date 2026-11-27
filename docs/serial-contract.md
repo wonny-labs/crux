@@ -2,10 +2,10 @@
 
 **Freeze notice (13 November 2026).** Serial is frozen for new product code: no new features and no real-time extension. New product code uses Zephyr directly for threads, locks, queues and UARTs; see [Choosing an API](choosing-an-api.md). This adds no promise and removes none. The contract below and its tests and evidence stay as they are, and existing users keep working. Whether the interface is deprecated waits for a later decision under P9 of [ADR-0002](decisions/0002-platform-direction-zephyr-execution-crux-services.md). The product template's [domain include check](../templates/product/README.md#zones-and-the-domain-include-check) rejects the header in a product's domain.
 
-The [approved design](superpowers/specs/2026-10-24-serial-design.md), approved on
+The [approved design](design/serial-design.md), approved on
 24 October 2026, defines the four functions in `<crux/serial.h>` and remains the
-normative detailed contract. The [implementation plan](superpowers/plans/2026-10-24-serial.md)
-and [validation record](serial-validation.md) identify its implementation/evidence.
+normative detailed contract. The [validation record](serial-validation.md) identifies its
+implementation/evidence.
 
 `crux::serial` exposes only Crux Base, C17-compatible values and caller buffers.
 Component-owned common code validates configuration, generations and admission;
@@ -30,16 +30,18 @@ Logical port 0 must be explicitly bound by native composition. Linux binds once
 before concurrent use and checks native TTY identity/exclusivity; Zephyr binds
 `crux-serial0` and rejects missing/unsupported static resources and known Console,
 Shell, UART Logging, management and Bluetooth owners at build time. Only native_sim
-UART emulators, the RT1060-EVKB LPUART3 candidate (the EVKB admits no other UART) and,
-on any other board with the RT1062 SoC, enabled LPUART (`nxp,lpuart`) nodes are admitted;
-such a board is accepted by the SoC and the devicetree only and is not qualified. UART sharing is
-unsupported and is not required for M5. `CRUX_SERIAL_PROVIDER` defaults to `host`
+UART emulators and, on any board, enabled nodes of a reviewed UART driver selected by
+compatible (`nxp,lpuart`) are admitted; no board, SoC or revision is checked, and a board
+accepted this way is not qualified. UART sharing is
+unsupported and is not required by the platform validation plan. `CRUX_SERIAL_PROVIDER` defaults to `host`
 or `zephyr` in the respective native composition; other or empty selections fail
 configuration. Host dynamic TTY binding remains a runtime bootstrap responsibility.
 Direct unregistered native clients violate this composition rule.
-The EVKB candidate uses LPUART3, retaining LPUART1 diagnostics, and rejects an
-enabled CSI conflict (on the EVK, CSI shares pins with LPUART3 and LPUART8; LPUART8 is
-not admitted). Pin conflicts on another board are the product's to review. Electrical pin/connector suitability remains unverified.
+The EVKB candidate uses LPUART3, retaining LPUART1 diagnostics. Pin conflicts are a
+fact of the board, and Crux Serial checks none: the EVKB composition
+(`tests/serial_consumer/zephyr/CMakeLists.txt`) refuses an enabled CSI node with Serial on
+LPUART3 or LPUART8, which share pins with CSI on the EVK, and another board's pin conflicts
+are the product's to review. Electrical pin/connector suitability remains unverified.
 
 Initial resources: one port, Zephyr 256-byte RX and TX rings, Host at most
 256-byte staging/commit chunks plus independent kernel TTY queues. Requests map

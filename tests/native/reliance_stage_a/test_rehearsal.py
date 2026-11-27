@@ -11,7 +11,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "samples", "storage_sd_interrupt", "host"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tests", "board_images", "sd_card_power_cut_append", "host"))
 import run_rehearsal  # noqa: E402
 from interrupt_capture import checksum  # noqa: E402
 

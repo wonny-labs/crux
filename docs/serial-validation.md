@@ -3,11 +3,11 @@
 Status: software implementation and independent source reviews PASS. Hosted CI
 for implementation revision `ae10819f6f48893ca7e4fe7b98b2d66258875653` completed
 with all four runs successful:
-[Host PR](https://github.com/wonny-labs/crux-pilot/actions/runs/40107827224),
-[Host Push](https://github.com/wonny-labs/crux-pilot/actions/runs/40107783812),
-[Zephyr PR](https://github.com/wonny-labs/crux-pilot/actions/runs/40107827245), and
-[Zephyr Push](https://github.com/wonny-labs/crux-pilot/actions/runs/40107783798).
-Subsequent revision status is tracked by the checks on [PR #58](https://github.com/wonny-labs/crux-pilot/pull/58).
+[Host PR](https://github.com/wonny-labs/crux/actions/runs/40107827224),
+[Host Push](https://github.com/wonny-labs/crux/actions/runs/40107783812),
+[Zephyr PR](https://github.com/wonny-labs/crux/actions/runs/40107827245), and
+[Zephyr Push](https://github.com/wonny-labs/crux/actions/runs/40107783798).
+Subsequent revision status is tracked by the checks on [PR #58](https://github.com/wonny-labs/crux/pull/58).
 No physical UART test has been performed; Issue #27 remains open for its remaining
 acceptance conditions.
 

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# The symbols of the driver class live under the class's own Zephyr symbol, so that a build without
+# the sensor subsystem does not offer them.
+if SENSOR
+
+rsource "example_temp/Kconfig"
+
+endif # SENSOR

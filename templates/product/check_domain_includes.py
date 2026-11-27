@@ -5,8 +5,9 @@
 The domain is the plain C directory ``domain/`` beside ``app/``. It owns no thread and takes
 no lock, so it must not include:
 
-* ``<crux/thread.h>``, ``<crux/sync.h>``, ``<crux/queue.h>`` or ``<crux/serial.h>``, the four
-  interfaces that are frozen for new product code, or
+* ``<crux/thread.h>``, ``<crux/sync.h>`` or ``<crux/serial.h>``, the three interfaces that are
+  frozen for new product code, or ``<crux/queue.h>``, which was removed (a product on an older
+  Crux pin may still have it), or
 * any ``<zephyr/...>`` header (or ``<zephyr.h>``), or
 * a Crux composition interface, ``<crux/NAME_zephyr.h>`` or ``<crux/NAME_linux.h>``, which names
   a provider.
@@ -32,7 +33,7 @@ checked too::
     check_domain_includes.py --product ROOT [--domain DIR]... [--exclude PATH]...
 
 In product mode every source file under ROOT (suffix .c .h .cc .cpp .cxx .hh .hpp .hxx .inc or .S)
-must not include one of the four frozen headers. A directory named by ``--domain`` (default:
+must not include one of those four Crux headers. A directory named by ``--domain`` (default:
 ``domain`` when it exists) keeps every rule above. Elsewhere, the adapters, ``<zephyr/...>`` headers,
 composition interfaces and other public Crux headers stay allowed, and an operand that is not a
 literal is not a violation, because adapters use Zephyr macros. ``--exclude`` skips a legacy path
@@ -226,7 +227,7 @@ UNREADABLE_LITERAL_REASON = "include operand is empty or opens a header name tha
 
 
 def check_adapter_file(source, relative):
-    """Return the violations of a file outside the domain: the four frozen headers only."""
+    """Return the violations of a file outside the domain: the four rejected Crux headers only."""
     violations = []
     for line, unreadable, include, _angle in read_includes(source):
         if include is None:

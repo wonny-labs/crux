@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* A RAM disk named like the SD card disk: 1 MiB of 512-byte sectors, so that the case that fills
+ * the volume stays short. */
+/ {
+    ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "SD";
+        sector-size = <512>;
+        sector-count = <2048>;
+    };
+};

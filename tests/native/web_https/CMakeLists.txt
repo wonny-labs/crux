@@ -39,7 +39,8 @@ target_sources(app PRIVATE src/main.c src/tls_probe.c ${web_http}/src/probe_rout
   ${web_http}/src/upload_probe.c ${web_http}/src/socket_shim.c)
 target_include_directories(app PRIVATE ${web_http}/src)
 target_sources(native_simulator INTERFACE ${web_http}/src/host_socket.c)
-target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown -Wl,--wrap=z_impl_zsock_sendto)
+target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown -Wl,--wrap=z_impl_zsock_sendto
+  -Wl,--wrap=z_impl_zsock_sendmsg)
 target_link_libraries(app PRIVATE crux_web_adapter web_project_routes)
 crux_web_routes(app SOURCES ${web_http}/src/probe_routes.c ${web_http}/src/project_routes.c
   src/tls_probe.c ZEPHYR_RESOURCES REVIEWED reviewed-routes.txt)

@@ -15,7 +15,7 @@ test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interf
 FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='tests/configuration_consumer/consumer.c')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
+  File "<workspace>/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
     self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
 
@@ -24,7 +24,7 @@ AssertionError: 0 != 1 : Native interface policy passed (0 portable source files
 FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='tests/configuration_consumer/consumer.cpp')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
+  File "<workspace>/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
     self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
 

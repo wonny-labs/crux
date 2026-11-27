@@ -170,7 +170,7 @@ class IntegratedNativeOutputControls(unittest.TestCase):
 
     def test_mode_specific_configuration(self):
         root=Path(__file__).resolve().parents[2]
-        base=(root/'samples/controller/zephyr/m3-native-output.conf').read_text()
+        base=(root/'tests/board_images/integration_probe/native_output.conf').read_text()
         base+='CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y\n'
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'.config'

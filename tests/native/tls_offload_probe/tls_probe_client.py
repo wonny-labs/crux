@@ -340,6 +340,9 @@ def main():
                                              encoding="utf-8")
     failed = [name for name, entry in results.items() if entry["result"] != "pass"]
     print(f"{args.profile}: {len(results) - len(failed)} of {len(results)} steps passed. Failed: {failed}")
+    if failed:
+        # The image's own view of the failure, in the log of a run that keeps no artefact open.
+        print("last PROBE lines:", *probe.probe_lines()[-60:], sep="\n", file=sys.stderr)
     return 1 if failed else 0
 
 

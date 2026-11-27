@@ -14,8 +14,7 @@ import tempfile
 import unittest
 
 try:
-    # west depends on it. The Host CI job runs python3 from a venv that holds only cmake, ninja and
-    # clang-format, so it has neither, and no CI job installs west for this file.
+    # west depends on it. The Host CI job installs both into the venv that it runs python3 from.
     import yaml
 except ImportError:
     yaml = None
@@ -27,6 +26,8 @@ ORG_MANIFEST = ORG / "west.yml"
 PRODUCT_MANIFEST = ORG / "product-y/west.yml"
 MODULE = REPO / "templates/hardware-module"
 MODULE_CI_MANIFEST = MODULE / "ci/west.yml"
+MODULE_DIRECT_MANIFEST = MODULE / "ci/west-direct.yml"
+PRODUCT_TEMPLATE = REPO / "templates/product/west.yml"
 COMMAND = REPO / "scripts/west_commands/crux_pins.py"
 COMMAND_LIST = REPO / "scripts/west-commands.yml"
 WEST = shutil.which("west")
@@ -37,8 +38,10 @@ BOARD_DIR = MODULE / "boards/acmeco/ctrl_a"
 PREFIX = "acmeco"
 PUBLIC_BASE = "https://github.com/wonny-labs/"
 INTERNAL_BASE = "https://git.example/scm/acme/"
+# The placeholder host of Crux in ci/west-direct.yml, on the same fictional host.
+CRUX_PLACEHOLDER_BASE = "https://git.example/scm/crux/"
 UPSTREAM_BASE = "https://github.com/zephyrproject-rtos/"
-ALLOWED_BASES = (PUBLIC_BASE, INTERNAL_BASE, UPSTREAM_BASE)
+ALLOWED_BASES = (PUBLIC_BASE, INTERNAL_BASE, CRUX_PLACEHOLDER_BASE, UPSTREAM_BASE)
 SHA = re.compile(r"[0-9a-f]{40}")
 
 
@@ -89,7 +92,7 @@ class OrganisationManifestStructureTest(unittest.TestCase):
                 self.assertIn(phrase, text)
 
     def test_urls_are_public_or_on_the_fictional_host(self):
-        for path in (ORG_MANIFEST, PRODUCT_MANIFEST, MODULE_CI_MANIFEST):
+        for path in (ORG_MANIFEST, PRODUCT_MANIFEST, MODULE_CI_MANIFEST, MODULE_DIRECT_MANIFEST):
             for url in re.findall(r"https?://[^\s\"')>]+", path.read_text()):
                 with self.subTest(path=path.name, url=url):
                     self.assertTrue(allowed_url(url), url)
@@ -100,7 +103,7 @@ class HardwareModuleStructureTest(unittest.TestCase):
     REQUIRED = (
         "README.md", "zephyr/module.yml", "CMakeLists.txt", "Kconfig",
         "dts/bindings/vendor-prefixes.txt", "drivers/CMakeLists.txt", "drivers/Kconfig",
-        "ci/west.yml", "ci/build.yml",
+        "ci/west.yml", "ci/west-direct.yml", "ci/build.yml",
         f"boards/acmeco/ctrl_a/board.yml", f"boards/acmeco/ctrl_a/board.cmake",
         f"boards/acmeco/ctrl_a/Kconfig.{BOARD}", f"boards/acmeco/ctrl_a/{BOARD}_defconfig",
         f"boards/acmeco/ctrl_a/{BOARD}.dts", f"boards/acmeco/ctrl_a/{BOARD}.yaml",
@@ -133,7 +136,7 @@ class HardwareModuleStructureTest(unittest.TestCase):
 
     def test_url_check_refuses_a_lookalike_owner(self):
         self.assertTrue(allowed_url("https://github.com/wonny-labs"))
-        self.assertTrue(allowed_url("https://github.com/wonny-labs/crux-pilot"))
+        self.assertTrue(allowed_url("https://github.com/wonny-labs/crux"))
         self.assertFalse(allowed_url("https://github.com/wonny-labs-other/crux-pilot"))
         self.assertFalse(allowed_url("https://git.example/scm/acme-other"))
 
@@ -180,6 +183,9 @@ class HardwareModuleStructureTest(unittest.TestCase):
         self.assertIn("writing-a-product-driver.md", text)
         self.assertIn("ZEPHYR_EXTRA_MODULES", text)
 
+    def test_readme_names_the_manifest_without_an_organisation_layer(self):
+        self.assertIn("ci/west-direct.yml", (MODULE / "README.md").read_text())
+
     def test_sources_carry_an_spdx_header(self):
         kinds = (".c", ".h", ".dts", ".dtsi", ".cmake", ".txt", ".yml", ".yaml", ".conf")
         for path in template_files(MODULE):
@@ -206,6 +212,10 @@ class GuideTest(unittest.TestCase):
                        "ZEPHYR_EXTRA_MODULES", "board: extend:", "ADR-0001"):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.text)
+
+    def test_guide_allows_direct_pins_and_links_the_matching_ci_manifest(self):
+        self.assertIn("pin the module directly", self.text)
+        self.assertIn("../templates/hardware-module/ci/west-direct.yml", self.text)
 
     def test_guide_links_the_zephyr_documents_it_relies_on(self):
         for path in ("doc/develop/modules.rst", "doc/develop/west/workspaces.rst",
@@ -257,7 +267,7 @@ class ManifestTest(unittest.TestCase):
 
     def test_organisation_manifest_imports_crux_and_pins_the_module(self):
         projects = self.by_name(self.org)
-        self.assertIs(True, projects["crux-pilot"]["import"])
+        self.assertIs(True, projects["crux"]["import"])
         module = projects["acme-hw"]
         self.assertRegex(str(module["revision"]), SHA)
         self.assertNotIn("import", module)
@@ -267,12 +277,12 @@ class ManifestTest(unittest.TestCase):
         pinned = {entry["name"] for entry in self.crux["projects"]}
         zephyr = next(entry for entry in self.crux["projects"] if entry["name"] == "zephyr")
         pinned.update(zephyr["import"]["name-allowlist"])
-        self.assertEqual(set(), (set(self.by_name(self.org)) - {"crux-pilot"}) & pinned)
+        self.assertEqual(set(), (set(self.by_name(self.org)) - {"crux"}) & pinned)
 
     def test_product_imports_the_organisation_manifest_and_not_crux(self):
         projects = self.by_name(self.product)
         self.assertIs(True, projects["acme-manifest"]["import"])
-        self.assertNotIn("crux-pilot", projects)
+        self.assertNotIn("crux", projects)
         self.assertNotIn("acme-hw", projects)
         self.assertEqual("product-y", self.product["self"]["path"])
 
@@ -280,6 +290,18 @@ class ManifestTest(unittest.TestCase):
         projects = self.by_name(self.module_ci)
         self.assertEqual({"name-blocklist": ["acme-hw"]}, projects["acme-manifest"]["import"])
         self.assertEqual("acme-hw", self.module_ci["self"]["path"])
+
+    def test_module_direct_manifest_imports_crux_by_sha_without_the_organisation_layer(self):
+        manifest = yaml.safe_load(MODULE_DIRECT_MANIFEST.read_text())["manifest"]
+        projects = self.by_name(manifest)
+        self.assertEqual(["crux"], list(projects))
+        self.assertIs(True, projects["crux"]["import"])
+        self.assertEqual("acme-hw", manifest["self"]["path"])
+        examples = yaml.safe_load(with_examples(MODULE_DIRECT_MANIFEST.read_text()))["manifest"]
+        self.assertGreater(len(examples["projects"]), len(manifest["projects"]))
+        for entry in examples["projects"]:
+            with self.subTest(name=entry["name"]):
+                self.assertRegex(str(entry["revision"]), SHA)
 
     def test_commented_examples_parse(self):
         for path in (ORG_MANIFEST, PRODUCT_MANIFEST):
@@ -321,6 +343,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
             "[protocol \"file\"]\n\tallow = always\n"
             f'[url "{(self.root / "public").as_uri()}/"]\n\tinsteadOf = {PUBLIC_BASE}\n'
             f'[url "{(self.root / "internal").as_uri()}/"]\n\tinsteadOf = {INTERNAL_BASE}\n'
+            f'[url "{(self.root / "public").as_uri()}/"]\n\tinsteadOf = {CRUX_PLACEHOLDER_BASE}\n'
             f'[url "{(self.root / "upstream").as_uri()}/"]\n\tinsteadOf = {UPSTREAM_BASE}\n')
         # GIT_ALLOW_PROTOCOL makes a rule that fails to apply an error, never a network call.
         self.env = {**os.environ, "GIT_CONFIG_GLOBAL": str(git_config),
@@ -363,7 +386,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
             "      path: modules/fake\n"
             "  self:\n"
             "    path: zephyr\n")}, "zephyr")
-        crux = self.init("public/crux-pilot")
+        crux = self.init("public/crux")
         shutil.copytree(REPO / "scripts/west_commands", crux / "scripts/west_commands")
         shutil.copy(COMMAND_LIST, crux / "scripts/west-commands.yml")
         self.crux = self.commit(crux, {"west.yml": (
@@ -375,7 +398,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
             "      import:\n"
             "        name-allowlist: [fake-module]\n"
             "  self:\n"
-            "    path: crux-pilot\n"
+            "    path: crux\n"
             "    west-commands: scripts/west-commands.yml\n")}, "crux manifest")
         hardware = self.init("internal/acme-hw")
         self.hw_v1 = self.commit(hardware, {"zephyr/module.yml": "name: acme-hw\n"}, "hw one", tag="v1.0.0")
@@ -384,7 +407,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
         self.org = self.publish_org(ORG_MANIFEST.read_text())
 
     def publish_org(self, text, extra_projects=""):
-        text = pin(pin(text, "crux-pilot", self.crux), "acme-hw", self.hw_v1)
+        text = pin(pin(text, "crux", self.crux), "acme-hw", self.hw_v1)
         if extra_projects:
             text = text.replace("\n  self:\n", "\n" + extra_projects + "\n  self:\n", 1)
         return self.commit(self.org_repo, {"west.yml": text}, "organisation manifest")
@@ -394,9 +417,12 @@ class OrganisationWorkspaceTest(unittest.TestCase):
         text = pin(text, "acme-manifest", org_revision or self.org)
         if extra_projects:
             text = text.replace("\n  self:\n", "\n" + extra_projects + "\n  self:\n", 1)
+        return self.product_workspace(text, "product-y")
+
+    def product_workspace(self, text, name):
         workspace = self.root / "workspace"
         shutil.rmtree(workspace, ignore_errors=True)
-        directory = workspace / "product-y"
+        directory = workspace / name
         directory.mkdir(parents=True)
         git(directory, "init", "-q", env=self.env)
         (directory / "west.yml").write_text(text)
@@ -420,7 +446,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
         workspace = self.product()
         self.west("manifest", "--validate", cwd=workspace, check=True)
         projects = self.projects(workspace)
-        for name in ("acme-manifest", "acme-hw", "crux-pilot", "zephyr", "fake-module"):
+        for name in ("acme-manifest", "acme-hw", "crux", "zephyr", "fake-module"):
             with self.subTest(name=name):
                 self.assertIn(name, projects)
         self.assertEqual(self.hw_v1, projects["acme-hw"][1])
@@ -428,7 +454,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
     def test_crux_pins_reports_the_organisation_layer_as_product(self):
         result = self.west("crux-pins", cwd=self.product())
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn(f"CONTRACT crux-pilot {self.crux[:12]}\n", result.stdout)
+        self.assertIn(f"CONTRACT crux {self.crux[:12]}\n", result.stdout)
         self.assertIn(f"OK zephyr {self.zephyr[:12]}", result.stdout)
         self.assertIn(f"OK fake-module {self.module_v1[:12]}", result.stdout)
         self.assertIn(f"PRODUCT acme-manifest {self.org[:12]}", result.stdout)
@@ -476,7 +502,7 @@ class OrganisationWorkspaceTest(unittest.TestCase):
         projects = self.projects(self.product(text=text))
         self.assertNotIn("acme-hw", projects)
         self.assertNotIn("fake-module", projects)
-        self.assertIn("crux-pilot", projects)
+        self.assertIn("crux", projects)
 
     def test_the_module_ci_manifest_blocks_the_organisation_copy_of_the_module(self):
         workspace = self.root / "module-ci"
@@ -490,11 +516,47 @@ class OrganisationWorkspaceTest(unittest.TestCase):
         projects = self.projects(workspace)
         self.assertEqual("acme-hw", projects["manifest"][0])
         self.assertNotIn("acme-hw", projects)
-        self.assertIn("crux-pilot", projects)
+        self.assertIn("crux", projects)
         result = self.west("crux-pins", cwd=workspace)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(f"OK fake-module {self.module_v1[:12]}", result.stdout)
         self.assertNotIn("acme-hw", result.stdout)
+
+    def test_the_module_direct_manifest_makes_the_module_the_manifest_repository(self):
+        workspace = self.root / "module-direct"
+        directory = workspace / "acme-hw"
+        directory.mkdir(parents=True)
+        git(directory, "init", "-q", env=self.env)
+        text = pin(MODULE_DIRECT_MANIFEST.read_text(), "crux", self.crux)
+        self.commit(directory, {"ci/west-direct.yml": text, "zephyr/module.yml": "name: acme-hw\n"}, "module")
+        self.west("init", "-l", "--mf", "ci/west-direct.yml", str(directory), cwd=workspace, check=True)
+        self.west("update", cwd=workspace, check=True)
+        projects = self.projects(workspace)
+        self.assertEqual("acme-hw", projects["manifest"][0])
+        self.assertEqual({"manifest", "crux", "zephyr", "fake-module"}, set(projects))
+        result = self.west("crux-pins", cwd=workspace)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"CONTRACT crux {self.crux[:12]}\n", result.stdout)
+        self.assertIn(f"OK zephyr {self.zephyr[:12]}", result.stdout)
+        self.assertIn(f"OK fake-module {self.module_v1[:12]}", result.stdout)
+
+    def test_a_product_can_pin_the_module_directly(self):
+        direct = ("    - name: acme-hw\n"
+                  f"      url: {INTERNAL_BASE}acme-hw\n"
+                  f"      revision: {self.hw_v1}\n"
+                  "      path: modules/acme/acme-hw")
+        # Comment lines sit above the revision here, which pin() does not step over.
+        template = PRODUCT_TEMPLATE.read_text()
+        self.assertEqual(1, template.count("\n      revision: main\n"))
+        text = template.replace("\n      revision: main\n", f"\n      revision: {self.crux}\n")
+        text = text.replace("\n  self:\n", "\n" + direct + "\n  self:\n", 1)
+        workspace = self.product_workspace(text, "product-x")
+        projects = self.projects(workspace)
+        self.assertNotIn("acme-manifest", projects)
+        self.assertEqual(self.hw_v1, projects["acme-hw"][1])
+        result = self.west("crux-pins", cwd=workspace)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"PRODUCT acme-hw {self.hw_v1[:12]}", result.stdout)
 
 
 if __name__ == "__main__":

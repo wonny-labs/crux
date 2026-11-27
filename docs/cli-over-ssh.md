@@ -1,6 +1,6 @@
 # The command line over SSH
 
-Status: merged in [PR #267](https://github.com/wonny-labs/crux-pilot/pull/267) for Issue #193, approved in advance under gate #183. It runs with the wolfSSH provider and the real Access core in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313). It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
+Status: merged in [PR #267](https://github.com/wonny-labs/crux/pull/267) for Issue #193, approved in advance under gate #183. It runs with the wolfSSH provider and the real Access core in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux/pull/313). It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
 
 ## What is built, faked and untested
 
@@ -56,7 +56,7 @@ Everything between `shell` or `exec` and its return runs on the worker of one co
 
 ## What follows `terminal`
 
-`terminal` is true when the client asked for a pseudo-terminal (`pty-req`, RFC 4254 §6.2) before the shell. The `exec` callback does not carry it ([Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269)).
+`terminal` is true when the client asked for a pseudo-terminal (`pty-req`, RFC 4254 §6.2) before the shell. The `exec` callback does not carry it ([Issue #269](https://github.com/wonny-labs/crux/issues/269)).
 
 | Client | `pty-req` | Form | Echo | LF on the wire | Example |
 | --- | --- | --- | --- | --- | --- |
@@ -189,8 +189,8 @@ No owner answer was available for these, so each is the narrow choice.
 
 - Anything on a board, timing, or the worker's stack on a Cortex-M7.
 - WinSCP, or any SSH client other than OpenSSH 9.6.
-- A key login through the CLI at the time of #267: its cases use passwords. The integrated image of #313 later ran an Ed25519 key login of `admin` through the CLI (`case_ssh_cli`, [results](ssh-integrated-image.md#results)). No SSH route registers a user key: [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318).
+- A key login through the CLI at the time of #267: its cases use passwords. The integrated image of #313 later ran an Ed25519 key login of `admin` through the CLI (`case_ssh_cli`, [results](ssh-integrated-image.md#results)). No SSH route registers a user key: [Issue #318](https://github.com/wonny-labs/crux/issues/318).
 - A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and #267 did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
-- The `ssh.*` security events: the CLI's own events run on the real provider in the [services image](native-composition-242.md) and the integrated image. `ssh.auth_limit` and `ssh.host_key_missing` are emitted by the access adapter ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317), [contract](security-event-contract.md#from-the-ssh-adapter-port)) and tested on the Host and on the fake provider. The wolfSSH provider's report of the limit and the records in a running image have not run. A refusal before a callback stays reserved, with no event.
+- The `ssh.*` security events: the CLI's own events run on the real provider in the [services image](native-composition-242.md) and the integrated image. `ssh.auth_limit` and `ssh.host_key_missing` are emitted by the access adapter ([Issue #317](https://github.com/wonny-labs/crux/issues/317), [contract](security-event-contract.md#from-the-ssh-adapter-port)) and tested on the Host and on the fake provider. The wolfSSH provider's report of the limit and the records in a running image have not run. A refusal before a callback stays reserved, with no event.
 - The OpenSSH and target results on any revision after `ea24a94`, where they last ran. CI does not run that script.

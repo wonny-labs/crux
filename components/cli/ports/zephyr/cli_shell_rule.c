@@ -8,7 +8,8 @@
 #endif
 
 #if defined(CONFIG_SHELL_BACKEND_TELNET) || defined(CONFIG_SHELL_BACKEND_WEBSOCKET) ||             \
-    defined(CONFIG_SHELL_BACKEND_MQTT) || defined(CONFIG_MCUMGR_GRP_SHELL)
+    defined(CONFIG_SHELL_BACKEND_MQTT) || defined(CONFIG_SHELL_BACKEND_SSH) ||                     \
+    defined(CONFIG_MCUMGR_GRP_SHELL)
 #error "The Zephyr shell never reaches the network"
 #endif
 

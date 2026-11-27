@@ -1,7 +1,7 @@
 # Secure boot bench session kit (RT1060-EVK Rev B)
 
 > **Not yet run.** Nothing on this page has been executed on a board. Every duration is an **Estimate**, and every board result named below is a prediction from the sources next to it.
-> **Status:** Proposal for one consolidated bench session of milestone M8 ([issue #296](https://github.com/wonny-labs/crux-pilot/issues/296)). It builds on the merged [secure boot board test procedure](secure-boot-board-test-procedure.md) (T0 to T7) and does not repeat it: where this page says "as procedure section N", that section is the instruction. It decides nothing, grants no approval and adopts no interface.
+> **Status:** Proposal for one consolidated bench session of the boot platform work ([issue #296](https://github.com/wonny-labs/crux/issues/296)). It builds on the merged [secure boot board test procedure](secure-boot-board-test-procedure.md) (T0 to T7) and does not repeat it: where this page says "as procedure section N", that section is the instruction. It decides nothing, grants no approval and adopts no interface.
 > **Verified:** Only that the kit's tools exist and passed their host tests against a fake J-Link and synthetic files in the author's local run (79 tests, macOS, Python 3.9; the CI result is on the pull request; see [section 4](#4-the-kit)). The runbook's own content is documentation.
 > **Not verified:** Every board result, every J-Link Commander behaviour, that the device-control tool passes the probe serial through its environment to a wrapper, and everything marked so below.
 > **Read this first / then:** the [boot overview](boot-overview.md), the [boot composition](boot-composition.md) page and the [procedure](secure-boot-board-test-procedure.md); then this page. The tools are described in the [kit README](../tests/target/boot-bench/README.md).
@@ -10,10 +10,10 @@ Labels: **Verified** (a repository file, a host test or a build says so; the sou
 
 ## 1. Purpose and scope
 
-The owner wants every board-dependent step of the secure boot work in one bench session that they approve once and run once. This page orders those steps, says what each needs and what it produces, and puts the steps that depend on [#165](https://github.com/wonny-labs/crux-pilot/issues/165) (the FlexSPI write path of MCUboot, open) after the steps that do not, so the session can be cut in two without redoing anything.
+The owner wants every board-dependent step of the secure boot work in one bench session that they approve once and run once. This page orders those steps, says what each needs and what it produces, and puts the steps that depend on [#165](https://github.com/wonny-labs/crux/issues/165) (the FlexSPI write path of MCUboot, open) after the steps that do not, so the session can be cut in two without redoing anything.
 
-**In:** preflight, T0, the ROM serial downloader fall-through check ([#309](https://github.com/wonny-labs/crux-pilot/issues/309)), T1 to T5 of the procedure, the boot-time measurement of the tinycrypt backend (follow-up of decision D9), the image-state board case IS-T4 (defined here, **pending**), and the optional T6 power-cut block.
-**Out:** fuses, HAB, lifecycle or closed configuration; the RT1170; eMMC; T7 (needs milestone M9); the PSA-backend measurement (a separate session, block M2); any commit of results under `docs/evidence/`; any key, tag or release.
+**In:** preflight, T0, the ROM serial downloader fall-through check ([#309](https://github.com/wonny-labs/crux/issues/309)), T1 to T5 of the procedure, the boot-time measurement of the tinycrypt backend (follow-up of decision D9), the image-state board case IS-T4 (defined here, **pending**), and the optional T6 power-cut block.
+**Out:** fuses, HAB, lifecycle or closed configuration; the RT1170; eMMC; T7 (needs the update work); the PSA-backend measurement (a separate session, block M2); any commit of results under `docs/evidence/`; any key, tag or release.
 
 **Naming.** The image-state proposal also has a case named T4 ("shared data present at application start", question Q4). To avoid a clash with the procedure's T4a and T4b (modified image), this page calls it **IS-T4**.
 
@@ -27,7 +27,7 @@ Blocks run in this order. **Part 1** needs none of #165. **Part 2** starts with 
 | 0 | B0b | Build host work for Part 2: development key, hardware build, test images, manifest. No board | No (but needs H8) | Before G | Not bench time |
 | 1 | P | Preflight: SW4, probe, double backup, slot 1 header check | No | Yes | 20 min |
 | 1 | T0 | Restore point boots, identity | No | Yes | 10 min after P |
-| 1 | N | [#309](https://github.com/wonny-labs/crux-pilot/issues/309): does a damaged first sector fall through to the serial downloader. Open configuration, no fuses | No (the ROM and the probe write; the bootloader does not) | Yes, for the observation. The flashloader recovery is **blocked** (origin and licence not decided) | 30 min without the flashloader recovery, 60 min or more with it |
+| 1 | N | [#309](https://github.com/wonny-labs/crux/issues/309): does a damaged first sector fall through to the serial downloader. Open configuration, no fuses | No (the ROM and the probe write; the bootloader does not) | Yes, for the observation. The flashloader recovery is **blocked** (origin and licence not decided) | 30 min without the flashloader recovery, 60 min or more with it |
 | 2 | G | Gate: the task record states the decision on #165 | | | 0 |
 | 2 | T1 | MCUboot and the signed, confirmed application, two boots | **Yes** (`copy_done` write) | After G | 15 min |
 | 2 | M1 | Boot-time measurement, tinycrypt backend (D9) | **Yes** (needs MCUboot running; Inference: the resets write nothing) | After T1 | 10 min |
@@ -35,7 +35,7 @@ Blocks run in this order. **Part 1** needs none of #165. **Part 2** starts with 
 | 2 | T2, T3a, T3b, T4a, T4b | Unsigned, wrong-key, modified images are refused | **Yes** (whole-slot erase) | After G | 13 min each, 65 min |
 | 2 | T5a, T5c | Unpadded and unconfirmed images | **Yes** (whole-slot erase) | After G | 16 + 13 min, 30 min |
 | 3 | T6 | Power cut at first selection and at the revert erase | **Yes** | After G and its own approval | 30 min to prove the fixture, then about 2.5 h |
-| | T7, M2 | Update by the application; PSA-backend measurement | | **No**: need M9 and a separate approval | |
+| | T7, M2 | Update by the application; PSA-backend measurement | | **No**: need the update work and a separate approval | |
 
 **Estimates** use the repository's measured Commander rates (at most 4.52 s per 128 KiB to load, about 4.9 s per 128 KiB to read back; [image profiles](board-image-profiles.md), decision 26): reading the 6 MiB backup takes about 4 min and is done twice, one 3 MiB slot load plus verify takes about 4 min, and a slot erase has no recorded duration, so each refusal case waits 360 s (the procedure's figure). Part 1 is about 1 h to 1.5 h, Part 2 about 2 h to 2.5 h (T1 15 + M1 10 + T2 to T4b 65 + T5 30 = 120 min, plus 15 min for IS-T4 once it exists), Part 3 about 3 h (30 + 14 x 10 = 170 min). Part 3 is the only part where the board's power is cut. These are **Estimates**, not measurements.
 
@@ -51,7 +51,7 @@ The procedure requires the person who owns the board to approve each hardware st
 
 | ID | What the owner approves | Covers | Default |
 | --- | --- | --- | --- |
-| **D165** | The decision on [#165](https://github.com/wonny-labs/crux-pilot/issues/165): (a) it is closed, reference: ___; or (b) Part 2 runs with the finding open, for T1 to T5, M1 and IS-T4 only; or (c) not approved, the session stops after Part 1 | G, and every block of Parts 2 and 3 | Not approved |
+| **D165** | The decision on [#165](https://github.com/wonny-labs/crux/issues/165): (a) it is closed, reference: ___; or (b) Part 2 runs with the finding open, for T1 to T5, M1 and IS-T4 only; or (c) not approved, the session stops after Part 1 | G, and every block of Parts 2 and 3 | Not approved |
 | **H1** | Connect the approved probe (J-Link PLUS, SWD 400 kHz, 100 kHz as the one retry) and read identification. Read-only | P, T0, all later reads | Not approved |
 | **H2** | Read back flash `0x60000000` to `0x60600000` (backup twice) and the small reads of slot heads and tails (`0x60320000`, `0x60020000`, `0x6031F000`). Read-only | P, T0, Parts 2 and 3 | Not approved |
 | **H3** | Program and verify the restore image R1 (`time-baseline.bin`, at most `0x20000` bytes at `0x60000000`) with the wrapper scripts | T0, N, end-of-session restore | Not approved |
@@ -172,7 +172,7 @@ Regenerate and re-check the manifest after any later change to the hand-off dire
 
 As procedure section 7, T0 with the T0 profile. The R1 programming (H3) now uses `jlink-load.sh` and `jlink-verify.sh` (or the device-control `flash --allow-flash=<H3 reference>`). **Approvals.** H1 to H4. **Stop.** As the procedure's T0. **Restore.** R1 is the restore point. **Duration.** 10 min after P (**Estimate**). **Evidence.** As the procedure's T0.
 
-### N. ROM serial downloader fall-through ([#309](https://github.com/wonny-labs/crux-pilot/issues/309))
+### N. ROM serial downloader fall-through ([#309](https://github.com/wonny-labs/crux/issues/309))
 
 **Purpose.** Turn the main inference of the bootloader update investigation into evidence: that the boot ROM falls through to the serial downloader when the first sector of the QSPI NOR is damaged ([boot bootloader update investigation](boot-bootloader-update-investigation.md), rows 1 to 3; the reference-manual statement is **Verified by public vendor document** there, and that a corrupt first sector counts as an error is **Inference**). Open configuration, no fuses. **Preconditions.** T0 passed in this session, so a backup, R1 and a working console exist. **Approvals.** H1 to H5; H6 only if approved.
 
@@ -203,7 +203,7 @@ As procedure section 7, T1, with the wrappers. **Approvals.** D165, H1 to H4, H7
 **Why not the device-control `reset`.** `reset()` discards pending output, runs the reset command (`reset.jlink`: `r`, `g`, `q`) to completion, and only then starts reading the port (`tools/device_control/run.py`, `reset()` then `confirm_boot()`; **Verified in repository**). Everything MCUboot printed while Commander was still running is read afterwards in one burst, with nearly one time. A measurement from that file would be wrong, and `boot_timing.py` refuses such lines. The same applies to any timing taken from a device-control `reset` capture, including the cut timing in procedure section 7, T6.
 
 **Steps (route B).** For each of 10 boots, in a new case directory `<case>/boot-<n>`:
-1. Start the logger, so that it is reading before the reset (DTR and RTS low, nothing sent; the open must not reset the board, which is an open question of procedure section 10):
+1. Start the logger, so that it is reading before the reset (DTR and RTS low, nothing sent; the open must not reset the board, which is an [open question](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session)):
 
 ```bash
 python3 <crux>/tests/target/boot-bench/console_log.py --port <port> --out <case>/boot-<n>/events.jsonl \
@@ -256,7 +256,7 @@ As procedure section 7, T6, in its own session after Part 2. **Approvals.** T1's
 
 ### T7 and M2. Not runnable
 
-T7 needs the update agent of milestone M9 ([update agent design proposal](plans/update-agent-design-proposal.md)). M2 (PSA-backend boot time) needs a PSA bootloader build and its own approval. Nothing in this session prepares them except the results of T1 to T6 and M1.
+T7 needs the update agent of the update work ([update agent design proposal](plans/update-agent-design-proposal.md)). M2 (PSA-backend boot time) needs a PSA bootloader build and its own approval. Nothing in this session prepares them except the results of T1 to T6 and M1.
 
 ## 6. Splitting the session
 
@@ -271,7 +271,7 @@ The order puts everything that lets the bootloader write NOR after P, T0 and N, 
 2. `jlink-verify.sh time-baseline.bin`: the flash still holds R1. If not, stop and ask. The backup of session A is the reference for the as-found content and is **not** repeated: after R1 the first sectors differ from it, so a new read-back could not be compared with it anyway.
 3. `slot1-head.jlink`: no image magic.
 4. Procedure R with the T0 profile: the restore image boots (T0's boot evidence, in this session).
-5. `make_manifest.py check`; the same keys (if the development key was lost, rebuild MCUboot and every image: procedure section 10).
+5. `make_manifest.py check`; the same keys (if the development key was lost, rebuild MCUboot and every image: [open questions](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session)).
 6. `evidence_dir.py session` again, with the new approval references; it writes a new `session-<UTC>.json` and never replaces an earlier one.
 
 If DS is not approved, session B repeats P and T0 in full. That costs about 30 min (**Estimate**).
@@ -296,9 +296,9 @@ If DS is not approved, session B repeats P and T0 in full. That costs about 30 m
 - [ ] H12: is the R2 restore (6 MiB write) approved, or is reaching R2 a stop?
 - [ ] Which board connector carries the ROM serial downloader's USB device, and is it cabled during N-1? Without it N-1 cannot tell a downloader from a hang.
 - [ ] H6: where does the flashloader come from, under what licence, and who may run it? Until then #309's recovery acceptance stays open.
-- [ ] Does the installed J-Link Commander accept the `loadfile "<file>", <address>` and `verifybin "<file>", <address>` forms the wrappers write, and does `-ExitOnError 1` give a non-zero status on a failed script command? The procedure asks the first (section 10); the second is new. The wrappers never rely on the exit status alone for a verify.
+- [ ] Does the installed J-Link Commander accept the `loadfile "<file>", <address>` and `verifybin "<file>", <address>` forms the wrappers write, and does `-ExitOnError 1` give a non-zero status on a failed script command? The procedure's [open questions](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) ask the first; the second is new. The wrappers never rely on the exit status alone for a verify.
 - [ ] Does the device-control tool's start of a command keep `BENCH_PROBE_SERIAL` in the environment? Inference yes; a host test of the wrapper with a fake tool does not show it.
 - [ ] Who writes and reviews the IS-T4 image, and in which change? It is the one block of Part 2 that has no artefact.
 - [ ] Is a host-side figure at about 20 ms resolution (an Estimate) enough for D9, or does the owner want the instrumented measurement first? The answer decides whether M1 is worth the bench time. Does opening the port in `console_log.py` reset the board (DTR and RTS)?
 - [ ] Are the resets of M1 free of NOR writes? Inference from T1's boot 2; read slot 0's tail before and after the ten resets to see (the kit's `slot0-tail.jlink` of procedure section 5).
-- [ ] The other open questions of [procedure section 10](secure-boot-board-test-procedure.md#10-open-questions-for-the-first-bench-session) still apply and are not repeated.
+- [ ] The other open questions of [open questions of the first bench session](history/secure-boot-first-bench-session-notes.md#open-questions-for-the-first-bench-session) still apply and are not repeated.

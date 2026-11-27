@@ -1,16 +1,18 @@
 # Static-analysis coverage of the host build
 
-Status (2026-11-15): **stages 1 and 2 are in pull request #477, which is a Draft until CI is green and
-the independent review has passed.** Stage 1 added [scripts/tidy-sources.py](../scripts/tidy-sources.py), its
+Status (re-read 2026-11-18): **stages 1 and 2 are merged, in pull request #477 (merged 2026-11-15).** Stage 1 added [scripts/tidy-sources.py](../scripts/tidy-sources.py), its
 configuration [scripts/tidy-sources.conf](../scripts/tidy-sources.conf) and the host tests
 [tests/build/test_tidy_sources.py](../tests/build/test_tidy_sources.py). Stage 2 replaced the 90 hand-written
 paths of `scripts/analyze-host.sh` by a call to the generator, with the owner's approval of that one protected
 change (given in the session chat on 2026-11-15). Stage 3, removing the 12 duplicate per-component clang-tidy
-calls, has not started. See [Stage 1: the generator](#stage-1-the-generator) and
+calls, has not started (as of 2026-11-18, 13 scripts under `scripts/` still call clang-tidy: `scripts/analyze-host.sh` and the 12 `scripts/test-*.sh` files that this stage would clean up). See [Stage 1: the generator](#stage-1-the-generator) and
 [Result of the first CI run](#result-of-the-first-ci-run): these two sections are the 2026-11-15
 implementation record. Every other section ("Summary" to "Open decisions", "What check-patch.sh teaches", "CI
 shape and required checks", "What is not covered", "What was not verified") is the proposal and measurement of
-2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. Refs #161.
+2026-11-09 on commit `48bc13be`, kept as measured, except where a line says 2026-11-15. The building blocks that the samples layout
+change moved out of `samples/` are named at their new place. Refs #161.
+
+Crux Queue (`components/queue`, `tests/queue`) was removed on 20 November 2026. Its rows below are part of the 2026-11-09 and 2026-11-15 measurements and name no current source.
 
 The configured static analysis is clang-tidy 18 with [.clang-tidy](../.clang-tidy)
 (`WarningsAsErrors: '*'`). This document measures how many host-compiled sources it sees today, what a
@@ -89,15 +91,16 @@ workflow selects.
 | `scripts/test-access.sh`, `test-cli.sh`, `test-credential.sh`, `test-security-event.sh`, `test-mgmt-services.sh` | globs of `components/<c>/src`, `tests/<c>` | `host.yml` | new files in those directories are picked up |
 | `scripts/test-web.sh` | globs, `host` mode | `host.yml` runs `host`; other workflows run other modes | |
 | `scripts/test-web-assets.sh`, `scripts/test-web-session.sh` | globs, in `run_host` | **no, in effect** | the workflows call these with `native`, and `native` does not call `run_host` (read from the scripts) |
-| `scripts/test-file-service.sh`, `test-network-settings.sh`, `test-reboot.sh`, `test-tls-certificate.sh` | globs | **no** | named by no workflow and no script |
+| `scripts/test-network-settings.sh`, `test-reboot.sh`, `test-tls-certificate.sh` | globs | **no** | named by no workflow and no script |
+| `scripts/test-file-service.sh` | globs | `host.yml`, since the CI gap fixes of 2026-11-18 | the counts below were measured before that step and still treat it as unreached |
 
 The measurement script reads these from the scripts, expands the globs against the tree, and follows
 workflow references through scripts. The two `--not-run` exclusions above were set by hand after reading
 the mode dispatch of those scripts, because the script cannot read shell control flow.
 
-Six of the thirteen scripts therefore never run their clang-tidy step in CI: `test-file-service.sh`,
-`test-network-settings.sh`, `test-reboot.sh` and `test-tls-certificate.sh` are reached by no workflow,
-and `test-web-assets.sh` and `test-web-session.sh` are reached only in `native` mode. Their selections
+Five of the thirteen scripts therefore never run their clang-tidy step in CI (six when this was measured,
+before `host.yml` began to run `test-file-service.sh`): `test-network-settings.sh`, `test-reboot.sh` and
+`test-tls-certificate.sh` are reached by no workflow, and `test-web-assets.sh` and `test-web-session.sh` are reached only in `native` mode. Their selections
 are described in documents such as [reboot-service.md](reboot-service.md) and the
 [test guide](../tests/README.md), which say the scripts run clang-tidy, but a pull request never runs them.
 
@@ -128,7 +131,7 @@ Every analysed path exists in the tree (0 exceptions).
 | `components/reboot` | 4 | 0 | 0 |
 | `components/gpio`, `components/i2c`, `components/spi`, `components/tls_certificate` | 3 each | 0 | 0 |
 | `components/interrupt`, `components/queue`, `components/time`, `components/web` | 1 each | 0 | 0 |
-| `samples/web_project` | 1 | 0 | 0 |
+| `tests/web/project_sample/project` | 1 | 0 | 0 |
 | `tests/network_settings`, `tests/tls_certificate` | 13 each | 0 | 0 |
 | `tests/time` | 12 | 4 | 18 |
 | `tests/reboot` | 12 | 1 | 1 |
@@ -236,7 +239,7 @@ includes that file; the cause is in the fixture's global (`faults.c`), not in a 
 Findings by directory of the reported file (paths normalised): `tests/time` 18, `tests/file` 16,
 `tests/thread` 4, `tests/serial_consumer` 4, `tests/networking` 3, `tests/queue` 3, `components/queue` 3,
 `tests/bench_first_account` 2, `tests/execution_runtime` 2, `tests/file_service_consumer` 2, one each in
-`components/file_service`, `components/ssh`, `samples/serial`, `tests/i2c`, `tests/management_providers`,
+`components/file_service`, `components/ssh`, `tests/serial_consumer/scenario`, `tests/i2c`, `tests/management_providers`,
 `tests/reboot`, `tests/web`. Attributed instead to the source that was analysed, `tests/queue` has 6 and
 `components/queue` none.
 

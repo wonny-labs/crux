@@ -1,0 +1,9 @@
+/* Logging on native_sim's own console UART, as a product image uses it. */
+/ {
+    chosen { zephyr,log-uart = &logging_uarts; };
+    logging_uarts: logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&uart0>;
+    };
+};
+&uart0 { current-speed = <115200>; };

@@ -30,7 +30,7 @@ static int test_io(const struct emul *target, const struct spi_config *config,
     data->frequency = config->frequency;
     data->operation = config->operation;
     data->word_size = SPI_WORD_SIZE_GET(config->operation);
-    data->slave = config->slave;
+    data->slave = config->peripheral; /* spi_config.slave is deprecated from Zephyr v4.5.0. */
     if (tx_bufs == NULL || rx_bufs == NULL || tx_bufs->count != 1 || rx_bufs->count != 1 ||
         tx_bufs->buffers[0].len != rx_bufs->buffers[0].len) {
         return -EINVAL;

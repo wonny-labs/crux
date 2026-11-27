@@ -73,6 +73,13 @@ void test_slot_flip(size_t slot, size_t offset, uint8_t mask);
 /* Decodes a slot's generation, or returns false if its header is not valid. */
 bool test_slot_generation(size_t slot, uint64_t *generation);
 void test_slot_swap(void);
+/* Opens a slot as the store would. records receives one bit per record, 1 << record. Returns false,
+ * leaving records alone, unless the slot is valid. */
+bool test_slot_records(size_t slot, uint32_t *records);
+/* Whether a valid slot holds the record with exactly these bytes. */
+bool test_slot_holds(size_t slot, crux_credential_record_t record, const void *data, size_t length);
+/* Whether any valid slot holds the record. */
+bool test_any_slot_has(crux_credential_record_t record);
 
 /* The record's bytes must be exactly these. */
 void test_expect_record(crux_credential_record_t record, const void *data, size_t length);

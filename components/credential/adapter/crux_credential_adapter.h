@@ -14,8 +14,8 @@
  *
  * Malformed arguments are refused first, then a store that has not started, then an unusable one.
  *
- * On the pilot basis the store is not confidential against someone who can read the medium and the
- * chip ID. See docs/credential-store.md.
+ * On the planned basis the store is not confidential against someone who can read the medium
+ * and the chip ID. See docs/credential-store.md.
  */
 #ifndef CRUX_CREDENTIAL_ADAPTER_H
 #define CRUX_CREDENTIAL_ADAPTER_H
@@ -182,15 +182,26 @@ crux_credential_result_t crux_credential_key_parse(const void *record, size_t le
  * UNUSABLE from then until the next reset, because provisioning needs a store that was EMPTY at
  * start. This does not prove physical erasure: a card's internal mapping can keep old pages.
  *
- * A composition wires this to its own local trigger. The reference offers no command for it,
- * because a serial command without a login would lower limit A7 from "medium and serial" to "serial
- * alone".
+ * A composition wires this to its own local trigger, and reaches it on Zephyr through
+ * <crux/credential_store_zephyr.h>, which states the conditions. The reference offers no command
+ * for it, because a serial command without a login would lower limit A7 from "medium and serial"
+ * to "serial alone".
  *
  * @retval CRUX_CREDENTIAL_OK Both slots are gone.
  * @retval CRUX_CREDENTIAL_ERR_STORE A step failed. The operator repeats it.
  * @retval CRUX_CREDENTIAL_ERR_NOT_READY Not started. Nothing was done.
  */
 crux_credential_result_t crux_credential_erase(void);
+
+/**
+ * Remove the account record from both slots and keep every other record: the TLS key and
+ * certificate and the SSH host key. The state is UNUSABLE from then until the next reset, as after
+ * crux_credential_erase(), and Access then reads EMPTY, which opens first-account setup.
+ *
+ * A composition reaches it on Zephyr through <crux/credential_store_zephyr.h>, which states the
+ * conditions and the results.
+ */
+crux_credential_result_t crux_credential_erase_accounts(void);
 
 #ifdef __cplusplus
 }

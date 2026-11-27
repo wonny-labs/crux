@@ -1,8 +1,8 @@
 # Network settings service
 
-Status: merged in [PR #287](https://github.com/wonny-labs/crux-pilot/pull/287) for Issue #213. Host results, and the routes run over HTTPS on `native_sim` in [the services image](native-composition-242.md) with a no-op apply port. Nothing here has run on a board, and nothing applies an address to a real interface. Host and `native_sim` results are interim
+Status: merged in [PR #287](https://github.com/wonny-labs/crux/pull/287) for Issue #213. Host results, and the routes run over HTTPS on `native_sim` in [the services image](native-composition-242.md) with a no-op apply port. Nothing here has run on a board, and nothing applies an address to a real interface. Host and `native_sim` results are interim
 results, and physical evidence stays tracked apart. Decisions W5 to W8 and W14 of [the frontend foundation
-design](plans/web-frontend-foundation-design.md#network-settings) and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
+design](plans/web-frontend-foundation-design.md#network-settings) and [the owner's approval on #183](https://github.com/wonny-labs/crux/issues/183#issuecomment-6637976084)
 are the basis.
 
 Owner: `components/network_settings`. Public header `<crux/network_settings.h>`, usage target `crux::network_settings`.
@@ -23,12 +23,12 @@ The routes are in `components/web/management/web_management_network.c` and are d
 | The routes' answers against the specification | **Built** | `Web.network_openapi`: real answers, with negative controls |
 | Serial recovery command `network recover` | **Built** | Host, on the real registry and the scripted access control of the command line suites |
 | The mock and the TypeScript client | **Changed, small** | Node.js unit tests, including the shared vectors |
-| Apply port: Host fake, and a no-op provider for a composition that applies nothing | **Built** | The fake is used by every suite. The no-op is linked by no suite. |
+| Apply port: Host fake, and a no-op provider for a composition that applies nothing | **Built** | The fake is used by every other suite. The no-op is linked by `tests/network_settings/no_apply.c`, which shows that its boot report reads not applied. |
 | Apply port on Zephyr, over `net_if` | **Not built.** [Decision 17](#decisions-taken-without-an-answer). | |
 | A composition that serves the routes, links the service or owns the table | **Not in #213.** [The services image](native-composition-242.md) of #242 does, with a no-op apply port. | `native_sim` |
 | `native_sim` | **Not run by #213.** Run later in [the services image](native-composition-242.md): the read, and a change that answers `501 not_supported` because nothing can be saved. | `native_sim` |
 | RT1060 compile | **Not run.** | |
-| Saving on the target | **No provider** until #16: [what the target does](#what-the-target-does-until-16) | |
+| Saving on the target | Only with the Settings File provider: [Saving on the target](#saving-on-the-target) | |
 | Applying saved values on RT1060-EVKB | **Not run.** It needs separately approved physical evidence. | |
 
 ## Structure
@@ -132,7 +132,7 @@ flowchart TD
 | --- | --- | --- |
 | `SAVED` | Every check passed | The saved set |
 | `NOT_STORED` | Nothing was ever saved | Defaults |
-| `NOT_SUPPORTED` | No Configuration provider: the target until #16 | Defaults |
+| `NOT_SUPPORTED` | The composition links no Configuration provider | Defaults |
 | `STORE_ERROR` | A record could not be read | Defaults |
 | `RECORD_INVALID` | A record is torn or of another type | Defaults |
 | `DISABLED` | The flag is false: `network recover` ran | Defaults |
@@ -275,7 +275,7 @@ secret, so nothing needs wiping.
 | --- | --- | --- |
 | `running` | The port reports an IPv4 address | What the port reports, which is what the boot applied |
 | `saved` | The next boot would apply a saved set | The stored, checked set |
-| `source` | Always | `saved` or `default`: what the boot applied |
+| `source` | Always | `saved` or `default`: what the boot applied. `default` also when nothing applied, as on the no-op apply port, whose boot report reads `applied` false. |
 | `reboot_required` | Always | The next boot would apply values other than the running ones. False while `running` is absent. |
 | `save` | Pending, or failed | `pending` from the request until the worker ends, `failed` until the next accepted request |
 
@@ -322,9 +322,10 @@ the worker ran leaves the event with no origin and no user, as the configuration
 | The mock accepts `24.0` and `2.4e1` as 24, and the device refuses them | Its parser is `JSON.parse`. The difference is known and the specification says integer. |
 | Timing, stack of the worker, and the time of the handlers on the target | Not measured |
 
-## What the target does until #16
+## Saving on the target
 
-There is no Configuration provider on the target. A composition selects `crux_configuration_no_provider`, and then:
+A target saves only with the Settings File provider of Configuration. Its tier, evidence and limits are in the `configuration` row of
+[component readiness](component-readiness.md). A composition without it selects `crux_configuration_no_provider`, and then:
 
 | Operation | Result |
 | --- | --- |
@@ -340,7 +341,7 @@ There is no Configuration provider on the target. A composition selects `crux_co
 | Item | Where |
 | --- | --- |
 | Boot order: Access, the Configuration provider, `crux_network_settings_boot()`, `crux_config_service_start()` on a table that holds `crux_network_settings_entries()`, `crux_network_settings_start()`, `crux_network_settings_start_worker()` | `crux/network_settings.h` |
-| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing, whose `GET` then shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
+| A provider of the apply port: `crux_network_settings_port_apply` and `_port_running`. `crux_network_settings_no_apply` for a composition that applies nothing: it returns false for every apply, so the boot report reads `applied` false, `source` default and, when saved values exist, reason `APPLY_FAILED`, and `GET` shows no running values. | The public `<crux/network_settings_apply_port.h>` (the product defines both functions), and the private `network_settings_port.h` for the event port |
 | A provider of the event port: `crux_network_settings_security_events` | The same |
 | `network.read` and `network.write` in the roles that may see and change the address, and no role with `network.private` | The product's policy |
 | `crux_cli_init()` with `crux_network_settings_cli_commands()`, on a serial console | `crux/network_settings_cli.h` |
@@ -350,6 +351,18 @@ There is no Configuration provider on the target. A composition selects `crux_co
 An apply port on Zephyr maps `apply` to the interface's IPv4 address, netmask and gateway, with DHCP off, and `running` to what
 the interface holds. It is native code, so it stays out of every public header. It is not written here, because it cannot be
 compiled in this environment, and shipping code that no check has built would be worse than saying so.
+
+### What the product owns
+
+| Item | How |
+| --- | --- |
+| The apply port | The product implements both functions of `<crux/network_settings_apply_port.h>` in its adapter code. Until it does, it selects `CONFIG_CRUX_NETWORK_SETTINGS_NO_APPLY` (`components/network_settings/src/network_settings_no_apply.c`). |
+| Interface and IPv4 events | Crux has none: `crux_netif` observes and offers no subscription ([networking contract](networking-contract.md#primary-network-interface-observation)). The product subscribes to Zephyr `net_mgmt` events, such as interface up and down and IPv4 address added and removed, in its adapter code, which the [native-interface policy](native-interface-policy.md#three-layers-and-ports-adr-0001) allows to use Zephyr directly. |
+| Recovery after a bad change | `network recover` on the serial console ([Recovery](#recovery)), and the boot's fallback to the defaults when the saved set fails a check or the port refuses it ([Boot](#boot)). |
+
+**Not covered:** a change that applies cleanly but leaves the device unreachable, such as a wrong gateway inside the subnet or a valid
+address on the wrong network. The rules and the port accept it, the boot reports `SAVED`, and only `network recover` on the serial
+console, or service access, undoes it.
 
 ## Tests
 
@@ -367,6 +380,7 @@ compiled in this environment, and shipping code that no check has built would be
 | `NetworkSettings.concurrency` | 1 | Three requesters, two readers and the worker, with consistent states and one event for each accepted request |
 | `NetworkSettings.lock_faults` | 2 | The state's lock, and the worker's lock, failing to come in time |
 | `NetworkSettings.no_provider` | 1 | The target's behaviour above |
+| `NetworkSettings.no_apply` | 2 | The no-op apply port: saved values and the defaults both read not applied, with `source` default, and `GET` shows the saved set and no running values |
 | `NetworkSettings.cli` | 6 | The table through the real registry, serial and not SSH, hidden without the permission, a failed save, a save in progress |
 | `Web.network_routes` | 18 | Both routes for success, no session, no permission, the forgery checks, each rule, 39 malformed bodies, content type, size, methods, one save at a time, a failed save, the closed connection, an ended session |
 | `Web.network_short_reads` | 1 | The same bodies, with the core handing them over 1, 2, 3, 7, 16, 255 and 256 bytes at a time through a wrapped `crux_web_read_body`, and the same answers |
@@ -504,7 +518,7 @@ Local runs in container `crux-213`, image `crux-pilot-devcontainer:local` under 
 | Host cases: permission, invalid values, save failure, a mixed set after an interrupted save, fallback, recovery | `NetworkSettings.service`, `.power_loss`, `.foreign_save`, `.boot`, `.cli`, and the web suites |
 | The limits are declared | [Limits](#limits) |
 | `crux_netif` read-only, no native type in the public header | Unchanged, and `check-native-interfaces.py` |
-| Saving on the target depends on #16, and what the target does until then | [What the target does until #16](#what-the-target-does-until-16) |
+| Saving on the target, and what a composition without a provider does | [Saving on the target](#saving-on-the-target) |
 | Applying saved values on RT1060-EVKB shown with separately approved physical evidence | **Not met here.** No hardware was operated. |
 
 ## What is not verified

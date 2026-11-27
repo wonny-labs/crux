@@ -325,5 +325,24 @@ class ScriptTest(unittest.TestCase):
         self.assertGreater(self.text.index("-DCRUX_DIR"), self.text.index("# T4:"))
 
 
+class SimulatedWatchdogSourceTest(unittest.TestCase):
+    """The simulated watchdog's last line before the reset survives deferred logging (coding guidelines,
+    Logging): log_panic() first, under the guard the real reset path uses, then the line of
+    GOOD_RUN, then sys_reboot."""
+
+    SOURCE = REPO / "components/system/ports/zephyr/system_sim_watchdog.c"
+
+    def test_expiry_flushes_logging_before_its_line_and_the_reset(self):
+        text = strip_comments(self.SOURCE, self.SOURCE.read_text())
+        self.assertIn("#include <zephyr/logging/log_ctrl.h>", text)
+        body = re.search(r"static void expired\(struct k_work \*work\)\s*\{(.*?)\n\}", text, re.S).group(1)
+        guard = body.find("#if defined(CONFIG_LOG) && !defined(CONFIG_LOG_MODE_MINIMAL)")
+        panic = body.find("log_panic();")
+        line = body.find('printk("Crux simulated watchdog expired')
+        reset = body.find("sys_reboot(SYS_REBOOT_COLD);")
+        self.assertTrue(0 <= guard < panic < line < reset, (guard, panic, line, reset))
+        self.assertIn("Crux simulated watchdog expired: no feed for", GOOD_RUN)
+
+
 if __name__ == "__main__":
     unittest.main()

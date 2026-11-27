@@ -22,13 +22,13 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 
 The optional organisation manifest is a shared layer. Add it only when two or more products share a composition.
 
-Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md).
+Where boards and drivers live, and how products share them through this layer, is in [Shared boards and drivers across products](shared-hardware-modules.md). How vendor kits with several maintained lines fit across repositories, how a build proves which delivery it compiled and what a release records about each kit is in [Vendor kits across repositories](vendor-kits.md), a recommended convention that is not adopted.
 
 ```mermaid
 flowchart TB
     P["Product repository: product-x<br/>west.yml, app/, locks/"]
     O["Organisation manifest (optional)<br/>Only when two or more products share a composition"]
-    C["crux-pilot<br/>Zephyr pin, module allowlist, optional groups"]
+    C["crux<br/>Zephyr pin, module allowlist, optional groups"]
     Z["Zephyr<br/>Module revisions in its own west.yml"]
     M["Allowlisted public modules"]
     V["Product-only modules, and the organisation's forks and vendor repositories<br/>vendor-runtime on git.example"]
@@ -45,7 +45,7 @@ flowchart TB
 
 The product uses west's T2 topology: the product repository is the manifest repository, and Crux and Zephyr are projects in its workspace.
 
-The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux-pilot` entry:
+The active part of the [template manifest](../templates/product/west.yml), with the comments of its `crux` entry:
 
 ```yaml
 manifest:
@@ -54,10 +54,11 @@ manifest:
     - name: crux
       url-base: https://github.com/wonny-labs
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
-      # No Crux tag exists yet, so this follows main. For a release,
-      # pin a tag or SHA here and freeze the manifest. See the guide in README.md.
+      # A template cannot name the Crux commit that holds it, so it follows main.
+      # Pin a tag or SHA: run crux/scripts/update-crux-pin.py once, then
+      # let the pin bot move it. See "Keeping the Crux pin current" in the guide.
       revision: main
       import: true
   self:
@@ -77,7 +78,7 @@ This resolves Zephyr and every allowlisted module at the revisions Crux pins. Th
 | Enable the boot loader source | `group-filter: [+crux-boot]`, with no revision | `OK` |
 | Add a product-only module | A plain project entry with its revision | `PRODUCT` |
 | Replace a project Crux pins | An entry with the same name, its path, and `userdata: crux-override` | `OVERRIDE` |
-| Use fewer modules | `import: name-allowlist: [...]` on `crux-pilot`, including `zephyr` | `OK` for what remains |
+| Use fewer modules | `import: name-allowlist: [...]` on `crux`, including `zephyr` | `OK` for what remains |
 | Add a Zephyr module Crux did not allow | A plain project entry with its revision | `OK` at the revision in Zephyr's manifest. Another revision needs `crux-override` |
 | Add such a module and own the module list | Redefine `zephyr`, with your own allowlist | `OK` while the Zephyr revision and modules match the contract |
 | Import nothing | [Plain entries](#pinning-by-hand) for Crux, Zephyr and each module | `OK` while the pins match the contract |
@@ -91,7 +92,7 @@ A product may pin Crux and Zephyr itself, with no `import`:
 
 ```yaml
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: <Crux SHA>
       west-commands: scripts/west-commands.yml
@@ -105,7 +106,7 @@ A product may pin Crux and Zephyr itself, with no `import`:
       path: modules/hal/nxp
 ```
 
-- **Commands.** With no import, west loads no commands from these projects. Without the `west-commands` line on `crux-pilot`, `west crux-pins` does not exist. Zephyr's own commands, such as `west build`, need the same line on `zephyr`.
+- **Commands.** With no import, west loads no commands from these projects. Without the `west-commands` line on `crux`, `west crux-pins` does not exist. Zephyr's own commands, such as `west build`, need the same line on `zephyr`.
 - **The contract is unchanged.** `west crux-pins` still reads it from Crux at the pinned revision and from Zephyr at Crux's pin. Another Zephyr gives `MISMATCH`. A Zephyr module outside Crux's allowlist counts as `OK` if it matches Zephyr's manifest at Crux's pin.
 - **The name `zephyr` is required.** Under any other name the command stops with `no zephyr project is pinned`.
 - **Only what the workspace holds is reported.** A module the product left out gives no line.
@@ -114,7 +115,7 @@ A variant imports Zephyr only, with the product's own allowlist, and pins Crux a
 
 ```yaml
   projects:
-    - name: crux-pilot
+    - name: crux
       remote: crux
       revision: <Crux SHA>
       west-commands: scripts/west-commands.yml
@@ -150,6 +151,8 @@ It compares commits resolved by git, so a tag and its commit are equal. The work
 
 A contract revision that cannot be resolved is an error, never `OK`, and `crux-override` does not excuse it. So a fork must contain the commit that Crux pins.
 
+Crux's own `west.yml` pins every project by full commit SHA, with any tag only in a comment, because `scripts/bootstrap-zephyr.sh` runs `west update --narrow`, which fetches no tags, and a tag in the contract would then not resolve with `git rev-parse`.
+
 A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected. The command uses no network, so it cannot see an upstream branch that moved after the last `west update`. A tag not yet fetched is treated the same way.
 
 Matching is by project name, so a module replaced under a new name reports `PRODUCT`. `OK` describes `HEAD` only, so a change applied to the checkout without a commit still reports `OK`; the build record refuses that checkout.
@@ -161,13 +164,41 @@ userdata:
   crux-override: "fix for acme issue 123, drop when upstream has it"
 ```
 
+### A stale or mismatched pin
+
+What a product sees depends on how the pin went wrong.
+
+| Situation | What the product sees | Fix |
+| --- | --- | --- |
+| The Crux pin is older than `west crux-pins` | West reports that the command is unknown. See [Pinning by hand](#pinning-by-hand) | Move the Crux pin to a revision that holds the command, then `west update` |
+| The manifest was edited and `west update` was not run | `MISMATCH name sha: why`, with a non-zero exit, when a SHA or tag in the manifest is not what west fetched. A changed branch name is not detected until `west update` has run ([`west crux-pins`](#west-crux-pins)) | `west update`, then `west crux-pins` |
+| Zephyr or a module is pinned apart from Crux's pin | `MISMATCH name sha (contract sha)` | Take Crux's pin, or declare the difference with `crux-override` and a reason |
+| The Crux pin is old but the workspace matches it | `OK` on every line. The contract is read from Crux at the pinned revision, so an old Crux is a consistent contract | `west crux-pins` cannot see this. Compare the pin with the revision you intend to use, and see the [compatibility table](compatibility-table.md) for what a revision carries |
+
+Crux does not assert its own version in code, so a product that uses an API or Kconfig symbol its pinned Crux lacks fails in the ordinary way, with an unknown symbol or a missing header, and Crux adds no message. This is **Inference**: it was not run. A version assertion is not planned for now.
+
+To move the pin, change the Crux `revision` in the product manifest to a newer SHA or tag, run `west update`, then `west crux-pins`. With `import: true` the Zephyr and module pins follow. With [hand pins](#pinning-by-hand) they must be moved to the new contract, or declared. [Upgrades and security fixes](#upgrades-and-security-fixes) covers what to review. The [pin bot](#keeping-the-crux-pin-current) opens one pull request per pin move.
+
 ### Zephyr baseline gate
 
-The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.4.2. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
+The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.5.0. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
 
 `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` turns the warning into an error that stops the build.
 
-The gate runs while `CONFIG_CRUX_PILOT_MODULE` is on, so an application that sets it to `n` turns the gate off with the module.
+The gate runs while `CONFIG_CRUX_MODULE` is on, so an application that sets it to `n` turns the gate off with the module.
+
+### Master switch name
+
+The master switch of the Crux Zephyr module is `CONFIG_CRUX_MODULE`. It was renamed from `CONFIG_CRUX_PILOT_MODULE`, and there is no alias: a product that still sets the old name fails at configuration, because Zephyr rejects an assignment to an undefined symbol. To migrate, replace `CONFIG_CRUX_PILOT_MODULE` by `CONFIG_CRUX_MODULE` in every `prj.conf` and overlay. `CONFIG_ZEPHYR_CRUX_MODULE` is a different symbol that Zephyr makes from the module name, see [Module name](#module-name).
+
+### Module name
+
+`zephyr/module.yml` sets `name: crux`, so the symbols Zephyr generates for the module no longer depend on the folder Crux is checked out in. They are `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig and `ZEPHYR_CRUX_MODULE_DIR` in CMake. Before, Zephyr took the name from the folder, so a `crux-pilot` checkout and a checkout under another folder name gave different symbols. Zephyr keeps no alias for the old names. To migrate a product:
+
+- Replace `ZEPHYR_CRUX_PILOT_MODULE_DIR` by `ZEPHYR_CRUX_MODULE_DIR` in CMake files.
+- Replace `CONFIG_ZEPHYR_CRUX_PILOT_MODULE` by `CONFIG_ZEPHYR_CRUX_MODULE` in Kconfig, `prj.conf`, overlays and C code.
+
+The master switch `CONFIG_CRUX_MODULE` is unchanged. `west.yml` places Crux at `crux`. `scripts/bootstrap-zephyr.sh` expects that folder and, until the consumers have moved, also accepts `crux-pilot`.
 
 ## Modifying third-party code
 
@@ -192,12 +223,12 @@ flowchart TD
 | Vendor source delivered to you, not a public upstream | [Vendor branch](#vendor-branch) in an internal repository | `PRODUCT` | Each delivery is a merge, and a hash list to keep |
 | Commercial edition of a module that Crux pins publicly | [Different project name](#commercial-editions) in the product manifest, with the Crux group off or the original filtered out | `PRODUCT` | The product tracks that edition itself |
 | Public upstream the product must change, such as `zephyr` or `hal_nxp` | [Soft fork](#soft-forks) with tagged commits. Provisional until it is compared with patch files on a fresh workspace | `OVERRIDE` | SBOM identity, and the allowlist if the fork is `zephyr` |
-| Binary-only delivery | Internal git or `west blobs`, with a hash and a release record | `PRODUCT` if in git | The `west blobs` HTTP fetcher passes no credentials. The library appears in no SBOM document at v4.4.2 |
+| Binary-only delivery | Internal git or `west blobs`, with a hash and a release record | `PRODUCT` if in git | The `west blobs` HTTP fetcher passes no credentials. From Zephyr v4.5.0, a prebuilt library that a module declares is listed in the SBOM |
 | Delivery that may not enter the repository | Keep it outside the checkout, identified by a committed hash list | Nothing | The build record does not cover it, so the release must record it separately |
 
 ### Vendor branch
 
-Keep one vendor branch and one working branch per delivery line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
+Keep one vendor branch and one working branch per delivery line. [Vendor kits across repositories](vendor-kits.md) works through one kit with two lines, a module that compiles it and a product that pins one line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
 
 A fix delivery for an older line stays on that line. On one linear vendor branch it would drag the current tree back. Use branch names that git allows beside each other, such as `vendor-1.x` and `work-1.x`, never `vendor/1.x` beside a branch `vendor`.
 
@@ -309,7 +340,7 @@ Use it for short-term development checks only. At Zephyr v4.4.2:
 
 ### Sources replaced in this repository
 
-This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout. Three are single-file corrections in [patches/zephyr](../patches/zephyr/README.md): NXP ENET MDIO, Mbed TLS entropy and MMC cache flush. The fourth case is the Settings File backend: `zephyr/CMakeLists.txt` generates corrected copies of three Settings sources through `tests/native/configuration_settings_file/candidate.cmake`, with patches under `tests/native/configuration_settings_file` and `tests/native/settings_error`, when `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` is set, apart from one `native_sim` test fixture, so a product build reaches a file under `tests/`. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
+This public repository replaces some Zephyr sources in the build without editing the Zephyr checkout, with the corrections in [patches/zephyr](../patches/zephyr/README.md). Five are single-file corrections: NXP ENET MDIO, Mbed TLS entropy, MMC cache flush, the HTTP header-phase deadline and the TCP initial sequence number, which every image that includes the Crux module gets when it has Zephyr's own TCP and `CONFIG_NET_TCP_ISN_RFC6528`. The sixth is the Settings File backend: for either Settings File selection of Configuration, `zephyr/settings_file.cmake` generates corrected copies of three Settings sources. For each, a script checks the original against the pinned Zephyr source and patches a temporary copy, and CMake replaces only those sources in the build. This suits a few files. For anything larger, use the routes above.
 
 ## Versions
 
@@ -324,7 +355,251 @@ This public repository replaces some Zephyr sources in the build without editing
 
 The field widths limit the product version to major and minor up to 255, patch up to 65535 and build up to 4294967295. MCUboot is only an example. A product with another boot loader records its own image identity.
 
-`v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes. It makes no compatibility promise before `v1`. A Zephyr baseline move or a change to a pinned module is listed in the release notes and raises `y`. The table of pinned revisions in the release notes is generated from `west.yml`, never written by hand: see the [compatibility table](compatibility-table.md), a provisional generator.
+`v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes. It makes no compatibility promise before `v1`. A Zephyr baseline move or a change to a pinned module is listed in the release notes and raises `y`, except a move within the module's own patch line, which a `z` release may carry.
+The version source, the bump rules and the release triggers are in [ADR-0008](decisions/0008-versioning-and-release-rules.md). The table of pinned revisions in the release notes is generated from `west.yml`, never written by hand: see the [compatibility table](compatibility-table.md), a provisional generator.
+
+## Keeping the Crux pin current
+
+A product pins Crux by full commit SHA. A bot keeps one pull request open that moves the pin to the head of Crux `main`, and a person merges it.
+
+- **Pin.** A full SHA, or a tag once Crux has them. A branch pin rebuilds differently from day to day, as Yocto's `AUTOREV` does, and the [build record](#release) refuses it.
+- **One bot pull request.** The bot rebuilds the branch `bot/crux-pin` as one commit on the product's `main` and updates the one open pull request, as the Chromium autoroller and Renovate or Dependabot do, instead of opening one per Crux commit. Its text lists the Crux commits since the old pin. Zephyr moves its own module pins with reviewed manifest pull requests in the same way.
+- **Checks.** The product's usual pull request checks, including `west crux-pins` and the build.
+- **Merge.** A person merges. To adapt the product to a Crux change, push a commit to the bot branch. As in Renovate, the bot then stops refreshing the branch until the branch is deleted, which a merge does when the branch is set to close on merge. A person who amends the bot's commit instead loses that edit at the next run.
+- **Early warning.** A scheduled build against Crux `main` that commits nothing reports a break before the next bot run.
+- **Release branches.** The bot never moves them. They keep their frozen manifest, as Android's `repo` snapshot manifests do, see [Release](#release).
+
+A team may later let the bot pull request merge itself. Allow it only on the default branch and only when every condition holds, enforced by required checks:
+
+- All required checks pass, including `west crux-pins` and the build with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`.
+- ROM and RAM use stay within the product's budgets.
+- The new pin contains the old one. The bot's text warns when it does not.
+- No Crux commit in the range is marked breaking (`!` or `BREAKING CHANGE` in Conventional Commits).
+- No person has pushed to the bot branch.
+
+### The command
+
+Run `crux-pin-bot.py` from the product repository in a west workspace that holds Crux. It needs Python 3, Git and PyYAML, which west installs.
+
+Run the scripts from the Crux checkout at the revision the product pins, as `west update` leaves it, never from Crux `main`. Crux `main` is read only as data, through `git ls-remote` and a fetch for the log. A new version of the scripts then reaches a product only through a reviewed pin move, and a Crux commit never gets the product's write token unreviewed. A product whose Crux pin predates the scripts moves its pin once by hand. Give the token access to the one product repository only, to write contents and pull requests. Use the command in one job only when the hook runs nothing from the new Crux. A hook that runs `west update`, a build or tests belongs in a job without the token, and the token stage must be a separate one, see [Keeping the token from the build](#keeping-the-token-from-the-build).
+
+```sh
+cd product-x
+python3 ../crux/scripts/crux-pin-bot.py --host github
+```
+
+It runs the two scripts below and exits `0` when the pull request is open and current, when the pin is already current, and when a person's commit kept the bot branch from being refreshed, with a warning. Anything else is an error. It takes `--manifest`, `--project`, `--to`, `--remote-url` and `--no-hook` of `update-crux-pin.py`, the options of `open-pin-pr.py` except `--message-file`, with `--allow-path` defaulting to the manifest, `--crux-branch` for the Crux branch to follow, and `--append-body FILE`, which may repeat, to add product evidence such as image hashes to the pull request text but not the commit. It runs the updater and the hook without the token's variable and without the `--user-env` variable, and only `open-pin-pr.py` gets them. It reads `open-pin-pr.py` before the hook runs and runs that copy, because a hook that runs `west update` moves the Crux checkout, the scripts included. It records the SHA-256 of `.git/config` before the hook and passes it as `--git-config-sha256`. After a person's commit on the bot branch the command also exits `0`, with a warning, because it must not overwrite that commit. A bot pull request that stays open and is not refreshed then needs a person's look.
+
+| Variable | Use |
+| --- | --- |
+| `CRUX_PIN_TOKEN` | The token, for both hosts. Another name with `--token-env NAME` |
+
+- **GitHub.** A GitHub App token or fine-grained token with contents and pull request write access, passed to `gh` as `GH_TOKEN`. Without one, `gh` uses its own login. A pull request pushed and opened with the default `GITHUB_TOKEN` starts no other workflow, so its checks would not run.
+- **Bitbucket Cloud.** A repository or workspace access token with the `pullrequest:write` scope, sent as a Bearer token. With `--user-env NAME`, it is sent with the user name or e-mail address in that variable as Basic authentication instead.
+
+The push goes to the `url` of the remote `origin`, never to its `pushurl`, or to `--push-url`, with the job's own Git credentials, which must be allowed to push the bot branch: an SSH key in the agent, or the header that the checkout stored in `.git/config`. A CI checkout that keeps the credential outside `.git/config`, or rewrites the remote, needs `--push-url` with the product's own URL, as a Jenkins checkout over HTTPS does. Git credential helpers are not used. The commit uses the repository's Git identity, or `Crux pin bot` when none is set.
+
+### The two scripts
+
+`update-crux-pin.py` resolves the target to a full SHA, rewrites only the `revision:` value of the Crux project and drops that line's comment, which described the old revision. Exit status `0` means the pin moved, `3` that it is already current. Anything else is an error.
+
+| Option | Default | Use |
+| --- | --- | --- |
+| `--manifest PATH` | `west.yml` | The product manifest |
+| `--project NAME` | `crux` or `crux-pilot` | The Crux project |
+| `--to REV` | Head of `--branch` | A full SHA, branch or tag. A short SHA is refused. A full SHA is taken as given |
+| `--branch NAME` | `main` | The Crux branch to follow, resolved with `git ls-remote` |
+| `--remote-url URL` | The manifest's URL | A mirror |
+| `--summary FILE` | None | Write a commit message: a title, a blank line, the Crux log |
+| `--checkout PATH` | Found from `.west` | The Crux checkout passed to the hook |
+| `--log-limit N` | 100 | The most commits to list |
+| `--no-hook` | Off | Skip the hook |
+| `--dry-run` | Off | Leave the manifest alone and run no hook. `--summary` is still written |
+| `--token-env NAME`, `--user-env NAME` | `CRUX_PIN_TOKEN`, none | Variables kept from Git and the hook |
+
+If the product has an executable `scripts/crux-pin-hook`, it runs after the move, from the product root, so the product can update files that quote the pin, such as tests or documents. It never gets the token's variable. Its exit status `0` means success. Any other status fails the run with status `1` and leaves the manifest updated, so the bot opens no pull request.
+
+| Variable | Value |
+| --- | --- |
+| `CRUX_PIN_OLD`, `CRUX_PIN_NEW` | The old revision and the new SHA |
+| `CRUX_PIN_PROJECT` | The Crux project's name |
+| `CRUX_PIN_MANIFEST` | The manifest's absolute path |
+| `CRUX_PIN_CHECKOUT` | The Crux checkout, still at the old revision, or empty when none was found |
+
+`open-pin-pr.py` commits the working tree's changes on top of `HEAD`, with a `Pin-Bot: open-pin-pr` trailer. Every changed or untracked file must lie under `--allow-path`, or it commits nothing and fails with the list. Repository hooks do not run in either script, and their Git processes do not get the token's variable. `open-pin-pr.py` also turns off `core.fsmonitor` and credential helpers for every Git call, and pushes to an explicit URL. With `--git-config-sha256`, it refuses to push when `.git/config`, followed by `config.worktree` when there is one, no longer has that SHA-256, which is what `sha256sum .git/config` prints for a plain clone. A token that the checkout stored in `.git/config` stays there for the push. It pushes the commit to the bot branch with `--force-with-lease`, and creates or updates the pull request. When the branch already holds the same change, it pushes nothing and leaves the open pull request's text alone, so evidence added to it stays. It never merges, never prints the token and never pushes another branch. Exit status `0` means the pull request is open and current, `3` that the working tree has no change, `4` that the bot branch holds a commit without the trailer. Anything else is an error.
+
+| Option | Default | Use |
+| --- | --- | --- |
+| `--host` | Required | `github`, through `gh`, or `bitbucket-cloud`, through the REST API 2.0 |
+| `--message-file FILE` | Required | The title line, a blank line and the pull request text. Keep it outside the repository |
+| `--base NAME` | `main` | The target branch |
+| `--branch NAME` | `bot/crux-pin` | The bot branch. `main`, `master`, `release*` and the base are refused |
+| `--remote NAME` | `origin` | The remote whose `url` is pushed to. Its `pushurl` is ignored |
+| `--push-url URL` | The remote's `url` | Push to this URL instead |
+| `--git-config-sha256 HEX` | None | Refuse to push unless `.git/config` still has this SHA-256, recorded before the hook or a build ran |
+| `--repo NAME` | Inferred by `gh` | `OWNER/REPO`, or `WORKSPACE/REPOSITORY`, required for Bitbucket |
+| `--token-env NAME` | `CRUX_PIN_TOKEN` | The token's variable |
+| `--user-env NAME` | None | Basic authentication for Bitbucket, see above |
+| `--api-url URL` | `https://api.bitbucket.org/2.0` | The Bitbucket API root, `https` only |
+| `--append-body FILE` | None | Add the file to the pull request text, not the commit. May repeat |
+| `--allow-path PATH` | `west.yml` | A file or directory, from the repository root, that the commit may change, such as one the hook updates. May repeat |
+
+### Keeping the token from the build
+
+The hook and everything a job runs after it run as the same user as the bot. Without the token's variable in their environment, they can still read it from a parent process (`/proc/<pid>/environ`), and they can write what later steps trust: the scripts of the Crux checkout, `.git/config` entries such as `pushurl` and `core.fsmonitor`, `git replace` refs, staged files, and the manifest and pull request text. A process that a build leaves running in the same container can read the token too. `open-pin-pr.py` turns off what it can and refuses a changed `.git/config`, but only a separate stage in its own container keeps the token from the build.
+
+Run the token stage with `crux-pin-stage.py`, in its own, freshly started container, and let it take nothing from the build's workspace:
+
+1. **Update, without the token.** Resolve the target, move the pin with `update-crux-pin.py --to TARGET`, run the hook, then build and test. This stage's only outputs are the target SHA and pass or fail. Do not hand its files, its manifest or its summary to the next stage.
+2. **Propose, with the token, in a fresh container.** `crux-pin-stage.py prepare` clones the product and Crux itself into an empty directory. It proposes nothing when the product's `main` has moved since the build. It refuses a target that is not on Crux `main` and a target that does not contain the pinned revision, so a build cannot choose an older commit. It takes `update-crux-pin.py` and `open-pin-pr.py` from Crux at the revision the clean manifest pins, never from the new revision, writes the manifest and the pull request text with them, and refuses to run from a copy of itself that differs from the pinned one. `crux-pin-stage.py propose` then runs only `open-pin-pr.py`, as `python3 -I -S`, with `PATH=/usr/bin:/bin` and a small environment, with Git ignoring the system and user configuration and ssh ignoring `~/.ssh/config`, and with `--push-url` set to the product URL it cloned. The wrapper takes the stage script from Crux at the pinned revision, and `prepare` checks that it did.
+
+Because the stage clones everything itself, a build cannot change the commit's contents, the pull request text or the scripts. A product whose Crux pin predates `crux-pin-stage.py` moves its pin once by hand first.
+
+| Option | Use |
+| --- | --- |
+| `prepare --workdir DIR` | An empty or missing directory that is not part of a workspace |
+| `--product-remote URL`, `--crux-remote URL` | The URLs to clone. The product URL is also what is pushed to |
+| `--product-commit SHA` | The product commit the build used. Another head on the product's `main` ends with status `3` |
+| `--target SHA` | The full Crux SHA the build verified |
+| `--crux-branch NAME` | The Crux branch the target must be on (default `main`) |
+| `--manifest PATH`, `--project NAME` | As for `update-crux-pin.py` |
+| `propose --workdir DIR` | The directory `prepare` filled. Takes `--host`, `--repo`, `--api-url`, `--base`, `--branch`, `--token-env`, `--user-env`, `--allow-path` and `--append-body` as for `open-pin-pr.py`, and `--path` for the `PATH` of the push (default `/usr/bin:/bin`) |
+
+`prepare` exits `0` when it is ready, `3` when there is nothing to propose and `1` on an error. `propose` exits `0`, also when a person's commit kept the bot branch from being refreshed, and `1` on an error.
+
+Conditions on the CI system:
+
+- Every stage that runs code has its own container, removed when the stage ends. No stage gets the container runtime's socket, host process or IPC namespaces, extra privileges or volumes from another container. `/tmp` is local to the container.
+- The image has Git 2.32 or later, `python3` in `/usr/bin`, and PyYAML that `python3 -I` can import. `/usr/bin:/bin` must hold `git`, `python3` and, for ssh remotes, `ssh`.
+- The token stage's container has the hosts' keys in `~/.ssh/known_hosts` or `/etc/ssh/ssh_known_hosts`, because the scripts run ssh with `-F /dev/null` and so read no `ssh_config`. It can clone both remotes and push `bot/crux-pin` to the product remote, with an ssh agent or another credential that does not live in a configuration file. The token's scope is the pull requests of the one product repository and the push to the bot branch.
+- The container runtime passes the token to the process without putting its value on the host's command line. Check this, or mount the host's `/proc` with `hidepid=2`.
+
+The stage keeps the token from a build and from the new Crux. It does not protect against the CI system itself, or someone who can change the pipeline, reading the token. `crux-pin-bot.py` in one job suits a hook that only edits files.
+
+### CI wrappers
+
+Run the command on a schedule, hourly to daily, one run at a time, on fresh checkouts. Turn the schedule on only once the token exists and the pin has reached a Crux commit that holds the scripts. A shallow checkout works, but the script then fetches the whole history, so the examples fetch it at once. These examples use `product-x` and a Crux project named `crux`, as the template does. Replace both names with your own. Both split the run as above. The GitHub Actions example takes the manifest and the text from the update job, which a person reviews before merging; only the Jenkins example uses `crux-pin-stage.py`, which closes that gap.
+
+GitHub Actions. The update job has no token. The propose job's checkout keeps the token in `.git/config` for the push, so add no other steps to that job.
+
+```yaml
+name: Crux pin
+on:
+  schedule: [{cron: "17 3 * * *"}]
+  workflow_dispatch:
+concurrency: crux-pin
+permissions: {contents: read}
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    outputs: {moved: "${{ steps.pin.outputs.moved }}"}
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: product-x, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - id: pin
+        run: |
+          pip install west==1.4.0
+          west init -l product-x && west update crux
+          mkdir "$RUNNER_TEMP/pin" && cd product-x
+          status=0
+          python3 ../crux/scripts/update-crux-pin.py --summary "$RUNNER_TEMP/pin/message.txt" || status=$?
+          if [ "$status" = 3 ]; then echo moved=false >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ "$status" = 0 ] || exit "$status"
+          cp west.yml "$RUNNER_TEMP/pin/" && echo moved=true >> "$GITHUB_OUTPUT"
+      # Build and test the new pin here, still without the token.
+      - if: steps.pin.outputs.moved == 'true'
+        uses: actions/upload-artifact@v4
+        with: {name: crux-pin, path: "${{ runner.temp }}/pin"}
+  propose:
+    needs: update
+    if: needs.update.outputs.moved == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: product-x, fetch-depth: 0, token: "${{ secrets.CRUX_PIN_TOKEN }}"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - uses: actions/download-artifact@v4
+        with: {name: crux-pin, path: "${{ runner.temp }}/pin"}
+      - env: {CRUX_PIN_TOKEN: "${{ secrets.CRUX_PIN_TOKEN }}"}
+        run: |
+          pip install west==1.4.0
+          west init -l product-x && west update crux
+          cp "$RUNNER_TEMP/pin/west.yml" product-x/west.yml
+          cd product-x && python3 ../crux/scripts/open-pin-pr.py --host github \
+            --message-file "$RUNNER_TEMP/pin/message.txt" --allow-path west.yml
+```
+
+Jenkins with Bitbucket Cloud, as a thin declarative pipeline on Docker agents with the product's Dev Container image. A pipeline that builds that image itself passes `--build-arg CRUX_JLINK=0`, so it never downloads the J-Link software from SEGGER ([CI and automated image builds](board-jlink-usbipd.md#ci-and-automated-image-builds)). The logic is in `update-crux-pin.py` and `crux-pin-stage.py`. Each stage starts its own container, and the Propose stage takes nothing from the Update stage's workspace. `crux-pin-token` holds the access token, `crux-pin-read` a read-only key that may clone both repositories, and `crux-pin-ssh` a key that may also push the bot branch. The Update stage, which runs the new Crux's code, gets only the read-only key: a build that could push could put a commit on the bot branch and so stop every later pin move. Set `PRODUCT_REMOTE` and `CRUX_REMOTE` to the repositories' ssh URLs.
+
+```groovy
+pipeline {
+  agent none
+  triggers { cron('H 3 * * *') }
+  options { disableConcurrentBuilds(); skipDefaultCheckout() }
+  environment {
+    PRODUCT_REMOTE = 'ssh://git@git.example/acme/product-x.git'
+    CRUX_REMOTE = 'ssh://git@git.example/acme/crux.git'
+  }
+  stages {
+    stage('Update') {
+      agent { docker { image 'registry.example/acme/product-x-dev:1' } }
+      steps {
+        deleteDir()
+        dir('product-x') { checkout scm }
+        sshagent(['crux-pin-read']) {
+          script {
+            env.PRODUCT_COMMIT = sh(returnStdout: true, script: 'git -C product-x rev-parse HEAD').trim()
+            env.CRUX_TARGET = sh(returnStdout: true,
+                                 script: 'git ls-remote "$CRUX_REMOTE" refs/heads/main | cut -f1').trim()
+            sh 'west init -l product-x && west update crux'
+            def status = sh(returnStatus: true, script: '''
+              cd product-x
+              python3 ../crux/scripts/update-crux-pin.py --to "$CRUX_TARGET" --remote-url "$CRUX_REMOTE"
+            ''')
+            // Status 3: the pin is current, so the Propose stage is skipped.
+            if (status != 0 && status != 3) { error "update-crux-pin.py failed with status ${status}" }
+            // Build and test the new pin here, still without the token.
+            env.PIN_MOVED = status == 0 ? 'true' : 'false'
+          }
+        }
+      }
+    }
+    stage('Propose') {
+      when { beforeAgent true; expression { env.PIN_MOVED == 'true' } }
+      agent { docker { image 'registry.example/acme/product-x-dev:1' } }
+      steps {
+        deleteDir()   // The workspace may be the Update stage's: start empty.
+        sshagent(['crux-pin-ssh']) {
+          script {
+            // No token yet: clone, read the pin and take the stage script from Crux at that revision.
+            def status = sh(returnStatus: true, script: '''
+              rm -rf /tmp/crux-pin && mkdir /tmp/crux-pin && cd /tmp/crux-pin
+              git clone -q "$PRODUCT_REMOTE" product0
+              pinned=$(python3 -I -c 'import sys, yaml; p = yaml.safe_load(open(sys.argv[1]))["manifest"]["projects"]; print(next(x["revision"] for x in p if x["name"] in ("crux", "crux-pilot")))' product0/west.yml)
+              git clone -q --filter=blob:none --no-checkout "$CRUX_REMOTE" crux0
+              git -C crux0 show "$pinned:scripts/crux-pin-stage.py" > stage.py
+              python3 -I stage.py prepare --workdir /tmp/crux-pin/work --product-remote "$PRODUCT_REMOTE" \
+                --crux-remote "$CRUX_REMOTE" --product-commit "$PRODUCT_COMMIT" --target "$CRUX_TARGET"
+            ''')
+            // Status 3: nothing to propose, such as a product that moved since the build.
+            if (status != 0 && status != 3) { error "crux-pin-stage.py prepare failed with status ${status}" }
+            if (status == 0) {
+              withCredentials([string(credentialsId: 'crux-pin-token', variable: 'CRUX_PIN_TOKEN')]) {
+                sh 'python3 -I /tmp/crux-pin/stage.py propose --workdir /tmp/crux-pin/work --host bitbucket-cloud --repo acme/product-x'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The Propose stage starts with an emptied workspace and takes nothing from the Update stage. The token is bound only around `propose`, and `crux-pin-stage.py` passes it to `open-pin-pr.py` alone. Replace `acme/product-x` and the image with your own.
 
 ## Upgrades and security fixes
 
@@ -346,7 +621,7 @@ flowchart TD
 
 ### Crypto library pins
 
-Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. Since the pin move of [PR #416](https://github.com/wonny-labs/crux-pilot/pull/416) (approved 14 November 2026) they are the revisions of Zephyr's `v4.4-branch` (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1), not the revisions Zephyr's manifest pins at v4.4.2. The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
+Crux pins `mbedtls` and `tf-psa-crypto` from Zephyr's forks, in the optional group `crux-secure-management`. A pin is an upstream release plus Zephyr's commits, and it follows Zephyr's own pin at the Zephyr tag unless a [dependency review](dependency-review.md) moves it. At Zephyr v4.5.0 they are the revisions that Zephyr's manifest pins (Mbed TLS 4.1.1 and TF-PSA-Crypto 1.1.1). The policy is [ADR-0006](decisions/0006-cryptographic-dependency-policy.md). `west crux-pins` reports the pin, not the library line or version. To see those, use the pin base check of the [guide](dependency-review.md#check-what-a-pin-is) and the release notes line that a pin move adds.
 
 A product **can**:
 
@@ -362,7 +637,7 @@ A product **must**:
 
 ### Taking a Zephyr patch release
 
-A Zephyr patch release such as 4.4.3 trips both checks until Crux moves its baseline.
+A Zephyr patch release such as 4.5.1 trips both checks until Crux moves its baseline.
 
 - **`west crux-pins`.** It reports `MISMATCH` on `zephyr` and on each module whose pin moved with it.
 - **Baseline gate.** The [gate](#zephyr-baseline-gate) compares exact release numbers, so the build warns, and `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops it. A required build then needs the option dropped, or Crux's baseline moved first.
@@ -402,7 +677,7 @@ flowchart TD
     B --> C["Fresh workspace: west init --mf"]
     C --> D["west update, with mirror rewrites active"]
     D --> E["west crux-pins"]
-    E --> F["Rewrites off: capture inputs, west spdx --init, west build with the Zephyr gate required"]
+    E --> F["Rewrites off: capture inputs, west build with the Zephyr gate required"]
     F --> G["scripts/record-build-provenance.py --repo"]
     G --> H["west spdx"]
     H --> I["Assemble the release bundle"]
@@ -432,13 +707,12 @@ cd release-1.2.3
 GIT_CONFIG_GLOBAL="$HOME/mirror.gitconfig" west update
 west crux-pins
 
-python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
+python3 crux/scripts/record-build-provenance.py --repo product-x --workspace . \
     --capture-inputs product-x/build/inputs.json
-west spdx --init -d product-x/build/app
 west build -b <board> -d product-x/build/app product-x/app -- -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON
 west build -d product-x/build/app -t rom_report
 west build -d product-x/build/app -t ram_report
-python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
+python3 crux/scripts/record-build-provenance.py --repo product-x --workspace . \
     --build-dir product-x/build/app --target <board> --inputs product-x/build/inputs.json
 west spdx -d product-x/build/app
 ```
@@ -451,6 +725,15 @@ west spdx -d product-x/build/app
 - **Container recipe.** `--devcontainer DIR` names the recipe. By default the record uses `<repo>/.devcontainer` if present, otherwise Crux's own. It records a recipe only for a build inside a container. A build of Crux itself, with neither `--repo` nor `--devcontainer`, stops without its recipe and writes no record.
 - **Lock file.** The record's `west_manifest_sha256` is the hash of `west.yml`, not of the lock. The lock is covered by the source snapshot, and `west_projects` lists each commit.
 - **Toolchain.** West has no field for it. Pin it through the SDK version and container image recorded in the bundle.
+
+### Build path
+
+Build at the same absolute path when you compare two builds of one source. The evidence for this is limited, so the rule is only as strong as that.
+
+- **ELF files differ.** In [Stage 8](evidence/boot-update/stage8-reproducibility-and-signing.md), builds with different build directories gave ELF files that differed only in `.debug_info`, `.debug_line` and `.debug_str`, which hold the path. The unsigned `zephyr.bin` of all four pairs was byte-identical. The signed images differed only in the signature. That trial varied the build directory only, in one container, on an older trial tree. It did not vary the source or workspace path, and no rebuild at one path was made to confirm the path as the sole cause. Nothing has compared two real builds of the current composition ([boot reproducibility](boot-reproducibility.md)).
+- **What Zephyr strips.** Zephyr's `CONFIG_BUILD_OUTPUT_STRIP_PATHS` (on by default; Crux does not change it) passes `-fmacro-prefix-map` for the application source, `ZEPHYR_BASE` and the west top directory, so `__FILE__` does not carry them. Zephyr adds no `-fdebug-prefix-map` or `-ffile-prefix-map`, and the Crux presets and scripts add none, so debug sections keep the path. **Inference** from reading Zephyr 4.4.0 CMake: a path outside those three directories, in a macro or an assertion, could still reach the image. Not tested.
+- **Compare an ELF or its map only from the same path.** Compare flashable images (`zephyr.bin`, `.hex`) from another path only as a check that was expected to pass, not as a guarantee: a difference there means rebuild at the first path before you suspect the source.
+- **A prefix map is untested here.** On a host `clang` object file, `-fmacro-prefix-map` alone left the path in the debug info, and adding `-ffile-prefix-map` removed it, so the objects from two paths were identical. That is an illustration of the flags, not a Crux or Zephyr build. Whether the option would make a Crux ELF path-independent is **Not verified**, and it is not adopted.
 
 ### Release bundle
 
@@ -471,7 +754,7 @@ A provisional schema and checker for it exist in this repository: the manifest s
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
 
-A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. For the bundle, the checker enforces hashes only by default, and it has no mode that allows an image. It refuses a bundle that holds a file with an image suffix such as `.bin`, `.elf` or `.map`, a file that starts like an ELF, or a file whose SHA-256 equals the manifest's image hash. So in a public product repository the firmware image and the debug files of the table are not bundle items, and the manifest holds the image's hash. A mode for a private product that keeps the image in its bundle does not exist. It would be added when such a product needs it, with its own review. The rule is not a Crux-wide rule. The CI of crux-pilot itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
+A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. For the bundle, the checker enforces hashes only by default, and it has no mode that allows an image. It refuses a bundle that holds a file with an image suffix such as `.bin`, `.elf` or `.map`, a file that starts like an ELF, or a file whose SHA-256 equals the manifest's image hash. So in a public product repository the firmware image and the debug files of the table are not bundle items, and the manifest holds the image's hash. A mode for a private product that keeps the image in its bundle does not exist. It would be added when such a product needs it, with its own review. The rule is not a Crux-wide rule. The CI of crux itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
 
 The checker's no-image rules are structural, its path scan is a pattern and its private-string scan is a substring match, and the manifest is not signed, so the hashes show integrity and not origin. See [What is faked or heuristic](release-bundle-checker.md#what-is-faked-or-heuristic).
 
@@ -494,12 +777,17 @@ Signing was not tested. Whether identity is taken before or after signing is und
 
 ## SBOM
 
-At Zephyr v4.4.2:
+At Zephyr v4.5.0, from its release notes and migration guide:
 
-- `west spdx` needs `CONFIG_BUILD_OUTPUT_META`, which the template sets. Run `west spdx --init -d <build>` before the build and `west spdx -d <build>` after it.
-- It emits SPDX 2.2 or 2.3. It does not support `native_sim`.
+- `west spdx` needs `CONFIG_BUILD_OUTPUT_META`, which the template sets. The build itself prepares what `west spdx` reads, so run `west spdx -d <build>` after the build. Do not run `west spdx --init`, which Zephyr plans to remove in 5.0.
+- It emits SPDX 2.3 by default and SPDX 3.0 with `--spdx-version 3.0`; SPDX 3.1 is experimental.
+- Prebuilt libraries linked into the image are listed, with the version and URL that their module declares.
+- Zephyr and its modules get a purl pinned to the built revision, and Zephyr a CPE built from its `VERSION` file.
+
+What follows was read in the source at v4.4.2 and not read again at v4.5.0:
+
+- It does not support `native_sim`.
 - A default set exposes file names, copyright text and internal URLs. Reduce it before giving it outward.
-- Prebuilt libraries declared in `module.yml` appear in no document. A release step must add them.
 - `zspdx/walker.py` `_build_purl` accepts only `git@` and `http(s)://` URLs, so a fork on an `ssh://` URL gets no purl.
 - Only an exact `vX.Y.Z` tag gives the package version and the CPE, so a fork tag such as `v4.4.2-acme1` does not. A release step can add the upstream base identity back. A fork on an `https://` URL was not tested.
 - A repair step must cover each modified package, including the module dependency records in `modules-deps.spdx`, whose references come from `module.yml` and not from the fork.
@@ -518,15 +806,16 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 - A throwaway proof of concept built one small application that links `crux::time`. It used Zephyr v4.4.2, west 1.4.0 and SDK 1.0.1, in the amd64 Dev Container image under emulation. It was a cross-build only, for the current EVKB target. Nothing ran on a board. It exercised the composition, fork, `west patch`, SBOM, frozen-manifest and two-path image comparisons. Its copy of the application is not byte-for-byte the template's.
 - That proof of concept ran prototype versions of the pin check and the gate, not the ones in this repository. Its `.config` comparison across paths also removed `# CONFIG_X is not set`, which `firmware_identity` keeps.
-- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. West 1.4.0 is the version that the Zephyr workflow and the Dev Container pin, and the Host CI job has no west and skips the tests that need it. The tests use local throwaway repositories in place of every remote and build nothing with Zephyr.
+- `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. West 1.4.0 is the version that the Zephyr workflow and the Dev Container pin, and the Host CI job installs it and runs the tests that need it. The tests use local throwaway repositories in place of every remote and build nothing with Zephyr.
 - A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
-- `scripts/test-product-template.sh <board>` runs in one shard of the Zephyr workflow, `storage`, and that workflow does not run for [documentation-only changes](ci-zephyr-shards.md#documentation-only-changes). It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
+- `scripts/test-product-template.sh <board>` runs in one [shard](ci-zephyr-shards.md#shards) of the Zephyr workflow, and that workflow does not run for [documentation-only changes](ci-zephyr-shards.md#documentation-only-changes). It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
 - `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, delivery lines with a fix on the older one, the hash-list check, a commercial edition under a new project name, a reused project name that must fail, a hand-pinned manifest with no import or with a Zephyr-only import, and the steps for a Zephyr patch release. All of these used invented local repositories. None of these routes built anything with Zephyr.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
+- `tests/build/test_update_crux_pin.py`, `tests/build/test_open_pin_pr.py` and `tests/build/test_crux_pin_bot.py` run the pin scripts on local throwaway Git repositories, with a fake `gh` and a local fake of the Bitbucket Cloud pull request API. No real GitHub, Bitbucket or Jenkins job ran them.
 
 **What was not run**
 
-- A regular CI build through the template's own manifest. `scripts/test-product-template.sh <board>` runs in the `storage` shard of the Zephyr workflow, but it builds inside Crux's own workspace.
+- A regular CI build through the template's own manifest. `scripts/test-product-template.sh <board>` runs in the Zephyr workflow, but it builds inside Crux's own workspace.
 - A real hosted git server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module or vendor delivery. `vendor-runtime` was an invented stand-in. A vendor merge with a conflict was not tried.
 - The comparison of a soft fork with patch files on a fresh workspace.

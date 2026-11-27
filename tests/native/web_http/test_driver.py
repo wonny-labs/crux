@@ -7,6 +7,7 @@ device evidence: they come from an emulated container on a loaded machine, with 
 (see prj.conf). Measurements are printed as one JSON object, and bounds here allow for that.
 
     test_driver.py <zephyr.exe> [--results file] [--only name,name]
+    test_driver.py <zephyr.exe> --expect-start-refused [--results file]
 """
 import argparse
 import json
@@ -23,18 +24,26 @@ HOST = "127.0.0.1"
 PORT = 18184
 INACTIVITY_S = 3.0
 DEADLINE_S = 2.0
+HEADER_DEADLINE_S = 2.0
 SEND_TIMEOUT_S = 0.5
 RESPONSE_DEADLINE_S = 1.5
 # Allowance for scheduling in an emulated container.
 SLACK_S = 1.5
-# One small response from the server: the status line, three sends per header, an end of headers, then
-# a chunk's three sends and the terminator. Each can wait out the send timeout on one callback.
+# The most sends of one small response: at Zephyr v4.4.2 the status line, three sends per header, an end
+# of headers, then a chunk's three sends and the terminator. Each can wait out the send timeout on one
+# callback. Zephyr v4.5.0 assembles the header block in a 128-byte buffer, sends each full buffer, and
+# passes the rest with the chunk and the terminator in one sendmsg(), so it makes fewer sends; the bound
+# stays the v4.4.2 count.
 SENDS_PER_RESPONSE = 1 + 3 * 5 + 1 + 3 + 1
 STALL_BOUND_S = RESPONSE_DEADLINE_S + SENDS_PER_RESPONSE * SEND_TIMEOUT_S + SLACK_S
-# Sends before the failing one in /probe/fail: the head, the first piece, and the second piece's size.
+# The fewest sends of a small /api/v1/status response at Zephyr v4.5.0: one full header buffer and one
+# sendmsg() with the rest. A silent reader must see at least these wait.
+SENDS_OF_A_SMALL_RESPONSE = 2
 # Of the sizes tried, this one leaves room for a small send while free space stays too low for POLLOUT.
 SMALL_RESPONSE_SEND_BUFFER = 8192
-SENDS_BEFORE_SECOND_BODY_PIECE = 1 + 3 * 5 + 1 + 3 + 1
+# Pieces before the failing one in /probe/fail: the shim fails a body piece, one sendmsg() each from
+# Zephyr v4.5.0, so 1 lets the first piece (with the headers) through and stops the second.
+SENDS_BEFORE_SECOND_BODY_PIECE = 1
 
 ADMIN = "crux_session=admin"
 VIEWER = "crux_session=viewer"
@@ -49,6 +58,8 @@ SECURITY_HEADERS = {
 }
 # 256 bits in base64url, the size Issue #186 specifies for each.
 TOKEN = "A" * 43
+# The value of CRUX_WEB_ERR_FAILED in <crux/web.h>.
+CRUX_WEB_ERR_FAILED = -5
 BROWSER_COOKIE = f"crux_session=admin{'0' * 38}; XSRF-TOKEN={TOKEN}"
 
 results = {}
@@ -560,53 +571,109 @@ def case_deadline_then_silent_closes_before_inactivity():
 
 # Slots.
 
-def case_trickled_headers_hold_slots():
-    """Headers run no callback, so the adapter cannot see these. The result is a declared limit."""
-    window = 4 * INACTIVITY_S
+def peer_closed(client):
+    """Whether the server has closed the connection, looking for a moment only."""
+    try:
+        return client.is_closed_within(0.05)
+    except OSError:
+        return True
+
+
+def case_trickled_headers_closed_by_deadline():
+    """Received bytes restart the inactivity timer but not the header-phase deadline (#268)."""
     interval = INACTIVITY_S / 3.0
     prefix = b"GET /api/v1/status HTTP/1.1\r\nHost: padding-so-the-preface-passes\r\nX-Slow: "
     holders = [Client() for _ in range(3)]
+    started = time.monotonic()
     for holder in holders:
         holder.send(prefix)
-    before = time.monotonic()
     waiting = {}
 
-    def blocked_client():
-        client = Client(timeout=window * 3)
-        started = time.monotonic()
+    def fourth_client():
+        client = Client(timeout=4 * INACTIVITY_S)
+        begun = time.monotonic()
         client.send(encode("GET", "/probe/stats"))
-        client.read_response()
-        waiting["served_after_s"] = time.monotonic() - started
+        waiting["status"] = client.read_response().status
+        waiting["served_after_s"] = time.monotonic() - begun
         client.close()
 
     time.sleep(0.3)
-    thread = threading.Thread(target=blocked_client)
+    thread = threading.Thread(target=fourth_client)
     thread.start()
-    alive = 0
-    while time.monotonic() - before < window:
+    closed_at = [None] * len(holders)
+    sent = [0] * len(holders)
+    while None in closed_at and time.monotonic() - started < 4 * INACTIVITY_S:
         time.sleep(interval)
-        alive = 0
-        for holder in holders:
+        for index, holder in enumerate(holders):
+            if closed_at[index] is not None:
+                continue
+            if peer_closed(holder):
+                closed_at[index] = time.monotonic() - started
+                continue
             try:
                 holder.send(b"a")
-                alive += 1
+                sent[index] += 1
             except OSError:
-                pass
-    check(alive == 3, f"{alive} of 3 trickling clients survived past the inactivity timer")
-    check(thread.is_alive(), "a fourth client must still be waiting: the interface is blocked")
-    held = time.monotonic() - before
+                closed_at[index] = time.monotonic() - started
     for holder in holders:
         holder.close()
-    thread.join()
+    thread.join(4 * INACTIVITY_S)
+    check(None not in closed_at, f"trickling clients still open after {4 * INACTIVITY_S} s: {closed_at}")
+    for when in closed_at:
+        check(HEADER_DEADLINE_S - 0.5 <= when <= HEADER_DEADLINE_S + SLACK_S + interval,
+              f"closed at {when:.2f} s, the header deadline is {HEADER_DEADLINE_S} s")
+    check(min(sent) >= 1, f"each client sent bytes after its first, which restart the timer: {sent}")
+    check(not thread.is_alive() and waiting.get("status") == 200, f"the fourth client: {waiting}")
+    check(waiting["served_after_s"] <= HEADER_DEADLINE_S + SLACK_S + interval,
+          f"the fourth client waited {waiting['served_after_s']:.2f} s")
     results["trickled_headers"] = {
-        "clients": 3,
-        "held_s": round(held, 2),
+        "clients": len(holders),
+        "header_deadline_s": HEADER_DEADLINE_S,
         "inactivity_s": INACTIVITY_S,
-        "bytes_each": int(window / interval),
+        "closed_after_s": [round(when, 2) for when in closed_at],
+        "bytes_after_first_send": sent,
         "fourth_client_served_after_s": round(waiting["served_after_s"], 2),
-        "parser_header_limit_bytes": 80 * 1024,
-        "worst_case_hold_at_10s_timer_days": round(80 * 1024 * 10 / 86400, 1),
     }
+
+
+def case_split_headers_within_deadline_are_served():
+    """An ordinary slow client: a head in pieces that ends within the deadline is served, and the
+    deadline starts again with each request on a kept connection, after an idle gap longer than it."""
+    client = Client()
+    try:
+        for _ in range(2):
+            data = encode("GET", "/probe/stats")
+            pieces = (data[:20], data[20:40], data[40:])
+            for index, piece in enumerate(pieces):
+                if index:
+                    time.sleep(HEADER_DEADLINE_S / 3.0)
+                client.send(piece)
+            check(client.read_response().status == 200, "a head that ends within the deadline")
+            # Idle past the header deadline, within the inactivity timer.
+            time.sleep(HEADER_DEADLINE_S + 0.3)
+    finally:
+        client.close()
+    results["split_headers_kept_connection"] = {"requests": 2,
+                                                "head_spread_s": round(2 * HEADER_DEADLINE_S / 3.0, 2),
+                                                "idle_between_s": HEADER_DEADLINE_S + 0.3}
+
+
+def case_second_start_is_refused_and_changes_nothing():
+    """A second crux_web_start() while a request is open, from another thread than the server's."""
+    before = stats()
+    client = Client()
+    try:
+        response = client.request("GET", "/probe/second-start")
+    finally:
+        client.close()
+    check(response.status == 200, f"the open request completes: {response.status}")
+    check(response.json() == {"second_start": CRUX_WEB_ERR_FAILED}, f"body {response.body!r}")
+    after = stats()
+    # The stats request counts itself, so an untouched core shows two more: the open one and this.
+    check(after["requests"] == before["requests"] + 2, f"the core was reset: {before} {after}")
+    results["second_start"] = {"result": response.json()["second_start"],
+                               "requests_before": before["requests"],
+                               "requests_after": after["requests"]}
 
 
 def case_client_slots():
@@ -801,7 +868,7 @@ def fill_a_silent_readers_socket():
             if pinger.waiting_s() > 0.2:
                 time.sleep(0.05)
                 continue
-            if pinger.latencies and max(pinger.latencies) >= 4 * SEND_TIMEOUT_S:
+            if pinger.latencies and max(pinger.latencies) >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S:
                 break
             try:
                 reader.send(request)
@@ -824,11 +891,11 @@ def case_slow_reader_small_responses():
     attempts = []
     for _ in range(4):
         attempts.append(fill_a_silent_readers_socket())
-        if attempts[-1]["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000:
+        if attempts[-1]["max_ms"] >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S * 1000:
             break
     summary = max(attempts, key=lambda attempt: attempt["max_ms"])
     check(all(attempt["unfinished"] == 0 for attempt in attempts), f"a ping never finished: {attempts}")
-    check(summary["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000, f"several sends waited: {attempts}")
+    check(summary["max_ms"] >= SENDS_OF_A_SMALL_RESPONSE * SEND_TIMEOUT_S * 1000, f"several sends waited: {attempts}")
     check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
     results["slow_reader_small_responses"] = {
         **summary, "attempts": len(attempts), "send_timeout_ms": int(SEND_TIMEOUT_S * 1000),
@@ -925,8 +992,8 @@ def case_stalled_reader_split_request_alone():
 def send_dot_split_request(client):
     """A split request whose URL, appended to the old one, folds back to it.
 
-    Zephyr v4.4.2 removes dot segments from the whole URL buffer when headers complete, so
-    `/probe/fail/21` with `/../21` appended becomes `/probe/fail/21` again: same length, same content.
+    Zephyr v4.5.0 removes dot segments from the whole URL buffer when headers complete, so
+    `/probe/fail/1` with `/../1` appended becomes `/probe/fail/1` again: same length, same content.
     """
     request = encode("GET", f"/../{SENDS_BEFORE_SECOND_BODY_PIECE}")
     client.send(request[:len(request) // 2])
@@ -1021,12 +1088,56 @@ def start_server(executable, log):
     raise SystemExit("the image did not start listening")
 
 
+def expect_start_refused(executable, log_path, results_path=None):
+    """An image whose start must fail: it prints the failure and nothing listens on the port."""
+    with open(log_path, "w", encoding="utf-8") as log:
+        process = subprocess.Popen([str(executable)], stdout=log, stderr=subprocess.STDOUT)
+        try:
+            deadline = time.monotonic() + 60.0
+            printed = ""
+            while time.monotonic() < deadline and "CRUX_WEB_" not in printed:
+                time.sleep(0.2)
+                printed = pathlib.Path(log_path).read_text(encoding="utf-8", errors="replace")
+            # The server opens its listener on its own thread, after crux_web_start() returns.
+            time.sleep(1.0)
+            try:
+                socket.create_connection((HOST, PORT), timeout=1.0).close()
+                listening = True
+            except OSError:
+                listening = False
+        finally:
+            process.kill()
+            process.wait()
+    printed = pathlib.Path(log_path).read_text(encoding="utf-8", errors="replace")
+    failures = 0
+    for condition, message in (("CRUX_WEB_START_FAILED" in printed, "the start was not refused"),
+                               ("CRUX_WEB_READY" not in printed, "the image reported ready"),
+                               (not listening, f"something listens on {HOST}:{PORT}")):
+        if not condition:
+            failures += 1
+            print(f"FAIL start_refused: {message}", flush=True)
+    if not failures:
+        print("PASS start_refused", flush=True)
+    outcome = {"start_refused": {"start_failed_printed": "CRUX_WEB_START_FAILED" in printed,
+                                 "ready_printed": "CRUX_WEB_READY" in printed,
+                                 "listening": listening}}
+    print(json.dumps(outcome, indent=2, sort_keys=True))
+    if results_path:
+        results_path.write_text(json.dumps(outcome, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return 1 if failures else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("executable", type=pathlib.Path)
     parser.add_argument("--results", type=pathlib.Path)
     parser.add_argument("--only", default="")
+    parser.add_argument("--expect-start-refused", action="store_true",
+                        help="the image's start must fail, as for a bind text that is no address")
     args = parser.parse_args()
+    if args.expect_start_refused:
+        log = args.results.with_suffix(".log") if args.results else pathlib.Path("/tmp/web_http.log")
+        return expect_start_refused(args.executable, log, args.results)
     selected = [case for case in CASES
                 if not args.only or case.__name__[5:] in args.only.split(",")]
     failures = 0

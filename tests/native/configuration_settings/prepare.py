@@ -39,9 +39,11 @@ def prepare(zephyr, output):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
             hashes[relative] = hashlib.sha256(content).hexdigest()
-        for name in ['settings_store', 'settings_nvs']:
-            subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p1', '-i',
-                            str(previous / 'settings_error' / (name + '.patch'))], cwd=staging, check=True)
+        # The settings_store.c correction is the module's own; the NVS one is the experiment's.
+        for patch in [previous.parent.parent / 'patches/zephyr/settings-store-error.patch',
+                      previous / 'settings_error/settings_nvs.patch']:
+            subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p1', '-i', str(patch)],
+                           cwd=staging, check=True)
         for relative in paths:
             target = output / Path(relative).name
             (staging / relative).replace(target)

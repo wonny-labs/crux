@@ -73,3 +73,5 @@ One removal, one card, one board. The result does not separate "the SD driver ca
 
 ## Cleanup state
 Inert restore image flashed after each run, hub `0-1.4` port 4 off (0.000 V), card back on the host with `bootcount`, `pattern` and `probe` in `files`, the full backup kept outside the repository.
+
+The debug probe serial number in the raw files of this record was replaced by `<probe-serial>`; see [probe-serial-redaction.md](../probe-serial-redaction.md), which also lists the files that still hold it.

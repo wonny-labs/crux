@@ -2,9 +2,9 @@
 
 A starting point for an organisation's shared hardware module: a Zephyr module that holds the boards and drivers that two or more products use. The organisation `acme`, its prefix `acmeco`, the module `acme-hw` and the board `acmeco_ctrl_a` are fictional.
 
-Read [Shared boards and drivers across products](../../docs/shared-hardware-modules.md) first. It says when a board or driver belongs here rather than in a product repository or in upstream Zephyr. The products import this module through the [organisation manifest](../organisation-manifest/README.md).
+Read [Shared boards and drivers across products](../../docs/shared-hardware-modules.md) first. It says when a board or driver belongs here rather than in a product repository or in upstream Zephyr. The products import this module through the [organisation manifest](../organisation-manifest/README.md), or [pin it directly](#without-an-organisation-manifest).
 
-**Status: a template, not built.** No CI of Crux builds this directory yet, and nothing here has run on a board or on `native_sim`. Its structure is checked by `tests/build/test_shared_hardware_templates.py`. The board files are placeholders: the image does not boot, because the board carries no flash configuration block and no device configuration data.
+The board files are placeholders: the image does not boot, because the board carries no flash configuration block and no device configuration data.
 
 | Path | Purpose |
 | --- | --- |
@@ -14,7 +14,8 @@ Read [Shared boards and drivers across products](../../docs/shared-hardware-modu
 | `dts/bindings/` | One binding per shared driver, and `vendor-prefixes.txt` with the fictional prefix `acmeco` |
 | `boards/acmeco/ctrl_a/` | A fictional i.MX RT1062 board in Zephyr's hardware model v2, with its own board name `acmeco_ctrl_a` |
 | `tests/module/smoke/` | A Twister test: proves on `native_sim` that the build found the module, and builds the board |
-| `ci/west.yml` | The workspace for the module's own CI and for local work on the module |
+| `ci/west.yml` | The workspace for the module's own CI and for local work on the module, at the organisation's baseline |
+| `ci/west-direct.yml` | The same workspace [without an organisation manifest](#without-an-organisation-manifest) |
 | `ci/build.yml` | A CI workflow template: Twister on `native_sim` and the cross-build of every board. Copy it to `.github/workflows/` of the module's repository |
 
 ## Start the module
@@ -48,6 +49,17 @@ west build -b acmeco_ctrl_a product-y/app -- -DZEPHYR_EXTRA_MODULES=/path/to/acm
 
 The module keeps its name, `acme-hw`, from `zephyr/module.yml`, so this checkout replaces the workspace's copy in that build. The build record and `west crux-pins` do not see it, so never release such a build. The guide has the details: [Local development](../../docs/shared-hardware-modules.md#local-development).
 
+## Without an organisation manifest
+
+If the organisation has no manifest repository, the module's manifest pins Crux itself. The module repository stays the manifest repository, so `west init` and `west update` work as above.
+
+1. Replace `ci/west.yml` with `ci/west-direct.yml`, under the name `ci/west.yml`, so that `ci/build.yml` and every command stay as they are.
+2. Set the `crux` revision to a full Crux commit SHA. Add each other component the module needs as its own entry, also by full SHA.
+3. Keep the Zephyr, SDK and west versions in `ci/build.yml` equal to what that Crux commit uses.
+4. Remove the token step of `ci/build.yml` if the manifest names no private repository.
+
+In place of step 3 under [Start the module](#start-the-module), tag the module `v0.1.0`, and in each product's `west.yml` add the module with its remote, full SHA and path, as the `acme-hw` entry of the [organisation manifest](../organisation-manifest/west.yml) does.
+
 ## The example driver
 
-The product driver kit (`docs/writing-a-product-driver.md` and the module skeleton in `templates/product/`) adds an example I2C sensor driver with an emulator and tests. When that kit has been reviewed, its driver either moves here as the first shared driver or is referenced from here, so that the repository holds one copy. Until then, `drivers/CMakeLists.txt` and `drivers/Kconfig` show the wiring as comments, and this template carries no driver code.
+The product driver kit (`docs/writing-a-product-driver.md` and the module skeleton in `templates/product/`) adds an example I2C sensor driver with an emulator and tests. `drivers/CMakeLists.txt` and `drivers/Kconfig` show the wiring as comments, and this template carries no driver code.

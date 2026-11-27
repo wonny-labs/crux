@@ -8,8 +8,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-BASE_SHA256 = "bbcbd74f0374320633f1ac0d742b1c4077b48f8b465d8349cf1d6f7ea601b2a9"
-PATCHED_SHA256 = "621938effeb05a0aa77155d58502c7ad0673c7ee0246faec482b7fdf20673314"
+BASE_SHA256 = "7bb737ece3b291b26527214cb375ce59fe3550ee1d88db146856014dc7c8e9b0"
+PATCHED_SHA256 = "3c0de5a2a2979c30df9c68836b54e33e6d82fedf18f1f8be4eba08730c743f4f"
 RELATIVE_SOURCE = Path("subsys/sd/mmc.c")
 PATCH = Path(__file__).resolve().parents[1] / "patches/zephyr/mmc-cache-flush.patch"
 

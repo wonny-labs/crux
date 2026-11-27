@@ -20,7 +20,9 @@ if [[ ! -f "$workspace/.west/config" || ! -f "$zephyr/zephyr-env.sh" ]]; then
     exit 2
 fi
 
-build_key="$(printf '%s' "$board" | sed -E 's/[^A-Za-z0-9_.-]+/_/g')"
+# shellcheck source=lib/board.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/board.sh"
+build_key="$(crux_board_key "$board")"
 build_dir="$repo/build/zephyr/$build_key"
 evidence_dir="$repo/build/evidence"
 mkdir -p "$evidence_dir"
@@ -34,11 +36,11 @@ if [[ $# -eq 2 ]]; then
     test_args=(--test-inputs "$2")
 fi
 printf 'Board target: %s\n' "$board"
-printf 'Application:  %s\n' "$repo/samples/time"
+printf 'Application:  %s\n' "$repo/samples/time/shell/zephyr"
 printf 'Build dir:    %s\n' "$build_dir"
 
 (cd "$workspace" && west build -p always -b "$board" -d "$build_dir" \
-    "$repo/samples/time" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) \
+    "$repo/samples/time/shell/zephyr" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) \
     2>&1 | tee "$evidence_dir/evkb-build.log"
 "$repo/scripts/select-clangd-database.sh" "$build_dir"
 (cd "$workspace" && west build -d "$build_dir" -t rom_report) \

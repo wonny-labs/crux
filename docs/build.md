@@ -6,7 +6,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 
 | Use case | Entry point | Scope |
 | --- | --- | --- |
-| Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
+| Develop and test Crux on Linux | The Dev Container, whose `scripts/bootstrap.sh` runs `scripts/bootstrap-host.sh`, and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
 | Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Zephyr only, no Crux release tag yet |
@@ -16,25 +16,49 @@ Linux Host is a development and test composition, **not** a qualified production
 
 ## Development environment
 
-Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension. Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools. The container is configured for 2 CPUs and 4 GiB of memory.
+**First set-up:** read [Getting started](getting-started.md) first. It covers the Git clone, the folder layout and the folder name the scripts require, Windows with WSL2, line endings, network and proxy access, and disk and memory.
 
-**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`). On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow. Running the full Host and Zephyr suites that way is impractical. CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (the Zephyr workflow ignores changes that touch only Markdown or `docs/`). Use a local run for the narrow checks of the code you changed. This guide gives no time or disk estimate; confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
+Use the repository's [Dev Container](../.devcontainer/devcontainer.json) with Docker and VS Code's Dev Containers extension.
+Its pinned Ubuntu 24.04 amd64 environment includes Clang 18 and installs CMake 3.28.4, Ninja 1.11.1, west 1.4.0 and the documented Python tools.
+The container is configured for 2 CPUs and 4 GiB of memory.
 
-Open `crux-pilot/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
+After it is created it runs `scripts/bootstrap.sh`, which installs those tools into a Python environment in the cache volume, builds and tests the Host preset and sets up the west workspace and the Zephyr SDK, skipping what is already done ([The Dev Container sets itself up](getting-started.md#6-the-dev-container-sets-itself-up)).
+
+The same container serves a board: it can reach a USB debug probe and installs the J-Link software when its package is given ([J-Link board route](board-jlink-usbipd.md)).
+
+**Apple silicon and other arm64 hosts.** The Dev Container is pinned to `linux/amd64` (`--platform=linux/amd64` in `devcontainer.json`).
+On an arm64 machine, such as an Apple-silicon Mac, Docker runs it under emulation, which is slow.
+Running the full Host and Zephyr suites that way is impractical.
+
+CI is the supported way to run them in full: push the branch to a (Draft) pull request, or start the workflow manually, and read the results of the `host-foundation` and `zephyr-software` workflows (for a change that touches only Markdown or `docs/`, the Zephyr workflow does not run and the Host workflow runs only its documentation checks).
+Use a local run for the narrow checks of the code you changed.
+
+This guide gives no time estimate.
+For disk and memory, see [Disk and memory](getting-started.md#5-disk-and-memory) in Getting started, and confirm the available disk space before the SDK installation (see [Zephyr build and module integration](#zephyr-build-and-module-integration)).
+
+Open `crux/` in VS Code and choose **Dev Containers: Reopen in Container**. The container mounts the repository's parent directory, with this layout:
 
 ~~~text
-/workspaces/crux/
-  crux-pilot/    # This Git repository
+/workspace/
+  crux/          # This Git repository
   .west/         # Created by west init
   zephyr/        # Pinned upstream checkout
   modules/       # Selected Zephyr dependencies
 ~~~
 
-Run the commands below from `/workspaces/crux/crux-pilot` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspaces/crux` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
+Run the commands below from `/workspace/crux` inside the container unless a different working directory is specified. The container supplies `CRUX_WORKSPACE=/workspace` and uses an external cache. Keep generated builds under `build/` and the west workspace, SDK and dependencies outside the Crux Git source tree.
 
 ## Linux Host build
 
-The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. For the initial build, dependency acquisition and Host CTest run:
+**What the Linux Host providers are used for.** They run the Host tests (CTest with GoogleTest suites and standalone C/C++ tests, see the [test guide](../tests/README.md)).
+The `host-sanitize` preset builds them with AddressSanitizer and UndefinedBehaviorSanitizer, through `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` and several `scripts/test-*.sh` runners.
+`scripts/test-mgmt-services.sh` and `tests/ssh/cli/test-thread-sanitizer.sh` run selected suites under ThreadSanitizer.
+In this repository these sanitizer builds run on Linux Host, while Zephyr `native_sim` runs Ztest.
+
+The Host providers also serve source-tree consumers, as in [External Linux application using Crux source](#external-linux-application-using-crux-source), [`tests/consumer_poc`](../tests/consumer_poc/README.md) and `tests/external_application`.
+This is not Embedded Linux support.
+
+The source root uses [CMake presets](../CMakePresets.json) named `host-debug` and `host-sanitize`. The initial build, dependency acquisition and Host CTest run are the host step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created; by hand:
 
 ~~~sh
 scripts/bootstrap-host.sh
@@ -59,15 +83,20 @@ cmake --build --preset host-debug
 ctest --preset host-debug
 ~~~
 
-The root build enables Crux's development components and samples by default. `CRUX_BUILD_TESTS` initially follows the root project's `BUILD_TESTING` setting. Disabling internal tests also avoids the Crux GoogleTest/C++ test setup. The test and sample options are independent, so set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_REFERENCE_CONTROLLER=OFF` as well when the corresponding development targets are not wanted. Component-specific options are described below.
+The root build enables Crux's development components and samples by default. `CRUX_BUILD_TESTS` initially follows the root project's `BUILD_TESTING` setting. Disabling internal tests also avoids the Crux GoogleTest/C++ test setup. The test and sample options are independent, so set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO=OFF` as well when the corresponding development targets are not wanted. Component-specific options are described below.
 
-For the complete quality checks and component-specific runners, use the [test guide](../tests/README.md). `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` validate formatting, configured analysis and dependency boundaries. Analysis uses the configured compiler database and can report existing upstream or suppressed diagnostics, so a successful run does not imply zero warnings. The list of sources that clang-tidy analyses is moving from hand-written paths to a list generated from the compile databases (`scripts/tidy-sources.py`); [static-analysis coverage](static-analysis-coverage.md) gives the measurement, the stages and their status.
+For the complete quality checks and component-specific runners, use the [test guide](../tests/README.md).
+`scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` validate formatting, configured analysis and dependency boundaries.
+
+Analysis uses the configured compiler database and can report existing upstream or suppressed diagnostics, so a successful run does not imply zero warnings.
+
+The list of sources that clang-tidy analyses is moving from hand-written paths to a list generated from the compile databases (`scripts/tidy-sources.py`); [static-analysis coverage](static-analysis-coverage.md) gives the measurement, the stages and their status.
 
 ## Zephyr build and module integration
 
 Zephyr is integrated through [zephyr/module.yml](../zephyr/module.yml), [zephyr/CMakeLists.txt](../zephyr/CMakeLists.txt) and [zephyr/Kconfig](../zephyr/Kconfig), **not** through the Linux Host root CMake entry point. The [west manifest](../west.yml) pins the Zephyr revision and selected CMSIS/NXP modules.
 
-After the Dev Container is ready, initialise or update the separate west workspace and install the pinned Zephyr SDK and Arm toolchain:
+The zephyr step of `scripts/bootstrap.sh`, which the Dev Container runs after it is created, initialises or updates the separate west workspace and installs the pinned Zephyr SDK and Arm toolchain. By hand:
 
 ~~~sh
 scripts/bootstrap-zephyr.sh --install-sdk
@@ -78,7 +107,7 @@ The bootstrap uses `west init -l` when needed, updates the pinned dependencies a
 Run a documented reference-controller scenario on Zephyr `native_sim` and cross-build its EVKB firmware:
 
 ~~~sh
-scripts/test-controller.sh
+scripts/test-time-periodic.sh
 ~~~
 
 For the Time capability's Twister tests, `native_sim` sample build and EVKB cross-build:
@@ -88,6 +117,8 @@ scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ~~~
 
 Both commands use the module from this checkout. The current EVKB target is `mimxrt1060_evk@B//qspi`, limited to its documented configuration.
+
+Crux pins Zephyr v4.5.0. Its Host, `native_sim` and cross-build checks run on that release in CI. The physical board results under `docs/evidence/` and in the board records were recorded on Zephyr 4.4.x and have not been repeated on v4.5.0.
 
 The Crux module compares the Zephyr release in use with the one Crux was verified on. On another release, every build that enables the module warns and continues without Crux evidence. `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops such a build instead. `west crux-pins` compares the workspace's project commits with the ones Crux pins and fails on an undeclared difference; see [its description](product-composition.md#west-crux-pins).
 
@@ -99,90 +130,112 @@ workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west build -p always -b native_sim/native/64 \
     -d "$repo/build/zephyr/controller-example" \
-    "$repo/samples/controller/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
+    "$repo/tests/time_periodic/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
 ~~~
+
+**Applications with MCUboot (build only).** The sysbuild route of `scripts/test-boot-composition.sh` passes Crux with the older spelling, `-DZEPHYR_EXTRA_MODULES=<crux>`.
+MCUboot itself is not added as a module: it is the plain west project `mcuboot` in the optional group `crux-boot`, which the script enables with `west config manifest.group-filter` and fetches with `west update mcuboot`.
+Do not pass MCUboot through the module flags.
+
+The signing step needs packages that the Zephyr requirements do not list; the script installs them with `python3 -m pip install -r <workspace>/bootloader/mcuboot/scripts/requirements.txt` after the fetch.
+Run it by hand the same way if you build outside the script.
+The [boot composition](boot-composition.md) page gives the argument set and its status.
 
 Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and hardware-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
 Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
+## VS Code
+
+VS Code in the Dev Container is the supported editor. clangd is the language server. The C/C++ extension (`ms-vscode.cpptools`) is installed for its debugger; [`.vscode/settings.json`](../.vscode/settings.json) turns its IntelliSense off with `"C_Cpp.intelliSenseEngine": "disabled"`, the setting that the [clangd extension](https://github.com/clangd/vscode-clangd/blob/master/src/extension.ts) asks for when both are installed.
+
+[`.clangd`](../.clangd) gives the sources that only west builds the database `build/native_sim/compile_commands.json`, which **native_sim: Build** writes.
+The other sources, including Zephyr files that the Host tests also compile, use `build/clangd`.
+`.clangd` and the Dev Container's clangd user config remove the GCC-only options that Zephyr adds to `native_sim` builds, so clangd accepts that database for repository sources and for Zephyr's own headers.
+
+### Linux Host in VS Code
+
+The CMake Tools extension reads the presets `host-debug` (**Host Debug**) and `host-sanitize` (**Host Debug (ASan, UBSan)**).
+Run these commands from the Command Palette:
+
+1. Run **CMake: Configure** and choose **Host Debug** if asked. In a new workspace the other CMake commands appear only after this first configure.
+2. Select **Host Debug** with **CMake: Select Build Preset** and **CMake: Select Test Preset**.
+3. Run **CMake: Build**, then **CMake: Run Tests**.
+4. Check the result: the Output panel's **CMake/Build** channel shows the configure, build and test output, and the **Testing** view lists each CTest test with its result.
+
+To run the time shell, pick `crux-time-host` with **CMake: Set Launch/Debug Target** and run **CMake: Run Without Debugging**.
+It runs in a terminal, which takes its commands; Ctrl+D ends it.
+In the terminal, `cmake --build --preset host-debug --target run_time_shell` does the same, and `--target run_echo_client` runs the echo client with its local peer ([tutorial step 3](tutorial.md#3-run-the-networking-sample-on-the-host)).
+
+To debug, pick the program with **CMake: Set Launch/Debug Target** and run **CMake: Debug**, which uses the C/C++ extension's debugger ([CMake Tools debugging](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/debug-launch.md)).
+**F5** starts the `launch.json` profiles for `native_sim` and the board, not a Host program.
+Debug stops at `main`, because [`.vscode/settings.json`](../.vscode/settings.json) sets `"cmake.debugConfig": { "stopAtEntry": true }`.
+
+`samples/hello_crux/linux` is a separate CMake project that consumes Crux as an external application does, so the root presets do not build it; [tutorial step 2](tutorial.md#2-run-hello-crux-on-the-linux-host) has its commands.
+
+### native_sim and the board in VS Code
+
+CMake Tools does not build them. The tasks in [`.vscode/tasks.json`](../.vscode/tasks.json) (**Terminal > Run Task**) and the profiles in [`.vscode/launch.json`](../.vscode/launch.json) (**Run and Debug**) do. **Board: Build** and **native_sim: Build** ask for the sample folder, relative to the repository, and offer `samples/hello_crux/zephyr`.
+A sample folder such as `samples/time/shell` builds its `zephyr/` application.
+A folder with neither `CMakeLists.txt` nor `zephyr/CMakeLists.txt` stops the task with `No Zephyr application at <path>; enter samples/<name>/zephyr.`
+The board tasks and profiles take the board from [`.vscode/settings.json`](../.vscode/settings.json), read through `${config:...}` ([VS Code configuration variables](https://code.visualstudio.com/docs/reference/variables-reference#_configuration-variables)): `crux.board`, the `-b` target (default `mimxrt1060_evk@B//qspi`); `crux.boardKey`, that target with every run of other characters replaced by `_` (default `mimxrt1060_evk_B_qspi`); and `crux.jlinkDevice`, the J-Link device (default `MIMXRT1062xxx6A`). A board with more than one core names the core: for the MIMXRT1180-EVK CM33 they are `mimxrt1180_evk/mimxrt1189/cm33`, `mimxrt1180_evk_mimxrt1189_cm33` and `MIMXRT1189xxx8_M33`. **Board: Build** stops with `Set crux.boardKey to <key> in .vscode/settings.json.` when the key does not match the board.
+
+| Task | What it does |
+| --- | --- |
+| **Board: Build** | `scripts/build-debug-target.sh <crux.board> --app <sample>`, which points the [current build link](boards/mimxrt1060_evkb.md#vs-code-debug-profiles) `build/zephyr/<crux.boardKey>--current` at that build. For `-Og`, run the script with `--debug-optimizations` ([debug builds](boards/mimxrt1060_evkb.md#debug-builds-of-other-applications)) |
+| **Board: Flash** | Runs the probe check below, then `west flash -d build/zephyr/<crux.boardKey>--current -r jlink` in the same process: flashes the build behind the current build link. Without a probe it stops before `west flash`. Flashing is a physical operation ([J-Link board route](board-jlink-usbipd.md)) |
+| **Board: Clean** | Deletes `build/zephyr/<crux.boardKey>` and `build/zephyr/<crux.boardKey>--*`, the current build link included. Without `crux.boardKey` it deletes nothing |
+| **native_sim: Build** | `west build -p auto -b native_sim/native/64 -d build/native_sim <sample> -- -DCONFIG_NO_OPTIMIZATIONS=y`. `build/native_sim` holds the last `native_sim` build; `-p auto` makes it pristine when the sample changes |
+| **native_sim: Run** | `west build -p never -d build/native_sim`, then `build/native_sim/zephyr/zephyr.exe`, with `-uart_stdinout` when `zephyr.exe -h` lists it (samples with a console or shell). With only `-d`, `west build` rebuilds the sample last configured in that folder, read from its CMake cache, so it does not ask for a sample. With `-uart_stdinout` the program's UART is on the task terminal, which takes the UART's input. Without a configured build (no `build/native_sim/CMakeCache.txt`) it prints `Run native_sim: Build first.` and stops |
+| **native_sim: Clean** | Deletes `build/native_sim` |
+
+**Board: Flash** runs the probe check in its own command; **Board: Debug** and **Board: Attach** run it first as the hidden task **Board: Check probe**.
+When no J-Link (USB vendor ID `1366`) is visible in the container, the check stops with `No J-Link probe found` and the `usbipd attach` command.
+
+| Build | Optimization |
+| --- | --- |
+| Linux Host presets `host-debug` and `host-sanitize` | None (`-O0`), CMake's `Debug` build type |
+| **native_sim: Build** | None (`-O0`): `CONFIG_NO_OPTIMIZATIONS`, as [Zephyr's native_sim page](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html) recommends for debugging |
+| **Board: Build**, flashed by **Board: Flash** | Size (`-Os`), Zephyr's default |
+
+| Profile | What it does |
+| --- | --- |
+| **Board: Debug**, **Board: Attach**, **Board: Attach (external)** | Cortex-Debug with a J-Link ([VS Code debug profiles](boards/mimxrt1060_evkb.md#vs-code-debug-profiles)) |
+| **native_sim: Debug** | Runs **native_sim: Build**, then starts `build/native_sim/zephyr/zephyr.exe` under gdb with the C/C++ extension and stops at the sample's `main`. [`.vscode/native_sim_debug.py`](../.vscode/native_sim_debug.py) passes `-uart_stdinout` as **native_sim: Run** does and sets that breakpoint; `"unknownBreakpointHandling": "stop"` reports it as a plain stop. With `"externalConsole": false` the program runs in the integrated terminal ([launch.json reference](https://code.visualstudio.com/docs/cpp/launch-json-reference)), which takes the UART's input |
 
 ## RT1060-EVKB debugging
 
-The existing EVKB QSPI debugging setup uses a SEGGER J-Link connected to a Mac. This is not a general firmware-programming procedure. Confirm the exact board, probe, matching firmware image and recovery plan, and obtain task-specific approval before connecting, resetting or downloading. Starting the GDB Server or attaching a debugger may halt the target.
-
-On the approved macOS host, from the repository checkout (not the Dev Container), start the existing server:
-
-~~~sh
-bash scripts/macos/start-jlink-gdbserver.command
-~~~
-
-The launcher uses SWD at 400 kHz and serves GDB on TCP port 2331. It accepts remote connections rather than restricting access to localhost, so use it only on a trusted network. Stop it with Ctrl-C when debugging is finished.
-
-The existing VS Code [debug configurations](../.vscode/launch.json) connect from the Dev Container to `host.docker.internal:2331`:
-
-- **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
-- **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
-
-See the [debug build script](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
-
-### Debug builds of other applications
-
-`scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../scripts/debug-optimizations.conf) that selects `-Og`:
-
-~~~sh
-scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/storage_sd --debug-optimizations
-~~~
-
-Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. The M2, M3 and M5 image checks in `tests/target/` reject it: they require `CONFIG_SIZE_OPTIMIZATIONS=y` and an empty `CONFIG_COMPILER_OPT` in the image's `.config`. The physical Time suite reads no configuration, so it does not make this check. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
-
-### What the platform provides for build and debug
-
-| Provided by the platform | Owned by the project | Not provided |
-|---|---|---|
-| The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
-
-The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
+The board procedures for the RT1060-EVKB, including the J-Link GDB Server, the VS Code debug profiles, debug builds of other applications and what the platform provides for build and debug, are on the [MIMXRT1060-EVKB board page](boards/mimxrt1060_evkb.md#flash-and-debug).
 
 ## External Linux application using Crux source
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS`, `CLI`, `NETWORK_SETTINGS`, `REBOOT`, `IMAGE_STATE`, `WEB` and `TLS_CERTIFICATE`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
 
-### Complete Queue, Time and Thread example
+### Complete Time and Thread example
 
 This example shows how an external consumer selects components and links their
-targets. It is not a model for new product code: Thread, Sync, Queue and Serial are
+targets. It is not a model for new product code: Thread, Sync and Serial are
 frozen for new product code, so a new product uses Zephyr threads and message queues
 in its own Zephyr code (see [Choosing an API](choosing-an-api.md)). Existing users
-keep working, and the build mechanics below are unchanged.
+keep working, and the build mechanics below are unchanged. A message queue is Zephyr's `k_msgq`
+([messaging contract](messaging-contract.md)).
 
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
-and selects Queue, Time and Thread. The portable logic sends and receives one
-value, reads the monotonic clock and waits for an already reached deadline.
+and selects Time and Thread. The portable logic reads the monotonic clock and waits
+for an already reached deadline.
 
 `logic.c`:
 
 ~~~c
 #include <crux/time.h>
 #include <crux/thread.h>
-#include <crux/queue.h>
 
 int controller_run(void) {
-    crux_queue_t queue;
-    if (crux_queue_create(1, sizeof(int), &queue) != CRUX_OK)
-        return 1;
-    int sent = 42;
-    int received = 0;
     crux_monotonic_time_t now = {0};
-    int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
-                 crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
-                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
-                 crux_thread_sleep_until(now) != CRUX_OK;
-    crux_status_t cleanup = crux_queue_destroy(&queue);
-    return failed || cleanup != CRUX_OK;
+    return crux_monotonic_now(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK;
 }
 ~~~
 
@@ -201,7 +254,6 @@ int main(void) {
 cmake_minimum_required(VERSION 3.28)
 project(my_controller LANGUAGES C)
 
-set(CRUX_BUILD_QUEUE ON CACHE BOOL "Use Crux Queue")
 set(CRUX_BUILD_TIME ON CACHE BOOL "Use Crux typed clocks")
 set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 set(CRUX_BUILD_THREAD ON CACHE BOOL "Use Crux absolute sleep")
@@ -210,34 +262,35 @@ add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 add_library(controller_logic STATIC logic.c)
 set_target_properties(controller_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_link_libraries(controller_logic PRIVATE crux::queue crux::time crux::thread)
+target_link_libraries(controller_logic PRIVATE crux::time crux::thread)
 crux_assert_portable_consumer(controller_logic)
 
 add_executable(my_controller main.c)
 target_link_libraries(my_controller PRIVATE
     controller_logic
-    crux::queue crux::time crux::thread
-    crux::queue_linux)
+    crux::time crux::thread)
 ~~~
 
 From the **external application's directory**, configure and build with an absolute Crux source path:
 
 ~~~sh
-cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot
+cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux
 cmake --build build
 ./build/my_controller
 ~~~
 
 The executable exits with status zero on success. Its portable logic is compiled
-against the public facades; only the final executable links the Linux-specific
-composition targets. No tests, samples or unrelated Crux capabilities are selected
+against the public facades; the final executable declares the capabilities it uses,
+and their public targets connect the current Linux providers. No tests, samples or unrelated Crux capabilities are selected
 by this example, and it does not access a physical device.
 
-Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
+Portable source targets use public headers (for example, `<crux/time.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
-The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#getting-started).
+The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#quick-start).
 
 ## Capability and provider selection
+
+Each selection is a CMake cache variable; `cmake -LH <build-dir>` lists the selected values, such as `CRUX_TIME_PROVIDER`.
 
 | Capability or group | Linux source-tree composition rule |
 | --- | --- |
@@ -255,9 +308,9 @@ The external application tests also cover C++17, independently selected Thread/S
 | Status service | Select `CRUX_BUILD_MGMT_STATUS=ON`, which requires Access, System, and Configuration for its library `crux_configuration_text`. A composition links `crux_mgmt_status_sources` and `crux_mgmt_status_no_security`, or its own providers. The [services contract](status-configuration-services.md) holds its rules and limits |
 | Network settings | Select `CRUX_BUILD_NETWORK_SETTINGS=ON`, which requires Access, Configuration, the Configuration service, Sync and Thread. The root build refuses a configuration that lacks one. See the [network settings service](network-settings-service.md) |
 | Reboot | Select `CRUX_BUILD_REBOOT=ON`, which requires Access, Configuration (for its character rule), Sync and Thread. The root build refuses a configuration that lacks one. See the [reboot service](reboot-service.md) |
+| Image state | Select `CRUX_BUILD_IMAGE_STATE=ON`. `crux::image_state` holds the public header, the pure functions and the portable core. It links no provider: the Host double exists only when Crux builds its own tests. Experimental, with no bootloader provider and no board result. See the [image state contract](image-state-contract.md) |
 | TLS certificate | Select `CRUX_BUILD_TLS_CERTIFICATE=ON`, which requires Access and the Credential store. The root build refuses a configuration that lacks one. See the [TLS certificate service](tls-certificate.md) |
 | Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. To serve a built frontend folder from firmware, call `crux_web_assets` from `cmake/CruxWebAssets.cmake` before `crux_web_routes`: see [web assets](web-assets.md). See the [web contract](web-contract.md). |
-| Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | GPIO | Select `CRUX_BUILD_GPIO=ON`; the Host provider is an in-memory test simulation, and `host` is the only `CRUX_GPIO_PROVIDER` value in the root build. On Zephyr, `CONFIG_CRUX_GPIO=y` builds the native provider, and the application binds `crux-gpio0` to a node with a `gpios` property. See the [GPIO contract](gpio-contract.md) |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
@@ -267,7 +320,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
-Queue exposes the composition-only `crux::queue_linux` alias listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
+No capability exposes a Linux composition-only target; setting `CRUX_BUILD_QUEUE` stops the configure with a pointer to Zephyr `k_msgq`. Providers have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
 The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
@@ -279,15 +332,15 @@ For the focused external-application integration suite, from the Crux source roo
 python3 -m unittest discover -s tests/build -p test_external_application.py -v
 ~~~
 
-For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). The Zephyr workflow runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
+For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). CI runs most of these in the tiers of [Continuous integration](ci.md), in a Host part and a Zephyr part; the Zephyr part runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
 
 | Symptom | Check |
 | --- | --- |
 | Unknown `crux::...` CMake target | Enable the matching `CRUX_BUILD_*` option **before** `add_subdirectory()`. For Zephyr, use the correct Kconfig/module path |
-| Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
+| Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_TIME_PERIODIC_SCENARIO` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **final application executable**, not to portable libraries |
+| `CRUX_BUILD_QUEUE is obsolete` from CMake | Crux has no queue API. Remove the option (`-UCRUX_BUILD_QUEUE` clears a cached value) and move the queue to Zephyr `k_msgq` in the product's Zephyr code ([migration note](messaging-contract.md)) |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |
@@ -313,7 +366,7 @@ PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m py
 
 > **Warning: `EXTRA_ZEPHYR_MODULES` is skipped when there is no west workspace.** With only `ZEPHYR_BASE` set, Zephyr clears `WEST` and processes no modules. The failure is a missing `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, and neither names the cause. Run from a west workspace, whose manifest does not need to list Crux. Without a workspace, `ZEPHYR_MODULES=<crux>` has been shown to configure; that is the only part of it that has been run.
 
-- Do not depend on `ZEPHYR_<NAME>_*` variables for Crux. The module name follows the checkout directory.
+- `zephyr/module.yml` names the module `crux`, so its generated names are `ZEPHYR_CRUX_MODULE_DIR` and `CONFIG_ZEPHYR_CRUX_MODULE` in any checkout folder. See [Module name](product-composition.md#module-name).
 - The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
 - Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
 
@@ -323,13 +376,25 @@ The proposal's [current state](test-foundation-proposal.md#current-state) lists 
 
 The table above says hardware has no supported entry point. This section says what exists and what each source says, so that nothing is read into it. No hardware was operated for it, and nothing here qualifies a physical board.
 
-**What CI can do: a fixture-gated scenario that is built and not run.** A Twister scenario whose `testcase.yaml` sets `harness_config: fixture: <name>` runs only when Twister is told that the fixture exists, with `--fixture` or a hardware map. Without it Twister builds the scenario and does not run it (read in `testsuite_runnable` of Zephyr v4.4.0 `testinstance.py` and in the [fixtures section](https://docs.zephyrproject.org/latest/develop/test/twister.html#fixtures) of the Twister guide; not run here). A product with a part wired to its board writes its wired-part scenario this way. CI then builds it on every change, so it cannot rot, and the image it builds is what an operator would load. Keep the pass or fail oracle in the application's console output, so that it does not depend on the route that runs it. Do not give CI the fixture name or a hardware map.
+**What CI can do: a fixture-gated scenario that is built and not run.** A Twister scenario whose `testcase.yaml` sets `harness_config: fixture: <name>` runs only when Twister is told that the fixture exists, with `--fixture` or a hardware map.
+Without it Twister builds the scenario and does not run it (read in `testsuite_runnable` of Zephyr v4.4.0 `testinstance.py` and in the [fixtures section](https://docs.zephyrproject.org/latest/develop/test/twister.html#fixtures) of the Twister guide; not run here).
+
+A product with a part wired to its board writes its wired-part scenario this way.
+CI then builds it on every change, so it cannot rot, and the image it builds is what an operator would load.
+
+Keep the pass or fail oracle in the application's console output, so that it does not depend on the route that runs it.
+Do not give CI the fixture name or a hardware map.
 
 **The run is a hardware operation, and it is not a Twister run.** The sources say:
 
 - **This guide:** hardware has "No supported entry point" (table above).
 - **Decision 5** of the [accepted test-foundation decisions](test-foundation-proposal.md#decisions) routes hardware through a small Crux tool, the [device-control tool](../tools/device_control/README.md), and not through the Twister harness's `hardware` device type, because gating, evidence and locking would all sit outside the harness anyway.
-- **Flashing:** the harness's `--device-type=hardware` flashes on every launch ([findings](test-foundation-proposal.md#pytest-twister-harness-findings)). The [device-control rule](test-foundation-proposal.md#device-control-contract) is the opposite: flashing is an explicit step, never performed by a fixture or on launch, and refused without `--allow-flash=<approval reference>`. Twister's own `--device-testing` also loads the image, with `west flash` or a custom flash command, to run a scenario. This guide therefore does not offer `--device-testing`, a hardware map or `--device-type=hardware` as a route, and Twister gives no safe way to run a scenario on a board. Allowing it would revisit Decision 5, with its own gate design.
+- **Flashing:** the harness's `--device-type=hardware` flashes on every launch ([findings](test-foundation-proposal.md#pytest-twister-harness-findings)).
+  The [device-control rule](test-foundation-proposal.md#device-control-contract) is the opposite: flashing is an explicit step, never performed by a fixture or on launch, and refused without `--allow-flash=<approval reference>`.
+  Twister's own `--device-testing` also loads the image, with `west flash` or a custom flash command, to run a scenario.
+
+  This guide therefore does not offer `--device-testing`, a hardware map or `--device-type=hardware` as a route, and Twister gives no safe way to run a scenario on a board.
+  Allowing it would revisit Decision 5, with its own gate design.
 - **Approval:** the device-control tool's step 5, its use from the first real consumer, is not started in this repository and needs its own approval ([recommended order](test-foundation-proposal.md#recommended-order)). Until then the tool has run against fake transports and scripted tools, with locking across real processes, and real pyserial on one disposable pseudo-terminal; never on a real serial port, probe, reset or flash ([current state](test-foundation-proposal.md#current-state)).
 
 **What exists today** serves Crux's own images and is not a consumer interface: the physical runner `tests/target`, which never flashes and runs against an image that is already loaded ([test guide](../tests/README.md#physical-uart-target)), and the program and restore driver with its safety gates and registered image profiles ([image profiles](board-image-profiles.md)). A new image needs its own profile, which is a reviewed change.

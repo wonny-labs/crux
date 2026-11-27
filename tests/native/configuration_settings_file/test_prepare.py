@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Staging refuses drifted sources and output inside the pinned checkout; fake inputs only."""
+import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
-import prepare
+# The module's staging script (zephyr/settings_file.cmake runs it).
+SCRIPT = Path(__file__).resolve().parents[3] / 'zephyr/prepare_settings_file.py'
+SPEC = importlib.util.spec_from_file_location('prepare_settings_file', SCRIPT)
+prepare = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(prepare)
 
 
 class StagingSafety(unittest.TestCase):

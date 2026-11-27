@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Vendor prefixes of the product's own bindings. Zephyr reads this file next to its own
+# dts/bindings/vendor-prefixes.txt: blank lines and lines that start with # are skipped, and every
+# other line is <vendor-prefix><TAB><full name of the vendor>, with a real tab.
+#
+# The example binding of this template uses the prefix "vnd", which Zephyr lists as a stand-in for
+# a real vendor in examples and tests. A product that writes a binding for a part of a vendor that
+# Zephyr does not list adds the vendor's prefix here. The prefix is the vendor's, not the product's:
+# a part made by Acme Example Ltd is "acme-example,part", whoever puts it on a board. Keep the list
+# in alphabetical order and add the line in the change that adds the first binding with the prefix.
+#
+# acme-example	Acme Example Ltd.

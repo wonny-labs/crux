@@ -24,3 +24,9 @@ __pycache__/
 # the repository; these rules only catch a copy made inside it by mistake.
 bench-first-account.password
 *.bench-password
+
+# Your organisation's root CA for the Dev Container (.devcontainer/certs/README.md). Each developer adds
+# their own file locally; no certificate is ever committed.
+.devcontainer/certs/*
+!.devcontainer/certs/.gitkeep
+!.devcontainer/certs/README.md

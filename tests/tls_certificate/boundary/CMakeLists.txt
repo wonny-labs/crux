@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.28)
 project(tls_certificate_boundary_probe LANGUAGES C)
 
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-foreach(component IN ITEMS TIME THREAD SYNC QUEUE NETIF SOCKETS CONFIGURATION FILE ACCESS CREDENTIAL
+foreach(component IN ITEMS TIME THREAD SYNC NETIF SOCKETS CONFIGURATION FILE ACCESS CREDENTIAL
         TLS_CERTIFICATE)
     set(CRUX_BUILD_${component} ON CACHE BOOL "" FORCE)
 endforeach()

@@ -585,6 +585,8 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
     return result;
 }
 
+/* Finds skipped keys too, so that one can be removed by its exact bytes. Adding one is refused
+ * earlier, because its type is not acceptable. */
 static const access_key_t *key_find(const access_account_t *account, const uint8_t *key,
                                     size_t key_length, size_t *index)
 {
@@ -629,6 +631,7 @@ crux_access_result_t crux_access_account_add_key(crux_access_session_t session, 
     }
     access_key_t *added = &account->keys[account->key_count];
     added->length = key_length;
+    added->usable = true;
     memcpy(added->bytes, key, key_length);
     account->key_count += 1;
     result = change_commit((change_effect_t){user, false, 0});

@@ -1,6 +1,0 @@
-/ {
-    /delete-node/ m3_inputs;
-    aliases {
-        /delete-property/ sw0;
-    };
-};

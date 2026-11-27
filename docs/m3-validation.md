@@ -31,7 +31,7 @@ preserved and are not retrospectively passed. A component result does not establ
 simultaneous controller integration or final M3 completion.
 
 The target remains the confirmed EVKB PCB B, i.MX RT1062, standard 8 MiB QSPI
-and J-Link PLUS 602003106. Software cannot detect an unreported wiring/jumper
+and J-Link PLUS `<probe-serial>`. Software cannot detect an unreported wiring/jumper
 change. DAPLink/UART USB also supplies board power; its removal is a power-off.
 The Mac management connection is excluded from the dedicated Ethernet tests.
 
@@ -231,11 +231,11 @@ The full goal still requires real #10 I/O, #11 TCP/UDP/link-failure recovery and
 combined #12 integration. Those remain unresolved rather than replaced by the
 independent health probe. M4 persistence and M5 qualification remain outside scope.
 
-[#10]: https://github.com/wonny-labs/crux-pilot/issues/10
-[#11]: https://github.com/wonny-labs/crux-pilot/issues/11
-[#12]: https://github.com/wonny-labs/crux-pilot/issues/12
-[current task authorisation]: https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6243536217
-[user steering]: https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6243570872
+[#10]: https://github.com/wonny-labs/crux/issues/10
+[#11]: https://github.com/wonny-labs/crux/issues/11
+[#12]: https://github.com/wonny-labs/crux/issues/12
+[current task authorisation]: https://github.com/wonny-labs/crux/issues/12#issuecomment-6243536217
+[user steering]: https://github.com/wonny-labs/crux/issues/12#issuecomment-6243570872
 
 
 ## Interface assessment and reusable software hand-off
@@ -372,7 +372,7 @@ have not been run.
 
 ### Standalone health result and corrected button fixture
 
-The [resumed standalone result](https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6247354666)
+The [resumed standalone result](https://github.com/wonny-labs/crux/issues/12#issuecomment-6247354666)
 passed three physical watchdog trials, full BIN verification and final normal
 observation. Independent review reconstructed UART rows from receive chunks and
 reran the actual validators. Last-feed-to-boot receive intervals were
@@ -443,7 +443,7 @@ An observed mismatch during confirmed hold stops further hardware attempts.
 
 The manual Shell observation prompted re-identification rather than an assumed
 M3 continuation. The mapped firmware matched the complete 65,964-byte Time sample,
-not either M3 image. J-Link 602003106 reset then produced one fresh Time boot and
+not either M3 image. J-Link `<probe-serial>` reset then produced one fresh Time boot and
 READY on the identified DAPLink UART after 1.291543 s. Independent raw review
 confirmed operational UART/J-Link target association for that session.
 
@@ -654,7 +654,7 @@ Pending; no PR merge or issue/milestone closure is authorised by this work.
 
 The polling candidate subsequently reproduced a brief reported carrier loss
 followed by failed TCP/UDP exchanges. A separate opt-in configuration,
-`samples/controller/zephyr/m3-phy-diagnostic.conf`, supplements the network
+`tests/board_images/integration_probe/phy_diagnostic.conf`, supplements the network
 configuration for investigation only. It adds read-only RT1062 MAC observations
 around an explicit round and native PHY register reads after the round finishes.
 It performs no register writes, driver replacement or automatic application traffic.
@@ -811,7 +811,7 @@ Qualified BIN: 115484 bytes, SHA256
 `8161960fb64643b7c0be580d81d1147bf545d093554ff826ec84442fcd4563e1`.
 All four exact-head CI runs succeeded; the preserved Zephyr push attempt-1 SDK
 403 rate-limit failure occurred before tests, and its single infrastructure retry
-passed. The [reviewed result](https://github.com/wonny-labs/crux-pilot/issues/11#issuecomment-6252853065)
+passed. The [reviewed result](https://github.com/wonny-labs/crux/issues/11#issuecomment-6252853065)
 identifies the fixed peer/addresses, exact native configuration and component
 hand-off. Archive `crux-m3-network-d2bee28-actual-20261018.tar.gz`, 227 payloads,
 SHA256 `9f00c77f51d90182b3a23baa386301458d95295917271b8c155d65dac6541019`,
@@ -1009,12 +1009,12 @@ publication archive successfully. No hardware or build/test rerun was performed
 for that read-only review. Documentation accuracy, consistency and latest-head CI
 are checked for this closeout; prior physical evidence is retained unchanged.
 
-**Integration status:** PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13)
+**Integration status:** PR [#13](https://github.com/wonny-labs/crux/pull/13)
 was squash-merged into `main` as
-[`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962)
-on 18 October 2026. Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10),
-[#11](https://github.com/wonny-labs/crux-pilot/issues/11) and
-[#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed and M3 was
+[`ce0b40f`](https://github.com/wonny-labs/crux/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962)
+on 18 October 2026. Issues [#10](https://github.com/wonny-labs/crux/issues/10),
+[#11](https://github.com/wonny-labs/crux/issues/11) and
+[#12](https://github.com/wonny-labs/crux/issues/12) were closed and M3 was
 accepted. The original physical firmware and capture identities remain as recorded
 above; the physically tested integrated firmware remains identified by `ec94fbe`.
 This documentation update does not change its source identity, previous failures

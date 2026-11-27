@@ -13,7 +13,7 @@ Files here:
 
 ## What ran
 Facts in this section come from the operator's command files and logs, not from files kept here, except the image hash and the console text.
-- Board: MIMXRT1060-EVKB rev B, QSPI internal boot, external J-Link PLUS S/N 602003106 (SWD, 400 kHz, device `MIMXRT1062xxx6A`), SEGGER
+- Board: MIMXRT1060-EVKB rev B, QSPI internal boot, external J-Link PLUS S/N `<probe-serial>` (SWD, 400 kHz, device `MIMXRT1062xxx6A`), SEGGER
   JLinkExe V9.86a (the executor requires that path to resolve to the V9.86a installation).
 - Image: `zephyr.bin` 120,384 B, SHA-256 `31e3b8f3d04c3dbae58df27c923d8def106f86ffe81161314e1e04ca5e16ccce`, built from a worktree at
   `3e0a5d7280e42df4415ca1f685ba3ad4b61775b4` with Zephyr v4.4.2 (TF-PSA-Crypto via the Mbed TLS module). The worktree was clean when the run
@@ -51,3 +51,5 @@ record, which was corrected), and run 2 was started with the owner's go-ahead.
 - Reseeding and the entropy-failure path (a real TRNG read failure cannot be induced here); the fail-closed behaviour is covered on native_sim in CI.
 - Secure storage and key persistence, TLS, `psa-arch-tests`, concurrency, and a consumer calling the provider.
 - The executor and plan revision 3 are not in the repository; the independent review of them had no git SHAs.
+
+The debug probe serial number in the raw files of this record was replaced by `<probe-serial>`; see [probe-serial-redaction.md](../../probe-serial-redaction.md), which also lists the files that still hold it.

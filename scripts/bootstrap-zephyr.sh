@@ -9,8 +9,9 @@ if [[ $# -gt 1 || ( $# -eq 1 && "${1:-}" != "--install-sdk" ) ]]; then
     printf 'Usage: %s [--install-sdk]\n' "$0" >&2
     exit 2
 fi
-if [[ "$repo" != "$workspace/crux-pilot" ]]; then
-    printf 'Expected repo at %s/crux-pilot; got %s\n' "$workspace" "$repo" >&2
+# crux-pilot is the folder name of older clones, accepted until the consumers have moved.
+if [[ "$repo" != "$workspace/crux" && "$repo" != "$workspace/crux-pilot" ]]; then
+    printf 'Expected repo at %s/crux; got %s\n' "$workspace" "$repo" >&2
     exit 2
 fi
 if ! command -v west >/dev/null 2>&1; then
@@ -21,7 +22,14 @@ fi
 if [[ ! -f "$workspace/.west/config" ]]; then
     (cd "$workspace" && west init -l "$repo")
 fi
-(cd "$workspace" && west update)
+# --narrow fetches only the pinned revisions, not every branch and tag of each project. Git
+# prints no progress when its output is not a terminal, so the fetch looks stuck; -o=--progress
+# forces it, except in CI, where it would fill the log.
+update_args=(--narrow)
+if [[ -z "${CI:-}" ]]; then
+    update_args+=(-o=--progress)
+fi
+(cd "$workspace" && west update "${update_args[@]}")
 "$python_bin" -m pip install --disable-pip-version-check --no-cache-dir \
     -r "$workspace/zephyr/scripts/requirements-base.txt" \
     -r "$workspace/zephyr/scripts/requirements-build-test.txt" \
@@ -38,8 +46,7 @@ if [[ "${1:-}" == "--install-sdk" ]]; then
     fi
     (cd "$workspace/zephyr" && west sdk install "${sdk_args[@]}")
 elif [[ $# -eq 0 ]]; then
-    printf 'SDK prerequisite: Zephyr SDK v1.0.1; arm-zephyr-eabi toolchain.\n'
-    printf 'After confirming storage headroom, run: scripts/bootstrap-zephyr.sh --install-sdk\n'
+    printf 'Next, with enough free disk, install the Zephyr SDK 1.0.1: scripts/bootstrap-zephyr.sh --install-sdk\n'
 else
     exit 0
 fi

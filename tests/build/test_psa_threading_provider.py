@@ -20,8 +20,8 @@ OLD_CONF = "tests/native/management_composition/mbed-threading.conf"
 
 # What a product reads to enable Access: the sample that stands for one, the module's own files and the guides.
 PRODUCT_FACING = (
-    "samples/management_rt1060_mbed/CMakeLists.txt",
-    "samples/management_rt1060_mbed/prj.conf",
+    "samples/boards/nxp/mimxrt1060_evk/web_management/CMakeLists.txt",
+    "samples/boards/nxp/mimxrt1060_evk/web_management/prj.conf",
     "zephyr/Kconfig",
     "zephyr/CMakeLists.txt",
     "docs/management-in-a-product.md",
@@ -80,7 +80,7 @@ class Provider(unittest.TestCase):
                      "tests/native/management_module/CMakeLists.txt"):
             text = (REPO / name).read_text()
             self.assertLess(text.index("set(CRUX_PSA_THREADING_TEST_COUNTER ON)"), text.index("find_package(Zephyr"))
-        for name in ("samples/management_rt1060_mbed/CMakeLists.txt", "tests/native/cli_console/CMakeLists.txt"):
+        for name in ("samples/boards/nxp/mimxrt1060_evk/web_management/CMakeLists.txt", "tests/native/cli_console/CMakeLists.txt"):
             self.assertNotIn("CRUX_PSA_THREADING_TEST_COUNTER", (REPO / name).read_text(), name)
 
     def test_option_with_another_user_config_file_is_refused(self):
@@ -92,7 +92,7 @@ class Provider(unittest.TestCase):
         self.assertIn("CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE", guard)
 
     def test_sample_refuses_an_image_without_the_option(self):
-        cmake = (REPO / "samples/management_rt1060_mbed/CMakeLists.txt").read_text()
+        cmake = (REPO / "samples/boards/nxp/mimxrt1060_evk/web_management/CMakeLists.txt").read_text()
         self.assertRegex(cmake, r"if\(NOT CONFIG_CRUX_PSA_THREADING\)\s+message\(FATAL_ERROR[^)]*CONFIG_CRUX_PSA_THREADING=y")
 
     def test_native_composition_refuses_the_mbed_profile_without_the_option(self):
@@ -145,7 +145,7 @@ class Provider(unittest.TestCase):
     def test_wolf_profile_is_untouched(self):
         # The option needs the Mbed provider, and nothing selects or implies it.
         self.assertNotRegex(KCONFIG, r"(select|imply)\s+CRUX_PSA_THREADING")
-        self.assertIn("depends on CRUX_PILOT_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS",
+        self.assertIn("depends on CRUX_MODULE && MULTITHREADING && PSA_CRYPTO_PROVIDER_MBEDTLS",
                       block("CRUX_PSA_THREADING"))
 
 
@@ -158,8 +158,8 @@ class ProductRoute(unittest.TestCase):
             self.assertNotIn("mbed-threading.conf", text, name)
 
     def test_sample_takes_the_public_option(self):
-        cmake = (REPO / "samples/management_rt1060_mbed/CMakeLists.txt").read_text()
-        conf = (REPO / "samples/management_rt1060_mbed/prj.conf").read_text()
+        cmake = (REPO / "samples/boards/nxp/mimxrt1060_evk/web_management/CMakeLists.txt").read_text()
+        conf = (REPO / "samples/boards/nxp/mimxrt1060_evk/web_management/prj.conf").read_text()
         self.assertRegex(conf, r"(?m)^CONFIG_CRUX_PSA_THREADING=y")
         self.assertNotIn("crux_tf_psa_threading.c", cmake)
         self.assertNotIn("management_composition/composition", cmake)

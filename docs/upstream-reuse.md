@@ -34,7 +34,7 @@ Official source reads confirmed the RTC startup behavior, sample metadata, C++ c
 
 ## PSA Crypto providers
 
-Added under [Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). These stay outside this source tree, fetched by west only in a workspace that enables the `crux-secure-management` group, or for the first row on Linux Host by [`cmake/CruxPsaCrypto.cmake`](../cmake/CruxPsaCrypto.cmake) as an archive. The licence column is what each project's own files state. This is an engineering summary and is not legal advice.
+Added under [Issue #142](https://github.com/wonny-labs/crux/issues/142). These stay outside this source tree, fetched by west only in a workspace that enables the `crux-secure-management` group, or for the first row on Linux Host by [`cmake/CruxPsaCrypto.cmake`](../cmake/CruxPsaCrypto.cmake) as an archive. The licence column is what each project's own files state. This is an engineering summary and is not legal advice.
 
 | Project | Revision | Licence stated by its source | Basis here |
 | --- | --- | --- | --- |

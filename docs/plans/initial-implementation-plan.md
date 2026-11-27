@@ -48,7 +48,7 @@ is a west workspace, not a Git repository. The M0–M1 text in
 
 ### Excluded
 
-No custom AI Harness, runner framework, agent orchestration, generic HAL/OSAL, service registry, dynamic backend discovery, C++ wrapper framework, multi-device abstraction, external RTC, Abingdon BSP, CODESYS, networking, SFTP, configuration service, secure boot, release system, alarm, wake-up, clock synchronisation, local time, DST, leap seconds, milliseconds, drift qualification or power-loss retention guarantee.
+No custom AI Harness, runner framework, agent orchestration, generic HAL/OSAL, service registry, dynamic backend discovery, C++ wrapper framework, multi-device abstraction, external RTC, a product BSP, a commercial PLC runtime, networking, SFTP, configuration service, secure boot, release system, alarm, wake-up, clock synchronisation, local time, DST, leap seconds, milliseconds, drift qualification or power-loss retention guarantee.
 
 Narrow adapters or missing driver support may be proposed when evidence shows they are necessary. An upstream driver defect or missing hardware feature is a bounded investigation, not permission to implement a broad replacement.
 

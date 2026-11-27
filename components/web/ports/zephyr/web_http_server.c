@@ -2,7 +2,7 @@
  *
  * It holds no routing or access logic. Each generated resource calls the one callback here, which
  * hands the request to the portable core. Behaviour it depends on is from the server's source at
- * v4.4.2, and tests/native/web_http holds it to the real server:
+ * v4.5.0, and tests/native/web_http holds it to the real server:
  *
  * - A negative return from the callback closes the connection, unless it is -EAGAIN, which leaves
  * the client open with its resource held. Every close here therefore uses another error.
@@ -12,7 +12,7 @@
  *   chunked terminator goes after the last callback. To answer before the body ends, the adapter
  *   writes a complete response itself and closes. It never does this on a kept connection.
  * - The server sends on a blocking socket with no timeout of its own, so a timeout is set on each
- *   request's first callback. It bounds one send, not a response: the server makes about twenty
+ *   request's first callback. It bounds one send, not a response: the server makes several
  * sends for a small response, in one callback, without returning to poll.
  * - A send that fails with -EAGAIN comes back through the server, which swallows it and leaves the
  *   client open with its resource and this slot held. The response stops there, and what the client
@@ -20,7 +20,7 @@
  * built in the same store. The store generation is what keeps another client's bytes out: a piece
  * is never sent once the core has built any other response. data_len and the URL's length catch the
  *   ordinary re-entries, a request in one read and one in two, but not a URL that folds back to the
- *   old one under the dot-segment removal of v4.4.2, which can resume the client's own response.
+ *   old one under the dot-segment removal of v4.5.0, which can resume the client's own response.
  *   That only sends it bytes of the response it was already given, and is declared.
  * - The server calls back without returning to poll until a response is final, so a large body goes
  * in pieces, and a callback between pieces closes a response that has run over its deadline. A
@@ -40,6 +40,7 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
 #include <zephyr/posix/fnmatch.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
 
 /* A registered resource can be held by one client, so a slot per client is one per request. */
@@ -83,9 +84,9 @@ HTTP_SERVER_REGISTER_HEADER_CAPTURE(crux_web_capture_length, "Content-Length");
 static uint16_t crux_web_port = CONFIG_CRUX_WEB_PORT;
 
 /* The one address to listen on, or NULL for the server's default of every address. The server falls
- * back to that default for a host text that is not an address, so a composition that sets
- * CONFIG_CRUX_WEB_BIND_ADDRESS checks the text itself. The plain HTTP test build never sets it. */
-#if defined(CONFIG_CRUX_WEB_BIND_ADDRESS) && !defined(CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
+ * back to that default for a host text that is not an address of an enabled family, so
+ * crux_web_start() refuses such a text before the server starts. */
+#if defined(CONFIG_CRUX_WEB_BIND_ADDRESS)
 #define CRUX_WEB_HOST                                                                              \
     (sizeof(CONFIG_CRUX_WEB_BIND_ADDRESS) > 1u ? CONFIG_CRUX_WEB_BIND_ADDRESS : NULL)
 #else
@@ -95,7 +96,7 @@ static uint16_t crux_web_port = CONFIG_CRUX_WEB_PORT;
 /* The service has no fallback resource: the server does not release a fallback's holder when a
  * client disconnects. A path with no resource therefore gets the server's plain 404. */
 #if defined(CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
-HTTP_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_MAX_CLIENTS,
+HTTP_SERVICE_DEFINE(crux_web_service, CRUX_WEB_HOST, &crux_web_port, CONFIG_HTTP_SERVER_MAX_CLIENTS,
                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, NULL);
 #else
 static const sec_tag_t crux_web_sec_tags[] = {CONFIG_CRUX_WEB_TLS_SEC_TAG};
@@ -145,6 +146,11 @@ static struct {
     size_t response_url_length;
     uint32_t response_generation;
 } crux_web_slots[CRUX_WEB_SLOTS];
+
+/* Set from the start of a crux_web_start() that may succeed until crux_web_stop() succeeds, so that
+ * a second start returns before it touches the slots and the core, which the server thread is
+ * using. */
+static atomic_t crux_web_started;
 
 /* Used only on the server thread, for a response that is sent before the next callback. */
 static struct http_header crux_web_response_headers[CRUX_WEB_RESPONSE_HEADERS_MAX];
@@ -456,20 +462,49 @@ static bool wildcard_pass_behaves(void)
            fnmatch("/a", "/A", flags) != 0;
 }
 
+/* Whether the server listens where the composition said. The server tries IPv6 and then IPv4, each
+ * only when its family is enabled, and takes every address for a text that neither accepts. */
+static bool bind_text_valid(const char *host)
+{
+    union {
+        struct net_in_addr ipv4;
+        struct net_in6_addr ipv6;
+    } address;
+
+    if (host == NULL) {
+        return true;
+    }
+    return (IS_ENABLED(CONFIG_NET_IPV6) &&
+            zsock_inet_pton(NET_AF_INET6, host, &address.ipv6) == 1) ||
+           (IS_ENABLED(CONFIG_NET_IPV4) && zsock_inet_pton(NET_AF_INET, host, &address.ipv4) == 1);
+}
+
 crux_web_result_t crux_web_start(const crux_web_config_t *config)
 {
     if (config == NULL) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
     }
-    if (!wildcard_pass_behaves() || !crux_web_routes_valid()) {
+    if (!atomic_cas(&crux_web_started, 0, 1)) {
+        return CRUX_WEB_ERR_FAILED;
+    }
+    if (!wildcard_pass_behaves() || !crux_web_routes_valid() || !bind_text_valid(CRUX_WEB_HOST)) {
+        atomic_clear(&crux_web_started);
         return CRUX_WEB_ERR_FAILED;
     }
     memset(crux_web_slots, 0, sizeof(crux_web_slots));
     crux_web_core_init(config);
-    return http_server_start() == 0 ? CRUX_WEB_OK : CRUX_WEB_ERR_FAILED;
+    if (http_server_start() != 0) {
+        atomic_clear(&crux_web_started);
+        return CRUX_WEB_ERR_FAILED;
+    }
+    return CRUX_WEB_OK;
 }
 
 crux_web_result_t crux_web_stop(void)
 {
-    return http_server_stop() == 0 ? CRUX_WEB_OK : CRUX_WEB_ERR_FAILED;
+    if (http_server_stop() != 0) {
+        return CRUX_WEB_ERR_FAILED;
+    }
+    atomic_clear(&crux_web_started);
+    return CRUX_WEB_OK;
 }
