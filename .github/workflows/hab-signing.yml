@@ -40,10 +40,11 @@ env:
 
 jobs:
   # Runs the hab-signing job of scripts/ci/checks.toml: its first check installs the pinned SPSDK
-  # into build/hab-tools, so this workflow pins no tool itself.
+  # into $CRUX_CACHE_DIR/hab-tools, outside the checkout, so this workflow pins no tool itself.
   hab-signing:
     runs-on: ubuntu-24.04
     env:
+      CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
       TIER: ${{ inputs.tier || 'auto' }}
     steps:
       - uses: actions/checkout@v4

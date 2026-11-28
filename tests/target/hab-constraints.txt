@@ -1,5 +1,6 @@
 # Exact versions of SPSDK 3.13.0 and its dependencies as resolved on 16 November 2026 (pip freeze of a
 # clean venv). Versions only, no hashes. Used with hab-requirements.txt; see docs/boot-hab-status.md.
+# setuptools is added from the Linux CI install of 28 November 2026, because pip freeze leaves it out.
 argparse-addons==0.12.0
 asn1crypto==1.5.1
 bincopy==20.1.1
@@ -40,6 +41,7 @@ PyYAML==6.0.3
 requests==2.34.2
 ruamel.yaml==0.19.1
 ruamel.yaml.clib==0.2.14
+setuptools==83.0.0
 setuptools-scm==9.2.2
 sly==0.5
 spsdk==3.13.0
