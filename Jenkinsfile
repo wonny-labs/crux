@@ -102,6 +102,10 @@ pipeline {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/psa-management/crux" } }
                     steps { script { runJob('psa-management') } }
                 }
+                stage('hab-signing') {
+                    agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/hab-signing/crux" } }
+                    steps { script { runJob('hab-signing') } }
+                }
                 stage('docs') {
                     agent { dockerfile { filename '.devcontainer/Dockerfile'; dir '.'; additionalBuildArgs '--build-arg CRUX_JLINK=0'; args '-v crux-ci-cache:/opt/crux-cache'; customWorkspace "crux-ci/${env.BUILD_TAG}/docs/crux" } }
                     steps { script { runJob('docs') } }

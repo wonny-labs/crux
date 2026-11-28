@@ -236,6 +236,14 @@ node tools/compare.ts | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 """),
         ],
     },
+    "hab-signing": {
+        "env": {},
+        "checks": [
+            ("hab-spsdk-install", "python3 -m venv build/hab-tools && build/hab-tools/bin/pip install --disable-pip-version-check -r tests/target/hab-requirements.txt -c tests/target/hab-constraints.txt"),
+            ("hab-signing", 'PATH="$PWD/build/hab-tools/bin:$PATH" CRUX_REQUIRE_SPSDK=1 python3 -m unittest discover -s tests/build -p test_hab_signing.py -v'),
+            ("hab-structure", "python3 -m unittest discover -s tests/build -p test_hab_structure.py -v"),
+        ],
+    },
     "docs": {
         "env": {},
         "checks": [
