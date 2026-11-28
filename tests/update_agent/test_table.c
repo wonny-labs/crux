@@ -160,6 +160,7 @@ static crux_update_state_t seen_phase[16];
 static size_t seen_count;
 static bool reentry_checked;
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the progress port fixes this signature
 static void reentry_hook(crux_update_state_t phase, uint32_t done, uint32_t total)
 {
     if (seen_count == 0 || seen_phase[seen_count - 1u] != phase) {
@@ -206,6 +207,7 @@ static void attempt_states(void)
 /* ---- cancel ---- */
 
 static crux_update_state_t cancel_phase;
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the progress port fixes this signature
 static void cancel_hook(crux_update_state_t phase, uint32_t done, uint32_t total)
 {
     (void)done;
@@ -263,6 +265,7 @@ static void cancel_cases(void)
 
 /* ---- failures of single steps ---- */
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the progress port fixes this signature
 static void fail_source_hook(crux_update_state_t phase, uint32_t done, uint32_t total)
 {
     (void)done;
@@ -272,6 +275,7 @@ static void fail_source_hook(crux_update_state_t phase, uint32_t done, uint32_t 
     }
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the progress port fixes this signature
 static void fail_record_hook(crux_update_state_t phase, uint32_t done, uint32_t total)
 {
     (void)done;

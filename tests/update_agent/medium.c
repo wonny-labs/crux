@@ -59,7 +59,7 @@ static void fake_hash_update(fake_hash_t *h, const uint8_t *data, size_t length)
     for (size_t at = 0; at < length; at++) {
         for (unsigned i = 0; i < 4u; i++) {
             h->lane[i] ^= data[at];
-            h->lane[i] *= 0x100000001b3ull + 2u * i;
+            h->lane[i] *= 0x100000001b3ull + 2ull * i;
         }
     }
 }
@@ -217,6 +217,7 @@ void medium_set_write_block(uint32_t block)
     write_block = block;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in medium.h
 void medium_cut_at(size_t n, medium_cut_t mode)
 {
     cut_n = n == 0 ? 0 : op_count + n;
@@ -301,6 +302,7 @@ static bool trailer_blank(crux_image_slot_t slot)
            view.copy_done == CRUX_IMAGE_PORT_FLAG_UNSET;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): offset then length, as the slot port
 static bool range_blank(crux_image_slot_t slot, uint32_t offset, uint32_t length)
 {
     for (uint32_t i = 0; i < length; i++) {
@@ -327,7 +329,7 @@ crux_image_slot_state_t medium_slot_state(crux_image_slot_t slot)
 
 static void erase_sector_bytes(crux_image_slot_t slot, uint32_t sector, uint32_t length)
 {
-    memset(&bytes[slot][sector * MEDIUM_SECTOR_SIZE], ERASED, length);
+    memset(&bytes[slot][(size_t)sector * MEDIUM_SECTOR_SIZE], ERASED, length);
     if (trailer_sector(sector) && length == MEDIUM_SECTOR_SIZE) {
         clear_trailer(slot);
     }
@@ -541,6 +543,7 @@ bool crux_update_port_hash_finish(crux_update_hash_context_t context,
     return true;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the private port fixes this signature
 bool crux_update_port_signature_verify(const uint8_t digest[CRUX_UPDATE_DIGEST_SIZE],
                                        const uint8_t *signature, size_t signature_length)
 {
@@ -626,6 +629,7 @@ size_t medium_image_build(const medium_image_spec_t *spec, uint8_t *out, size_t 
     return at;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in medium.h
 size_t medium_image_tlv_value_offset(const uint8_t *image, size_t size, uint16_t type)
 {
     uint32_t header = image[8] | (image[9] << 8);

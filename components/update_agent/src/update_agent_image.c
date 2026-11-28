@@ -27,12 +27,14 @@ void update_image_header_read(const uint8_t *bytes, update_image_header_t *heade
     /* bytes 28 to 31 are padding */
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): fields in header order
 void update_image_tlv_info_read(const uint8_t *bytes, uint16_t *magic, uint16_t *total)
 {
     *magic = read_u16(&bytes[0]);
     *total = read_u16(&bytes[2]);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): declared in update_agent_image.h
 int update_image_tlv_find(const uint8_t *area, size_t area_size, uint16_t type,
                           const uint8_t **value, uint16_t *value_length)
 {

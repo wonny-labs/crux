@@ -34,7 +34,7 @@ static inline void reboot_and_start(void)
 static inline size_t build_image(uint8_t *out, uint8_t major, uint8_t minor, uint16_t revision)
 {
     medium_image_spec_t spec = medium_image_default(major, minor, revision);
-    return medium_image_build(&spec, out, MEDIUM_IMAGE_MAX);
+    return medium_image_build(&spec, out, (size_t)MEDIUM_IMAGE_MAX);
 }
 
 static inline crux_image_slot_t running_slot_now(void)

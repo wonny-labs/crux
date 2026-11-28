@@ -10,6 +10,7 @@
 static uint8_t image[MEDIUM_IMAGE_MAX];
 
 /* Begins with a source over the image and checks the refusal: no operation, state unchanged. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a size and a result code, distinct roles
 static void expect_refusal(size_t size, crux_update_result_t expected)
 {
     medium_source_t state;

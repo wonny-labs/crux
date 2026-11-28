@@ -102,6 +102,7 @@ static void cut_and_begin(size_t op, medium_cut_t mode)
 }
 
 /* Finds the 1-based index of an operation in an uncut run from the same prior state. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): offset and count
 static size_t op_of(prior_t prior, medium_op_kind_t kind, uint32_t offset, unsigned nth)
 {
     operations_of_attempt(prior);
