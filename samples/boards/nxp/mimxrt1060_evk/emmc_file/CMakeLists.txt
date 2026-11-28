@@ -14,8 +14,7 @@ target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 # warns, so the link check in scripts/test-file-emmc-compile.sh requires the symbol in .config.
 if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
   target_sources(app PRIVATE emmc_configuration.c)
-  target_link_libraries(app PRIVATE crux::configuration)
-  # The private header of the provider (crux_config_zephyr_init), which crux::configuration does not
-  # expose: the composition wires it itself.
-  target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/ports/zephyr)
+  # crux::configuration_zephyr is the composition interface of the provider's start
+  # (crux_config_zephyr_init), which this composition calls after its layout check.
+  target_link_libraries(app PRIVATE crux::configuration crux::configuration_zephyr)
 endif()

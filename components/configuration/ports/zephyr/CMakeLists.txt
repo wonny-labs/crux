@@ -48,3 +48,18 @@ target_compile_options(crux_configuration_zephyr PRIVATE -Wall -Wextra -Werror)
 add_library(crux_configuration INTERFACE)
 add_library(crux::configuration ALIAS crux_configuration)
 target_link_libraries(crux_configuration INTERFACE crux_configuration_api)
+
+# The composition interface of the provider's start (Experimental): the header
+# <crux/configuration_zephyr.h> under ports/zephyr/include/crux/ and the portable target. The name
+# differs from the STATIC provider library crux_configuration_zephyr above, which this target does
+# not link (rule 2 of docs/composition-interfaces.md). A native-free consumer check rejects it by
+# name and by path (rule 3), and tests/build/test_configuration_zephyr_boundary.py shows that.
+function(crux_configuration_zephyr_composition)
+  add_library(crux_configuration_zephyr_composition INTERFACE)
+  add_library(crux::configuration_zephyr ALIAS crux_configuration_zephyr_composition)
+  target_include_directories(crux_configuration_zephyr_composition INTERFACE
+    "${CRUX_CONFIGURATION_COMPONENT_DIR}/ports/zephyr/include")
+  target_link_libraries(crux_configuration_zephyr_composition INTERFACE crux_configuration)
+endfunction()
+
+crux_configuration_zephyr_composition()

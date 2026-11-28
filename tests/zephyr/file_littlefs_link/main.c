@@ -6,9 +6,8 @@
  * write paths are in the image. It formats nothing, but it writes to a card: the image is never
  * flashed without approval for the board and the card.
  */
-#include "configuration_settings.h"
-
 #include <crux/configuration.h>
+#include <crux/configuration_zephyr.h>
 #include <crux/file.h>
 #include <crux/file_zephyr.h>
 #include <stdint.h>

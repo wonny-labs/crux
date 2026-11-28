@@ -14,6 +14,6 @@ if(NOT CONFIG_CRUX_FILE_LITTLEFS_BLK_DEV OR NOT CONFIG_CRUX_CONFIGURATION_SETTIN
     "CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS")
 endif()
 target_sources(app PRIVATE main.c)
-target_link_libraries(app PRIVATE crux::file crux::file_zephyr crux::configuration)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/ports/zephyr)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr crux::configuration
+  crux::configuration_zephyr)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

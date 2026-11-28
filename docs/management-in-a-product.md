@@ -379,7 +379,7 @@ Crux gives the erase, and the product gives the trigger and the code that uses i
    The two removals are for a [Settings File](emmc-reliance-composition.md#selection) provider of Configuration; leave them out without one.
    Add the product's own data, such as files of the file service, according to the product's policy.
 3. Call it at the right point:
-   - **Button:** after `crux_security_event_init()`, the mount, the File bindings and `crux_credential_start()`, and before the settings are initialised and `crux_access_init()` ([boot order](#boot-order)).
+   - **Button:** after `crux_security_event_init()`, the mount, the File bindings and `crux_credential_start()`, and before the settings are initialised (`crux_config_zephyr_init()` in `<crux/configuration_zephyr.h>`) and `crux_access_init()` ([boot order](#boot-order)).
    - **Command:** from the handler. Stop whatever saves settings first, because a save that runs after the removal writes the file again.
 4. If it returns `false`, report the failure and repeat the reset. A power cut during the erase can leave a valid slot, so the old accounts come back until an erase returns `CRUX_CREDENTIAL_OK`.
 
