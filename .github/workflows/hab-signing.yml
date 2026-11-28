@@ -1,0 +1,75 @@
+name: hab-signing
+
+# Software only. Signs a synthetic image with throwaway HAB keys that the test generates in a
+# temporary directory outside the repository and deletes afterwards, then runs the structure
+# checker. No board, fuse, SRK hash write, closed configuration or stored secret is involved.
+# SPSDK is a pinned test dependency: see tests/target/hab-requirements.txt and docs/boot-hab-status.md.
+# Documentation changes select none of its checks (scope not-docs in scripts/ci/checks.toml).
+
+# A thin wrapper: scripts/ci/run-tier.sh picks and runs the checks of the tier (docs/ci.md).
+# ci.yml calls it for pull requests, merges and the nightly tier, and its ci-gate job needs it
+# (docs/ci.md#merge-gate). It can also run alone by hand.
+on:
+  workflow_call:
+    inputs:
+      tier:
+        description: "Tier to run; empty runs the tier of the event (docs/ci.md)"
+        type: string
+        default: ""
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (docs/ci.md)"
+        type: choice
+        options: [full, fast, nightly]
+        default: full
+      base:
+        description: "Compare the change with this ref or commit; empty leaves the change unknown (docs/ci.md)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  CRUX_CI_BASE: ${{ inputs.base }}
+
+jobs:
+  # Runs the hab-signing job of scripts/ci/checks.toml: its first check installs the pinned SPSDK
+  # into $CRUX_CACHE_DIR/hab-tools, outside the checkout, so this workflow pins no tool itself.
+  hab-signing:
+    runs-on: ubuntu-24.04
+    env:
+      CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
+      TIER: ${{ inputs.tier || 'auto' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Plan the checks of this tier
+        id: plan
+        run: |
+          scripts/ci/run-tier.sh "$TIER" --job hab-signing --plan
+          echo "checks=$(scripts/ci/run-tier.sh "$TIER" --job hab-signing --count)" >> "$GITHUB_OUTPUT"
+
+      - name: Run the checks of this tier
+        if: steps.plan.outputs.checks != '0'
+        run: scripts/ci/run-tier.sh "$TIER" --job hab-signing
+
+      - name: Upload the check reports
+        if: always() && steps.plan.outputs.checks != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hab-signing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14
+          if-no-files-found: warn

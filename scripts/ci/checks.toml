@@ -175,6 +175,8 @@ env = { CRUX_BOARD_TARGET = "mimxrt1060_evk@B//qspi" }
 description = "TF-PSA-Crypto and the PSA ports"
 [jobs.psa-management]
 description = "The Mbed TLS management composition, web and image"
+[jobs.hab-signing]
+description = "HAB signing of a synthetic image with throwaway keys and the pinned SPSDK"
 [jobs.web-specification]
 description = "The management API specification lint"
 [jobs.web-client]
@@ -803,6 +805,30 @@ node tools/compare.ts | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 """
 scope = "web-ui"
 fast = ["web-ui"]
+
+# --- hab-signing --------------------------------------------------------------------------------
+# Software only: the test creates throwaway HAB keys in a temporary directory outside the
+# repository and deletes them; no board, fuse or stored key (docs/boot-hab-status.md).
+# SPSDK goes into a virtual environment in the cache folder outside the checkout, as
+# scripts/check_docs.py keeps its tool (AGENTS.md: SDKs and caches stay outside the source tree).
+
+[[check]]
+id = "hab-spsdk-install"
+job = "hab-signing"
+run = "venv=\"${CRUX_CACHE_DIR:-$PWD/../.crux-cache}/hab-tools\" && python3 -m venv \"$venv\" && \"$venv/bin/pip\" install --disable-pip-version-check -r tests/target/hab-requirements.txt -c tests/target/hab-constraints.txt"
+scope = "not-docs"
+
+[[check]]
+id = "hab-signing"
+job = "hab-signing"
+run = "PATH=\"${CRUX_CACHE_DIR:-$PWD/../.crux-cache}/hab-tools/bin:$PATH\" CRUX_REQUIRE_SPSDK=1 python3 -m unittest discover -s tests/build -p test_hab_signing.py -v"
+scope = "not-docs"
+
+[[check]]
+id = "hab-structure"
+job = "hab-signing"
+run = "python3 -m unittest discover -s tests/build -p test_hab_structure.py -v"
+scope = "not-docs"
 
 # --- docs ---------------------------------------------------------------------------------------
 

@@ -57,6 +57,12 @@ jobs:
       tier: ${{ inputs.tier }}
       base: ${{ inputs.base }}
 
+  hab-signing:
+    uses: ./.github/workflows/hab-signing.yml
+    with:
+      tier: ${{ inputs.tier }}
+      base: ${{ inputs.base }}
+
   web:
     uses: ./.github/workflows/web.yml
     with:
@@ -68,7 +74,7 @@ jobs:
   # on the same commit.
   ci-gate:
     name: ${{ (github.event.pull_request.draft || inputs.tier == 'fast') && 'ci-gate (fast)' || 'ci-gate' }}
-    needs: [docs, host, zephyr, psa-crypto, web]
+    needs: [docs, host, zephyr, psa-crypto, hab-signing, web]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

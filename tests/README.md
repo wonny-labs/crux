@@ -85,6 +85,8 @@ Each tool has a `tests/build/test_<tool>.py` that runs on throwaway repositories
 | `scripts/check-boot-config.py` | [Boot composition](../docs/boot-composition.md) |
 | `tests/target/compare-mcuboot-crypto-backends.sh` | [Comparison record](../docs/plans/mcuboot-crypto-backend-comparison.md) |
 
+`tests/build/test_hab_signing.py` signs a synthetic image with throwaway HAB keys that it creates in a temporary directory and deletes, using a pinned SPSDK (`tests/target/hab-requirements.txt` and `hab-constraints.txt`), and runs the structure checker on the result. It is skipped when SPSDK is not installed, and the `hab-signing` workflow installs it and requires it. It needs no board, fuse or stored key and verifies no signature. See the [HAB status page](../docs/boot-hab-status.md).
+
 ### Boot composition: `scripts/test-boot-composition.sh`
 
 This script builds, signs and checks the MCUboot RAM-load composition of [boot composition](../docs/boot-composition.md) for the RT1060-EVK Rev B. It is build only: it programs, boots, debugs and resets nothing, and it signs with MCUboot's published public test key, so its images must never be programmed to a board. It needs the Linux Dev Container and a workspace made by `scripts/bootstrap-zephyr.sh`. CI runs it in the `runtime` shard. It calls `tests/target/check_boot_images.sh` and `scripts/check-boot-config.py` on its own build; the approval of that wiring is recorded in the header of each of those two scripts.

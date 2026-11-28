@@ -29,7 +29,7 @@ case "$job" in
     psa-*) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0" ;;
     coverage-host) tools="cmake==3.28.4 ninja==1.11.1 gcovr==8.3" ;;
     coverage-native-sim) tools="cmake==3.28.4 ninja==1.11.1 west==1.4.0 gcovr==8.3" ;;
-    docs | web-*) tools="" ;;
+    docs | hab-signing | web-*) tools="" ;;
     *)
         printf 'error: scripts/ci/jenkins/run-job.sh does not know job %s. Add its set-up here. See docs/ci.md#jenkins.\n' "$job" >&2
         exit 2

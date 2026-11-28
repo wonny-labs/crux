@@ -78,7 +78,7 @@ Patterns follow the GitHub Actions path filter syntax: `**` matches across folde
 
 - `code` runs for every change, except a documentation-only change (every file in `docs/**` or any `*.md`) while it is developed: in a change request, a branch build or a local run. After a merge it runs.
 - `always` runs for every change.
-- A named scope runs when a changed file matches its patterns, on every event. The Zephyr jobs use `not-docs`, the PSA jobs `psa-crypto` and the web jobs `web-ui`. The GitHub workflows have no path filters: these scopes are the only path rules.
+- A named scope runs when a changed file matches its patterns, on every event. The Zephyr jobs and the HAB signing job use `not-docs`, the PSA jobs `psa-crypto` and the web jobs `web-ui`. The GitHub workflows have no path filters: these scopes are the only path rules.
 
 A change that is unknown runs every full check.
 
@@ -130,7 +130,7 @@ Even with it, an administrator can change the rule, a bypass actor of the rule c
 ## Merge gate
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the only workflow that pull requests, merges to `main` and the nightly schedule start.
-It calls `docs.yml`, `host.yml`, `zephyr.yml`, `psa-crypto.yml` and `web.yml` as reusable workflows, and its last job, `ci-gate`, needs all of them.
+It calls `docs.yml`, `host.yml`, `zephyr.yml`, `psa-crypto.yml`, `hab-signing.yml` and `web.yml` as reusable workflows, and its last job, `ci-gate`, needs all of them.
 Each called workflow can still run alone by hand.
 
 - `ci-gate` passes only when every called job concluded `success`; a failed, cancelled or skipped job fails it ([`scripts/ci/ci_gate.py`](../scripts/ci/ci_gate.py)). It runs with `always()`, so it also reports when a job before it failed or the run was cancelled.
