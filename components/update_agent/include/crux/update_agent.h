@@ -25,7 +25,8 @@
  * Thread context only. crux_update_start(), crux_update_begin(), crux_update_confirm() and
  * crux_update_acknowledge() are serialised by one internal lock, and a caller that finds it taken
  * gets CRUX_UPDATE_ERR_BUSY at once. crux_update_status_get() and crux_update_cancel() may be
- * called from another thread while an attempt runs. None of the functions may be called from an interrupt.
+ * called from another thread while an attempt runs. None of the functions may be called from an
+ * interrupt.
  *
  * The agent checks no permission. A management adapter checks access before it calls the agent.
  * The caller is trusted code.

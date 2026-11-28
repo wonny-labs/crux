@@ -320,7 +320,7 @@ Three levels, as in I8. Only the first two are planned. The third is listed so t
 
 ## U8. Proposed work package
 
-**This is a proposal. Implementation is not approved.** Publishing it, or an issue for it, authorises nothing (AGENTS.md). It would need its own scope approval, and the owner decisions below.
+The approval of this package and its limits are in [Owner decisions](#owner-decisions).
 
 ### Title and goal
 
@@ -350,7 +350,7 @@ Image state contract and update agent, Host and `native_sim`: `crux/image_state.
 | #297 | The issue. Its criteria on board evidence stay open after this package. |
 | #165 | Needed before any step in which the bootloader writes NOR on hardware. Not needed for Host or `native_sim`. |
 | #142 (PSA Crypto) | Qualified on Host and `native_sim`. Compile-only on RT1060 ([qualification record](../psa-crypto-qualification.md)). |
-| I2, I3, I5, I6 of the image-state record | Open at this head. The package follows them, and a change to a row changes the package. |
+| I2, I3, I5, I6 of the image-state record | Open at the baseline; approved since, as the [image state record](image-state-contract-proposal.md#owner-approval) states. The package follows them, and a change to a row changes the package. |
 | ADR-0002, 0003, 0004, 0005, 0006 | Accepted. The agent owns no thread and uses no frozen header. Its lock is the narrow internal one. It adds no crypto dependency beyond the pinned PSA providers. |
 
 ### Acceptance criteria
@@ -432,7 +432,7 @@ The answer approves the decisions and the work package, not merging: each pull r
 - Whether the header sector's erase hides a slot from the bootloader, and header-last ordering on a real device, are Not verified.
 - The path by which the application obtains a signature public key is not decided.
 - Multi-image and more than two slots are out of scope.
-- The image-state rows I2, I3, I5, I6, I8 and I9 are open at the base. This proposal changes if the owner changes them.
+- The image-state rows I2, I3, I5, I6, I8 and I9 were open at the base. The owner has since approved them ([image state record](image-state-contract-proposal.md#owner-approval)). This proposal changes if the owner changes them.
 
 ## Open questions
 

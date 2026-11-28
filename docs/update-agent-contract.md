@@ -69,7 +69,7 @@ The source is the caller's: a size and a random-access read. `crux_update_source
 | The signed range is header, body and protected area | Standard | Verified on pinned source for the pure-signature path: `boot/bootutil/src/image_validate.c` at `6d3b3d2c`. That the SHA-256 entry covers the same range on the hashed path is Inference (the hashing function was not read). |
 | The agent looks for the SHA-256 and signature entries in the unprotected area only | Project-specific | The bootloader accepts the signature entry in either area (`image_validate.c`). An image that carries it in the protected area is refused, which is the safe side. |
 | Header written last, magic block last within it | Project-specific | Proposal U4. Whether a real device tears a write as the Host model assumes is Not verified. |
-| Seqlock for the status snapshot, try-lock for the calls | Documented but optional | The try-lock matches `crux/image_state.h`. A seqlock over atomics is a common reader-never-blocks-writer pattern; no external source was read for it here. |
+| Seqlock for the status snapshot, try-lock for the calls | Not verified (no external source read) | The try-lock matches `crux/image_state.h`. A seqlock over atomics is a common reader-never-blocks-writer pattern; no external source was read for it here. |
 
 ## What is verified, and by what
 
