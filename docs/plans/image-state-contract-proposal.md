@@ -43,7 +43,9 @@ On 15 November 2026 the owner approved rows I1, I4 and I7 as recommended, and la
 - **I5.** The version basis is major, minor, revision, and the build number is ignored. The composition must not enable the build-number comparison option (the Kconfig option `CONFIG_BOOT_VERSION_CMP_USE_BUILD_NUMBER`, and the macro `MCUBOOT_VERSION_CMP_USE_BUILD_NUMBER` that it sets). How that is enforced is **Not verified** and stays open. No check at this head names the option (Verified in repository).
 - **I6.** The provider fails closed (`CRUX_IMAGE_ERR_NOT_READY`) as the row words it. The board case T4 (is the retained shared data intact after the jump, Q4) must run before any other use of the record.
 
-**What the approvals cover.** Each answer covers only the rows marked Approved, as the table words them. Together they approve rows I1 to I7. They do not approve I8 or I9, which stay open (proposed), and they do not approve any implementation, a change to #297's acceptance criteria or a change to a protected path. Implementing `crux/image_state.h` and its providers needs its own work package and scope approval. No hardware operation is approved. The Draft host prototype (#462) stays as it is. This record reads the approval as covering the decisions, not the exact signatures in [Proposed contract](#proposed-contract), which stay illustrative. The owner's words do not address signatures.
+**Rows I8 and I9.** The owner approved these on 28 November 2026 with the answer "추천대로" (as recommended), to a question that recommended accepting both as proposed, Experimental. The answer was given in chat with the coordinating session and relayed to the session that edited this record. The same answer approved rows U1 to U7 and W1 to W7 of the [update agent design proposal](update-agent-design-proposal.md#owner-decisions).
+
+**What the approvals cover.** Each answer covers only the rows marked Approved, as the table words them. Together they approve rows I1 to I9. The answers of 15 November 2026 do not approve any implementation, a change to #297's acceptance criteria or a change to a protected path. Implementing `crux/image_state.h` and its providers needs its own work package and scope approval. No hardware operation is approved. The Draft host prototype (#462) stays as it is. This record reads the approval as covering the decisions, not the exact signatures in [Proposed contract](#proposed-contract), which stay illustrative. The owner's words do not address signatures.
 
 ## The question and the short answer
 
@@ -176,7 +178,7 @@ An option that writes the trailer bytes in Crux, bypassing bootutil, is rejected
 
 ## Proposed contract
 
-The decisions I1 to I7 are adopted. Rows I8 and I9 are still open. This section describes the contract as proposed, and the signatures stay illustrative (this record reads the approval as covering the decisions, not the exact signatures, and no implementation is approved).
+The decisions I1 to I9 are adopted. This section describes the contract as proposed, and the signatures stay illustrative (this record reads the approval as covering the decisions, not the exact signatures, and no implementation is approved).
 
 ### Component and header
 
