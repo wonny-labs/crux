@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "emmc_configuration.h"
-#include "configuration_settings.h"
+
+#include <crux/configuration_zephyr.h>
 
 enum emmc_storage_status emmc_configuration_start(void)
 {

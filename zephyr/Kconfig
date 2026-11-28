@@ -565,8 +565,9 @@ config CRUX_CONFIGURATION_SETTINGS_FILE
       zephyr/settings_file.cmake). Settings are initialised by the composition, after its
       layout check: crux_config_zephyr_init lets the backend create the directories of
       CONFIG_SETTINGS_FILE_PATH, so the composition calls it only after its layout
-      check has found the settings directory. Set CONFIG_SETTINGS_FILE_PATH under the
-      volume's mount point.
+      check has found the settings directory. The composition reaches it through the
+      composition target crux::configuration_zephyr and <crux/configuration_zephyr.h>.
+      Set CONFIG_SETTINGS_FILE_PATH under the volume's mount point.
 
 config CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS
     bool "Crux Configuration on the Settings File backend over a mounted file system other than FatFs"
@@ -582,9 +583,10 @@ config CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS
       refuses the build of an image that has both this and FAT_FILESYSTEM_ELM, at CMake and in
       the provider's source, rather than through a Kconfig dependency, which would only drop
       the selection with a warning and leave the image without a provider. The composition
-      mounts the volume, never formats it, and calls crux_config_zephyr_init only after its
-      layout check has found the directory of CONFIG_SETTINGS_FILE_PATH. Set that path under
-      the volume's mount point.
+      mounts the volume, never formats it, and calls crux_config_zephyr_init, through
+      crux::configuration_zephyr and <crux/configuration_zephyr.h>, only after its layout
+      check has found the directory of CONFIG_SETTINGS_FILE_PATH. Set that path under the
+      volume's mount point.
 
 menuconfig CRUX_WEB
     bool "Crux web server adapter"

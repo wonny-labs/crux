@@ -15,6 +15,5 @@ if(NOT CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE_ANY_FS OR NOT CONFIG_FS_LITTLEFS_
     "and LittleFS on a block device")
 endif()
 target_sources(app PRIVATE main.c)
-target_link_libraries(app PRIVATE crux::configuration)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/ports/zephyr)
+target_link_libraries(app PRIVATE crux::configuration crux::configuration_zephyr)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

@@ -47,7 +47,7 @@ handle must be closed first. `stop` is not a power-down. A second start reports 
 `CONFIG_SAMPLE_EMMC_DISK_NAME` (default `MMC`) and the mount point stays `/MMC:`.
 
 With `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE` the sample calls `emmc_configuration_start()` instead. It runs the four
-steps above and, only if they returned `EMMC_STORAGE_READY`, calls `crux_config_zephyr_init()`. The order matters: the
+steps above and, only if they returned `EMMC_STORAGE_READY`, calls `crux_config_zephyr_init()`, which it reaches through the composition target `crux::configuration_zephyr` and `<crux/configuration_zephyr.h>` ([composition interfaces](composition-interfaces.md#the-configuration-provider-start)). The order matters: the
 Settings File backend creates the directories of its file path when it initialises, and this composition's rule is that
 the firmware creates none. So on a medium without `/MMC:/settings` the settings are never initialised, and a test
 confirms that nothing is written. If the storage is ready and the settings initialisation fails, the status is

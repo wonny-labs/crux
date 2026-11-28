@@ -5,9 +5,8 @@
  * then loads one parameter and saves it, so that crux_config_save and the provider's write path are
  * in the image. The image is never flashed: the EVKB has no eMMC.
  */
-#include "configuration_settings.h"
-
 #include <crux/configuration.h>
+#include <crux/configuration_zephyr.h>
 #include <stdint.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
