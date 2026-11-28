@@ -22,7 +22,10 @@ else()
 endif()
 target_sources(app PRIVATE ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_storage.c
   ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file/emmc_configuration.c)
-target_link_libraries(app PRIVATE crux::file crux::file_zephyr crux::configuration)
+# crux::configuration_zephyr publishes <crux/configuration_zephyr.h>, which emmc_configuration.c
+# includes.
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr crux::configuration
+  crux::configuration_zephyr)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}
   ${CRUX_ROOT}/samples/boards/nxp/mimxrt1060_evk/emmc_file
   ${CRUX_ROOT}/components/configuration/ports/zephyr)
