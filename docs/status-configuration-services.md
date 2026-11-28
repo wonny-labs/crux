@@ -177,13 +177,13 @@ With no provider, a save returns `ERR_STORE` with `CRUX_CONFIG_ERR_NOT_SUPPORTED
 | Listing | Left out, with no event. The other entries keep their places, so a cursor taken before stays valid. |
 | `read`, `update` | `NOT_FOUND`, with no denial, as for a name that is not in the table. A sensitive name gets the same answer, never `WRITE_ONLY`. The session is still checked first. |
 | `try_read`, `try_update` | `NOT_FOUND` |
-| Validator | Never called again by the service |
+| Validator | Not called again, except by a save of an update accepted before the disable. That save calls it once under the service lock, and each retry after a failed save calls it again, until one saves the value. |
 | An update accepted before the disable | Keeps its mark. The next save writes it, as the [save table](#save) shows |
 | A second disable | `OK`, with no lock taken |
 
 The disable is one-way until the program starts again: no call enables a parameter, and the parameter, its storage, spec and validation context stay borrowed for the program's life with the table. The application still never calls the Configuration functions on it directly, because the service may still save its mark. Before start the disable returns `NOT_READY`, for a name not in the table `NOT_FOUND`, and for `NULL` `INVALID_ARGUMENT`. It takes no session and produces no event, like the other calls of the application.
 
-It sets one bit per table index, under the service lock. Every operation reads that bit with no lock for an early answer, as it reads the table, and again under the lock before it touches the value, so the lock orders a disable against the other operations: one that took the lock first finishes as before, and none that starts after the disable has returned reads, changes or validates the value. The bit is a lock-free atomic word, as the status snapshot's word is, and the table, its indices and the unsaved marks do not change.
+It sets one bit per table index, under the service lock. Every operation except a save reads that bit with no lock for an early answer, as it reads the table, and again under the lock before it touches the value. A save follows the unsaved marks instead, so it still checks and writes a mark set before the disable. The lock orders a disable against the other operations: one that took the lock first keeps its result, and none that starts after the disable has returned reads, changes or validates the value, except that save. A session's save report is built after the lock is released, so a disable that lands then can leave a parameter out of that report. The bit is a lock-free atomic word, as the status snapshot's word is, and the table, its indices and the unsaved marks do not change.
 
 ## Status service
 
@@ -295,7 +295,7 @@ Each is open to review, and a changed choice is small while nothing depends on i
 | `CRUX_CONFIG_STRING_MAX` in CMake | Empty by default, and a value becomes a public compile definition | Consumers that keep the default see no new definition |
 | `crux_mgmt_status_port_has_*` | Asked once, at start | An item's presence never changes while a client reads a list |
 | What a disabled parameter is to a session | Hidden: a missing name, not read-only | The consumer that asked for the call confirmed it. A read-only mode can be added later as a separate call or argument without breaking callers. |
-| The application's calls after a disable | `try_read` and `try_update` return `NOT_FOUND` | The consumer confirmed that refusing them is acceptable, and the validator and its context can then go quiet |
+| The application's calls after a disable | `try_read` and `try_update` return `NOT_FOUND` | The consumer confirmed that refusing them is acceptable. The validator and its context can go quiet once no update accepted before the disable is left unsaved. |
 | An update accepted before a disable | Still saved by the next save | Nothing accepted is lost, and the mask and the save loop stay unchanged |
 | Re-enabling | Not offered: one-way until the program starts again | An enable call can be added later without breaking callers |
 | The disable's lock | Polls and returns `ERR_BUSY` | As the application's other calls; the consumer confirmed that a retry on `BUSY` is acceptable |
@@ -327,8 +327,8 @@ Each is open to review, and a changed choice is small while nothing depends on i
 | `Configuration.Conformance` | The existing scalar cases unchanged, then each C2 vector on init, update and load, the maximum length across a reload, record metadata, short transfers, type mismatch in each direction, wrong init function, aliasing, fallback, and scalar records byte-identical |
 | `Configuration.NoProvider` | Load and save on the selected port, linked as a composition links it |
 | `ConfigService.permissions` | Every row above for listing, read, update and save, with success, unauthenticated, unpermitted and invalid input, forced change, table validation and the bound. The disable's refusals, and a disabled parameter left out of every listing and missing to every session, sensitive or not, with no denial |
-| `ConfigService.values` | Parser limits, validators, string forms, sensitive values absent from every result and event, and the application's calls, which a disable refuses, with no further validator call |
-| `ConfigService.save` | Table order, marks, failure part of the way through a list, stored bytes changed by a failed save, events with no lock held, and what a report tells a session that sees none, some or all of what was saved. A mark set before a disable is saved, named by the events and the application's report, and left out of a session's report |
+| `ConfigService.values` | Parser limits, validators, string forms, sensitive values absent from every result and event, and the application's calls, which a disable refuses with no validator call |
+| `ConfigService.save` | Table order, marks, failure part of the way through a list, stored bytes changed by a failed save, events with no lock held, and what a report tells a session that sees none, some or all of what was saved. A mark set before a disable is saved, named by the events and the application's report, and left out of a session's report. Its validator runs once per save that reaches it, failed saves included, and never after the save that writes it |
 | `ConfigService.concurrency` | `BUSY` during a held save for each polling call, a second save timing out, a validator calling back, and threads under load. A disable during a save and during a validator on another thread (`BUSY`), from a validator (`NOT_READY`), and under load, where no operation that starts after it succeeds |
 | `ConfigService.lock_faults` | Each result the Sync contract can give, through a wrapped lock, for the disable too, which only polls |
 | `ConfigService.no_provider` | The service over the selected port |

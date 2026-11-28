@@ -280,17 +280,23 @@ crux_config_service_save_local(crux_config_service_save_report_t *report);
  * keeps the places of the other entries, so a cursor taken before stays valid. read and update
  * return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND with no denial, and a sensitive name no longer answers
  * CRUX_CONFIG_SERVICE_ERR_WRITE_ONLY. try_read and try_update also return
- * CRUX_CONFIG_SERVICE_ERR_NOT_FOUND. The service never calls the parameter's validator again.
+ * CRUX_CONFIG_SERVICE_ERR_NOT_FOUND.
  *
  * An update accepted before the disable keeps its unsaved mark, and the next save still writes it:
  * the events of a session's save name it, its report leaves it out as a listing does, and the
- * report of crux_config_service_save_local() counts and names it. So the parameter, its storage,
- * its spec and its validation context stay borrowed for the program's life, as the table does, and
- * no thread calls the Configuration functions on it directly.
+ * report of crux_config_service_save_local() counts and names it. That save checks the value
+ * again, so it calls the parameter's validator under the service lock. A save that fails keeps
+ * the mark, and each later save that reaches the parameter calls the validator again, until one
+ * saves it. With no such mark, or once it is saved, the service never calls the validator again.
+ * So the parameter, its storage, its spec and its validation context stay borrowed for the
+ * program's life, as the table does, and no thread calls the Configuration functions on it
+ * directly.
  *
  * Polls the lock and never waits on it or on storage. The lock orders it against the other
- * operations: one that took the lock before finishes as before, and none that starts after this
- * returns CRUX_CONFIG_SERVICE_OK reads, changes or validates the value. Disabling twice succeeds.
+ * operations: one that took the lock before keeps its result. A session's save report is built
+ * after the save releases the lock, so it may leave out a parameter disabled just then. No
+ * operation that starts after this returns CRUX_CONFIG_SERVICE_OK reads, changes or validates the
+ * value, except the save of a mark as described above. Disabling twice succeeds.
  *
  * @param name The parameter's key.
  * @retval CRUX_CONFIG_SERVICE_OK Disabled, or already disabled.

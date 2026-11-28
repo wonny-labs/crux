@@ -428,7 +428,8 @@ static void disabled_refuses_the_application_too(void)
     value.data.u32 = 4;
     CHECK(crux_config_service_try_update("counted", &value) == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
     CHECK(update_text(s_both, "counted", "5") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
-    /* The service never calls the validator again, so its context may go quiet. */
+    /* No refused call reaches the validator. The update accepted before the disable is unsaved,
+     * so the next save would still call it, as the save tests show. */
     CHECK(validator_calls == 2);
 
     /* The other entry still answers the application. */

@@ -357,6 +357,55 @@ static void disabled_save_failure_is_named_only_to_the_application(void)
     CHECK(report.saved == 1 && report.failed_name == NULL);
 }
 
+static unsigned validator_calls;
+
+static bool counting_validator(const crux_config_value_t *value, void *context)
+{
+    (void)value;
+    (void)context;
+    ++validator_calls;
+    return true;
+}
+
+/* After a disable, only the save of a mark set before it calls the validator: once per save that
+ * reaches the parameter, failed saves included, and never after the save that writes it. */
+static void disabled_validator_runs_only_while_its_mark_is_saved(void)
+{
+    fixture_boot();
+    static const crux_config_spec_t spec = {
+        "counted", 1, {.type = CRUX_CONFIG_U32, .data.u32 = 1}, counting_validator, NULL};
+    static crux_config_param_t parameter;
+    CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
+    static const crux_config_service_entry_t table[] = {
+        {&parameter, "cfg.read", "cfg.write", false, CRUX_CONFIG_ACTIVATION_APPLICATION}};
+    CHECK(crux_config_service_start(table, 1) == CRUX_CONFIG_SERVICE_OK);
+
+    validator_calls = 0;
+    CHECK(update_text(s_both, "counted", "2") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(validator_calls == 1);
+    CHECK(crux_config_service_disable("counted") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(validator_calls == 1);
+
+    /* Each failed save checks the value again before the write fails, and keeps the mark. */
+    config_fault_write_fail_key("counted", CRUX_CONFIG_ERR_IO);
+    crux_config_service_save_report_t report = {0};
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_ERR_STORE);
+    CHECK(validator_calls == 2);
+    CHECK(crux_config_service_save_local(&report) == CRUX_CONFIG_SERVICE_ERR_STORE);
+    CHECK(validator_calls == 3);
+
+    config_fault_write_fail_key(NULL, CRUX_CONFIG_OK);
+    CHECK(crux_config_service_save_local(&report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(report.saved == 1);
+    CHECK(validator_calls == 4);
+
+    /* The mark is gone, so no later save calls it. */
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_save_local(&report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(report.saved == 0);
+    CHECK(validator_calls == 4);
+}
+
 int main(void)
 {
     run_case("saves only what is marked", saves_only_what_is_marked);
@@ -374,5 +423,7 @@ int main(void)
     run_case("disabled keeps its unsaved mark", disabled_keeps_its_unsaved_mark);
     run_case("disabled save failure is named only to the application",
              disabled_save_failure_is_named_only_to_the_application);
+    run_case("disabled validator runs only while its mark is saved",
+             disabled_validator_runs_only_while_its_mark_is_saved);
     return suite_finish("ConfigService.save");
 }
