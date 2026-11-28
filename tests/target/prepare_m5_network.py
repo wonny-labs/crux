@@ -32,7 +32,24 @@ PINNED = {
 # Where the build finds each pinned dependency (scripts/test-networking-physical.sh names these directories).
 PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6',
                 'hal_nxp': 'modules/hal/nxp'}
+# The manifest checkout path of this repository's own images. It is the historical folder name, which records frozen
+# under it keep; the folder of the actual checkout (CHECKOUT_FOLDER) is accepted as well.
 MANIFEST_PATH = 'crux-pilot'
+
+
+def checkout_folder_name(repo):
+    """The folder name of the checkout at ``repo``; for a linked worktree, that of its main checkout."""
+    dotgit = Path(repo) / '.git'
+    if dotgit.is_file():
+        gitdir = Path(repo) / dotgit.read_text().strip().removeprefix('gitdir:').strip()
+        if (gitdir / 'commondir').is_file():
+            common = (gitdir / (gitdir / 'commondir').read_text().strip()).resolve()
+            if common.name == '.git':
+                return common.parent.name
+    return Path(repo).resolve().name
+
+
+CHECKOUT_FOLDER = checkout_folder_name(Path(__file__).resolve().parents[2])
 ROLES = {'binary', 'elf', 'config', 'map', 'dts', 'compilation', 'inputs', 'provenance', 'errno'}
 M5_NAME = 'm5-network-physical'
 # The frozen roles that only some profiles have (ImageProfile.extra_roles), and where the build leaves each file.
@@ -140,7 +157,10 @@ def frozen_inputs(data, profile=None):
             ', '.join(sorted(str(p.get('name')) for p in others)))
     fields = {'name', 'path', 'revision', 'git_commit', 'dirty'}
     require(len({p['name'] for p in others}) == len(others), 'Duplicate other west project')
-    reserved = [PurePosixPath(profile.manifest_path)] + [PurePosixPath(v) for v in pinned_paths.values()]
+    manifest_paths = {profile.manifest_path}
+    if profile.manifest_path == MANIFEST_PATH:
+        manifest_paths.add(CHECKOUT_FOLDER)
+    reserved = [PurePosixPath(v) for v in [*manifest_paths, *pinned_paths.values()]]
     seen = set()
     for project in others:
         revision, path = project.get('revision'), project.get('path')
@@ -159,7 +179,7 @@ def frozen_inputs(data, profile=None):
         seen.add(where)
     for context in contexts:
         require(set(context) == {'name', 'path', 'revision', 'git_commit', 'dirty'} and
-                context['path'] == profile.manifest_path and context['revision'] == 'HEAD' and
+                context['path'] in manifest_paths and context['revision'] == 'HEAD' and
                 context['dirty'] is False and
                 re.fullmatch(r'[0-9a-f]{40}', context['git_commit']) is not None,
                 'Unfrozen/noncanonical workspace manifest context')
