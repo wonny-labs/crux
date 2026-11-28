@@ -24,7 +24,7 @@ The [plan](plans/secure-boot-development-plan.md) has six phases. Two work items
 | --- | --- | --- |
 | 0 | Investigations of boot and update, eMMC, and bootloader update | Done, as desk results and build-only trial builds |
 | 1 | The boot platform work on the RT1060-EVK Rev B: MCUboot in the manifest, composition recipe, board files, a build check, then board evidence | The merged parts of WP1a are listed below. Board evidence is not started. A design note on recovery options is a Draft (#459, not merged). RT1170 build-only evidence is set aside: its design note (#445) and starting files (#460, Draft) are not merged |
-| 2 | Update path: image-state contract, update agent, version policy, boot-result record | Image-state contract: Experimental code is merged (#496): the public header, the pure functions, the portable core and a Host test double, tested on Host and in CI. There is no bootloader provider and no `native_sim` or board result. See the [image state contract](image-state-contract.md). Update agent: a Host core with the application-side version rule exists (Experimental), with no provider and no board result; see the [update agent contract](update-agent-contract.md). The boot-result record is not started. An earlier Draft prototype (#462) is still open and is not the merged code |
+| 2 | Update path: image-state contract, update agent, version policy, boot-result record | Image-state contract: Experimental code is merged (#496): the public header, the pure functions, the portable core and a Host test double, tested on Host and in CI. There is no bootloader provider and no `native_sim` or board result. See the [image state contract](image-state-contract.md). Update agent: a Host core with the application-side version rule exists, with no provider and no board result; see the [update agent contract](update-agent-contract.md). The boot-result record is not started. An earlier Draft prototype (#462) is still open and is not the merged code |
 | 3 | eMMC media path | The MCUboot trailer replay on the eMMC simulator is merged. A flash-API driver exists only as a Draft prototype that is not merged. Nothing runs on eMMC hardware |
 | 4 | HAB signing structure in the open (unlocked) configuration | Not started: no signing step, key, tool run or board result exists. A software-only structure checker on synthetic images is the only code; see the [HAB status page](boot-hab-status.md) and the [HAB open-configuration plan](plans/hab-open-configuration-plan.md) (Proposed) |
 | 5 | Closed configuration and production: fuses, key custody, lockdown | Not started. Needs owner decisions first |
@@ -61,7 +61,7 @@ Merged:
 
 Not merged or not started:
 
-- A bootloader provider for the image-state contract, and providers for the update agent (only its Host core exists, Experimental).
+- A bootloader provider for the image-state contract, and providers for the update agent (only its Host core exists).
 - The eMMC flash-API driver prototype (Draft, not for merge without an owner decision).
 - Any run on a board: boot, refusal of bad images, confirm, revert, update, power loss.
 - RT1170-EVK build-only evidence (set aside for now), the recovery path (a Draft note only), HAB signing, closed configuration.

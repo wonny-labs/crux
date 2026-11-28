@@ -2,7 +2,7 @@
 
 For integrators and reviewers of `components/update_agent`. It says what the agent does, what the core needs from a composition, and what is verified.
 
-Status: **Experimental** (row W4 of the [update agent design proposal](plans/update-agent-design-proposal.md), approved on 28 November 2026). This is pull request 2 of the U8 work package: the agent core, its Host fakes and the Host suites. No Zephyr provider, no attempt-record store on a medium, no PSA verify provider and no `native_sim` run exist yet. Nothing here ran on a board or with a power fixture.
+The header carries `Status: Experimental` (row W4 of the [update agent design proposal](plans/update-agent-design-proposal.md)); what that tier means for your code, and what is verified, is in the [readiness table](component-readiness.md#readiness-table). This is pull request 2 of the U8 work package: the agent core, its Host fakes and the Host suites. No Zephyr provider, no attempt-record store on a medium, no PSA verify provider and no `native_sim` run exist yet. There is no board or power-fixture result.
 
 Owner: `components/update_agent`. Public header `<crux/update_agent.h>`, usage target `crux::update_agent`, build option `CRUX_BUILD_UPDATE_AGENT` (needs `CRUX_BUILD_IMAGE_STATE`). The header includes `<stdbool.h>`, `<stddef.h>`, `<stdint.h>` and `<crux/image_state.h>` only.
 

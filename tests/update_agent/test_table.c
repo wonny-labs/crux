@@ -37,8 +37,8 @@ typedef enum {
 } setup_t;
 
 static const crux_update_state_t setup_state[SETUP_COUNT] = {
-    CRUX_UPDATE_STATE_NOT_STARTED, CRUX_UPDATE_STATE_UNAVAILABLE, CRUX_UPDATE_STATE_IDLE,
-    CRUX_UPDATE_STATE_OUTCOME,     CRUX_UPDATE_STATE_TESTING,     CRUX_UPDATE_STATE_FAILED,
+    CRUX_UPDATE_STATE_NOT_STARTED,  CRUX_UPDATE_STATE_UNAVAILABLE, CRUX_UPDATE_STATE_IDLE,
+    CRUX_UPDATE_STATE_OUTCOME,      CRUX_UPDATE_STATE_TESTING,     CRUX_UPDATE_STATE_FAILED,
     CRUX_UPDATE_STATE_WAITING_RESET};
 
 static void setup(setup_t which)
@@ -115,9 +115,8 @@ static const expect_t table[SETUP_COUNT][EV_COUNT] = {
     {OK_TO(IDLE), REFUSED(NOT_READY, NOT_STARTED), REFUSED(STATE, NOT_STARTED),
      REFUSED(NOT_READY, NOT_STARTED), REFUSED(NOT_READY, NOT_STARTED)},
     /* UNAVAILABLE (TR1): refuses everything */
-    {REFUSED(NOT_READY, UNAVAILABLE), REFUSED(NOT_READY, UNAVAILABLE),
-     REFUSED(STATE, UNAVAILABLE), REFUSED(NOT_READY, UNAVAILABLE),
-     REFUSED(NOT_READY, UNAVAILABLE)},
+    {REFUSED(NOT_READY, UNAVAILABLE), REFUSED(NOT_READY, UNAVAILABLE), REFUSED(STATE, UNAVAILABLE),
+     REFUSED(NOT_READY, UNAVAILABLE), REFUSED(NOT_READY, UNAVAILABLE)},
     /* IDLE: BEGIN runs TR6 to TR13 */
     {OK_TO(IDLE), OK_TO(WAITING_RESET), REFUSED(STATE, IDLE), REFUSED(STATE, IDLE),
      REFUSED(STATE, IDLE)},
@@ -144,8 +143,7 @@ static void every_pair(void)
     static char name[96];
     for (unsigned s = 0; s < SETUP_COUNT; s++) {
         for (unsigned e = 0; e < EV_COUNT; e++) {
-            (void)snprintf(name, sizeof(name), "U1 table: %s x %s", setup_names[s],
-                           event_names[e]);
+            (void)snprintf(name, sizeof(name), "U1 table: %s x %s", setup_names[s], event_names[e]);
             CASE(name);
             setup((setup_t)s);
             size_t writes = medium_slot_write_count(0);

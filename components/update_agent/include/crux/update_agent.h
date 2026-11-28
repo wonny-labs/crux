@@ -55,17 +55,17 @@ extern "C" {
 
 /** The resting states of row U1. An operation in progress is not a state. */
 typedef enum {
-    CRUX_UPDATE_STATE_NOT_STARTED = 0,  /**< crux_update_start() has not succeeded. */
-    CRUX_UPDATE_STATE_UNAVAILABLE = 1,  /**< The image state contract failed to start. */
-    CRUX_UPDATE_STATE_IDLE = 2,         /**< No attempt in flight and no outcome to report. */
-    CRUX_UPDATE_STATE_OUTCOME = 3,      /**< A previous attempt has an unacknowledged outcome. */
-    CRUX_UPDATE_STATE_TESTING = 4,      /**< The running image is on trial. Confirm is offered. */
-    CRUX_UPDATE_STATE_CHECKED = 5,      /**< A source passed every check. Nothing is written. */
-    CRUX_UPDATE_STATE_RECORDED = 6,     /**< The attempt is recorded, not yet requested. */
-    CRUX_UPDATE_STATE_ERASED = 7,       /**< The staging slot is blank, trailer included. */
-    CRUX_UPDATE_STATE_BODY_WRITTEN = 8, /**< The image without its header is in the slot. */
-    CRUX_UPDATE_STATE_STAGED = 9,       /**< The header is written. */
-    CRUX_UPDATE_STATE_VERIFIED = 10,    /**< The read-back matches the checked image. */
+    CRUX_UPDATE_STATE_NOT_STARTED = 0,    /**< crux_update_start() has not succeeded. */
+    CRUX_UPDATE_STATE_UNAVAILABLE = 1,    /**< The image state contract failed to start. */
+    CRUX_UPDATE_STATE_IDLE = 2,           /**< No attempt in flight and no outcome to report. */
+    CRUX_UPDATE_STATE_OUTCOME = 3,        /**< A previous attempt has an unacknowledged outcome. */
+    CRUX_UPDATE_STATE_TESTING = 4,        /**< The running image is on trial. Confirm is offered. */
+    CRUX_UPDATE_STATE_CHECKED = 5,        /**< A source passed every check. Nothing is written. */
+    CRUX_UPDATE_STATE_RECORDED = 6,       /**< The attempt is recorded, not yet requested. */
+    CRUX_UPDATE_STATE_ERASED = 7,         /**< The staging slot is blank, trailer included. */
+    CRUX_UPDATE_STATE_BODY_WRITTEN = 8,   /**< The image without its header is in the slot. */
+    CRUX_UPDATE_STATE_STAGED = 9,         /**< The header is written. */
+    CRUX_UPDATE_STATE_VERIFIED = 10,      /**< The read-back matches the checked image. */
     CRUX_UPDATE_STATE_WAITING_RESET = 11, /**< The test boot is requested. A reset boots it. */
     CRUX_UPDATE_STATE_FAILED = 12         /**< The attempt ended without a request. */
 } crux_update_state_t;
@@ -129,8 +129,8 @@ typedef struct {
     crux_image_outcome_t outcome; /**< Meaningful in OUTCOME and TESTING. */
     bool attempt_present;         /**< The attempt record holds @c attempt. */
     crux_image_attempt_t attempt;
-    bool record_lost;  /**< The attempt record was unreadable at start: an outcome may be lost. */
-    bool slot_staged;  /**< FAILED left a staged image that the bootloader erases at the reset. */
+    bool record_lost; /**< The attempt record was unreadable at start: an outcome may be lost. */
+    bool slot_staged; /**< FAILED left a staged image that the bootloader erases at the reset. */
     uint32_t progress_done;  /**< Bytes erased, written or read back in the current phase. */
     uint32_t progress_total; /**< Bytes of the current phase. */
 } crux_update_status_t;

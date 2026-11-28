@@ -16,8 +16,8 @@
 #include <stdatomic.h>
 #include <string.h>
 
-#define CHUNK_SIZE 256u       /* bytes per source read and slot write; a multiple of write_block */
-#define TLV_AREA_MAX 1024u    /* the unprotected metadata area, information header included */
+#define CHUNK_SIZE 256u    /* bytes per source read and slot write; a multiple of write_block */
+#define TLV_AREA_MAX 1024u /* the unprotected metadata area, information header included */
 #define SNAPSHOT_TRIES 8u
 #define HEADER_MAGIC_SIZE 4u
 
@@ -344,8 +344,8 @@ static crux_update_result_t check_integrity(const attempt_t *a)
 {
     const uint8_t *value = NULL;
     uint16_t length = 0;
-    int found = update_image_tlv_find(tlv_area, a->tlv_total, UPDATE_IMAGE_TLV_SHA256, &value,
-                                      &length);
+    int found =
+        update_image_tlv_find(tlv_area, a->tlv_total, UPDATE_IMAGE_TLV_SHA256, &value, &length);
     if (found < 0) {
         return CRUX_UPDATE_ERR_FORMAT;
     }
@@ -353,8 +353,8 @@ static crux_update_result_t check_integrity(const attempt_t *a)
         memcmp(value, a->image_digest, CRUX_UPDATE_DIGEST_SIZE) != 0) {
         return CRUX_UPDATE_ERR_HASH; /* G6 */
     }
-    found = update_image_tlv_find(tlv_area, a->tlv_total, UPDATE_IMAGE_TLV_ECDSA_SIG, &value,
-                                  &length);
+    found =
+        update_image_tlv_find(tlv_area, a->tlv_total, UPDATE_IMAGE_TLV_ECDSA_SIG, &value, &length);
     if (found < 0) {
         return CRUX_UPDATE_ERR_FORMAT;
     }

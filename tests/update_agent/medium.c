@@ -85,8 +85,7 @@ static void fake_signature(const uint8_t digest[CRUX_UPDATE_DIGEST_SIZE], uint8_
 
 static uint32_t read_u32(const uint8_t *p)
 {
-    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
-           ((uint32_t)p[3] << 24);
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
 static void put_u16(uint8_t *p, uint32_t v)
@@ -563,14 +562,9 @@ void crux_update_port_progress(crux_update_state_t phase, uint32_t done, uint32_
 
 medium_image_spec_t medium_image_default(uint8_t major, uint8_t minor, uint16_t revision)
 {
-    return (medium_image_spec_t){{major, minor, revision, 7},
-                                 3000,
-                                 0x00000020u,
-                                 MEDIUM_LOAD_ADDRESS,
-                                 MEDIUM_HEADER_SIZE,
-                                 true,
-                                 true,
-                                 true};
+    return (medium_image_spec_t){
+        {major, minor, revision, 7}, 3000, 0x00000020u, MEDIUM_LOAD_ADDRESS,
+        MEDIUM_HEADER_SIZE,          true, true,        true};
 }
 
 static size_t put_tlv(uint8_t *out, uint16_t type, const uint8_t *value, uint16_t length)
