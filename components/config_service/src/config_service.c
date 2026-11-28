@@ -2,6 +2,7 @@
 
 #include <crux/sync.h>
 
+#include <stdatomic.h>
 #include <string.h>
 
 _Static_assert(CRUX_CONFIG_SERVICE_MAX >= 1 && CRUX_CONFIG_SERVICE_MAX <= 32,
@@ -22,6 +23,13 @@ static bool lock_created;
  * save holds it across storage, so only another save ever waits on it. */
 static crux_mutex_t lock;
 static uint32_t unsaved;
+
+/* A disable mark per table index, set under the lock and never cleared. Operations read it with no
+ * lock for an early answer, as they read the table, and read it again under the lock, which
+ * decides. So it must be a lock-free atomic. char32_t is the type of uint_least32_t, which the word
+ * uses. */
+_Static_assert(ATOMIC_CHAR32_T_LOCK_FREE == 2, "The disable marks must be lock-free");
+static atomic_uint_least32_t disabled;
 
 static uint32_t bit_of(size_t index)
 {
@@ -76,6 +84,19 @@ static size_t find(const char *name)
     return table_count;
 }
 
+static bool is_disabled(size_t index)
+{
+    return (atomic_load(&disabled) & bit_of(index)) != 0;
+}
+
+/* A disabled entry answers as a missing name everywhere, so every operation but the disable itself
+ * looks names up here. */
+static size_t find_enabled(const char *name)
+{
+    size_t index = find(name);
+    return index < table_count && is_disabled(index) ? table_count : index;
+}
+
 /*
  * Check the session and the permission this use needs, which records a denial. The answer then
  * depends on what the session may see: a session with neither permission gets what a missing name
@@ -113,7 +134,7 @@ static crux_config_service_result_t session_usable(crux_access_session_t session
 static crux_config_service_result_t enter(crux_access_session_t session, const char *name,
                                           need_t need, size_t *index)
 {
-    *index = name ? find(name) : table_count;
+    *index = name ? find_enabled(name) : table_count;
     if (*index == table_count) {
         crux_config_service_result_t result = session_usable(session);
         if (result != CRUX_CONFIG_SERVICE_OK) {
@@ -217,6 +238,9 @@ crux_config_service_result_t crux_config_service_next(crux_access_session_t sess
         return CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT;
     }
     for (size_t position = *cursor; position < table_count; ++position) {
+        if (is_disabled(position)) {
+            continue;
+        }
         const crux_config_service_entry_t *entry = &table[position];
         bool can_read = false;
         bool can_write = false;
@@ -235,8 +259,12 @@ crux_config_service_result_t crux_config_service_next(crux_access_session_t sess
         if (result != CRUX_CONFIG_SERVICE_OK) {
             return result;
         }
+        bool gone = is_disabled(position);
         bool marked = (unsaved & bit_of(position)) != 0;
         unlock();
+        if (gone) {
+            continue;
+        }
         fill_item(position, can_read, can_write, marked, item);
         *cursor = position + 1;
         return CRUX_CONFIG_SERVICE_OK;
@@ -305,7 +333,9 @@ crux_config_service_result_t crux_config_service_read(crux_access_session_t sess
         return result;
     }
     crux_config_value_t value;
-    if (crux_config_read(table[index].parameter, &value) != CRUX_CONFIG_OK) {
+    if (is_disabled(index)) {
+        result = CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
+    } else if (crux_config_read(table[index].parameter, &value) != CRUX_CONFIG_OK) {
         result = CRUX_CONFIG_SERVICE_ERR_NOT_READY;
     } else {
         /* A string borrows the parameter's storage, so it is copied before the lock goes. */
@@ -390,12 +420,17 @@ static void clear_bytes(void *memory, size_t size)
     }
 }
 
-/* Applies a candidate under the polled lock, and marks it. Lock results pass through. */
+/* Applies a candidate under the polled lock, and marks it. Lock results pass through. A disable
+ * that took the lock first makes the name missing, and the validator is not called. */
 static crux_config_service_result_t apply(size_t index, const crux_config_value_t *candidate)
 {
     crux_config_service_result_t result = poll_lock();
     if (result != CRUX_CONFIG_SERVICE_OK) {
         return result;
+    }
+    if (is_disabled(index)) {
+        unlock();
+        return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
     }
     crux_config_result_t updated = crux_config_update(table[index].parameter, candidate);
     if (updated == CRUX_CONFIG_OK) {
@@ -494,10 +529,14 @@ static crux_config_service_result_t save_marked(crux_config_service_save_report_
     return result;
 }
 
-/* The rule of a listing: a session sees a parameter it can read or write. A probe that fails
- * denies, so that a session ended during its own save learns nothing more. */
-static bool session_sees(const crux_config_service_entry_t *entry, crux_access_session_t session)
+/* The rule of a listing: a session sees a parameter it can read or write, and never a disabled one.
+ * A probe that fails denies, so that a session ended during its own save learns nothing more. */
+static bool session_sees(size_t index, crux_access_session_t session)
 {
+    if (is_disabled(index)) {
+        return false;
+    }
+    const crux_config_service_entry_t *entry = &table[index];
     bool can_read = false;
     bool can_write = false;
     if (crux_access_permitted(session, entry->read_permission, &can_read) != CRUX_ACCESS_OK) {
@@ -535,7 +574,7 @@ crux_config_service_result_t crux_config_service_save(crux_access_session_t sess
         if ((saved & bit_of(i)) != 0) {
             crux_config_service_port_event(CRUX_CONFIG_SERVICE_EVENT_SAVED, session,
                                            crux_config_key(table[i].parameter));
-            if (session_sees(&table[i], session)) {
+            if (session_sees(i, session)) {
                 ++report->saved;
             }
         }
@@ -543,7 +582,7 @@ crux_config_service_result_t crux_config_service_save(crux_access_session_t sess
     if (failed != table_count) {
         crux_config_service_port_event(CRUX_CONFIG_SERVICE_EVENT_SAVE_FAILED, session,
                                        report->failed_name);
-        if (!session_sees(&table[failed], session)) {
+        if (!session_sees(failed, session)) {
             report->failed_name = NULL;
         }
     }
@@ -574,7 +613,7 @@ crux_config_service_result_t crux_config_service_try_read(const char *name,
     if (name == NULL || out == NULL) {
         return CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT;
     }
-    size_t index = find(name);
+    size_t index = find_enabled(name);
     if (index == table_count) {
         return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
     }
@@ -586,7 +625,9 @@ crux_config_service_result_t crux_config_service_try_read(const char *name,
         return result;
     }
     crux_config_value_t value;
-    if (crux_config_read(table[index].parameter, &value) != CRUX_CONFIG_OK) {
+    if (is_disabled(index)) {
+        result = CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
+    } else if (crux_config_read(table[index].parameter, &value) != CRUX_CONFIG_OK) {
         result = CRUX_CONFIG_SERVICE_ERR_NOT_READY;
     } else if (value.type == CRUX_CONFIG_STRING) {
         if (value.data.string.length >= capacity) {
@@ -603,6 +644,31 @@ crux_config_service_result_t crux_config_service_try_read(const char *name,
     return result;
 }
 
+crux_config_service_result_t crux_config_service_disable(const char *name)
+{
+    if (!started) {
+        return CRUX_CONFIG_SERVICE_ERR_NOT_READY;
+    }
+    if (name == NULL) {
+        return CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT;
+    }
+    size_t index = find(name);
+    if (index == table_count) {
+        return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
+    }
+    if (is_disabled(index)) {
+        return CRUX_CONFIG_SERVICE_OK;
+    }
+    /* Under the lock, so that no operation holding it sees the entry change part of the way. */
+    crux_config_service_result_t result = poll_lock();
+    if (result != CRUX_CONFIG_SERVICE_OK) {
+        return result;
+    }
+    atomic_fetch_or(&disabled, bit_of(index));
+    unlock();
+    return CRUX_CONFIG_SERVICE_OK;
+}
+
 crux_config_service_result_t crux_config_service_try_update(const char *name,
                                                             const crux_config_value_t *candidate)
 {
@@ -612,7 +678,7 @@ crux_config_service_result_t crux_config_service_try_update(const char *name,
     if (name == NULL || candidate == NULL) {
         return CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT;
     }
-    size_t index = find(name);
+    size_t index = find_enabled(name);
     if (index == table_count) {
         return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND;
     }

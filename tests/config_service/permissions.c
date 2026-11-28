@@ -524,6 +524,88 @@ static void empty_table(void)
           CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID);
 }
 
+static void disable_refusals(void)
+{
+    fixture_boot();
+    /* Before start, as every other operation. */
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_ERR_NOT_READY);
+    CHECK(crux_config_service_start(test_table, TABLE_ENTRIES) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_disable(NULL) == CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT);
+    CHECK(crux_config_service_disable("no_such_name") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(crux_config_service_disable("host") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    /* A second disable succeeds and changes nothing. */
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    /* No session takes part, so nothing reaches either event port. */
+    CHECK(access_fake_event_count() == 0);
+    CHECK(config_events_count() == 0);
+}
+
+static void disabled_is_left_out_of_every_listing(void)
+{
+    fixture_start();
+    size_t early = 0;
+    crux_config_service_item_t item;
+    CHECK(crux_config_service_next(s_both, &early, &item) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(strcmp(item.name, NAME_MODE) == 0);
+
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_disable(NAME_SECRET) == CRUX_CONFIG_SERVICE_OK);
+    static const char *const everything[] = {NAME_MODE, NAME_WIDE, NAME_HOST, NAME_SMALL,
+                                             NAME_FIXED};
+    static const char *const writable[] = {NAME_MODE, NAME_WIDE, NAME_HOST, NAME_SMALL};
+    expect_listing(s_stranger, NULL, 0);
+    expect_listing(s_saver, NULL, 0);
+    expect_listing(s_reader, everything, 5);
+    expect_listing(s_writer, writable, 4);
+    expect_listing(s_both, everything, 5);
+    expect_listing(s_admin, everything, 5);
+
+    /* A cursor taken before the disable goes on past it, and the others keep their places. */
+    CHECK(crux_config_service_next(s_both, &early, &item) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(strcmp(item.name, NAME_WIDE) == 0);
+    CHECK(early == 4u);
+
+    /* Leaving it out records nothing, as hiding does. */
+    CHECK(denials() == 0);
+    CHECK(access_fake_event_count() == 0);
+    CHECK(config_events_count() == 0);
+}
+
+static void disabled_reads_and_updates_as_missing(void)
+{
+    fixture_start();
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_disable(NAME_SECRET) == CRUX_CONFIG_SERVICE_OK);
+    char text[CRUX_CONFIG_SERVICE_TEXT_SIZE] = "untouched";
+    size_t length = 99;
+    crux_config_type_t type = CRUX_CONFIG_BOOL;
+    const crux_access_session_t all[] = {s_admin, s_reader, s_writer, s_both, s_saver, s_stranger};
+    for (size_t i = 0; i < sizeof(all) / sizeof(all[0]); ++i) {
+        CHECK(crux_config_service_read(all[i], NAME_LIMIT, text, sizeof(text), &length, &type) ==
+              CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+        CHECK(update_text(all[i], NAME_LIMIT, "8") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+        /* A sensitive name no longer answers that it is write-only, which would show it exists. */
+        CHECK(crux_config_service_read(all[i], NAME_SECRET, text, sizeof(text), &length, &type) ==
+              CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+        CHECK(update_text(all[i], NAME_SECRET, "x") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    }
+    CHECK(strcmp(text, "untouched") == 0 && length == 99 && type == CRUX_CONFIG_BOOL);
+    /* As a name that is not in the table: no denial and no event. */
+    CHECK(denials() == 0);
+    CHECK(access_fake_event_count() == 0);
+    CHECK(config_events_count() == 0);
+    /* The session still comes first. */
+    CHECK(crux_config_service_read(s_never_valid, NAME_LIMIT, text, sizeof(text), &length, &type) ==
+          CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID);
+    CHECK(update_text(s_never_valid, NAME_SECRET, "x") == CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID);
+
+    /* The others are unchanged. */
+    expect_text(s_both, NAME_WIDE, "0");
+    CHECK(update_text(s_both, NAME_WIDE, "3") == CRUX_CONFIG_SERVICE_OK);
+    expect_text(s_reader, NAME_WIDE, "3");
+}
+
 int main(void)
 {
     run_case("listing by role", listing_by_role);
@@ -539,5 +621,8 @@ int main(void)
     run_case("table bound", table_bound);
     run_case("access not ready", access_not_ready);
     run_case("empty table", empty_table);
+    run_case("disable refusals", disable_refusals);
+    run_case("disabled is left out of every listing", disabled_is_left_out_of_every_listing);
+    run_case("disabled reads and updates as missing", disabled_reads_and_updates_as_missing);
     return suite_finish("ConfigService.permissions");
 }

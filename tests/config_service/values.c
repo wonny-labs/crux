@@ -392,6 +392,52 @@ static void application_calls(void)
     CHECK(crux_config_service_save_local(NULL) == CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT);
 }
 
+static unsigned validator_calls;
+
+static bool counting_validator(const crux_config_value_t *value, void *context)
+{
+    (void)value;
+    (void)context;
+    ++validator_calls;
+    return true;
+}
+
+static void disabled_refuses_the_application_too(void)
+{
+    fixture_boot();
+    static const crux_config_spec_t spec = {
+        "counted", 1, {.type = CRUX_CONFIG_U32, .data.u32 = 1}, counting_validator, NULL};
+    static crux_config_param_t parameter;
+    CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
+    static const crux_config_service_entry_t table[] = {
+        {&parameter, "cfg.read", "cfg.write", false, CRUX_CONFIG_ACTIVATION_APPLICATION},
+        {&param_wide, "cfg.read", "cfg.write", false, CRUX_CONFIG_ACTIVATION_APPLICATION}};
+    CHECK(crux_config_service_start(table, 2) == CRUX_CONFIG_SERVICE_OK);
+
+    crux_config_value_t value = {.type = CRUX_CONFIG_U32, .data.u32 = 2};
+    validator_calls = 0;
+    CHECK(crux_config_service_try_update("counted", &value) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(update_text(s_both, "counted", "3") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(validator_calls == 2);
+
+    CHECK(crux_config_service_disable("counted") == CRUX_CONFIG_SERVICE_OK);
+    crux_config_value_t out = {.type = CRUX_CONFIG_BOOL, .data.boolean = true};
+    CHECK(crux_config_service_try_read("counted", &out, NULL, 0) ==
+          CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(out.type == CRUX_CONFIG_BOOL && out.data.boolean);
+    value.data.u32 = 4;
+    CHECK(crux_config_service_try_update("counted", &value) == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(update_text(s_both, "counted", "5") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    /* The service never calls the validator again, so its context may go quiet. */
+    CHECK(validator_calls == 2);
+
+    /* The other entry still answers the application. */
+    value.data.u32 = 6;
+    CHECK(crux_config_service_try_update(NAME_WIDE, &value) == CRUX_CONFIG_SERVICE_OK);
+    expect_u32(NAME_WIDE, 6);
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_REJECTED) == 0);
+}
+
 int main(void)
 {
     run_case("bool forms", bool_forms);
@@ -402,5 +448,6 @@ int main(void)
     run_case("parse buffer is cleared", parse_buffer_is_cleared);
     run_case("scalar candidate is cleared", scalar_candidate_is_cleared);
     run_case("application calls", application_calls);
+    run_case("disabled refuses the application too", disabled_refuses_the_application_too);
     return suite_finish("ConfigService.values");
 }

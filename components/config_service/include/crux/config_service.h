@@ -272,6 +272,36 @@ crux_config_service_result_t crux_config_service_try_update(const char *name,
 crux_config_service_result_t
 crux_config_service_save_local(crux_config_service_save_report_t *report);
 
+/**
+ * Withdraw a parameter for the owning application, until the program starts again. One-way: no
+ * call enables it again. No session and no event.
+ *
+ * Afterwards every operation treats the name as missing. A listing leaves it out with no event and
+ * keeps the places of the other entries, so a cursor taken before stays valid. read and update
+ * return CRUX_CONFIG_SERVICE_ERR_NOT_FOUND with no denial, and a sensitive name no longer answers
+ * CRUX_CONFIG_SERVICE_ERR_WRITE_ONLY. try_read and try_update also return
+ * CRUX_CONFIG_SERVICE_ERR_NOT_FOUND. The service never calls the parameter's validator again.
+ *
+ * An update accepted before the disable keeps its unsaved mark, and the next save still writes it:
+ * the events of a session's save name it, its report leaves it out as a listing does, and the
+ * report of crux_config_service_save_local() counts and names it. So the parameter, its storage,
+ * its spec and its validation context stay borrowed for the program's life, as the table does, and
+ * no thread calls the Configuration functions on it directly.
+ *
+ * Polls the lock and never waits on it or on storage. The lock orders it against the other
+ * operations: one that took the lock before finishes as before, and none that starts after this
+ * returns CRUX_CONFIG_SERVICE_OK reads, changes or validates the value. Disabling twice succeeds.
+ *
+ * @param name The parameter's key.
+ * @retval CRUX_CONFIG_SERVICE_OK Disabled, or already disabled.
+ * @retval CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT name is NULL.
+ * @retval CRUX_CONFIG_SERVICE_ERR_NOT_READY Not started, or a lock failed, which includes a call
+ * from a validator. Nothing changed.
+ * @retval CRUX_CONFIG_SERVICE_ERR_NOT_FOUND No such parameter.
+ * @retval CRUX_CONFIG_SERVICE_ERR_BUSY The lock is held. Nothing changed. Retry later.
+ */
+crux_config_service_result_t crux_config_service_disable(const char *name);
+
 #ifdef __cplusplus
 }
 #endif

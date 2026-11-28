@@ -308,6 +308,55 @@ static void events_run_with_no_lock_held(void)
     config_events_hook(NULL, NULL);
 }
 
+/* An update accepted before a disable is not lost: the next save writes it. */
+static void disabled_keeps_its_unsaved_mark(void)
+{
+    fixture_start();
+    CHECK(update_text(s_both, NAME_MODE, "true") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(update_text(s_both, NAME_LIMIT, "6") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    config_events_clear();
+
+    crux_config_service_save_report_t report = {0};
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(config_fault_write_log_count() == 2);
+    CHECK(strcmp(config_fault_write_log_key(1), NAME_LIMIT) == 0);
+    uint8_t bytes[8];
+    CHECK(config_fault_bytes(NAME_LIMIT, bytes, sizeof(bytes)) > 0);
+    /* The events name it for the operator. The session's report follows its listing. */
+    CHECK(config_events_count() == 2);
+    CHECK(strcmp(config_events_get(1)->name, NAME_LIMIT) == 0);
+    CHECK(report.saved == 1 && report.failed_name == NULL);
+
+    /* The mark is gone, as after any save. */
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(report.saved == 0);
+    CHECK(config_fault_write_log_count() == 2);
+}
+
+static void disabled_save_failure_is_named_only_to_the_application(void)
+{
+    fixture_start();
+    CHECK(update_text(s_both, NAME_LIMIT, "6") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_disable(NAME_LIMIT) == CRUX_CONFIG_SERVICE_OK);
+    config_events_clear();
+    config_fault_write_fail_key(NAME_LIMIT, CRUX_CONFIG_ERR_IO);
+
+    crux_config_service_save_report_t report = {0};
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_ERR_STORE);
+    CHECK(report.saved == 0 && report.failed_name == NULL);
+    CHECK(report.failed_result == CRUX_CONFIG_ERR_IO);
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_SAVE_FAILED) == 1);
+    CHECK(strcmp(config_events_get(0)->name, NAME_LIMIT) == 0);
+
+    /* The application owns the table, so its report names it. */
+    CHECK(crux_config_service_save_local(&report) == CRUX_CONFIG_SERVICE_ERR_STORE);
+    CHECK(report.failed_name != NULL && strcmp(report.failed_name, NAME_LIMIT) == 0);
+    config_fault_write_fail_key(NULL, CRUX_CONFIG_OK);
+    CHECK(crux_config_service_save_local(&report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(report.saved == 1 && report.failed_name == NULL);
+}
+
 int main(void)
 {
     run_case("saves only what is marked", saves_only_what_is_marked);
@@ -322,5 +371,8 @@ int main(void)
              report_counts_only_what_the_session_can_see);
     run_case("report hides on a failed probe", report_hides_on_a_failed_probe);
     run_case("events run with no lock held", events_run_with_no_lock_held);
+    run_case("disabled keeps its unsaved mark", disabled_keeps_its_unsaved_mark);
+    run_case("disabled save failure is named only to the application",
+             disabled_save_failure_is_named_only_to_the_application);
     return suite_finish("ConfigService.save");
 }

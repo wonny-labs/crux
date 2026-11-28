@@ -68,6 +68,10 @@ static void expect_polls_give(crux_config_service_result_t expected)
     crux_config_value_t value = {.type = CRUX_CONFIG_U32, .data.u32 = 2};
     CHECK(crux_config_service_try_update("value", &value) == expected);
     CHECK(crux_config_service_try_read("value", &value, NULL, 0) == expected);
+    /* Each case leaves the parameter enabled: only success disables it, and that is last. */
+    if (expected != CRUX_CONFIG_SERVICE_OK) {
+        CHECK(crux_config_service_disable("value") == expected);
+    }
 }
 
 static void expect_saves_give(crux_config_service_result_t expected)
@@ -120,6 +124,13 @@ int main(void)
     crux_config_service_save_report_t report;
     CHECK(crux_config_service_save(session, &report) == CRUX_CONFIG_SERVICE_OK);
     CHECK(save_waits == 1);
+
+    /* A disable polls too, and after it the polling operations find nothing. */
+    save_waits = 0;
+    CHECK(crux_config_service_disable("value") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(save_waits == 0);
+    CHECK(crux_config_service_try_read("value", &value, NULL, 0) ==
+          CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
 
     printf("ConfigService.lock_faults: %s\n", failures ? "FAIL" : "PASS");
     return failures ? 1 : 0;
